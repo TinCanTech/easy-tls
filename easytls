@@ -1,7 +1,9 @@
 #!/bin/sh
 
-# Easy-TLS -- A Shell-based Utility to help manage OpenVPN specific TLS keys
-#             and other Easy-RSA based security credentials.
+# Easy-TLS -- A Shell-based Easy-RSA extension utility to help manage 
+#               * OpenVPN specific TLS keys
+#               * Easy-RSA based x509 security credentials
+#               * Verified 'inline' combined OpenVPN node packages
 #
 # Copyright (C) 2020 Richard Bonhomme
 # https://github.com/TinCanTech
