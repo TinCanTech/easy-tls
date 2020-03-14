@@ -1,2 +1,2 @@
 # easy-tls
-Simple Shell script to help manage TLS keys specifically for use with OpenVPN
+Simple Shell script to help manage OpenVPN specific TLS keys
