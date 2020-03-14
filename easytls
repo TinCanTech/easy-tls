@@ -1,0 +1,550 @@
+#!/bin/sh
+
+# Easy-TLS -- A Shell-based Key management Utility for OpenVPN TLS keys
+#
+# Copyright (C) 2020 Richard Bonhomme -- tincantech@gmail.com
+# All Rights reserved.
+#
+# This code released under version 2 of the GNU GPL; see COPYING and the
+# Licensing/ directory of this project for full licensing details.
+
+# Acknowledgement:
+# This utility is written in the style of and borrows heavily from Easy-RSA
+# See: https://github.com/OpenVPN/easy-rsa
+#
+# 
+
+
+# Help/usage output to stdout
+usage() {
+	# command help:
+	print "
+Easy-TLS usage and overview
+
+USAGE: easytls [options] COMMAND [command-options]
+
+A list of commands is shown below. To get detailed usage and help for a
+command, run:
+  ./easytls help COMMAND
+
+For a listing of options that can be supplied before the command, use:
+  ./easytls help options
+
+Here is the list of commands available with a short syntax reminder. Use the
+'help' command above to get full usage details.
+
+  init-tls
+  build-tls-auth
+  build-tls-crypt
+  build-tls-crypt-v2-server <filename_base>
+  build-tls-crypt-v2-client <filename_base>
+  build-inline <filename_base> [ cmd-opts ]
+  revoke <filename_base> (TODO)
+"
+
+	# collect/show dir status:
+	err_source="Not defined: vars autodetect failed and no value provided"
+	work_dir="${EASYRSA:-$err_source}"
+	pki_dir="${EASYRSA_PKI:-$err_source}"
+	print "\
+DIRECTORY STATUS (commands would take effect on these locations)
+  EASYRSA: $work_dir
+      PKI: $pki_dir
+"
+} # => usage()
+
+# Detailed command help
+# When called with no args, calls usage(), otherwise shows help for a command
+cmd_help() {
+	text=""
+	opts=""
+	case "$1" in
+		init-tls) text="
+  init-tls
+      Removes & re-initializes the TLS key dir" ;;
+		build-tls-auth) text="
+  build-tls-auth PSK." ;;
+		build-tls-crypt) text="
+  build-tls-crypt PSK." ;;
+		build-tls-crypt-v2-server) text="
+  build-tls-crypt-v2-server <filename_base>" ;;
+		build-tls-crypt-v2-client) text="
+  build-tls-crypt-v2-client <filename_base>" ;;
+		build-inline) text="
+  build-inline <filename_base> [ cmd-opts ]" ;;
+		options)
+			opt_usage ;;
+		"")
+			usage ;;
+		*) text="
+  Unknown command: '$1' (try without commands for a list of commands)" ;;
+	esac
+
+	# display the help text
+	print "$text"
+	[ -n "$opts" ] && print "
+      cmd-opts is an optional set of command options from this list:
+$opts"
+} # => cmd_help()
+
+
+# Options usage
+opt_usage() {
+	print "
+Easy-RSA Global Option Flags
+
+The following options may be provided before the command. Options specified
+at runtime override env-vars and any 'vars' file in use. Unless noted,
+non-empty values to options are mandatory.
+
+General options:
+
+--batch         : set automatic (no-prompts when possible) mode
+--pki-dir=DIR   : declares the PKI directory (TODO)
+--vars=FILE     : define a specific 'vars' file to use for Easy-RSA config (TODO)
+
+"
+} # => opt_usage()
+
+# Wrapper around printf - clobber print since it's not POSIX anyway
+# shellcheck disable=SC1117
+print() { printf "%s\n" "$*"; }
+
+# Exit fatally with a message to stderr
+# present even with EASYRSA_BATCH as these are fatal problems
+die() {
+	easy_tls_version
+	print "
+Easy-RSA error:
+
+$1" 1>&2
+	exit "${2:-1}"
+} # => die()
+
+# remove temp files and do terminal cleanups
+cleanup() {
+	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
+	# shellcheck disable=SC2039
+	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
+	echo "" # just to get a clean line
+} # => cleanup()
+
+# non-fatal warning output
+warn() {
+	[ ! "$EASYRSA_BATCH" ] && \
+		print "
+$1" 1>&2
+} # => warn()
+
+# informational notices to stdout
+notice() {
+	[ ! "$EASYRSA_BATCH" ] && \
+		print "
+$1"
+} # => notice()
+
+# intent confirmation helper func
+# returns without prompting in EASYRSA_BATCH
+confirm() {
+	[ "$EASYRSA_BATCH" ] && return
+	prompt="$1"
+	value="$2"
+	msg="$3"
+	input=""
+	print "
+$msg
+
+Type the word '$value' to continue, or any other input to abort."
+	printf %s "  $prompt"
+	#shellcheck disable=SC2162
+	read input
+	[ "$input" = "$value" ] && return
+	notice "Aborting without confirmation."
+	exit 9
+} # => confirm()
+
+# Basic sanity-check of PKI init and complain if missing
+verify_pki_init () {
+	help_note="Run easyrsa without commands for usage and command help."
+
+	# check that the pki dir exists
+	vars_source_check
+	[ -d "$EASYRSA_PKI" ] || die "\
+EASYRSA_PKI does not exist (perhaps you need to run init-pki)?
+Expected to find the EASYRSA_PKI at: $EASYRSA_PKI
+$help_note"
+
+	# verify expected dirs present:
+	for i in private reqs; do
+		[ -d "$EASYRSA_PKI/$i" ] || die "\
+Missing expected directory: $i (perhaps you need to run init-pki?)
+$help_note"
+	done
+
+	# verify ssl lib
+	verify_ssl_lib
+} # => verify_pki_init()
+
+# Verify core CA files present
+verify_ca_init () {
+	help_note="Run without commands for usage and command help."
+
+	# First check the PKI has been initialized
+	verify_pki_init
+
+	# Verify expected files are present. Allow files to be regular files
+	# (or symlinks), but also pipes, for flexibility with ca.key
+	for i in serial index.txt index.txt.attr ca.crt private/ca.key; do
+		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
+			[ "$1" = "test" ] && return 1
+			die "\
+Missing expected CA file: $i (perhaps you need to run build-ca?)
+$help_note"
+		fi
+	done
+
+	# When operating in 'test' mode, return success.
+	# test callers don't care about CA-specific dir structure
+	#[ "$1" = "test" ] && return 0
+
+	# verify expected CA-specific dirs:
+	for i in issued certs_by_serial
+	do
+		[ -d "$EASYRSA_PKI/$i" ] || die "\
+Missing expected CA dir: $i (perhaps you need to run build-ca?)
+$help_note"
+	done
+
+	# explicitly return success for callers
+	return 0
+
+} # => verify_ca_init()
+
+# init-tls backend:
+init_tls () {
+
+	# If EASYRSA_PKI exists, confirm before we rm -rf (skiped with EASYRSA_BATCH)
+	if [ -e "$EASYRSA_PKI" ]; then
+		confirm "Confirm removal: " "yes" "
+WARNING!!!
+
+You are about to remove the EASYRSA_PKI at: $EASYRSA_PKI
+and initialize a fresh PKI here."
+		# now remove it:
+		rm -rf "$EASYRSA_PKI" || die "Removal of PKI dir failed. Check/correct errors above"
+	fi
+
+	# new dirs:
+	for i in private reqs; do
+		mkdir -p "$EASYRSA_PKI/$i" || die "Failed to create PKI file structure (permissions?)"
+	done
+	
+	# Create $EASYRSA_SAFE_CONF ($OPENSSL_CONF) prevents bogus warnings (especially useful on win32)
+	if [ ! -f "$EASYRSA_SSL_CONF" ] && [ -f "$EASYRSA/openssl-easyrsa.cnf" ];
+	then
+		cp "$EASYRSA/openssl-easyrsa.cnf" "$EASYRSA_SSL_CONF"
+		easyrsa_openssl makesafeconf
+	fi
+
+	notice "\
+init-pki complete; you may now create a CA or requests.
+Your newly created PKI dir is: $EASYRSA_PKI
+"
+	return 0
+} # => init_tls ()
+
+# Create inline credentials file
+build_inline ()
+{
+	# TODO: Improve build_inline integration. eg: renew/revoke and ta.key
+	verify_ca_init
+	name="$1"
+	ca_file="$EASYRSA_PKI/ca.crt"
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
+	key_file="$EASYRSA_PKI/private/$name.key"
+	out_file="$EASYRSA_PKI/inline/$name.inline"
+
+	if [ "$EASYRSA_BATCH" ]
+	then
+		rm -f "$out_file"
+	else
+		[ -f "$out_file" ] && die "Inline file exists: $out_file"
+	fi
+
+	[ -f "$crt_file" ] || die "Certificate file does not exist: $crt_file"
+	[ -f "$key_file" ] || die "Key file does not exist: $key_file"
+
+	mkdir -p "$EASYRSA_PKI/inline"
+	{
+		printf "%s\n" "# File name base: $name"
+		printf "%s\n" ""
+		printf "%s\n" "<cert>"
+		cat "$crt_file"
+		printf "%s\n" "</cert>"
+		printf "%s\n" ""
+		printf "%s\n" "<key>"
+		cat "$key_file"
+		printf "%s\n" "</key>"
+		printf "%s\n" ""
+		printf "%s\n" "<ca>"
+		cat "$ca_file"
+		printf "%s\n" "</ca>"
+		printf "%s\n" ""
+	} > "$out_file" || die "Failed to create inline file: $out_file"
+} # => build_inline ()
+
+build_tls_auth () {
+	# Requires openvpn
+	verify_ca_init
+	print "Build TLS auth key"
+	EASYRSA_TLS_AUTH_KEY="$EASYRSA_PKI/tls-auth.key"
+
+	[ -f "$EASYRSA_TLS_AUTH_KEY" ] && \
+		die "TLS auth key already exists: $EASYRSA_TLS_AUTH_KEY"
+
+	"$EASYRSA_OPENVPN" --genkey --secret "$EASYRSA_TLS_AUTH_KEY" || \
+		die "Failed to create TLS auth key: $EASYRSA_TLS_AUTH_KEY"
+
+	notice "TLS auth key created: $EASYRSA_TLS_AUTH_KEY"
+}
+
+build_tls_crypt_v1 () {
+	# Requires openvpn
+	verify_ca_init
+	print "Build TLS crypt v1 key"
+	EASYRSA_TLS_CRYPT_V1_KEY="$EASYRSA_PKI/tls-crypt.key"
+
+	[ -f "$EASYRSA_TLS_CRYPT_V1_KEY" ] && \
+		die "TLS crypt v1 key already exists: $EASYRSA_TLS_CRYPT_V1_KEY"
+
+	"$EASYRSA_OPENVPN" --genkey --secret "$EASYRSA_TLS_CRYPT_V1_KEY" || \
+		die "Failed to create TLS crypt v1 key: $EASYRSA_TLS_CRYPT_V1_KEY"
+
+	notice "TLS crypt v1 key created: $EASYRSA_TLS_CRYPT_V1_KEY"
+}
+
+build_tls_crypt_v2_server () {
+	# Requires openvpn
+	verify_ca_init
+	print "Build TLS crypt v2 key"
+	type="$1"
+	srv_name="$2"
+	cli_name="$3"
+	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-srv-$srv_name.key"
+	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-cli-$cli_name.key"
+
+	mkdir -p "$EASYRSA_PKI/tls-crypt-v2"
+	case "$type" in
+	server)
+		[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] && \
+			die "Server file already exists: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+		"$EASYRSA_OPENVPN" --genkey tls-crypt-v2-server "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" || \
+			die "Failed to create tls-crypt-v2-server key: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+		notice "TLS crypt v2 server key created: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	;;
+	*)
+		die "Unknown type: $type"
+	;;
+	esac
+}
+
+build_tls_crypt_v2_client () {
+	# Requires openvpn
+	verify_ca_init
+	print "Build TLS crypt v2 key"
+	type="$1"
+	srv_name="$2"
+	cli_name="$3"
+	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-srv-$srv_name.key"
+	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-cli-$cli_name.key"
+
+	mkdir -p "$EASYRSA_PKI/tls-crypt-v2"
+	case "$type" in
+	client)
+		[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] || \
+			die "Server file does not exist: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+		[ -f "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" ] && \
+			die "Client file already exists: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+		"$EASYRSA_OPENVPN" --tls-crypt-v2 "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" \
+			--genkey tls-crypt-v2-client "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" || \
+			die "Failed to create tls-crypt-v2-client key: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+		notice "TLS crypt v2 client key created: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+	;;
+	*)
+		die "Unknown type: $type"
+	;;
+	esac
+}
+
+# vars setup
+# Here sourcing of 'vars' if present occurs. If not present, defaults are used
+# to support running without a sourced config format
+vars_setup() {
+	# Try to locate a 'vars' file in order of location preference.
+	# If one is found, source it
+	vars=
+
+	# set up program path
+	prog_file="$0"
+	prog_file2="$(which -- "$prog_file" 2>/dev/null)" && prog_file="$prog_file2"
+	prog_file2="$(readlink -f "$prog_file" 2>/dev/null)" && prog_file="$prog_file2"
+	prog_dir="${prog_file%/*}"
+	prog_vars="${prog_dir}/vars"
+	# set up PKI path
+	pki_vars="${EASYRSA_PKI:-$PWD/pki}/vars"
+
+	# command-line path:
+	if [ ! -z "$EASYRSA_VARS_FILE" ]; then
+	  if [ ! -f "$EASYRSA_VARS_FILE" ]; then
+		  # If the --vars option does not point to a file, show helpful error.
+			die "The file '$EASYRSA_VARS_FILE' was not found."
+		fi
+		vars="$EASYRSA_VARS_FILE"
+	# PKI location, if present:
+	elif [ -f "$pki_vars" ]; then
+		vars="$pki_vars"
+	# EASYRSA, if defined:
+	elif [ -n "$EASYRSA" ] && [ -f "$EASYRSA/vars" ]; then
+		vars="$EASYRSA/vars"
+	# program location:
+	elif [ -f "$prog_vars" ]; then
+		vars="$prog_vars"
+	fi
+	
+	# If a vars file was located, source it
+	# If $EASYRSA_NO_VARS is defined (not blank) this is skipped
+	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
+		#shellcheck disable=SC2034
+		EASYRSA_CALLER=1 
+		# shellcheck disable=SC1090
+		. "$vars"
+		notice "\
+Note: using Easy-RSA configuration from: $vars"
+	fi
+	
+	# Set defaults, preferring existing env-vars if present
+	set_var 
+	set_var EASYRSA		"$prog_dir"
+	set_var EASYRSA_OPENSSL	openssl
+	set_var EASYRSA_PKI	"$PWD/pki"
+	set_var EASYRSA_DN	cn_only
+	set_var EASYRSA_TEMP_DIR	"$EASYRSA_PKI"
+
+	# Assign value to $EASYRSA_TEMP_DIR_session and work around Windows mktemp bug when parent dir is missing
+	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
+		if [ -d "$EASYRSA_TEMP_DIR" ]; then
+			EASYRSA_TEMP_DIR_session="$(mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX")"
+		else
+			# If the directory does not exist then we have not run init-pki
+			mkdir -p "$EASYRSA_TEMP_DIR" || die "Cannot create $EASYRSA_TEMP_DIR (permission?)"
+			EASYRSA_TEMP_DIR_session="$(mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX")"
+			rm -rf "$EASYRSA_TEMP_DIR"
+		fi
+	fi
+
+} # vars_setup()
+
+# variable assignment by indirection when undefined; merely exports
+# the variable when it is already defined (even if currently null)
+# Sets $1 as the value contained in $2 and exports (may be blank)
+set_var() {
+	[ $# -eq 0 ] && return
+	var=$1
+	shift
+	value="$*"
+	eval "export $var=\"\${$var-$value}\""
+} #=> set_var()
+
+easy_tls_version () 
+{
+	EASYTLS_VERSION="0.1 TEST"
+	print "Easy-TLS version: $EASYTLS_VERSION"
+}
+
+########################################
+# Invocation entry point:
+
+
+# Be secure with a restrictive umask
+[ -z "$EASYTLS_NO_UMASK" ] && umask 077
+
+# Parse options
+while :; do
+	# Separate option from value:
+	opt="${1%%=*}"
+	val="${1#*=}"
+	empty_ok="" # Empty values are not allowed unless excepted
+
+	case "$opt" in
+	--batch)
+		empty_ok=1
+		export EASYTLS_BATCH=1 ;;
+	--pki-dir)
+		export EASYRSA_PKI="$val" ;;
+	--vars)
+		export EASYRSA_VARS_FILE="$val" ;;
+	*)
+		break ;;
+	esac
+
+	# fatal error when no value was provided
+	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
+		die "Missing value to option: $opt"
+	fi
+
+	shift
+done
+
+# Intelligent env-var detection and auto-loading:
+vars_setup
+
+# Register cleanup on EXIT
+trap "cleanup" EXIT
+# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
+# explicitly exit to signal EXIT (non-bash shells)
+trap "exit 1" 1
+trap "exit 2" 2
+trap "exit 3" 3
+trap "exit 6" 6
+trap "exit 14" 15
+
+# Upgrade: EasyRSA v2.x to EasyRSA v3.x
+# Upgrade: EasyRSA < v3.0.6 to v3.0.6+
+#up23_manage_upgrade_23
+
+# determine how we were called, then hand off to the function responsible
+cmd="$1"
+[ -n "$1" ] && shift # scrape off command
+case "$cmd" in
+	init-tls)
+		init_tls "$@"
+		;;
+	build-tls-auth)
+		build_tls_auth "$@"
+		;;
+	build-tls-crypt)
+		build_tls_crypt "$@"
+		;;
+	build-tls-crypt-v2-server)
+		build_tls_crypt_v2_server "$@"
+		;;
+	build-tls-crypt-v2-client)
+		build_tls_crypt_v2_client "$@"
+		;;
+	build-inline)
+		build_inline "$@"
+		;;
+	version|-v|--version)
+		easy_tls_version
+		exit 0
+		;;
+	""|help|-h|--help|--usage)
+		cmd_help "$1"
+		exit 0
+		;;
+	*)
+		die "Unknown command '$cmd'. Run without commands for usage help."
+		;;
+esac
+
+# vim: ft=sh nu ai sw=8 ts=8 noet
