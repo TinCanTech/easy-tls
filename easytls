@@ -1,16 +1,23 @@
 #!/bin/sh
 
-# Easy-TLS -- A Shell-based Key management Utility for OpenVPN TLS keys
+# Easy-TLS -- A Shell-based Utility to help manage OpenVPN specific TLS keys
+#             and other Easy-RSA based security credentials.
 #
-# Copyright (C) 2020 Richard Bonhomme -- tincantech@gmail.com
+# Copyright (C) 2020 Richard Bonhomme
+# https://github.com/TinCanTech
+# tincanteksup@gmail.com
 # All Rights reserved.
 #
-# This code released under version 2 of the GNU GPL; see COPYING and the
-# Licensing/ directory of this project for full licensing details.
-
-# Acknowledgement:
-# This utility is written in the style of and borrows heavily from Easy-RSA
+# This code is released under version 2 of the GNU GPL
+# See LICENSE of this project for full licensing details.
+#
+# Acknowledgement: 
+# This utility is "written in the style of" and "borrows heavily from" Easy-RSA
 # See: https://github.com/OpenVPN/easy-rsa
+#
+# Easy-TLS requirements:
+# + Easy-RSA Version 3
+# + OpenVPN
 #
 # 
 
