@@ -48,6 +48,7 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <filename_base>
   build-inline <filename_base> [ cmd-opts ]
+  test-inline (Requires root) (Can this be done with verification only and not managing tun?)
   revoke <filename_base> (TODO)
 "
 
