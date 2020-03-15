@@ -1,0 +1,8 @@
+tls/*
+pki/*
+easyrsa
+vars
+vars.example
+safessl-easyrsa.cnf
+test/*
+setup
