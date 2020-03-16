@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Easy-TLS -- A Shell-based Easy-RSA extension utility to help manage 
+# Easy-TLS -- A Shell-based Easy-RSA extension utility to help manage
 #               * OpenVPN specific TLS keys
 #               * Easy-RSA based x509 security credentials
 #               * Verified 'inline' combined OpenVPN node packages
@@ -13,15 +13,15 @@
 # This code is released under version 2 of the GNU GPL
 # See LICENSE of this project for full licensing details.
 #
-# Acknowledgement: 
+# Acknowledgement:
 # This utility is "written in the style of" and "borrows heavily from" Easy-RSA
 # See: https://github.com/OpenVPN/easy-rsa
 #
 # Easy-TLS requirements:
-# + Easy-RSA Version 3
-# + OpenVPN
+# + Easy-RSA Version 3.X
+# + OpenVPN Version 2.X
 #
-# 
+
 
 
 # Help/usage output to stdout
@@ -93,8 +93,8 @@ cmd_help()
 		build-tls-crypt-v2-client) text="
   build-tls-crypt-v2-client <filename_base>
       Create an OpenVPN TLS crypt V2 Client key." ;;
-		build-inline) text="
-  build-inline-tls-auth <filename_base>
+		build-inline-base) text="
+  build-inline-base <filename_base>
       Create a complete OpenVPN node package from Easy-RSA files only
       for VPN node <filename_base>" ;;
 		build-inline-tls-auth) text="
@@ -138,9 +138,9 @@ non-empty values to options are mandatory.
 General options:
 
 --batch         : set automatic (no-prompts when possible) mode
---pki-dir=DIR   : declare the PKI directory (TODO)
---vars=FILE     : define a specific 'vars' file to use for Easy-RSA config (TODO)
---tls-dir=DIR   : declare the TLS directory (TODO)
+--pki-dir=DIR   : declare the PKI directory
+--vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
+--tls-dir=DIR   : declare the TLS directory
 
 "
 } # => opt_usage()
@@ -290,9 +290,9 @@ verify_openvpn ()
 	else
 		die "OpenVPN not found: $EASYTLS_OPENVPN"
 	fi
-}
+} # => verify_openvpn ()
 
-# Verify Openvpn version, 2.5 is required for TLS auth v2
+# Verify Openvpn version, 2.5 required for TLS crypt v2, 2.4 required for TLS crypt v1
 verify_openvpn_version ()
 {
 	EASYTLS_OPENVPN_VERSION_REQ_MAJOR="$1"
@@ -321,7 +321,7 @@ verify_openvpn_version ()
 	[ $EASYTLS_OPENVPN_VERSION_MAJOR -lt $EASYTLS_OPENVPN_VERSION_REQ_MAJOR ] && \
 		die "Openvpn 2.$EASYTLS_OPENVPN_VERSION_REQ_MAJOR required, Found $EASYTLS_OPENVPN_VERSION"
 	[ $EASYTLS_OPENVPN_VERSION_MINOR -lt 0 ] && die "Openvpn 2.X.X required, Found $EASYTLS_OPENVPN_VERSION"
-}
+} # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
 verify_tls_init ()
@@ -593,7 +593,7 @@ vars_setup() {
 	# If $EASYRSA_NO_VARS is defined (not blank) this is skipped
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
 		#shellcheck disable=SC2034
-		EASYRSA_CALLER=1 
+		EASYRSA_CALLER=1
 		# shellcheck disable=SC1090
 		. "$vars"
 		notice "\
@@ -601,7 +601,7 @@ Note: using Easy-RSA configuration from: $vars"
 	fi
 	
 	# Set defaults, preferring existing env-vars if present
-	set_var 
+	set_var
 	set_var EASYRSA		"$prog_dir"
 	set_var EASYRSA_OPENSSL	openssl
 	set_var EASYRSA_PKI	"$PWD/pki"
@@ -638,11 +638,11 @@ set_var() {
 } #=> set_var()
 
 # Set the Easy-TLS version
-easy_tls_version () 
+easy_tls_version ()
 {
-	EASYTLS_VERSION="0.2"
+	EASYTLS_VERSION="0.4"
 	print "Easy-TLS version: $EASYTLS_VERSION"
-}
+} # => easy_tls_version ()
 
 ########################################
 # Invocation entry point:
@@ -666,6 +666,8 @@ while :; do
 		export EASYRSA_PKI="$val" ;;
 	--vars)
 		export EASYRSA_VARS_FILE="$val" ;;
+	--tls-dir)
+		export EASYTLS_PKI="$val" ;;
 	*)
 		break ;;
 	esac
@@ -713,6 +715,9 @@ case "$cmd" in
 		;;
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
+		;;
+	build-inline-base)
+		build_inline_base "$@"
 		;;
 	build-inline-tls-auth)
 		build_inline_tls_auth "$@"
