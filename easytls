@@ -25,10 +25,13 @@
 
 
 # Help/usage output to stdout
-usage() {
+usage()
+{
 	# command help:
 	print "
 Easy-TLS usage and overview
+
+NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 
 USAGE: easytls [options] COMMAND [command-options]
 
@@ -46,8 +49,11 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
-  build-tls-crypt-v2-client <filename_base>
-  build-inline <filename_base> [ cmd-opts ]
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+  build-inline-base <filename_base>
+  build-inline-tls-auth <filename_base>
+  build-inline-tls-crypt <filename_base>
+  build-inline-tls-crypt-v2 <filename_base>
   test-inline (Requires root) (Can this be done with verification only and not managing tun?)
   revoke <filename_base> (TODO)
 "
@@ -56,16 +62,19 @@ Here is the list of commands available with a short syntax reminder. Use the
 	err_source="Not defined: vars autodetect failed and no value provided"
 	work_dir="${EASYRSA:-$err_source}"
 	pki_dir="${EASYRSA_PKI:-$err_source}"
+	tls_dir="${EASYTLS_PKI:-$err_source}"
 	print "\
 DIRECTORY STATUS (commands would take effect on these locations)
   EASYRSA: $work_dir
       PKI: $pki_dir
+      TLS: $tls_dir
 "
 } # => usage()
 
 # Detailed command help
 # When called with no args, calls usage(), otherwise shows help for a command
-cmd_help() {
+cmd_help()
+{
 	text=""
 	opts=""
 	case "$1" in
@@ -73,15 +82,33 @@ cmd_help() {
   init-tls
       Removes & re-initializes the TLS key dir" ;;
 		build-tls-auth) text="
-  build-tls-auth PSK." ;;
+  build-tls-auth
+      Create an OpenVPN TLS auth PSK (tls-auth.key)." ;;
 		build-tls-crypt) text="
-  build-tls-crypt PSK." ;;
+  build-tls-crypt
+      Create an OpenVPN TLS crypt PSK (tls-crypt.key)." ;;
 		build-tls-crypt-v2-server) text="
-  build-tls-crypt-v2-server <filename_base>" ;;
+  build-tls-crypt-v2-server <filename_base>
+      Create an OpenVPN TLS crypt V2 Server key." ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <filename_base>" ;;
+  build-tls-crypt-v2-client <filename_base>
+      Create an OpenVPN TLS crypt V2 Client key." ;;
 		build-inline) text="
-  build-inline <filename_base> [ cmd-opts ]" ;;
+  build-inline-tls-auth <filename_base>
+      Create a complete OpenVPN node package from Easy-RSA files only
+      for VPN node <filename_base>" ;;
+		build-inline-tls-auth) text="
+  build-inline-tls-auth <filename_base>
+      Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
+      for VPN node <filename_base> using the Easy-TLS TLS auth file" ;;
+		build-inline-tls-crypt) text="
+  build-inline-tls-crypt <filename_base>
+      Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
+      for VPN node <filename_base> using the Easy-TLS TLS crypt file" ;;
+		build-inline-tls-crypt-v2) text="
+  build-inline-tls-crypt-v2 <filename_base>
+      Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
+      for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file" ;;
 		options)
 			opt_usage ;;
 		"")
@@ -99,9 +126,10 @@ $opts"
 
 
 # Options usage
-opt_usage() {
+opt_usage()
+{
 	print "
-Easy-RSA Global Option Flags
+Easy-TLS Global Option Flags
 
 The following options may be provided before the command. Options specified
 at runtime override env-vars and any 'vars' file in use. Unless noted,
@@ -110,8 +138,9 @@ non-empty values to options are mandatory.
 General options:
 
 --batch         : set automatic (no-prompts when possible) mode
---pki-dir=DIR   : declares the PKI directory (TODO)
+--pki-dir=DIR   : declare the PKI directory (TODO)
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config (TODO)
+--tls-dir=DIR   : declare the TLS directory (TODO)
 
 "
 } # => opt_usage()
@@ -122,17 +151,19 @@ print() { printf "%s\n" "$*"; }
 
 # Exit fatally with a message to stderr
 # present even with EASYRSA_BATCH as these are fatal problems
-die() {
+die()
+{
 	easy_tls_version
 	print "
-Easy-RSA error:
+Easy-TLS error:
 
 $1" 1>&2
 	exit "${2:-1}"
 } # => die()
 
 # remove temp files and do terminal cleanups
-cleanup() {
+cleanup()
+{
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
 	# shellcheck disable=SC2039
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
@@ -140,23 +171,26 @@ cleanup() {
 } # => cleanup()
 
 # non-fatal warning output
-warn() {
-	[ ! "$EASYRSA_BATCH" ] && \
+warn()
+{
+	[ ! "$EASYTLS_BATCH" ] && \
 		print "
 $1" 1>&2
 } # => warn()
 
 # informational notices to stdout
-notice() {
-	[ ! "$EASYRSA_BATCH" ] && \
+notice()
+{
+	[ ! "$EASYTLS_BATCH" ] && \
 		print "
 $1"
 } # => notice()
 
 # intent confirmation helper func
-# returns without prompting in EASYRSA_BATCH
-confirm() {
-	[ "$EASYRSA_BATCH" ] && return
+# returns without prompting in EASYTLS_BATCH
+confirm()
+{
+	[ "$EASYTLS_BATCH" ] && return
 	prompt="$1"
 	value="$2"
 	msg="$3"
@@ -173,6 +207,12 @@ Type the word '$value' to continue, or any other input to abort."
 	exit 9
 } # => confirm()
 
+vars_source_check() {
+	# Check for defined EASYRSA_PKI
+	[ -n "$EASYRSA_PKI" ] || die "\
+EASYRSA_PKI env-var undefined"
+} # => vars_source_check()
+
 # Basic sanity-check of PKI init and complain if missing
 verify_pki_init () {
 	help_note="Run easyrsa without commands for usage and command help."
@@ -180,6 +220,10 @@ verify_pki_init () {
 	# check that the pki dir exists
 	vars_source_check
 	[ -d "$EASYRSA_PKI" ] || die "\
+Easy-TLS requires that you have initialised your Easy-RSA PKI.
+
+Easy-RSA error:
+
 EASYRSA_PKI does not exist (perhaps you need to run init-pki)?
 Expected to find the EASYRSA_PKI at: $EASYRSA_PKI
 $help_note"
@@ -187,12 +231,13 @@ $help_note"
 	# verify expected dirs present:
 	for i in private reqs; do
 		[ -d "$EASYRSA_PKI/$i" ] || die "\
+Easy-TLS requires that you have initialised your Easy-RSA PKI.
+
+Easy-RSA error:
+
 Missing expected directory: $i (perhaps you need to run init-pki?)
 $help_note"
 	done
-
-	# verify ssl lib
-	verify_ssl_lib
 } # => verify_pki_init()
 
 # Verify core CA files present
@@ -208,6 +253,10 @@ verify_ca_init () {
 		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
 			[ "$1" = "test" ] && return 1
 			die "\
+Easy-TLS TLS crypt v2 requires that you have built your EASY-RSA PKI node certificates.
+
+Easy-RSA error:
+
 Missing expected CA file: $i (perhaps you need to run build-ca?)
 $help_note"
 		fi
@@ -221,6 +270,8 @@ $help_note"
 	for i in issued certs_by_serial
 	do
 		[ -d "$EASYRSA_PKI/$i" ] || die "\
+Easy-RSA error:
+
 Missing expected CA dir: $i (perhaps you need to run build-ca?)
 $help_note"
 	done
@@ -230,51 +281,93 @@ $help_note"
 
 } # => verify_ca_init()
 
-# init-tls backend:
-init_tls () {
+# Verify Openvpn is available
+verify_openvpn ()
+{
+	if which "$EASYTLS_OPENVPN" > /dev/null
+	then
+		return 0
+	else
+		die "OpenVPN not found: $EASYTLS_OPENVPN"
+	fi
+}
 
-	# If EASYRSA_PKI exists, confirm before we rm -rf (skiped with EASYRSA_BATCH)
-	if [ -e "$EASYRSA_PKI" ]; then
+# Verify Openvpn version, 2.5 is required for TLS auth v2
+verify_openvpn_version ()
+{
+	EASYTLS_OPENVPN_VERSION_REQ_MAJOR="$1"
+	[ -z "$EASYTLS_OPENVPN_VERSION_REQ_MAJOR" ] && die "Openvpn Major Version required not set."
+	EASYTLS_OPENVPN_VERSION="$("$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}')"
+	EASYTLS_OPENVPN_VERSION_INTS="$(printf "%s" "$EASYTLS_OPENVPN_VERSION" | sed "s/[^0123456789]/\ /g")"
+
+	# Unbelievable: SC2039: In POSIX sh, lexicographical < is undefined.
+	#EASYTLS_OPENVPN_REQ_VERSION="2.5"
+	#if [ "$EASYTLS_OPENVPN_USE_VERSION" < "$EASYTLS_OPENVPN_REQ_VERSION" ]
+	#then
+	#	die "Openvpn version 2.5 required"
+	#else
+	#	print "OpenVPN version: $EASYTLS_OPENVPN_VERSION"
+	#fi
+
+	EASYTLS_OPENVPN_VERSION_MAIN="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $1}')"
+	EASYTLS_OPENVPN_VERSION_MAJOR="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $2}')"
+	EASYTLS_OPENVPN_VERSION_MINOR="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $3}')"
+
+	EASYTLS_OPENVPN_VERSION_MAIN="${EASYTLS_OPENVPN_VERSION_MAIN:-0}"
+	EASYTLS_OPENVPN_VERSION_MAJOR="${EASYTLS_OPENVPN_VERSION_MAJOR:-0}"
+	EASYTLS_OPENVPN_VERSION_MINOR="${EASYTLS_OPENVPN_VERSION_MINOR:-0}"
+
+	[ $EASYTLS_OPENVPN_VERSION_MAIN -lt 2 ] && die "Openvpn 2.5 required, Found $EASYTLS_OPENVPN_VERSION"
+	[ $EASYTLS_OPENVPN_VERSION_MAJOR -lt $EASYTLS_OPENVPN_VERSION_REQ_MAJOR ] && \
+		die "Openvpn 2.$EASYTLS_OPENVPN_VERSION_REQ_MAJOR required, Found $EASYTLS_OPENVPN_VERSION"
+	[ $EASYTLS_OPENVPN_VERSION_MINOR -lt 0 ] && die "Openvpn 2.X.X required, Found $EASYTLS_OPENVPN_VERSION"
+}
+
+# Verify TLS has been initialised
+verify_tls_init ()
+{
+	verify_openvpn
+	[ -d "$EASYTLS_PKI" ] || die "TLS has not been initialised, run init-tls"
+} # => verify_tls_init ()
+
+# init-tls backend:
+init_tls ()
+{
+	# Easy-TLS requires that your Easy-RSA PKI is initialised
+	verify_pki_init
+	# If EASYTLS_PKI exists, confirm before we rm -rf (skiped with EASYTLS_BATCH)
+	if [ -d "$EASYTLS_PKI" ]; then
 		confirm "Confirm removal: " "yes" "
 WARNING!!!
 
-You are about to remove the EASYRSA_PKI at: $EASYRSA_PKI
-and initialize a fresh PKI here."
+You are about to remove the EASYTLS_PKI at: $EASYTLS_PKI
+and initialize a fresh TLS PKI here."
 		# now remove it:
-		rm -rf "$EASYRSA_PKI" || die "Removal of PKI dir failed. Check/correct errors above"
+		rm -rf "$EASYTLS_PKI" || die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
-	# new dirs:
-	for i in private reqs; do
-		mkdir -p "$EASYRSA_PKI/$i" || die "Failed to create PKI file structure (permissions?)"
-	done
-	
-	# Create $EASYRSA_SAFE_CONF ($OPENSSL_CONF) prevents bogus warnings (especially useful on win32)
-	if [ ! -f "$EASYRSA_SSL_CONF" ] && [ -f "$EASYRSA/openssl-easyrsa.cnf" ];
-	then
-		cp "$EASYRSA/openssl-easyrsa.cnf" "$EASYRSA_SSL_CONF"
-		easyrsa_openssl makesafeconf
-	fi
+	# Create tls dir in Easyrsa PKI dir
+	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
 	notice "\
-init-pki complete; you may now create a CA or requests.
-Your newly created PKI dir is: $EASYRSA_PKI
+init-tls complete; you may now create TLS keys.
+Your newly created TLS dir is: $EASYTLS_PKI
 "
 	return 0
 } # => init_tls ()
 
-# Create inline credentials file
-build_inline ()
+# Create inline credentials file from Easy-RSA PKI
+build_inline_base ()
 {
-	# TODO: Improve build_inline integration. eg: renew/revoke and ta.key
+	# TODO: Improve build_inline integration. eg: renew/revoke
 	verify_ca_init
 	name="$1"
 	ca_file="$EASYRSA_PKI/ca.crt"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
-	out_file="$EASYRSA_PKI/inline/$name.inline"
+	out_file="$EASYTLS_PKI/$name.inline"
 
-	if [ "$EASYRSA_BATCH" ]
+	if [ "$EASYTLS_BATCH" ]
 	then
 		rm -f "$out_file"
 	else
@@ -284,9 +377,7 @@ build_inline ()
 	[ -f "$crt_file" ] || die "Certificate file does not exist: $crt_file"
 	[ -f "$key_file" ] || die "Key file does not exist: $key_file"
 
-	mkdir -p "$EASYRSA_PKI/inline"
-	{
-		printf "%s\n" "# File name base: $name"
+	{	printf "%s\n" "# File name base: $name"
 		printf "%s\n" ""
 		printf "%s\n" "<cert>"
 		cat "$crt_file"
@@ -301,90 +392,167 @@ build_inline ()
 		printf "%s\n" "</ca>"
 		printf "%s\n" ""
 	} > "$out_file" || die "Failed to create inline file: $out_file"
-} # => build_inline ()
+} # => build_inline_base ()
 
-build_tls_auth () {
-	# Requires openvpn
+# Append TLS auth file to base file
+build_inline_tls_auth ()
+{
+	# TODO: --key-direction
 	verify_ca_init
-	print "Build TLS auth key"
-	EASYRSA_TLS_AUTH_KEY="$EASYRSA_PKI/tls-auth.key"
+	name="$1"
+	tls_file="$EASYTLS_PKI/tls-auth.key"
+	out_file="$EASYTLS_PKI/$name.inline"
+
+	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
+
+	build_inline_base "$name"
+
+	{	printf "%s\n" "# TLS auth"
+		printf "%s\n" ""
+		#printf "%s\n" "key-direction $EASYTLS_AUTH_KD"
+		printf "%s\n" "<tls-auth>"
+		cat "$tls_file"
+		printf "%s\n" "</tls-auth>"
+		printf "%s\n" ""
+	} >> "$out_file" || die "Failed to create inline file: $out_file"
+} # => build_inline_tls_auth ()
+
+# Append TLS crypt file to base file
+build_inline_tls_crypt ()
+{
+	verify_ca_init
+	name="$1"
+	tls_file="$EASYTLS_PKI/tls-crypt.key"
+	out_file="$EASYTLS_PKI/$name.inline"
+
+	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
+
+	build_inline_base "$name"
+
+	{	printf "%s\n" "# TLS crypt"
+		printf "%s\n" ""
+		printf "%s\n" "<tls-crypt>"
+		cat "$tls_file"
+		printf "%s\n" "</tls-crypt>"
+		printf "%s\n" ""
+	} >> "$out_file" || die "Failed to create inline file: $out_file"
+} # => build_inline_tls_crypt ()
+
+# Append TLS crypt v2 file to base file
+build_inline_tls_crypt_v2 ()
+{
+	verify_ca_init
+	name="$1"
+	tls_file="$EASYTLS_PKI/tls-crypt-v2-$name.key"
+	out_file="$EASYTLS_PKI/$name.inline"
+
+	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
+
+	build_inline_base "$name"
+
+	{	printf "%s\n" "# TLS crypt v2"
+		printf "%s\n" ""
+		printf "%s\n" "<tls-crypt-v2>"
+		cat "$tls_file"
+		printf "%s\n" "</tls-crypt-v2>"
+		printf "%s\n" ""
+	} >> "$out_file" || die "Failed to create inline file: $out_file"
+} # => build_inline_tls_crypt_v2 ()
+
+# Creat TLS auth file
+build_tls_auth ()
+{
+	# This is allowed without a complete Easy-RSA PKI
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	verify_tls_init
+	EASYRSA_TLS_AUTH_KEY="$EASYTLS_PKI/tls-auth.key"
 
 	[ -f "$EASYRSA_TLS_AUTH_KEY" ] && \
 		die "TLS auth key already exists: $EASYRSA_TLS_AUTH_KEY"
 
-	"$EASYRSA_OPENVPN" --genkey --secret "$EASYRSA_TLS_AUTH_KEY" || \
+	"$EASYTLS_OPENVPN" --genkey --secret "$EASYRSA_TLS_AUTH_KEY" || \
 		die "Failed to create TLS auth key: $EASYRSA_TLS_AUTH_KEY"
 
 	notice "TLS auth key created: $EASYRSA_TLS_AUTH_KEY"
-}
+} # => build_tls_auth ()
 
-build_tls_crypt_v1 () {
-	# Requires openvpn
-	verify_ca_init
-	print "Build TLS crypt v1 key"
-	EASYRSA_TLS_CRYPT_V1_KEY="$EASYRSA_PKI/tls-crypt.key"
+# Create TLS crypt v1 file
+build_tls_crypt_v1 ()
+{
+	# Requires openvpn version 2.4
+	verify_openvpn_version 4
+
+	# This is allowed without a complete Easy-RSA PKI
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	verify_tls_init
+
+	EASYRSA_TLS_CRYPT_V1_KEY="$EASYTLS_PKI/tls-crypt.key"
 
 	[ -f "$EASYRSA_TLS_CRYPT_V1_KEY" ] && \
 		die "TLS crypt v1 key already exists: $EASYRSA_TLS_CRYPT_V1_KEY"
 
-	"$EASYRSA_OPENVPN" --genkey --secret "$EASYRSA_TLS_CRYPT_V1_KEY" || \
+	"$EASYTLS_OPENVPN" --genkey --secret "$EASYRSA_TLS_CRYPT_V1_KEY" || \
 		die "Failed to create TLS crypt v1 key: $EASYRSA_TLS_CRYPT_V1_KEY"
 
 	notice "TLS crypt v1 key created: $EASYRSA_TLS_CRYPT_V1_KEY"
-}
+} # => build_tls_crypt_v1 ()
 
-build_tls_crypt_v2_server () {
-	# Requires openvpn
+# Create TLS crypt v2 server file
+build_tls_crypt_v2_server ()
+{
+	# Requires openvpn version 2.5
+	verify_openvpn_version 5
+
+	# Verify Easy-RSA has been correctly setup
 	verify_ca_init
-	print "Build TLS crypt v2 key"
-	type="$1"
-	srv_name="$2"
-	cli_name="$3"
-	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-srv-$srv_name.key"
-	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-cli-$cli_name.key"
 
-	mkdir -p "$EASYRSA_PKI/tls-crypt-v2"
-	case "$type" in
-	server)
-		[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] && \
-			die "Server file already exists: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-		"$EASYRSA_OPENVPN" --genkey tls-crypt-v2-server "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" || \
-			die "Failed to create tls-crypt-v2-server key: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-		notice "TLS crypt v2 server key created: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-	;;
-	*)
-		die "Unknown type: $type"
-	;;
-	esac
-}
+	srv_name="$1"
+	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
 
-build_tls_crypt_v2_client () {
-	# Requires openvpn
+	[ -n "$srv_name" ] || die "Server name required."
+
+	[ -f "$EASYRSA_PKI/issued/$srv_name.crt" ] || \
+		die "Easy-TLS requires that the Easy-RSA server certificate has been created.
+Missing file: $EASYRSA_PKI/issued/$srv_name.crt"
+
+	[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] && \
+		die "Server file already exists: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" || \
+		die "Failed to create tls-crypt-v2-server key: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	notice "TLS crypt v2 server key created: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+} # => build_tls_crypt_v2_server ()
+
+# Create TLS crypt v2 client file
+build_tls_crypt_v2_client ()
+{
+	# Requires openvpn version 2.5
+	verify_openvpn_version 5
+
+	# Verify Easy-RSA has been correctly setup
 	verify_ca_init
-	print "Build TLS crypt v2 key"
-	type="$1"
-	srv_name="$2"
-	cli_name="$3"
-	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-srv-$srv_name.key"
-	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYRSA_PKI/tls-crypt-v2/tcv2-cli-$cli_name.key"
 
-	mkdir -p "$EASYRSA_PKI/tls-crypt-v2"
-	case "$type" in
-	client)
-		[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] || \
-			die "Server file does not exist: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-		[ -f "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" ] && \
-			die "Client file already exists: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
-		"$EASYRSA_OPENVPN" --tls-crypt-v2 "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" \
-			--genkey tls-crypt-v2-client "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" || \
-			die "Failed to create tls-crypt-v2-client key: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
-		notice "TLS crypt v2 client key created: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
-	;;
-	*)
-		die "Unknown type: $type"
-	;;
-	esac
-}
+	srv_name="$1"
+	cli_name="$2"
+	[ -n "$srv_name" ] || die "Server name required."
+	[ -n "$cli_name" ] || die "Client name required."
+	[ "$srv_name" = "$cli_name" ] && die "Server name cannot be the same as the client name."
+
+	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
+	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYTLS_PKI/tls-crypt-v2-$cli_name.key"
+
+	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
+		die "Easy-TLS requires that the Easy-RSA client certificate has been created.
+Missing file: $EASYRSA_PKI/issued/$cli_name.crt"
+
+	[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] || \
+		die "Server file does not exist: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	[ -f "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" ] && \
+		die "Client file already exists: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" \
+		--genkey tls-crypt-v2-client "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" || \
+		die "Failed to create tls-crypt-v2-client key: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+	notice "TLS crypt v2 client key created: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+} # => build_tls_crypt_v2_client ()
 
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
@@ -440,6 +608,10 @@ Note: using Easy-RSA configuration from: $vars"
 	set_var EASYRSA_DN	cn_only
 	set_var EASYRSA_TEMP_DIR	"$EASYRSA_PKI"
 
+	set_var EASYTLS_PKI	"$EASYRSA_PKI/tls"
+	# TODO: Revert back to "openvpn" when v2.5 is released
+	set_var EASYTLS_OPENVPN	"/home/tct/openvpn/master/src/openvpn/openvpn"
+
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around Windows mktemp bug when parent dir is missing
 	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
 		if [ -d "$EASYRSA_TEMP_DIR" ]; then
@@ -465,9 +637,10 @@ set_var() {
 	eval "export $var=\"\${$var-$value}\""
 } #=> set_var()
 
+# Set the Easy-TLS version
 easy_tls_version () 
 {
-	EASYTLS_VERSION="0.1 TEST"
+	EASYTLS_VERSION="0.2"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 }
 
@@ -533,7 +706,7 @@ case "$cmd" in
 		build_tls_auth "$@"
 		;;
 	build-tls-crypt)
-		build_tls_crypt "$@"
+		build_tls_crypt_v1 "$@"
 		;;
 	build-tls-crypt-v2-server)
 		build_tls_crypt_v2_server "$@"
@@ -541,8 +714,14 @@ case "$cmd" in
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
 		;;
-	build-inline)
-		build_inline "$@"
+	build-inline-tls-auth)
+		build_inline_tls_auth "$@"
+		;;
+	build-inline-tls-crypt)
+		build_inline_tls_crypt_v1 "$@"
+		;;
+	build-inline-tls-crypt-v2)
+		build_inline_tls_crypt_v2 "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
