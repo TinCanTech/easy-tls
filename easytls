@@ -146,7 +146,6 @@ General options:
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
-# shellcheck disable=SC1117
 print() { printf "%s\n" "$*"; }
 
 # Exit fatally with a message to stderr
@@ -165,7 +164,6 @@ $1" 1>&2
 cleanup()
 {
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
-	# shellcheck disable=SC2039
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	echo "" # just to get a clean line
 } # => cleanup()
@@ -200,7 +198,6 @@ $msg
 
 Type the word '$value' to continue, or any other input to abort."
 	printf %s "  $prompt"
-	#shellcheck disable=SC2162
 	read input
 	[ "$input" = "$value" ] && return
 	notice "Aborting without confirmation."
@@ -607,9 +604,7 @@ vars_setup() {
 	# If a vars file was located, source it
 	# If $EASYRSA_NO_VARS is defined (not blank) this is skipped
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
-		#shellcheck disable=SC2034
 		EASYRSA_CALLER=1
-		# shellcheck disable=SC1090
 		. "$vars"
 		notice "\
 Note: using Easy-RSA configuration from: $vars"
