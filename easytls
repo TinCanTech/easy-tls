@@ -51,7 +51,7 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
   build-inline-base <filename_base>
-  build-inline-tls-auth <filename_base>
+  build-inline-tls-auth <filename_base> <key_direction>
   build-inline-tls-crypt <filename_base>
   build-inline-tls-crypt-v2 <filename_base>
   test-inline (Requires root) (Can this be done with verification only and not managing tun?)
@@ -98,9 +98,10 @@ cmd_help()
       Create a complete OpenVPN node package from Easy-RSA files only
       for VPN node <filename_base>" ;;
 		build-inline-tls-auth) text="
-  build-inline-tls-auth <filename_base>
+  build-inline-tls-auth <filename_base> <key_direction>
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
-      for VPN node <filename_base> using the Easy-TLS TLS auth file" ;;
+      for VPN node <filename_base> using the Easy-TLS TLS auth file
+      <key_direction> either '0' (For server) or '1' (For client)" ;;
 		build-inline-tls-crypt) text="
   build-inline-tls-crypt <filename_base>
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
@@ -404,16 +405,22 @@ build_inline_tls_auth ()
 	# TODO: --key-direction
 	verify_ca_init
 	name="$1"
+	key_dir="$2"
 	tls_file="$EASYTLS_PKI/tls-auth.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
+	case "$key_dir" in
+		0|1) : ;;
+		*) die "Key direction must be 0 (For server) or 1 (For client)." ;;
+	esac
 
 	build_inline_base "$name"
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
-		#printf "%s\n" "key-direction $EASYTLS_AUTH_KD"
+		printf "%s\n" "key-direction $key_dir"
+		printf "%s\n" ""
 		printf "%s\n" "<tls-auth>"
 		cat "$tls_file"
 		printf "%s\n" "</tls-auth>"
