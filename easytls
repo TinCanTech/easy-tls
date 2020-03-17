@@ -308,6 +308,11 @@ verify_openvpn_version ()
 	#else
 	#	print "OpenVPN version: $EASYTLS_OPENVPN_VERSION"
 	#fi
+	#
+	# man sh:
+	# 	s1 < s2       True if string s1 comes before s2 based on the ASCII value of their characters.
+	# My Arse
+	#
 
 	EASYTLS_OPENVPN_VERSION_MAIN="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $1}')"
 	EASYTLS_OPENVPN_VERSION_MAJOR="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $2}')"
