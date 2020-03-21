@@ -301,25 +301,25 @@ verify_openvpn ()
 # Verify Openvpn version, 2.5 required for TLS crypt v2, 2.4 required for TLS crypt v1
 verify_openvpn_version ()
 {
-	EASYTLS_OPENVPN_VERSION_REQ_MAJOR="$1"
-	[ -z "$EASYTLS_OPENVPN_VERSION_REQ_MAJOR" ] && die "Openvpn Major Version required not set."
-	EASYTLS_OPENVPN_VERSION="$("$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}')"
-	EASYTLS_OPENVPN_VERSION_INTS="$(printf "%s" "$EASYTLS_OPENVPN_VERSION" | sed "s/[^0123456789]/\ /g")"
+	ovpn_ver_req_maj="$1"
+	[ -z "$ovpn_ver_req_maj" ] && die "Openvpn Major Version required not set."
+	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}')"
+	ovpn_ver_ints="$(printf "%s" "$ovpn_ver_str" | sed "s/[^0123456789]/\ /g")"
 
 	# SC2039: In POSIX sh, lexicographical < is undefined.
 
-	EASYTLS_OPENVPN_VERSION_MAIN="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $1}')"
-	EASYTLS_OPENVPN_VERSION_MAJOR="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $2}')"
-	EASYTLS_OPENVPN_VERSION_MINOR="$(printf "%s" "$EASYTLS_OPENVPN_VERSION_INTS" | awk '{print $3}')"
+	ovpn_ver_main="$(printf "%s" "$ovpn_ver_ints" | awk '{print $1}')"
+	ovpn_ver_major="$(printf "%s" "$ovpn_ver_ints" | awk '{print $2}')"
+	ovpn_ver_minor="$(printf "%s" "$ovpn_ver_ints" | awk '{print $3}')"
 
-	EASYTLS_OPENVPN_VERSION_MAIN="${EASYTLS_OPENVPN_VERSION_MAIN:-0}"
-	EASYTLS_OPENVPN_VERSION_MAJOR="${EASYTLS_OPENVPN_VERSION_MAJOR:-0}"
-	EASYTLS_OPENVPN_VERSION_MINOR="${EASYTLS_OPENVPN_VERSION_MINOR:-0}"
+	ovpn_ver_main="${ovpn_ver_main:-0}"
+	ovpn_ver_major="${ovpn_ver_major:-0}"
+	ovpn_ver_minor="${ovpn_ver_minor:-0}"
 
-	[ $EASYTLS_OPENVPN_VERSION_MAIN -lt 2 ] && die "Openvpn 2.5 required, Found $EASYTLS_OPENVPN_VERSION"
-	[ $EASYTLS_OPENVPN_VERSION_MAJOR -lt $EASYTLS_OPENVPN_VERSION_REQ_MAJOR ] && \
-		die "Openvpn 2.$EASYTLS_OPENVPN_VERSION_REQ_MAJOR required, Found $EASYTLS_OPENVPN_VERSION"
-	[ $EASYTLS_OPENVPN_VERSION_MINOR -lt 0 ] && die "Openvpn 2.X.X required, Found $EASYTLS_OPENVPN_VERSION"
+	[ $ovpn_ver_main -lt 2 ] && die "Openvpn 2.5 required, Found $ovpn_ver_str"
+	[ $ovpn_ver_major -lt $ovpn_ver_req_maj ] && \
+		die "Openvpn 2.$ovpn_ver_req_maj required, Found $ovpn_ver_str"
+	[ $ovpn_ver_minor -lt 0 ] && die "Openvpn 2.X.X required, Found $ovpn_ver_str"
 } # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
@@ -327,6 +327,7 @@ verify_tls_init ()
 {
 	verify_openvpn
 	[ -d "$EASYTLS_PKI" ] || die "TLS has not been initialised, run init-tls"
+	[ -f "$EASYTLS_INLINE_INDEX" ] || die "TLS has not been initialised, run init-tls"
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -349,7 +350,7 @@ and initialize a fresh TLS PKI here."
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
 	# Create tls dir index file
-	printf "%s" > "$EASYTLS_INLINE_INDEX"
+	printf "%s" > "$EASYTLS_INLINE_INDEX" || die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
 	notice "\
 init-tls complete; you may now create TLS keys.
@@ -656,15 +657,15 @@ build_tls_auth ()
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
-	EASYRSA_TLS_AUTH_KEY="$EASYTLS_PKI/tls-auth.key"
+	out_file="$EASYTLS_PKI/tls-auth.key"
 
-	[ -f "$EASYRSA_TLS_AUTH_KEY" ] && \
-		die "TLS auth key already exists: $EASYRSA_TLS_AUTH_KEY"
+	[ -f "$out_file" ] && \
+		die "TLS auth key already exists: $out_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$EASYRSA_TLS_AUTH_KEY" || \
-		die "Failed to create TLS auth key: $EASYRSA_TLS_AUTH_KEY"
+	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
+		die "Failed to create TLS auth key: $out_file"
 
-	notice "TLS auth key created: $EASYRSA_TLS_AUTH_KEY"
+	notice "TLS auth key created: $out_file"
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -677,15 +678,15 @@ build_tls_crypt_v1 ()
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
 
-	EASYRSA_TLS_CRYPT_V1_KEY="$EASYTLS_PKI/tls-crypt.key"
+	out_file="$EASYTLS_PKI/tls-crypt.key"
 
-	[ -f "$EASYRSA_TLS_CRYPT_V1_KEY" ] && \
-		die "TLS crypt v1 key already exists: $EASYRSA_TLS_CRYPT_V1_KEY"
+	[ -f "$out_file" ] && \
+		die "TLS crypt v1 key already exists: $out_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$EASYRSA_TLS_CRYPT_V1_KEY" || \
-		die "Failed to create TLS crypt v1 key: $EASYRSA_TLS_CRYPT_V1_KEY"
+	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
+		die "Failed to create TLS crypt v1 key: $out_file"
 
-	notice "TLS crypt v1 key created: $EASYRSA_TLS_CRYPT_V1_KEY"
+	notice "TLS crypt v1 key created: $out_file"
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -698,20 +699,21 @@ build_tls_crypt_v2_server ()
 	verify_ca_init
 
 	srv_name="$1"
-	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
+	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
+	out_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
 
 	[ -n "$srv_name" ] || die "Server name required."
 
-	[ -f "$EASYRSA_PKI/issued/$srv_name.crt" ] || \
+	[ -f "$srv_cert" ] || \
 		die "Easy-TLS requires that the Easy-RSA server certificate has been created.
-Missing file: $EASYRSA_PKI/issued/$srv_name.crt"
+Missing file: $srv_cert"
 
-	[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] && \
-		die "Server file already exists: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" || \
-		die "Failed to create tls-crypt-v2-server key: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	[ -f "$out_file" ] && \
+		die "Server file already exists: $out_file"
+	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
+		die "Failed to create tls-crypt-v2-server key: $out_file"
 
-	notice "TLS crypt v2 server key created: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
+	notice "TLS crypt v2 server key created: $out_file"
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -724,27 +726,29 @@ build_tls_crypt_v2_client ()
 	verify_ca_init
 
 	srv_name="$1"
+	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
+	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
+
 	[ -n "$srv_name" ] || die "Server name required."
 	[ -n "$cli_name" ] || die "Client name required."
 	[ "$srv_name" = "$cli_name" ] && die "Server name cannot be the same as the client name."
 
-	EASYRSA_TLS_CRYPT_V2_SERVER_KEY="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
-	EASYRSA_TLS_CRYPT_V2_CLIENT_KEY="$EASYTLS_PKI/tls-crypt-v2-$cli_name.key"
-
 	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
 		die "Easy-TLS requires that the Easy-RSA client certificate has been created.
-Missing file: $EASYRSA_PKI/issued/$cli_name.crt"
+Missing file: $cli_cert"
 
-	[ -f "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" ] || \
-		die "Server file does not exist: $EASYRSA_TLS_CRYPT_V2_SERVER_KEY"
-	[ -f "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" ] && \
-		die "Client file already exists: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
-	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$EASYRSA_TLS_CRYPT_V2_SERVER_KEY" \
-		--genkey tls-crypt-v2-client "$EASYRSA_TLS_CRYPT_V2_CLIENT_KEY" || \
-		die "Failed to create tls-crypt-v2-client key: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
+	out_file="$EASYTLS_PKI/tls-crypt-v2-$cli_name.key"
 
-	notice "TLS crypt v2 client key created: $EASYRSA_TLS_CRYPT_V2_CLIENT_KEY"
+	[ -f "$in_file" ] || die "Server file does not exist: $in_file"
+	[ -f "$out_file" ] && die "Client file already exists: $out_file"
+
+	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
+		--genkey tls-crypt-v2-client "$out_file" || \
+		die "Failed to create tls-crypt-v2-client key: $out_file"
+
+	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
 
 # Remove .inline file
