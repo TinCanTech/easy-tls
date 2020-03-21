@@ -23,7 +23,6 @@
 #
 
 
-
 # Help/usage output to stdout
 usage()
 {
@@ -32,6 +31,7 @@ usage()
 Easy-TLS usage and overview
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
+NOTE: Easy-TLS requires that you have OpenVPN installed.
 
 USAGE: easytls [options] COMMAND [command-options]
 
@@ -50,12 +50,12 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
-  build-inline-base <filename_base>
-  build-inline-tls-auth <filename_base> <key_direction>
-  build-inline-tls-crypt <filename_base>
-  build-inline-tls-crypt-v2 <filename_base>
-  remove-inline <filename_base>
-  status-inline [update?]
+  inline-base <filename_base>
+  inline-tls-auth <filename_base> <key_direction>
+  inline-tls-crypt <filename_base>
+  inline-tls-crypt-v2 <filename_base>
+  inline-remove <filename_base>
+  inline-status [update?]
   test-inline (Requires root) (TODO)
 "
 
@@ -132,7 +132,6 @@ cmd_help()
       cmd-opts is an optional set of command options from this list:
 $opts"
 } # => cmd_help()
-
 
 # Options usage
 opt_usage()
@@ -343,14 +342,16 @@ WARNING!!!
 You are about to remove the EASYTLS_PKI at: $EASYTLS_PKI
 and initialize a fresh TLS PKI here."
 		# now remove it:
-		rm -rf "$EASYTLS_PKI" || die "Removal of TLS dir failed. Check/correct errors above"
+		rm -rf "$EASYTLS_PKI" \
+		|| die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
 	# Create tls dir in Easyrsa PKI dir
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
 	# Create tls dir index file
-	printf "%s" > "$EASYTLS_INLINE_INDEX" || die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
+	printf "%s" > "$EASYTLS_INLINE_INDEX" \
+		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
 	notice "\
 init-tls complete; you may now create TLS keys.
@@ -360,7 +361,7 @@ Your newly created TLS dir is: $EASYTLS_PKI
 } # => init_tls ()
 
 # Show differences between Easy-TLS vs Easy-RSA cert revokation
-status_inline ()
+inline_status ()
 {
 	EASYRSA_INDEX="$EASYRSA_PKI/index.txt"
 	[ -f "$EASYRSA_INDEX" ] || die "Missing Easy-RSA: $EASYRSA_INDEX"
@@ -386,7 +387,7 @@ status_inline ()
 
 	# List mismatches
 	status_easytls_mismatch
-} #=> status ()
+} #=> inline_status ()
 
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
@@ -397,14 +398,6 @@ status_easyrsa_valid ()
 	temp_var="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
 	easyrsa_valid_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
 	print
-
-	#print "$easyrsa_valid_serial_list"
-	#print
-
-	#foobar="$(print "$easyrsa_valid_serial_list" | sed "s\`\n\`\ \`g")"
-	#print $foobar
-
-
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
@@ -416,9 +409,6 @@ status_easyrsa_revoked ()
 	temp_var="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
 	easyrsa_revoked_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
 	print
-
-	#print "$easyrsa_revoked_serial_list"
-	#print
 } # => status_easyrsa_revoked ()
 
 # Print Valid certs from Easy-TLS
@@ -430,9 +420,6 @@ status_easytls_valid ()
 	temp_var="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
 	print
-
-	#print "$easytls_valid_serial_list"
-	#print
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -469,10 +456,13 @@ status_easytls_mismatch ()
 				temp_var="$(grep "$i" "$EASYTLS_INLINE_INDEX")" # "
 				# "
 				print "  multiple mismatch: $temp_var"
+			;;
 		esac
 	done
-	[ $temp_error ] && warn "Use 'easytls remove-inline <filename_base>' to delete invalid inline files."
-	[ $temp_errors ] && warn "Duplicate records detected! Use 'easytls rebuild-inline-index' to attempt a re-index."
+	[ $temp_error ] && warn \
+"Use 'easytls remove-inline <filename_base>' to delete invalid inline files."
+	[ $temp_errors ] && warn \
+"Duplicate records detected! Use 'easytls rebuild-inline-index' to attempt a re-index."
 } # => status_easytls_mismatch
 
 # Keep an index file for inline certs to manage revoke/renew
@@ -496,6 +486,7 @@ update_inline_index ()
 			{ sed "s\`^"$name".*$\`\`g" "$easytls_index_backup"
 			} > "$easytls_index_temp" || \
 				die "Failed to update $EASYTLS_INLINE_INDEX"
+
 			grep -v "^$" "$easytls_index_temp" > "$EASYTLS_INLINE_INDEX"
 		;;
 		*)
@@ -503,20 +494,28 @@ update_inline_index ()
 		;;
 	esac
 	rm -f "$easytls_index_backup" "$easytls_index_temp"
-}
+} # => update_inline_index ()
 
-# Check that the requested certificate is not revoked before inline
-build_inline_cert_status ()
+# Remove .inline file
+inline_remove ()
 {
-	pki_index="$EASYRSA_PKI/index.txt"
-	[ -f "$pki_index" ] || die "Missing Easy-RSA: $pki_index"
+	name="$1"
+	inline_file="$EASYTLS_PKI/$name.inline"
+	#EASYRSA_TLS_INLINE_REVOKED="$EASYTLS_PKI/revoked/$name.inline"
 
-	crt_valid="$(grep "$name" "$pki_index" | grep -c "^V")"
-	[ $crt_valid -eq 1 ] || return 1
-} # => build_inline_cert_status ()
+	[ -f "$inline_file" ] || die "Missing: $inline_file"
+
+	#confirm "remove"
+
+	rm "$inline_file" || die "Failed to remove: $inline_file"
+
+	update_inline_index del
+
+	notice "Inline file removed: $inline_file"
+} # => inline_remove ()
 
 # Create inline credentials file from Easy-RSA PKI
-build_inline_base ()
+inline_base ()
 {
 	# TODO: Improve build_inline integration. eg: renew/revoke
 	verify_ca_init
@@ -541,7 +540,7 @@ $help_note"
 	crt_serial=${crt_serial##*=}
 
 	# Check that the requested certificate is not revoked before inline
-	#build_inline_cert_status || die "Certificate is revoked: $crt_file"
+	#inline_cert_status || die "Certificate is revoked: $crt_file"
 
 	if [ "$EASYTLS_BATCH" ]
 	then
@@ -570,10 +569,10 @@ $help_note"
 	update_inline_index add
 
 	notice "Inline base file created: $out_file"
-} # => build_inline_base ()
+} # => inline_base ()
 
 # Append TLS auth file to base file
-build_inline_tls_auth ()
+inline_tls_auth ()
 {
 	verify_ca_init
 	name="$1"
@@ -587,7 +586,7 @@ build_inline_tls_auth ()
 		*) die "Key direction must be 0 (For server) or 1 (For client)." ;;
 	esac
 
-	build_inline_base "$name"
+	inline_base "$name"
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
@@ -600,10 +599,10 @@ build_inline_tls_auth ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	notice "Inline TLS auth file created: $out_file"
-} # => build_inline_tls_auth ()
+} # => inline_tls_auth ()
 
 # Append TLS crypt file to base file
-build_inline_tls_crypt ()
+inline_tls_crypt ()
 {
 	verify_ca_init
 	name="$1"
@@ -612,7 +611,7 @@ build_inline_tls_crypt ()
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
-	build_inline_base "$name"
+	inline_base "$name"
 
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
@@ -623,10 +622,10 @@ build_inline_tls_crypt ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	notice "Inline TLS crypt file created: $out_file"
-} # => build_inline_tls_crypt ()
+} # => inline_tls_crypt ()
 
 # Append TLS crypt v2 file to base file
-build_inline_tls_crypt_v2 ()
+inline_tls_crypt_v2 ()
 {
 	verify_ca_init
 	name="$1"
@@ -637,7 +636,7 @@ build_inline_tls_crypt_v2 ()
 	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
 
 	EASYTLS_BATCH=1
-	build_inline_base "$name"
+	inline_base "$name"
 	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt v2"
@@ -649,7 +648,17 @@ build_inline_tls_crypt_v2 ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	notice "Inline TLS crypt v2 file created: $out_file"
-} # => build_inline_tls_crypt_v2 ()
+} # => inline_tls_crypt_v2 ()
+
+# Check that the requested certificate is not revoked before inline
+inline_cert_status ()
+{
+	pki_index="$EASYRSA_PKI/index.txt"
+	[ -f "$pki_index" ] || die "Missing Easy-RSA: $pki_index"
+
+	crt_valid="$(grep "$name" "$pki_index" | grep -c "^V")"
+	[ $crt_valid -eq 1 ] || return 1
+} # => inline_cert_status ()
 
 # Creat TLS auth file
 build_tls_auth ()
@@ -705,11 +714,11 @@ build_tls_crypt_v2_server ()
 	[ -n "$srv_name" ] || die "Server name required."
 
 	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the Easy-RSA server certificate has been created.
+		die "Easy-TLS requires that the Easy-RSA certificate has been created.
 Missing file: $srv_cert"
 
-	[ -f "$out_file" ] && \
-		die "Server file already exists: $out_file"
+	[ -f "$out_file" ] && die "Server file already exists: $out_file"
+
 	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
 		die "Failed to create tls-crypt-v2-server key: $out_file"
 
@@ -732,10 +741,11 @@ build_tls_crypt_v2_client ()
 
 	[ -n "$srv_name" ] || die "Server name required."
 	[ -n "$cli_name" ] || die "Client name required."
-	[ "$srv_name" = "$cli_name" ] && die "Server name cannot be the same as the client name."
+	[ "$srv_name" = "$cli_name" ] && \
+		die "Server name cannot be the same as the client name."
 
 	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
-		die "Easy-TLS requires that the Easy-RSA client certificate has been created.
+		die "Easy-TLS requires that the Easy-RSA certificate has been created.
 Missing file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
@@ -751,28 +761,11 @@ Missing file: $cli_cert"
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
 
-# Remove .inline file
-remove_inline ()
-{
-	name="$1"
-	inline_file="$EASYTLS_PKI/$name.inline"
-	#EASYRSA_TLS_INLINE_REVOKED="$EASYTLS_PKI/revoked/$name.inline"
-
-	[ -f "$inline_file" ] || die "Missing: $inline_file"
-
-	#confirm "remove"
-
-	rm "$inline_file" || die "Failed to remove: $inline_file"
-
-	update_inline_index del
-
-	notice "Inline file removed: $inline_file"
-}
-
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
-vars_setup() {
+vars_setup()
+{
 	# Try to locate a 'vars' file in order of location preference.
 	# If one is found, source it
 	vars=
@@ -836,13 +829,13 @@ Note: using Easy-RSA configuration from: $vars"
 			rm -rf "$EASYRSA_TEMP_DIR"
 		fi
 	fi
-
 } # vars_setup()
 
 # variable assignment by indirection when undefined; merely exports
 # the variable when it is already defined (even if currently null)
 # Sets $1 as the value contained in $2 and exports (may be blank)
-set_var() {
+set_var()
+{
 	[ $# -eq 0 ] && return
 	var=$1
 	shift
@@ -853,7 +846,7 @@ set_var() {
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="0.7"
+	EASYTLS_VERSION="0.8"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
@@ -906,10 +899,6 @@ trap "exit 3" 3
 trap "exit 6" 6
 trap "exit 14" 15
 
-# Upgrade: EasyRSA v2.x to EasyRSA v3.x
-# Upgrade: EasyRSA < v3.0.6 to v3.0.6+
-#up23_manage_upgrade_23
-
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
 [ -n "$1" ] && shift # scrape off command
@@ -929,23 +918,23 @@ case "$cmd" in
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
 		;;
-	build-inline-base)
-		build_inline_base "$@"
+	inline-base)
+		inline_base "$@"
 		;;
-	build-inline-tls-auth)
-		build_inline_tls_auth "$@"
+	inline-tls-auth)
+		inline_tls_auth "$@"
 		;;
-	build-inline-tls-crypt)
-		build_inline_tls_crypt_v1 "$@"
+	inline-tls-crypt)
+		inline_tls_crypt_v1 "$@"
 		;;
-	build-inline-tls-crypt-v2)
-		build_inline_tls_crypt_v2 "$@"
+	inline-tls-crypt-v2)
+		inline_tls_crypt_v2 "$@"
 		;;
-	remove-inline)
-		remove_inline "$@"
+	inline-remove)
+		inline_remove "$@"
 		;;
-	status-inline)
-		status_inline "$@"
+	inline-status)
+		inline_status "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
