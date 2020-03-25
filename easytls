@@ -96,30 +96,30 @@ cmd_help()
 		build-tls-crypt-v2-client) text="
   build-tls-crypt-v2-client <filename_base>
       Create an OpenVPN TLS crypt V2 Client key" ;;
-		build-inline-base) text="
-  build-inline-base <filename_base>
+		inline-base) text="
+  inline-base <filename_base>
       Create a complete OpenVPN node package from Easy-RSA files only
       for VPN node <filename_base>" ;;
-		build-inline-tls-auth) text="
-  build-inline-tls-auth <filename_base> <key_direction>
+		inline-tls-auth) text="
+  inline-tls-auth <filename_base> <key_direction>
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
       <key_direction> either '0' (For server) or '1' (For client)" ;;
-		build-inline-tls-crypt) text="
-  build-inline-tls-crypt <filename_base>
+		inline-tls-crypt) text="
+  inline-tls-crypt <filename_base>
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt file" ;;
-		build-inline-tls-crypt-v2) text="
-  build-inline-tls-crypt-v2 <filename_base>
+		inline-tls-crypt-v2) text="
+  inline-tls-crypt-v2 <filename_base>
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file" ;;
-		remove-inline) text="
-  remove-inline <filename_base>
+		inline-remove) text="
+  inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
-		status) text="
-  status [update]
+		inline-status) text="
+  inline-status [update]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status
-      update - rebuild inline-index.tls" ;;
+      update - rebuild inline-index.tls (TODO)" ;;
 		options)
 			opt_usage ;;
 		"")
