@@ -91,10 +91,10 @@ cmd_help()
   build-tls-crypt
       Create an OpenVPN TLS crypt PSK (tls-crypt.key)" ;;
 		build-tls-crypt-v2-server) text="
-  build-tls-crypt-v2-server <filename_base>
+  build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <filename_base>
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
       Create an OpenVPN TLS crypt V2 Client key" ;;
 		inline-base) text="
   inline-base <filename_base>
