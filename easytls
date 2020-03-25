@@ -430,7 +430,7 @@ status_easytls_revoked ()
 	print "Easy-TLS: Revoked inline files:"
 	print "  Easy-TLS does not Revoke certificates."
 	print "  If the certificate has been revoked in Easy-RSA then use:"
-	print "  'remove-inline <filename_base>' to delete inline file."
+	print "  'inline-remove <filename_base>' to delete inline file."
 	print "* renew (TODO)" # TODO
 } # => status_easytls_revoked ()
 
@@ -462,9 +462,9 @@ status_easytls_mismatch ()
 		esac
 	done
 	[ $temp_error ] && warn \
-"Use 'easytls remove-inline <filename_base>' to delete invalid inline files."
+"Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
 	[ $temp_errors ] && warn \
-"Duplicate records detected! Use 'easytls rebuild-inline-index' to attempt a re-index."
+"Duplicate records detected! Use 'easytls inline-index' to attempt a re-index."
 } # => status_easytls_mismatch
 
 # Keep an index file for inline certs to manage revoke/renew
