@@ -57,6 +57,7 @@ Here is the list of commands available with a short syntax reminder. Use the
   inline-tls-crypt <filename_base>
   inline-tls-crypt-v2 <filename_base>
   inline-remove <filename_base>
+  inline-renew <filename_base>
   inline-status [update?]
   test-inline (Requires root) (TODO)
 "
@@ -116,6 +117,9 @@ cmd_help()
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
+		inline-renew) text="
+  inline-renew <filename_base>
+      Renew <filename_base>.inline when Easy-RSA certificate is renewed" ;;
 		inline-status) text="
   inline-status [update]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status
@@ -503,18 +507,85 @@ inline_remove ()
 {
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
-	#EASYRSA_TLS_INLINE_REVOKED="$EASYTLS_PKI/revoked/$name.inline"
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
-	#confirm "remove"
+	# Confirm remove
+	confirm  "Remove inline file (yes/no) ? " "yes" "Remove: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
 	update_inline_index del
 
-	notice "Inline file removed: $inline_file"
+	[ $no_exit_note ] || notice "Inline file removed: $inline_file"
 } # => inline_remove ()
+
+# Renew .inline file
+inline_renew ()
+{
+	# Disable completion notices from sub processes
+	no_exit_note=1
+
+	name="$1"
+	inline_file="$EASYTLS_PKI/$name.inline"
+
+	[ -f "$inline_file" ] || die "Missing: $inline_file"
+
+	# Collect the attributes of .inline file
+	inline_is_base="$(grep -c 'File name base' "$inline_file")"
+	inline_is_tlsauth="$(grep -c '<tls-auth>' "$inline_file")"
+	inline_is_tlscrypt="$(grep -c '<tls-crypt>' "$inline_file")"
+	inline_is_tlscryptv2="$(grep -c '<tls-crypt-v2>' "$inline_file")"
+
+	# Verify .inline is valid
+	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
+	[ $(( inline_is_tlsauth + inline_is_tlscrypt + inline_is_tlscryptv2 )) -le 1 ] || \
+		die "File is not valid .inline: $inline_file"
+
+	# Determine the type of .inline file
+	inline_type="tls-base"
+	[ $inline_is_tlsauth -eq 1 ] && inline_type="tls-auth"
+	[ $inline_is_tlscrypt -eq 1 ] && inline_type="tls-crypt"
+	[ $inline_is_tlscryptv2 -eq 1 ] && inline_type="tls-crypt-v2"
+
+	# Confirm renew type
+	confirm  "Renew inline file (yes/no) ? " "yes" "Renew: $inline_file as Type: $inline_type"
+
+	if [ "$inline_type" = "tls-auth" ]
+	then
+		# Determine <key-direction>
+		key_dir="$(grep 'key-direction' "$inline_file" | awk '{ print $2 }' )"
+		case "$key_dir" in
+			0|1) : ;;
+			*) die "Key direction must be 0 (For server) or 1 (For client): $key_dir" ;;
+		esac
+	fi
+
+	# Remove the old .inline file
+	EASYTLS_BATCH=1
+	inline_remove "$name"
+	unset EASYTLS_BATCH
+
+	case "$inline_type" in
+		tls-base)
+			inline_base "$name"
+		;;
+		tls-auth)
+			inline_tls_auth "$name" "$key_dir"
+		;;
+		tls-crypt)
+			inline_tls_crypt "$name"
+		;;
+		tls-crypt-v2)
+			inline_tls_crypt_v2 "$name"
+		;;
+		*)
+			die "Unknown error inline_type: $inline_type"
+		;;
+	esac
+
+	notice "Inline file renewed: $inline_file"
+} # => inline_renew ()
 
 # Create inline credentials file from Easy-RSA PKI
 inline_base ()
@@ -588,7 +659,10 @@ inline_tls_auth ()
 		*) die "Key direction must be 0 (For server) or 1 (For client)." ;;
 	esac
 
+	# Inline base file
+	EASYTLS_BATCH=1
 	inline_base "$name"
+	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
@@ -600,7 +674,7 @@ inline_tls_auth ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	notice "Inline TLS auth file created: $out_file"
+	[ $no_exit_note ] || notice "Inline TLS auth file created: $out_file"
 } # => inline_tls_auth ()
 
 # Append TLS crypt file to base file
@@ -613,7 +687,10 @@ inline_tls_crypt ()
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
+	# Inline base file
+	EASYTLS_BATCH=1
 	inline_base "$name"
+	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
@@ -623,7 +700,7 @@ inline_tls_crypt ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	notice "Inline TLS crypt file created: $out_file"
+	[ $no_exit_note ] || notice "Inline TLS crypt file created: $out_file"
 } # => inline_tls_crypt ()
 
 # Append TLS crypt v2 file to base file
@@ -637,6 +714,7 @@ inline_tls_crypt_v2 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
 
+	# Inline base file
 	EASYTLS_BATCH=1
 	inline_base "$name"
 	unset EASYTLS_BATCH
@@ -649,7 +727,7 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	notice "Inline TLS crypt v2 file created: $out_file"
+	[ $no_exit_note ] || notice "Inline TLS crypt v2 file created: $out_file"
 } # => inline_tls_crypt_v2 ()
 
 # Check that the requested certificate is not revoked before inline
@@ -848,7 +926,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="0.8"
+	EASYTLS_VERSION="0.9"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
@@ -934,6 +1012,9 @@ case "$cmd" in
 		;;
 	inline-remove)
 		inline_remove "$@"
+		;;
+	inline-renew)
+		inline_renew "$@"
 		;;
 	inline-status)
 		inline_status "$@"
