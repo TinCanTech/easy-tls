@@ -21,9 +21,7 @@
 # + Easy-RSA Version 3.X
 # + OpenVPN Version 2.X
 #
-# shellcheck https://github.com/koalaman/shellcheck/issues/1417
-# `shellcheck easytls`
-#
+
 
 # Help/usage output to stdout
 usage()
