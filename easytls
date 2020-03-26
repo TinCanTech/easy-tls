@@ -50,12 +50,12 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
-  inline-base <filename_base> [nokey]
-  inline-tls-auth <filename_base> <key_direction> [nokey]
-  inline-tls-crypt <filename_base> [nokey]
-  inline-tls-crypt-v2 <filename_base> [nokey]
+  inline-base <filename_base> [ cmd-opts ]
+  inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
+  inline-tls-crypt <filename_base> [ cmd-opts ]
+  inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   inline-remove <filename_base>
-  inline-renew <filename_base> [nokey]
+  inline-renew <filename_base> [ cmd-opts ]
   inline-status [update?]
   test-inline (Requires root) (TODO)
 "
@@ -96,28 +96,38 @@ cmd_help()
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
       Create an OpenVPN TLS crypt V2 Client key" ;;
 		inline-base) text="
-  inline-base <filename_base> [nokey]
+  inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
-      for VPN node <filename_base>" ;;
+      for VPN node <filename_base>"
+			opts="
+        nokey   - do not require an x509 key (default: key is required)" ;;
 		inline-tls-auth) text="
-  inline-tls-auth <filename_base> <key_direction> [nokey]
+  inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
-      <key_direction> either '0' (For server) or '1' (For client)" ;;
+      <key_direction> either '0' (For server) or '1' (For client)"
+			opts="
+        nokey   - do not require an x509 key (default: key is required)" ;;
 		inline-tls-crypt) text="
-  inline-tls-crypt <filename_base> [nokey]
+  inline-tls-crypt <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
-      for VPN node <filename_base> using the Easy-TLS TLS crypt file" ;;
+      for VPN node <filename_base> using the Easy-TLS TLS crypt file"
+			opts="
+        nokey   - do not require an x509 key (default: key is required)" ;;
 		inline-tls-crypt-v2) text="
-  inline-tls-crypt-v2 <filename_base> [nokey]
+  inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
-      for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file" ;;
+      for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
+			opts="
+        nokey   - do not require an x509 key (default: key is required)" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
 		inline-renew) text="
-  inline-renew <filename_base> [nokey]
-      Renew <filename_base>.inline when Easy-RSA certificate is renewed" ;;
+  inline-renew <filename_base> [ cmd-opts ]
+      Renew <filename_base>.inline when Easy-RSA certificate is renewed"
+			opts="
+        nokey   - do not require an x509 key (default: key is required)" ;;
 		inline-status) text="
   inline-status [update]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status
