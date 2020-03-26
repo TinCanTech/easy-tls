@@ -50,12 +50,12 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
-  inline-base <filename_base>
-  inline-tls-auth <filename_base> <key_direction>
-  inline-tls-crypt <filename_base>
-  inline-tls-crypt-v2 <filename_base>
+  inline-base <filename_base> [nokey]
+  inline-tls-auth <filename_base> <key_direction> [nokey]
+  inline-tls-crypt <filename_base> [nokey]
+  inline-tls-crypt-v2 <filename_base> [nokey]
   inline-remove <filename_base>
-  inline-renew <filename_base>
+  inline-renew <filename_base> [nokey]
   inline-status [update?]
   test-inline (Requires root) (TODO)
 "
@@ -96,27 +96,27 @@ cmd_help()
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
       Create an OpenVPN TLS crypt V2 Client key" ;;
 		inline-base) text="
-  inline-base <filename_base>
+  inline-base <filename_base> [nokey]
       Create a complete OpenVPN node package from Easy-RSA files only
       for VPN node <filename_base>" ;;
 		inline-tls-auth) text="
-  inline-tls-auth <filename_base> <key_direction>
+  inline-tls-auth <filename_base> <key_direction> [nokey]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
       <key_direction> either '0' (For server) or '1' (For client)" ;;
 		inline-tls-crypt) text="
-  inline-tls-crypt <filename_base>
+  inline-tls-crypt <filename_base> [nokey]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt file" ;;
 		inline-tls-crypt-v2) text="
-  inline-tls-crypt-v2 <filename_base>
+  inline-tls-crypt-v2 <filename_base> [nokey]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
 		inline-renew) text="
-  inline-renew <filename_base>
+  inline-renew <filename_base> [nokey]
       Renew <filename_base>.inline when Easy-RSA certificate is renewed" ;;
 		inline-status) text="
   inline-status [update]
@@ -525,6 +525,17 @@ inline_renew ()
 	no_exit_note=1
 
 	name="$1"
+	shift
+
+	cmd_opts=""
+	while [ -n "$1" ]; do
+		case "$1" in
+			nokey) cmd_opts="$cmd_opts nokey" ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
@@ -566,16 +577,16 @@ inline_renew ()
 
 	case "$inline_type" in
 		tls-base)
-			inline_base "$name"
+			inline_base "$name" $cmd_opts
 		;;
 		tls-auth)
-			inline_tls_auth "$name" "$key_dir"
+			inline_tls_auth "$name" "$key_dir" $cmd_opts
 		;;
 		tls-crypt)
-			inline_tls_crypt "$name"
+			inline_tls_crypt "$name" $cmd_opts
 		;;
 		tls-crypt-v2)
-			inline_tls_crypt_v2 "$name"
+			inline_tls_crypt_v2 "$name" $cmd_opts
 		;;
 		*)
 			die "Unknown error inline_type: $inline_type"
@@ -590,7 +601,18 @@ inline_base ()
 {
 	# TODO: Improve build_inline integration. eg: renew/revoke
 	verify_ca_init
+
 	name="$1"
+	shift
+
+	while [ -n "$1" ]; do
+		case "$1" in
+			nokey) no_x509_key=1 ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	ca_file="$EASYRSA_PKI/ca.crt"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
@@ -601,9 +623,16 @@ inline_base ()
 Certificate file missing or revoked: $crt_file
 $help_note"
 
-	[ -f "$key_file" ] || die "\
+	if [ "$no_x509_key" ]
+	then
+		# Key file is not required
+		:
+	else
+		# Key file is required
+		[ -f "$key_file" ] || die "\
 Key file missing or revoked: $key_file
 $help_note"
+	fi
 
 	# get the serial number of the certificate -> serial=XXXX
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
@@ -627,7 +656,14 @@ $help_note"
 		printf "%s\n" "</cert>"
 		printf "%s\n" ""
 		printf "%s\n" "<key>"
-		cat "$key_file"
+
+		if [ "$no_x509_key" ]
+		then
+			printf "%s\n" "  Delete this line and paste your complete x509 key file here"
+		else
+			cat "$key_file"
+		fi
+
 		printf "%s\n" "</key>"
 		printf "%s\n" ""
 		printf "%s\n" "<ca>"
@@ -639,7 +675,7 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
-	notice "Inline base file created: $out_file"
+	[ $no_exit_note ] || notice "Inline base file created: $out_file"
 } # => inline_base ()
 
 # Append TLS auth file to base file
@@ -648,6 +684,17 @@ inline_tls_auth ()
 	verify_ca_init
 	name="$1"
 	key_dir="$2"
+	shift 2
+
+	cmd_opts=""
+	while [ -n "$1" ]; do
+		case "$1" in
+			nokey) cmd_opts="$cmd_opts nokey" ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	tls_file="$EASYTLS_PKI/tls-auth.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
@@ -659,7 +706,7 @@ inline_tls_auth ()
 
 	# Inline base file
 	EASYTLS_BATCH=1
-	inline_base "$name"
+	inline_base "$name" $cmd_opts
 	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS auth"
@@ -680,6 +727,17 @@ inline_tls_crypt ()
 {
 	verify_ca_init
 	name="$1"
+	shift
+
+	cmd_opts=""
+	while [ -n "$1" ]; do
+		case "$1" in
+			nokey) cmd_opts="$cmd_opts nokey" ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	tls_file="$EASYTLS_PKI/tls-crypt.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
@@ -687,7 +745,7 @@ inline_tls_crypt ()
 
 	# Inline base file
 	EASYTLS_BATCH=1
-	inline_base "$name"
+	inline_base "$name" $cmd_opts
 	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt"
@@ -706,6 +764,17 @@ inline_tls_crypt_v2 ()
 {
 	verify_ca_init
 	name="$1"
+	shift
+
+	cmd_opts=""
+	while [ -n "$1" ]; do
+		case "$1" in
+			nokey) cmd_opts="$cmd_opts nokey" ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	tls_file="$EASYTLS_PKI/tls-crypt-v2-$name.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
@@ -714,7 +783,7 @@ inline_tls_crypt_v2 ()
 
 	# Inline base file
 	EASYTLS_BATCH=1
-	inline_base "$name"
+	inline_base "$name" $cmd_opts
 	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt v2"
