@@ -22,7 +22,6 @@
 # + OpenVPN Version 2.X
 #
 
-
 # Help/usage output to stdout
 usage()
 {
@@ -367,6 +366,7 @@ and initialize a fresh TLS PKI here."
 	printf "%s" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
+	unset EASYTLS_BATCH
 	notice "\
 init-tls complete; you may now create TLS keys.
 Your newly created TLS dir is: $EASYTLS_PKI
@@ -401,6 +401,9 @@ inline_status ()
 
 	# List mismatches
 	status_easytls_mismatch
+
+	# Wipe out spurious error code
+	return 0
 } #=> inline_status ()
 
 # Print Valid certs from Easy-RSA
@@ -525,7 +528,12 @@ inline_remove ()
 
 	update_inline_index del
 
+	unset EASYTLS_BATCH
 	[ $no_exit_note ] || notice "Inline file removed: $inline_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_remove ()
 
 # Renew .inline file
@@ -593,7 +601,7 @@ inline_renew ()
 			inline_tls_auth "$name" "$key_dir" $cmd_opts
 		;;
 		tls-crypt)
-			inline_tls_crypt "$name" $cmd_opts
+			inline_tls_crypt_v1 "$name" $cmd_opts
 		;;
 		tls-crypt-v2)
 			inline_tls_crypt_v2 "$name" $cmd_opts
@@ -604,6 +612,10 @@ inline_renew ()
 	esac
 
 	notice "Inline file renewed: $inline_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_renew ()
 
 # Create inline credentials file from Easy-RSA PKI
@@ -685,7 +697,12 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
+	unset EASYTLS_BATCH
 	[ $no_exit_note ] || notice "Inline base file created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_base ()
 
 # Append TLS auth file to base file
@@ -730,10 +747,14 @@ inline_tls_auth ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	[ $no_exit_note ] || notice "Inline TLS auth file created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_tls_auth ()
 
 # Append TLS crypt file to base file
-inline_tls_crypt ()
+inline_tls_crypt_v1 ()
 {
 	verify_ca_init
 	name="$1"
@@ -767,6 +788,10 @@ inline_tls_crypt ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	[ $no_exit_note ] || notice "Inline TLS crypt file created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_tls_crypt ()
 
 # Append TLS crypt v2 file to base file
@@ -805,6 +830,10 @@ inline_tls_crypt_v2 ()
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
 	[ $no_exit_note ] || notice "Inline TLS crypt v2 file created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => inline_tls_crypt_v2 ()
 
 # Check that the requested certificate is not revoked before inline
@@ -831,7 +860,12 @@ build_tls_auth ()
 	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
 		die "Failed to create TLS auth key: $out_file"
 
+	unset EASYTLS_BATCH
 	notice "TLS auth key created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -852,7 +886,12 @@ build_tls_crypt_v1 ()
 	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
 		die "Failed to create TLS crypt v1 key: $out_file"
 
+	unset EASYTLS_BATCH
 	notice "TLS crypt v1 key created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -879,7 +918,12 @@ Missing file: $srv_cert"
 	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
 		die "Failed to create tls-crypt-v2-server key: $out_file"
 
+	unset EASYTLS_BATCH
 	notice "TLS crypt v2 server key created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -915,7 +959,12 @@ Missing file: $cli_cert"
 		--genkey tls-crypt-v2-client "$out_file" || \
 		die "Failed to create tls-crypt-v2-client key: $out_file"
 
+	unset EASYTLS_BATCH
 	notice "TLS crypt v2 client key created: $out_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => build_tls_crypt_v2_client ()
 
 # vars setup
