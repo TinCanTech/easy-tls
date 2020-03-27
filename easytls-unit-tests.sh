@@ -12,7 +12,7 @@ print() { printf "%s\n" "$*"; }
 build_easyrsa ()
 {
 
-mkdir x509-types
+mkdir -p x509-types
 
 print "
 # X509 extensions added to every signed cert
