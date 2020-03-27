@@ -1022,7 +1022,8 @@ Note: using Easy-RSA configuration from: $vars"
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/tls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.tls"
 	# TODO: Revert back to "openvpn" when v2.5 is released
-	set_var EASYTLS_OPENVPN	"/home/tct/openvpn/master/src/openvpn/openvpn"
+	#set_var EASYTLS_OPENVPN	"/home/tct/openvpn/master/src/openvpn/openvpn"
+	set_var EASYTLS_OPENVPN	"openvpn"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around Windows mktemp bug when parent dir is missing
 	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
