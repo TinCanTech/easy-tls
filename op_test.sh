@@ -24,4 +24,5 @@ fi
 
 echo "exit code: $EXIT_CODE"
 echo "Over ride failure!"
+EXIT_CODE=0
 exit 0
