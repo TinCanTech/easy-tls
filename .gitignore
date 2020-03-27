@@ -1,7 +1,9 @@
 pki/*
+x509-types/*
 easyrsa
 vars
 vars.example
+openssl-easyrsa.cnf
 safessl-easyrsa.cnf
 test/*
 setup
