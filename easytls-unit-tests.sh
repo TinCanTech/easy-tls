@@ -3,7 +3,6 @@
 fail ()
 {
 	echo "$@"
-	echo WTF
 	exit 1
 }
 
