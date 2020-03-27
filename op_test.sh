@@ -10,8 +10,6 @@ CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/
 curl -O "$CURL_TARGET"
 echo
 
-exit
-
 EXIT_CODE=1
 if [ -e "easyrsa" ];
 then
@@ -20,7 +18,6 @@ then
 	EXIT_CODE=0
 	EASYTLS_UTEST_VERB_LEVEL="${EASYTLS_UTEST_VERB_LEVEL:-"-v"}"
 	sh easytls-unit-tests.sh "$EASYTLS_UTEST_VERB_LEVEL" || EXIT_CODE=1
-	#rm -f "easyrsa" "openssl-easyrsa.cnf"
 else
 	echo "Failed to DL easyrsa"
 fi
