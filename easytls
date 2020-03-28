@@ -57,7 +57,7 @@ Here is the list of commands available with a short syntax reminder. Use the
   inline-remove <filename_base>
   inline-renew <filename_base> [ cmd-opts ]
   inline-status [ cmd-opts ]
-  test-inline (Requires root) (TODO)
+  inline-test (Requires root) (TODO)
 "
 
 	# collect/show dir status:
@@ -108,7 +108,7 @@ cmd_help()
       <key_direction> either '0' (For server) or '1' (For client)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-	nodir   - do not add 'key-direction 0|1'" ;;
+        nodir   - do not add 'key-direction 0|1'" ;;
 		inline-tls-crypt) text="
   inline-tls-crypt <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
@@ -370,7 +370,6 @@ and initialize a fresh TLS PKI here."
 	printf "%s" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
-	unset EASYTLS_BATCH
 	notice "\
 init-tls complete; you may now create TLS keys.
 Your newly created TLS dir is: $EASYTLS_PKI
@@ -537,7 +536,6 @@ inline_remove ()
 
 	update_inline_index del
 
-	unset EASYTLS_BATCH
 	[ $no_exit_note ] || notice "Inline file removed: $inline_file"
 
 	# Wipe out spurious error code from above test
@@ -602,9 +600,7 @@ inline_renew ()
 	fi
 
 	# Remove the old .inline file
-	EASYTLS_BATCH=1
 	inline_remove "$name"
-	unset EASYTLS_BATCH
 
 	case "$inline_type" in
 		tls-base)
@@ -711,7 +707,6 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
-	unset EASYTLS_BATCH
 	[ $no_exit_note ] || notice "Inline base file created: $out_file"
 
 	# Wipe out spurious error code from above test
@@ -750,9 +745,7 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
-	EASYTLS_BATCH=1
 	inline_base "$name" $cmd_opts
-	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
@@ -796,9 +789,7 @@ inline_tls_crypt_v1 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
 	# Inline base file
-	EASYTLS_BATCH=1
 	inline_base "$name" $cmd_opts
-	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
@@ -841,9 +832,7 @@ inline_tls_crypt_v2 ()
 	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
 
 	# Inline base file
-	EASYTLS_BATCH=1
 	inline_base "$name" $cmd_opts
-	unset EASYTLS_BATCH
 
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
@@ -899,7 +888,6 @@ build_tls_auth ()
 	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
 		die "Failed to create TLS auth key: $out_file"
 
-	unset EASYTLS_BATCH
 	notice "TLS auth key created: $out_file"
 
 	# Wipe out spurious error code from above test
@@ -925,7 +913,6 @@ build_tls_crypt_v1 ()
 	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
 		die "Failed to create TLS crypt v1 key: $out_file"
 
-	unset EASYTLS_BATCH
 	notice "TLS crypt v1 key created: $out_file"
 
 	# Wipe out spurious error code from above test
@@ -957,7 +944,6 @@ Missing file: $srv_cert"
 	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
 		die "Failed to create tls-crypt-v2-server key: $out_file"
 
-	unset EASYTLS_BATCH
 	notice "TLS crypt v2 server key created: $out_file"
 
 	# Wipe out spurious error code from above test
@@ -999,7 +985,6 @@ Missing file: $cli_cert"
 		--genkey tls-crypt-v2-client "$out_file" || \
 		die "Failed to create tls-crypt-v2-client key: $out_file"
 
-	unset EASYTLS_BATCH
 	notice "TLS crypt v2 client key created: $out_file"
 
 	# Wipe out spurious error code from above test
