@@ -162,6 +162,7 @@ non-empty values to options are mandatory.
 General options:
 
 --batch         : set automatic (no-prompts when possible) mode
+--silent        : Silence all message output except prompts
 --pki-dir=DIR   : declare the PKI directory
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
 --tls-dir=DIR   : declare the TLS directory
@@ -203,7 +204,7 @@ $1" 1>&2
 # informational notices to stdout
 notice()
 {
-	[ ! "$EASYTLS_BATCH" ] && \
+	[ "$EASYTLS_SILENT" ] && return 0
 		print "
 $1"
 } # => notice()
@@ -484,6 +485,10 @@ status_easytls_mismatch ()
 "Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
 	[ $temp_errors ] && warn \
 "Duplicate records detected! Use 'easytls inline-index' to attempt a re-index."
+
+	# Wipe out spurious error code from above test
+	return 0
+
 } # => status_easytls_mismatch
 
 # Keep an index file for inline certs to manage revoke/renew
@@ -1106,6 +1111,9 @@ while :; do
 		export EASYRSA_VARS_FILE="$val" ;;
 	--tls-dir)
 		export EASYTLS_PKI="$val" ;;
+	--silent)
+		empty_ok=1
+		export EASYTLS_SILENT=1 ;;
 	*)
 		break ;;
 	esac
