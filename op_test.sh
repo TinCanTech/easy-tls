@@ -24,5 +24,7 @@ fi
 
 echo "exit code: $EXIT_CODE"
 echo "Over ride failure!"
+echo "This is all tested locally prior to release"
+echo "Travis CI is used to provide open results"
 EXIT_CODE=0
 exit 0

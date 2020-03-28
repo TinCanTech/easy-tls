@@ -511,7 +511,7 @@ update_inline_index ()
 				die "Failed to update $EASYTLS_INLINE_INDEX"
 		;;
 		del)
-			{ sed "s\`^"$name".*$\`\`g" "$easytls_index_backup"
+			{ sed "s\`^$name.*$\`\`g" "$easytls_index_backup"
 			} > "$easytls_index_temp" || \
 				die "Failed to update $EASYTLS_INLINE_INDEX"
 
