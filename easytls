@@ -541,7 +541,7 @@ inline_remove ()
 
 	update_inline_index del
 
-	[ $no_exit_note ] || notice "Inline file removed: $inline_file"
+	[ $(( no_exit_note + sub_proc )) -eq 0 ] && notice "Inline file removed: $inline_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -556,7 +556,7 @@ inline_renew ()
 	verify_ca_init
 
 	# Disable completion notices from sub processes
-	no_exit_note=1
+	sub_proc=1
 
 	name="$1"
 	shift
@@ -712,7 +712,7 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
-	[ $no_exit_note ] || notice "Inline base file created: $out_file"
+	[ $(( no_exit_note + sub_proc )) -eq 0 ] && notice "Inline base file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -750,7 +750,9 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
+	no_exit_note=1
 	inline_base "$name" $cmd_opts
+	unset no_exit_note
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
@@ -762,7 +764,7 @@ inline_tls_auth ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $no_exit_note ] || notice "Inline TLS auth file created: $out_file"
+	[ $sub_proc ] || notice "Inline TLS auth file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -794,7 +796,9 @@ inline_tls_crypt_v1 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
 	# Inline base file
+	no_exit_note=1
 	inline_base "$name" $cmd_opts
+	unset no_exit_note
 
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
@@ -804,7 +808,7 @@ inline_tls_crypt_v1 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $no_exit_note ] || notice "Inline TLS crypt file created: $out_file"
+	[ $sub_proc ] || notice "Inline TLS crypt file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -837,7 +841,9 @@ inline_tls_crypt_v2 ()
 	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
 
 	# Inline base file
+	no_exit_note=1
 	inline_base "$name" $cmd_opts
+	unset no_exit_note
 
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
@@ -847,7 +853,7 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $no_exit_note ] || notice "Inline TLS crypt v2 file created: $out_file"
+	[ $sub_proc ] || notice "Inline TLS crypt v2 file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
