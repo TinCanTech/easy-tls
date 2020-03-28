@@ -541,7 +541,7 @@ inline_remove ()
 
 	update_inline_index del
 
-	[ $(( no_exit_note + sub_proc )) -eq 0 ] && notice "Inline file removed: $inline_file"
+	[ $silent_remove ] || notice "Inline file removed: $inline_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -554,9 +554,6 @@ inline_renew ()
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
 	verify_ca_init
-
-	# Disable completion notices from sub processes
-	sub_proc=1
 
 	name="$1"
 	shift
@@ -605,10 +602,15 @@ inline_renew ()
 	fi
 
 	# Remove the old .inline file
+	silent_remove=1
 	inline_remove "$name"
+
+	# Disable completion notices from sub processes
+	sub_proc=1
 
 	case "$inline_type" in
 		tls-base)
+			silent_base=1
 			inline_base "$name" $cmd_opts
 		;;
 		tls-auth)
@@ -712,7 +714,7 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
-	[ $(( no_exit_note + sub_proc )) -eq 0 ] && notice "Inline base file created: $out_file"
+	[ $silent_base ] || notice "Inline base file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -750,9 +752,8 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
-	no_exit_note=1
+	silent_base=1
 	inline_base "$name" $cmd_opts
-	unset no_exit_note
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
@@ -796,9 +797,8 @@ inline_tls_crypt_v1 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
 	# Inline base file
-	no_exit_note=1
+	silent_base=1
 	inline_base "$name" $cmd_opts
-	unset no_exit_note
 
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
@@ -841,9 +841,8 @@ inline_tls_crypt_v2 ()
 	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
 
 	# Inline base file
-	no_exit_note=1
+	silent_base=1
 	inline_base "$name" $cmd_opts
-	unset no_exit_note
 
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
