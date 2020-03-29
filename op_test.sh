@@ -21,6 +21,8 @@ then
 	EXIT_CODE=0
 	EASYTLS_UTEST_VERB_LEVEL="${EASYTLS_UTEST_VERB_LEVEL:-"-v"}"
 	export EASYTLS_OPENVPN="./openvpn"
+	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
+	$EASYTLS_OPENVPN --version
 	sh easytls-unit-tests.sh "$EASYTLS_UTEST_VERB_LEVEL" || EXIT_CODE=1
 else
 	echo "Failed to DL easyrsa"
