@@ -657,7 +657,7 @@ inline_base ()
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
 	out_file="$EASYTLS_PKI/$name.inline"
-	help_note="Run easytls status to verify certificate revokation."
+	help_note="Run 'easytls inline-status' to verify certificate revokation."
 
 	[ -f "$crt_file" ] || die "\
 Certificate file missing or revoked: $crt_file
@@ -874,16 +874,6 @@ unsupported_option ()
 	esac
 	exit 9
 } # => unsupported_option ()
-
-# Check that the requested certificate is not revoked before inline
-inline_cert_status ()
-{
-	pki_index="$EASYRSA_PKI/index.txt"
-	[ -f "$pki_index" ] || die "Missing Easy-RSA: $pki_index"
-
-	crt_valid="$(grep "$name" "$pki_index" | grep -c "^V")"
-	[ $crt_valid -eq 1 ] || return 1
-} # => inline_cert_status ()
 
 # Creat TLS auth file
 build_tls_auth ()

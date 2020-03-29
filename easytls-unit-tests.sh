@@ -68,7 +68,7 @@ EASYTLS_CMD="./easytls"
 
 for i in "init-pki" "build-ca nopass" "build-server-full s01 nopass" \
 	"build-client-full c01 nopass" "build-client-full c02 nopass" \
-	"build-client-full c03 nopass"
+	"build-client-full c03 nopass" "revoke c03"
 do
 	"$EASYRSA_CMD" --batch $i || fail "$EASYRSA_CMD --batch $i"
 done
