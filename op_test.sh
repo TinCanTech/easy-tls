@@ -8,6 +8,8 @@ CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/
 curl -O "$CURL_TARGET"
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
 curl -O "$CURL_TARGET"
+CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/Prebuilt-OpenVPN/master/src/openvpn/openvpn"
+curl -O "$CURL_TARGET"
 echo
 
 EXIT_CODE=1
@@ -15,8 +17,10 @@ if [ -e "easyrsa" ];
 then
 	# '-e' lol
 	chmod 744 "easyrsa"
+	chmod 744 "openvpn"
 	EXIT_CODE=0
 	EASYTLS_UTEST_VERB_LEVEL="${EASYTLS_UTEST_VERB_LEVEL:-"-v"}"
+	export EASYTLS_OPENVPN="./openvpn"
 	sh easytls-unit-tests.sh "$EASYTLS_UTEST_VERB_LEVEL" || EXIT_CODE=1
 else
 	echo "Failed to DL easyrsa"
