@@ -190,7 +190,7 @@ cleanup()
 {
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
-	echo "" # just to get a clean line
+	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
 } # => cleanup()
 
 # non-fatal warning output
@@ -418,7 +418,7 @@ status_easyrsa_valid ()
 	grep "^V" "$EASYRSA_INDEX" | awk '{ print $5 " " $3 }' | sed "s\`^/CN=\`\`g" | \
 		awk '{ print "  Certificate CN: " $1 " is Valid - Serial number:" $2 }'
 	temp_var="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
-	easyrsa_valid_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
+	easyrsa_valid_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
 	print
 } # => status_easyrsa_valid ()
 
@@ -429,7 +429,7 @@ status_easyrsa_revoked ()
 	grep "^R" "$EASYRSA_INDEX" | awk '{ print $6 " " $4 }' | sed "s\`^/CN=\`\`g" | \
 		awk '{ print "  Certificate CN: " $1 " is Revoked - Serial number:" $2 }'
 	temp_var="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
-	easyrsa_revoked_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
+	easyrsa_revoked_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
 	print
 } # => status_easyrsa_revoked ()
 
@@ -440,7 +440,7 @@ status_easytls_valid ()
 	grep -v "^$" "$EASYTLS_INLINE_INDEX" | \
 		awk '{ print "  Inline file CN: " $1 " is Valid - Serial number:" $2 }'
 	temp_var="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
-	easytls_valid_serial_list="$(print $temp_var | sed "s\`\n\`\ \`g")"
+	easytls_valid_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
 	print
 } # => status_easytls_valid ()
 
@@ -541,7 +541,7 @@ inline_remove ()
 
 	update_inline_index del
 
-	[ $silent_remove ] || notice "Inline file removed: $inline_file"
+	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -562,6 +562,7 @@ inline_renew ()
 	while [ -n "$1" ]; do
 		case "$1" in
 			nokey) cmd_opts="$cmd_opts nokey" ;;
+			nodir) cmd_opts="$cmd_opts nodir" ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
@@ -606,7 +607,7 @@ inline_renew ()
 	inline_remove "$name"
 
 	# Disable completion notices from sub processes
-	sub_proc=1
+	silent_inline=1
 
 	case "$inline_type" in
 		tls-base)
@@ -627,7 +628,7 @@ inline_renew ()
 		;;
 	esac
 
-	notice "Inline file renewed: $inline_file"
+	notice "Inline $inline_type file renewed: $inline_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -714,7 +715,7 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
-	[ $silent_base ] || notice "Inline base file created: $out_file"
+	[ ! $silent_base ] && notice "Inline base file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -765,7 +766,7 @@ inline_tls_auth ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $sub_proc ] || notice "Inline TLS auth file created: $out_file"
+	[ ! $silent_inline ] && notice "Inline TLS auth file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -808,7 +809,7 @@ inline_tls_crypt_v1 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $sub_proc ] || notice "Inline TLS crypt file created: $out_file"
+	[ ! $silent_inline ] && notice "Inline TLS crypt file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -852,7 +853,7 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ $sub_proc ] || notice "Inline TLS crypt v2 file created: $out_file"
+	[ ! $silent_inline ] && notice "Inline TLS crypt v2 file created: $out_file"
 
 	# Wipe out spurious error code from above test
 	return 0
