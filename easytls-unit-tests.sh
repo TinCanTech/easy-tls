@@ -59,6 +59,26 @@ extendedKeyUsage = clientAuth
 keyUsage = digitalSignature
 " > x509-types/client
 
+cp vars.example vars
+print 
+
+	{
+		print ' set_var EASYRSA_DN "org"'
+		print '# Unsupported characters:'
+		print '# `'
+		print '# $'
+		print '# "'
+		print "# '"
+		print '# #'
+		print '# & (Win)'
+		print ' set_var EASYRSA_REQ_COUNTRY   "00"'
+		print ' set_var EASYRSA_REQ_PROVINCE  "test"'
+		print ' set_var EASYRSA_REQ_CITY      "TEST ,./<>  ?;:@~  []!%^  *()-=  _+| (23) TEST"'
+		print ' set_var EASYRSA_REQ_ORG       "example.org"'
+		print ' set_var EASYRSA_REQ_EMAIL     "me@example.net"'
+		print ' set_var EASYRSA_REQ_OU        "TEST esc \{ \} \£ \¬ (4) TEST"'
+	} >> vars
+
 }
 
 build_easyrsa
@@ -79,8 +99,8 @@ for i in "init-tls" "build-tls-auth" "build-tls-crypt" "build-tls-crypt-v2-serve
 	"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" \
 	"inline-status" "inline-tls-crypt s01" "inline-status" "inline-renew s01" "inline-remove s01" \
 	"inline-status" "inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" \
-	"inline-status" "inline-tls-crypt-v2 s01" "inline-status" "inline-renew s01" "inline-remove s01" \
-	"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-remove c01" \
+	"inline-status" "inline-tls-crypt-v2 s01" "inline-status" "inline-renew s01" \
+	"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" \
 	"inline-status"
 do
 	echo "============================================================"
