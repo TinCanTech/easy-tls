@@ -59,9 +59,7 @@ extendedKeyUsage = clientAuth
 keyUsage = digitalSignature
 " > x509-types/client
 
-cp vars.example vars
-print 
-
+# Create vars
 	{
 		print ' set_var EASYRSA_DN "org"'
 		print '# Unsupported characters:'
@@ -77,9 +75,9 @@ print
 		print ' set_var EASYRSA_REQ_ORG       "example.org"'
 		print ' set_var EASYRSA_REQ_EMAIL     "me@example.net"'
 		print ' set_var EASYRSA_REQ_OU        "TEST esc \{ \} \£ \¬ (4) TEST"'
-	} >> vars
+	} > vars
 
-}
+} # => build_easyrsa ()
 
 build_easyrsa
 
