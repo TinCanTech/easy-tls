@@ -1033,6 +1033,10 @@ vars_setup()
 	# program location:
 	elif [ -f "$prog_vars" ]; then
 		vars="$prog_vars"
+	# vars of last resort ./vars
+	elif [ -f "./vars" ]; then
+		vars="./vars"
+		warn "'./vars' of last resort !"
 	fi
 	
 	# If a vars file was located, source it
