@@ -415,10 +415,19 @@ inline_status ()
 status_easyrsa_valid ()
 {
 	print "Easy-RSA: Valid certificates:"
-	grep "^V" "$EASYRSA_INDEX" | awk '{ print $5 " " $3 }' | sed "s\`^/CN=\`\`g" | \
-		awk '{ print "  Certificate CN: " $1 " is Valid - Serial number:" $2 }'
-	temp_var="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
-	easyrsa_valid_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
+	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX" | sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\ \`g")"
+	for i in $easyrsa_valid_serial_list
+	do
+		crt_file="$EASYRSA_PKI/issued/$i.crt"
+		[ -f "$crt_file" ] || die "Cert $crt_file is missing"
+
+		# get the serial number of the certificate -> serial=XXXX
+		crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
+		# remove the serial= part -> we only need the XXXX part
+		crt_serial=${crt_serial##*=}
+
+		print "  Certificate CN: $i is Valid - Serial number: $crt_serial"
+	done
 	print
 } # => status_easyrsa_valid ()
 
@@ -426,10 +435,17 @@ status_easyrsa_valid ()
 status_easyrsa_revoked ()
 {
 	print "Easy-RSA: Revoked certificates:"
-	grep "^R" "$EASYRSA_INDEX" | awk '{ print $6 " " $4 }' | sed "s\`^/CN=\`\`g" | \
-		awk '{ print "  Certificate CN: " $1 " is Revoked - Serial number:" $2 }'
-	temp_var="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
-	easyrsa_revoked_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
+	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX" | sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\ \`g")"
+	for i in $easyrsa_revoked_serial_list
+	do
+		crt_file="$EASYRSA_PKI/issued/$i.crt"
+		[ ! -f "$crt_file" ] || die "Cert $crt_file may have been renewed"
+
+		# get the serial number of the certificate
+		crt_serial="$(grep "^R.*/CN=$i" "$EASYRSA_INDEX" | awk '{ print $4 }')"
+
+		print "  Certificate CN: $i is Revoked - Serial number: $crt_serial"
+	done
 	print
 } # => status_easyrsa_revoked ()
 
