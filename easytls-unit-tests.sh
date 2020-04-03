@@ -84,6 +84,9 @@ build_easyrsa
 EASYRSA_CMD="./easyrsa"
 EASYTLS_CMD="./easytls"
 
+for loops in 1 2
+do
+
 for i in "init-pki" "build-ca nopass" "build-server-full s01 nopass" \
 	"build-client-full c01 nopass" "build-client-full c02 nopass" \
 	"build-client-full c03 nopass" "revoke c03"
@@ -104,6 +107,10 @@ do
 	echo "============================================================"
 	"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
 done
+
+rm -f vars
+
+done # => loops
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
