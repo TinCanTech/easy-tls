@@ -12,6 +12,8 @@ print() { printf "%s\n" "$*"; }
 build_easyrsa ()
 {
 
+rm -f vars
+
 mkdir -p x509-types
 
 print "
@@ -58,8 +60,11 @@ authorityKeyIdentifier = keyid,issuer:always
 extendedKeyUsage = clientAuth
 keyUsage = digitalSignature
 " > x509-types/client
+} # => build_easyrsa ()
 
 # Create vars
+build_vars ()
+{
 	{
 		print ' set_var EASYRSA_DN "org"'
 		print '# Unsupported characters:'
@@ -76,8 +81,7 @@ keyUsage = digitalSignature
 		print ' set_var EASYRSA_REQ_EMAIL     "me@example.net"'
 		print ' set_var EASYRSA_REQ_OU        "TEST esc \{ \} \£ \¬ (4) TEST"'
 	} > vars
-
-} # => build_easyrsa ()
+} # => build_vars ()
 
 build_easyrsa
 
@@ -108,7 +112,7 @@ do
 		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
 	done
 
-	rm -f vars
+	build_vars
 
 done # => loops
 
