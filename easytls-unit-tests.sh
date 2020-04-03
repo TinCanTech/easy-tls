@@ -100,8 +100,8 @@ do
 		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" \
 		"inline-status" "inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
 		"inline-status" "inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" \
-		"inline-status" "inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" \
-		"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" \
+		"inline-status" "inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" \
+		"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" \
 		"inline-status"
 	do
 		print "============================================================"

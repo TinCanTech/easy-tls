@@ -149,6 +149,9 @@ cmd_help()
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
 			opts="
         rebuild - rebuild inline-index.tls (TODO)" ;;
+		inline-show) text="
+  inline-show <filename_base>
+      Copy <filename_base>.inline to stdout" ;;
 		options)
 			opt_usage ;;
 		"")
@@ -555,6 +558,22 @@ update_inline_index ()
 	esac
 	rm -f "$easytls_index_backup" "$easytls_index_temp"
 } # => update_inline_index ()
+
+# Copy inline to stdout
+inline_show ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+
+	name="$1"
+	inline_file="$EASYTLS_PKI/$name.inline"
+
+	[ -f "$inline_file" ] || die "Missing: $inline_file"
+
+	cat "$inline_file" || die "Failed to open: $inline_file"
+
+	# Wipe out spurious error code from above test
+	return 0
+} # => inline_show ()
 
 # Remove .inline file
 inline_remove ()
@@ -1243,6 +1262,9 @@ case "$cmd" in
 		;;
 	inline-status)
 		inline_status "$@"
+		;;
+	inline-show)
+		inline_show "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
