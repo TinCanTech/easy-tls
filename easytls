@@ -100,7 +100,10 @@ cmd_help()
       Create a complete OpenVPN node package from Easy-RSA files only
       for VPN node <filename_base>"
 			opts="
-        nokey   - do not require an x509 key (default: key is required)" ;;
+        nokey   - do not require an x509 key (default: key is required)
+        add-dh  - inline Diffy Hellman parameters file
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option" ;;
 		inline-tls-auth) text="
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
@@ -108,19 +111,28 @@ cmd_help()
       <key_direction> either '0' (For server) or '1' (For client)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        nodir   - do not add 'key-direction 0|1'" ;;
+        nodir   - do not add 'key-direction 0|1'
+        add-dh  - inline Diffy Hellman parameters file
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option" ;;
 		inline-tls-crypt) text="
   inline-tls-crypt <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt file"
 			opts="
-        nokey   - do not require an x509 key (default: key is required)" ;;
+        nokey   - do not require an x509 key (default: key is required)
+        add-dh  - inline Diffy Hellman parameters file
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option" ;;
 		inline-tls-crypt-v2) text="
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
 			opts="
-        nokey   - do not require an x509 key (default: key is required)" ;;
+        nokey   - do not require an x509 key (default: key is required)
+        add-dh  - inline Diffy Hellman parameters file
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
@@ -128,7 +140,10 @@ cmd_help()
   inline-renew <filename_base> [ cmd-opts ]
       Renew <filename_base>.inline when Easy-RSA certificate is renewed"
 			opts="
-        nokey   - do not require an x509 key (default: key is required)" ;;
+        nokey   - do not require an x509 key (default: key is required)
+        add-dh  - inline Diffy Hellman parameters file
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option" ;;
 		inline-status) text="
   inline-status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
@@ -166,6 +181,7 @@ General options:
 --pki-dir=DIR   : declare the PKI directory
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
 --tls-dir=DIR   : declare the TLS directory
+--dh=FILE       : define an alternate Diffy Hellman parameters file
 
 "
 } # => opt_usage()
@@ -551,7 +567,7 @@ inline_remove ()
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	# Confirm remove
-	confirm  "Remove inline file (yes/no) ? " "yes" "Remove: $inline_file"
+	[ ! $silent_remove ] && confirm  "Remove inline file (yes/no) ? " "yes" "Remove: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
@@ -577,6 +593,7 @@ inline_renew ()
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
+			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
 			nodir) cmd_opts="$cmd_opts nodir" ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
@@ -664,6 +681,7 @@ inline_base ()
 	while [ -n "$1" ]; do
 		case "$1" in
 			nokey) no_x509_key=1 ;;
+			add-dh) inline_dh_file=1 ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
@@ -687,6 +705,17 @@ $help_note"
 		# Key file is required
 		[ -f "$key_file" ] || die "\
 Key file missing or revoked: $key_file
+$help_note"
+	fi
+
+	if [ "$inline_dh_file" ]
+	then
+		# dh file is required
+		help_note="Use --dh=<file_name> to specify an alternate dh file."
+		default_dh_file="$EASYRSA_PKI/dh.pem"
+		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"$default_dh_file"}"
+		[ -f "$EASYRSA_DH_FILE" ] || die "\
+Diffy Hellman parameters file missing: $EASYRSA_DH_FILE
 $help_note"
 	fi
 
@@ -726,6 +755,15 @@ $help_note"
 		cat "$ca_file"
 		printf "%s\n" "</ca>"
 		printf "%s\n" ""
+
+		if [ "$inline_dh_file" ]
+		then
+			printf "%s\n" "<dh>"
+			cat "$EASYRSA_DH_FILE"
+			printf "%s\n" "</dh>"
+			printf "%s\n" ""
+		fi
+
 	} > "$out_file" || die "Failed to create inline file: $out_file"
 
 	# Update INLINE index
@@ -752,6 +790,7 @@ inline_tls_auth ()
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
+			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
 			nodir) unsupported_option "nodir" ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
@@ -802,6 +841,7 @@ inline_tls_crypt_v1 ()
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
+			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
@@ -845,6 +885,7 @@ inline_tls_crypt_v2 ()
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
+			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
@@ -1136,6 +1177,8 @@ while :; do
 	--silent)
 		empty_ok=1
 		export EASYTLS_SILENT=1 ;;
+	--dh)
+		export EASYRSA_DH_FILE="$val" ;;
 	*)
 		break ;;
 	esac
