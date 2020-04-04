@@ -1,10 +1,10 @@
 language: bash
 
-before_install:
-  - sudo apt-get -y install openvpn
-addons:
-  apt:
-    update: true
+#before_install:
+#  - sudo apt-get -y install openvpn
+#addons:
+#  apt:
+#    update: true
 
 matrix:
   allow_failures:
