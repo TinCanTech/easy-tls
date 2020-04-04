@@ -112,6 +112,12 @@ do
 		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
 	done
 
+	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" "$EASYTLS_CMD --batch inline-tls-crypt c04" \
+		"$EASYRSA_CMD --batch revoke c04" "$EASYTLS_CMD inline-status"
+	do
+		$i
+	done
+
 	build_vars
 
 done # => loops

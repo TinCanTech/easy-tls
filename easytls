@@ -403,8 +403,11 @@ inline_status ()
 	EASYRSA_INDEX="$EASYRSA_PKI/index.txt"
 	[ -f "$EASYRSA_INDEX" ] || die "Missing Easy-RSA: $EASYRSA_INDEX"
 
+	easyrsa_valid_cn_list=""
 	easyrsa_valid_serial_list=""
+	easyrsa_revoked_cn_list=""
 	easyrsa_revoked_serial_list=""
+	#easytls_valid_cn_list=""
 	easytls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
 
@@ -430,22 +433,26 @@ inline_status ()
 
 } #=> inline_status ()
 
+status_format_output ()
+{
+	awk '{ print "  Common_Name " $1 "    Serial_number " $2 }'
+}
+
+status_extract_cn ()
+{
+	sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\`g"
+}
+
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
 	print "Easy-RSA: Valid certificates:"
-	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX" | sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\ \`g")"
+	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
 	for i in $easyrsa_valid_serial_list
 	do
-		crt_file="$EASYRSA_PKI/issued/$i.crt"
-		[ -f "$crt_file" ] || die "Cert $crt_file is missing"
-
-		# get the serial number of the certificate -> serial=XXXX
-		crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
-		# remove the serial= part -> we only need the XXXX part
-		crt_serial=${crt_serial##*=}
-
-		print "  Certificate CN: $i is Valid - Serial number: $crt_serial"
+		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
+		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
+		print "$easyrsa_valid_cn $i" | status_format_output
 	done
 	print
 } # => status_easyrsa_valid ()
@@ -454,16 +461,12 @@ status_easyrsa_valid ()
 status_easyrsa_revoked ()
 {
 	print "Easy-RSA: Revoked certificates:"
-	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX" | sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\ \`g")"
+	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
 	for i in $easyrsa_revoked_serial_list
 	do
-		crt_file="$EASYRSA_PKI/issued/$i.crt"
-		[ ! -f "$crt_file" ] || die "Cert $crt_file may have been renewed"
-
-		# get the serial number of the certificate
-		crt_serial="$(grep "^R.*/CN=$i" "$EASYRSA_INDEX" | awk '{ print $4 }')"
-
-		print "  Certificate CN: $i is Revoked - Serial number: $crt_serial"
+		easyrsa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
+		easyrsa_revoked_cn_list="$easyrsa_revoked_cn_list $easyrsa_revoked_cn"
+		print "$easyrsa_revoked_cn $i" | status_format_output
 	done
 	print
 } # => status_easyrsa_revoked ()
@@ -472,10 +475,10 @@ status_easyrsa_revoked ()
 status_easytls_valid ()
 {
 	print "Easy-TLS: Known inline files:"
-	grep -v "^$" "$EASYTLS_INLINE_INDEX" | \
-		awk '{ print "  Inline file CN: " $1 " is Valid - Serial number:" $2 }'
-	temp_var="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
-	easytls_valid_serial_list="$(print "$temp_var" | sed "s\`\n\`\ \`g")"
+	#grep -v "^$" "$EASYTLS_INLINE_INDEX" | status_format_output
+	cat "$EASYTLS_INLINE_INDEX" | status_format_output
+	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
+	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
 	print
 } # => status_easytls_valid ()
 
@@ -493,6 +496,8 @@ status_easytls_revoked ()
 status_easytls_mismatch ()
 {
 	print "Easy-TLS: Invalid inline files:"
+
+	mismatch_count=0
 	for i in $easytls_valid_serial_list
 	do
 		search_for_mismatch="$(print $easyrsa_revoked_serial_list | grep -c $i)"
@@ -502,24 +507,24 @@ status_easytls_mismatch ()
 			;;
 
 			1)
-				temp_error=1
-				temp_var="$(grep "$i" "$EASYTLS_INLINE_INDEX")" # "
-				# "
-				print "  $temp_var"
+				mismatch_count=$((mismatch_count+1))
+				grep $i "$EASYTLS_INLINE_INDEX" | status_format_output
 			;;
 
 			*)
-				temp_errors=1
-				temp_var="$(grep "$i" "$EASYTLS_INLINE_INDEX")" # "
-				# "
-				print "  multiple mismatch: $temp_var"
+				# $easyrsa_revoked_serial_list MUST never have duplicates
+				warn "EasyRSA index.txt duplicate records detected!"
+				[ $((search_for_mismatch)) -gt 1 ] || die "Error in search_for_mismatch: $search_for_mismatch"
 			;;
 		esac
 	done
-	[ $temp_error ] && warn \
-"Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
-	[ $temp_errors ] && warn \
-"Duplicate records detected! Use 'easytls inline-index' to attempt a re-index."
+
+	if [ $mismatch_count -eq 0 ]
+	then
+		print "  No Invalid inline files found."
+	else
+		print "  Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
+	fi
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -550,6 +555,7 @@ update_inline_index ()
 			} > "$easytls_index_temp" || \
 				die "Failed to update $EASYTLS_INLINE_INDEX"
 
+			# TODO: Remove this ..
 			grep -v "^$" "$easytls_index_temp" > "$EASYTLS_INLINE_INDEX"
 		;;
 		*)
