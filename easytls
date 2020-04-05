@@ -401,7 +401,8 @@ Your newly created TLS dir is: $EASYTLS_PKI
 	return 0
 } # => init_tls ()
 
-# Show differences between Easy-TLS vs Easy-RSA cert revokation
+# Show Easy-TLS inlines and Easy-RSA certificates
+# Report invalid inline files due to certificate revokation
 inline_status ()
 {
 	subsection="$1"
@@ -446,8 +447,6 @@ inline_status ()
 
 	verify_tls_init
 
-	#[ -f "$EASYTLS_INLINE_INDEX" ] || return
-
 	print "Easy-TLS: Known inline files:"
 	status_easytls_inline
 
@@ -488,7 +487,6 @@ status_easyrsa_valid ()
 		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
 		[ $silent_status ] || print "$easyrsa_valid_cn $i" | status_format_output
 	done
-	#print
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
@@ -501,7 +499,6 @@ status_easyrsa_revoked ()
 		easyrsa_revoked_cn_list="$easyrsa_revoked_cn_list $easyrsa_revoked_cn"
 		[ $silent_status ] || print "$easyrsa_revoked_cn $i" | status_format_output
 	done
-	#print
 } # => status_easyrsa_revoked ()
 
 # Print Valid certs from Easy-TLS
@@ -511,7 +508,6 @@ status_easytls_inline ()
 	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_format_output
-	#print
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -595,7 +591,7 @@ inline_show ()
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
-	verify_ca_init
+	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -613,7 +609,7 @@ inline_remove ()
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
-	verify_ca_init
+	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -636,7 +632,7 @@ inline_renew ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_ca_init
+	verify_tls_init
 
 	name="$1"
 	shift
@@ -724,7 +720,7 @@ inline_base ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_ca_init
+	verify_tls_init
 
 	name="$1"
 	shift
@@ -832,7 +828,7 @@ inline_tls_auth ()
 {
 	[ $# -ge 2 ] || die "Required option(s): <filename_base> <key_direction>"
 
-	verify_ca_init
+	verify_tls_init
 
 	name="$1"
 	key_dir="$2"
@@ -884,7 +880,7 @@ inline_tls_crypt_v1 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_ca_init
+	verify_tls_init
 
 	name="$1"
 	shift
@@ -928,7 +924,7 @@ inline_tls_crypt_v2 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_ca_init
+	verify_tls_init
 
 	name="$1"
 	shift
@@ -1037,8 +1033,7 @@ build_tls_crypt_v2_server ()
 	# Requires openvpn version 2.5
 	verify_openvpn_version 5
 
-	# Verify Easy-RSA has been correctly setup
-	verify_ca_init
+	verify_tls_init
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
@@ -1072,8 +1067,7 @@ build_tls_crypt_v2_client ()
 	# Requires openvpn version 2.5
 	verify_openvpn_version 5
 
-	# Verify Easy-RSA has been correctly setup
-	verify_ca_init
+	verify_tls_init
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
@@ -1199,7 +1193,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.11"
+	EASYTLS_VERSION="1.12"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
