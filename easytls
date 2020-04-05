@@ -148,6 +148,10 @@ cmd_help()
   inline-status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
 			opts="
+	valid   - List only Easy-RSA valid certificates
+	revoked - List only Easy-RSA revoked certificates
+	inline  - List only Easy-TLS inline files
+	invalid - List only Easy-TLS invalid inline files
         rebuild - rebuild inline-index.tls (TODO)" ;;
 		inline-show) text="
   inline-show <filename_base>
@@ -400,8 +404,9 @@ Your newly created TLS dir is: $EASYTLS_PKI
 # Show differences between Easy-TLS vs Easy-RSA cert revokation
 inline_status ()
 {
-	EASYRSA_INDEX="$EASYRSA_PKI/index.txt"
-	[ -f "$EASYRSA_INDEX" ] || die "Missing Easy-RSA: $EASYRSA_INDEX"
+	subsection="$1"
+
+	verify_ca_init
 
 	easyrsa_valid_cn_list=""
 	easyrsa_valid_serial_list=""
@@ -411,22 +416,52 @@ inline_status ()
 	easytls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
 
-	# List Easy-RSA Valid certs
+	if [ -n "$subsection" ]
+	then
+		EASYTLS_SILENT=1
+		case "$subsection" in
+		valid)		status_easyrsa_valid ;;
+		revoked)	status_easyrsa_revoked ;;
+		inline)
+				verify_tls_init
+				status_easytls_inline ;;
+		invalid)
+				verify_tls_init
+				silent_status=1
+				status_easyrsa_valid
+				status_easyrsa_revoked
+				status_easytls_inline
+				status_easytls_invalid
+				;;
+		*)		print "Unknown status option" ;;
+		esac
+		exit 0
+	fi
+
+	print "Easy-RSA: Valid certificates:"
 	status_easyrsa_valid
 
-	# List Easy-RSA Revoked certs
+	print "Easy-RSA: Revoked certificates:"
 	status_easyrsa_revoked
 
-	[ -f "$EASYTLS_INLINE_INDEX" ] || return
+	verify_tls_init
 
-	# List Easy-TLS Valid certs
-	status_easytls_valid
+	#[ -f "$EASYTLS_INLINE_INDEX" ] || return
 
-	# List Easy-TLS Revoked certs
-	#status_easytls_revoked # Not used
+	print "Easy-TLS: Known inline files:"
+	status_easytls_inline
 
-	# List mismatches
-	status_easytls_mismatch
+	#print "Easy-TLS: Revoked inline files:"
+	#status_easytls_revoked
+
+	print "Easy-TLS: Invalid inline files:"
+	status_easytls_invalid
+	if [ $mismatch_count -eq 0 ]
+	then
+		print "  No Invalid inline files found."
+	else
+		print "  Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
+	fi
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -446,46 +481,42 @@ status_extract_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	print "Easy-RSA: Valid certificates:"
 	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
 	for i in $easyrsa_valid_serial_list
 	do
 		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
 		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
-		print "$easyrsa_valid_cn $i" | status_format_output
+		[ $silent_status ] || print "$easyrsa_valid_cn $i" | status_format_output
 	done
-	print
+	#print
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	print "Easy-RSA: Revoked certificates:"
 	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
 	for i in $easyrsa_revoked_serial_list
 	do
 		easyrsa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
 		easyrsa_revoked_cn_list="$easyrsa_revoked_cn_list $easyrsa_revoked_cn"
-		print "$easyrsa_revoked_cn $i" | status_format_output
+		[ $silent_status ] || print "$easyrsa_revoked_cn $i" | status_format_output
 	done
-	print
+	#print
 } # => status_easyrsa_revoked ()
 
 # Print Valid certs from Easy-TLS
-status_easytls_valid ()
+status_easytls_inline ()
 {
-	print "Easy-TLS: Known inline files:"
 	#grep -v "^$" "$EASYTLS_INLINE_INDEX" | status_format_output
-	cat "$EASYTLS_INLINE_INDEX" | status_format_output
 	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
-	print
+	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_format_output
+	#print
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
 status_easytls_revoked ()
 {
-	print "Easy-TLS: Revoked inline files:"
 	print "  Easy-TLS does not Revoke certificates."
 	print "  If the certificate has been revoked in Easy-RSA then use:"
 	print "  'inline-remove <filename_base>' to delete inline file."
@@ -493,10 +524,8 @@ status_easytls_revoked ()
 } # => status_easytls_revoked ()
 
 # Check Easy-TLS valid vs Easy-RSA revoked
-status_easytls_mismatch ()
+status_easytls_invalid ()
 {
-	print "Easy-TLS: Invalid inline files:"
-
 	mismatch_count=0
 	for i in $easytls_valid_serial_list
 	do
@@ -518,13 +547,6 @@ status_easytls_mismatch ()
 			;;
 		esac
 	done
-
-	if [ $mismatch_count -eq 0 ]
-	then
-		print "  No Invalid inline files found."
-	else
-		print "  Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
-	fi
 
 	# Wipe out spurious error code from above test
 	return 0
@@ -573,6 +595,8 @@ inline_show ()
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
+	verify_ca_init
+
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	cat "$inline_file" || die "Failed to open: $inline_file"
@@ -588,6 +612,8 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
+
+	verify_ca_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -1126,8 +1152,8 @@ vars_setup()
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
 		EASYRSA_CALLER=1
 		. "$vars"
-		notice "\
-Note: using Easy-RSA configuration from: $vars"
+		# Make this a verbose only noteice
+		#notice "Note: using Easy-RSA configuration from: $vars"
 	fi
 	
 	# Set defaults, preferring existing env-vars if present
@@ -1136,9 +1162,11 @@ Note: using Easy-RSA configuration from: $vars"
 	set_var EASYRSA_OPENSSL		"openssl"
 	set_var EASYRSA_PKI		"$PWD/pki"
 	set_var EASYRSA_TEMP_DIR	"$EASYRSA_PKI"
+	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/tls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.tls"
+
 	# TODO: Revert back to "openvpn" when v2.5 is released
 	#set_var EASYTLS_OPENVPN	"/home/tct/openvpn/master/src/openvpn/openvpn"
 	set_var EASYTLS_OPENVPN		"openvpn"
