@@ -99,8 +99,13 @@ cmd_help()
       Create an OpenVPN TLS crypt V2 Client key"
 			opts="
        metadata - Free form quoted text to be encrypted with the key" ;;
-		build-status) text="
-  build-status
+		tls-key-delete) text="
+  tls-key-delete
+      Delete TLS key"
+			opts="
+       key type ?" ;;
+		tls-key-status) text="
+  tls-key-status
       TLS key vs inline file status" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
@@ -1082,6 +1087,13 @@ Missing file: $cli_cert"
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
 
+# Delete TLS keys
+tls_key_delete ()
+{
+	# TODO
+	print "TODO"
+} # => tls_key_delete ()
+
 # Show TLS keys vs inline file status
 tls_key_status ()
 {
@@ -1254,6 +1266,9 @@ case "$cmd" in
 		;;
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
+		;;
+	tls-key-delete)
+		tls_key_delete "$@"
 		;;
 	tls-key-status)
 		tls_key_status "$@"
