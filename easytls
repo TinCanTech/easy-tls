@@ -30,9 +30,6 @@ usage()
 	print "
 Easy-TLS usage and overview
 
-NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
-NOTE: Easy-TLS requires that you have OpenVPN installed.
-
 USAGE: easytls [options] COMMAND [command-options]
 
 A list of commands is shown below. To get detailed usage and help for a
@@ -57,7 +54,11 @@ Here is the list of commands available with a short syntax reminder. Use the
   inline-remove <filename_base>
   inline-renew <filename_base> [ cmd-opts ]
   inline-status [ cmd-opts ]
+  inline-show <filename_base>
   inline-test (Requires root) (TODO)
+
+NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
+NOTE: Easy-TLS requires that you have OpenVPN installed.
 "
 
 	# collect/show dir status:
@@ -69,8 +70,8 @@ Here is the list of commands available with a short syntax reminder. Use the
 DIRECTORY STATUS (commands would take effect on these locations)
   EASYRSA: $work_dir
       PKI: $pki_dir
-      TLS: $tls_dir
-"
+      TLS: $tls_dir"
+EASYTLS_SILENT=1
 } # => usage()
 
 # Detailed command help
@@ -190,9 +191,8 @@ General options:
 --pki-dir=DIR   : declare the PKI directory
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
 --tls-dir=DIR   : declare the TLS directory
---dh=FILE       : define an alternate Diffy Hellman parameters file
-
-"
+--dh=FILE       : define an alternate Diffy Hellman parameters file"
+EASYTLS_SILENT=1
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -298,7 +298,7 @@ verify_ca_init () {
 	# (or symlinks), but also pipes, for flexibility with ca.key
 	for i in serial index.txt index.txt.attr ca.crt private/ca.key; do
 		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
-			[ "$1" = "test" ] && return 1
+			#[ "$1" = "test" ] && return 1
 			die "\
 Easy-TLS TLS crypt v2 requires that you have built your EASY-RSA PKI node certificates.
 
@@ -331,6 +331,7 @@ $help_note"
 # Verify Openvpn is available
 verify_openvpn ()
 {
+	# Must test Windblows ...
 	if which "$EASYTLS_OPENVPN" > /dev/null
 	then
 		return 0
@@ -362,6 +363,10 @@ verify_openvpn_version ()
 	[ $ovpn_ver_major -lt $ovpn_ver_req_maj ] && \
 		die "Openvpn 2.$ovpn_ver_req_maj required, Found $ovpn_ver_str"
 	[ $ovpn_ver_minor -lt 0 ] && die "Openvpn 2.X.X required, Found $ovpn_ver_str"
+
+	# explicitly return success for callers
+	return 0
+
 } # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
@@ -393,7 +398,7 @@ and initialize a fresh TLS PKI here."
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
 	# Create tls dir index file
-	printf "%s" > "$EASYTLS_INLINE_INDEX" \
+	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
 	notice "\
@@ -438,7 +443,7 @@ inline_status ()
 				;;
 		*)		print "Unknown status option" ;;
 		esac
-		exit 0
+		return 0
 	fi
 
 	print "Easy-RSA: Valid certificates:"
@@ -463,10 +468,6 @@ inline_status ()
 	else
 		print "  Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
 	fi
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } #=> inline_status ()
 
 status_format_output ()
@@ -506,7 +507,6 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	#grep -v "^$" "$EASYTLS_INLINE_INDEX" | status_format_output
 	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_format_output
@@ -517,8 +517,7 @@ status_easytls_revoked ()
 {
 	print "  Easy-TLS does not Revoke certificates."
 	print "  If the certificate has been revoked in Easy-RSA then use:"
-	print "  'inline-remove <filename_base>' to delete inline file."
-	print "* renew (TODO)" # TODO
+	print "  'inline-remove <filename_base>' to delete the inline file."
 } # => status_easytls_revoked ()
 
 # Check Easy-TLS valid vs Easy-RSA revoked
@@ -527,9 +526,10 @@ status_easytls_invalid ()
 	mismatch_count=0
 	for i in $easytls_valid_serial_list
 	do
-		search_for_mismatch="$(print $easyrsa_revoked_serial_list | grep -c $i)"
-		case $search_for_mismatch in
+		mismatches="$(print $easyrsa_revoked_serial_list | grep -c $i)"
+		case $mismatches in
 			0)
+				# No mismatches found
 				:
 			;;
 
@@ -541,14 +541,10 @@ status_easytls_invalid ()
 			*)
 				# $easyrsa_revoked_serial_list MUST never have duplicates
 				warn "EasyRSA index.txt duplicate records detected!"
-				[ $((search_for_mismatch)) -gt 1 ] || die "Error in search_for_mismatch: $search_for_mismatch"
+				[ $((mismatches)) -gt 1 ] || die "Error in search_for_mismatch: $mismatches"
 			;;
 		esac
 	done
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => status_easytls_mismatch
 
 # Keep an index file for inline certs to manage revoke/renew
@@ -598,9 +594,6 @@ inline_show ()
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	cat "$inline_file" || die "Failed to open: $inline_file"
-
-	# Wipe out spurious error code from above test
-	return 0
 } # => inline_show ()
 
 # Remove .inline file
@@ -624,7 +617,7 @@ inline_remove ()
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
-	# Wipe out spurious error code from above test
+	# explicitly return success for callers
 	return 0
 
 } # => inline_remove ()
@@ -711,10 +704,6 @@ inline_renew ()
 	esac
 
 	notice "Inline $inline_type file renewed: $inline_file"
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => inline_renew ()
 
 # Create inline credentials file from Easy-RSA PKI
@@ -820,7 +809,7 @@ $help_note"
 
 	[ ! $silent_base ] && notice "Inline base file created: $out_file"
 
-	# Wipe out spurious error code from above test
+	# explicitly return success for callers
 	return 0
 
 } # => inline_base ()
@@ -872,7 +861,7 @@ inline_tls_auth ()
 
 	[ ! $silent_inline ] && notice "Inline TLS auth file created: $out_file"
 
-	# Wipe out spurious error code from above test
+	# explicitly return success for callers
 	return 0
 
 } # => inline_tls_auth ()
@@ -916,7 +905,7 @@ inline_tls_crypt_v1 ()
 
 	[ ! $silent_inline ] && notice "Inline TLS crypt file created: $out_file"
 
-	# Wipe out spurious error code from above test
+	# explicitly return success for callers
 	return 0
 
 } # => inline_tls_crypt_v1 ()
@@ -961,7 +950,7 @@ inline_tls_crypt_v2 ()
 
 	[ ! $silent_inline ] && notice "Inline TLS crypt v2 file created: $out_file"
 
-	# Wipe out spurious error code from above test
+	# explicitly return success for callers
 	return 0
 
 } # => inline_tls_crypt_v2 ()
@@ -996,10 +985,6 @@ build_tls_auth ()
 		die "Failed to create TLS auth key: $out_file"
 
 	notice "TLS auth key created: $out_file"
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -1021,10 +1006,6 @@ build_tls_crypt_v1 ()
 		die "Failed to create TLS crypt v1 key: $out_file"
 
 	notice "TLS crypt v1 key created: $out_file"
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -1054,10 +1035,6 @@ Missing file: $srv_cert"
 	sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 server key created: $out_file"
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -1099,10 +1076,6 @@ Missing file: $cli_cert"
 	sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 client key created: $out_file"
-
-	# Wipe out spurious error code from above test
-	return 0
-
 } # => build_tls_crypt_v2_client ()
 
 # vars setup
@@ -1197,7 +1170,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.12"
+	EASYTLS_VERSION="1.13"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
