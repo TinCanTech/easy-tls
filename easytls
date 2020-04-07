@@ -47,7 +47,6 @@ Here is the list of commands available with a short syntax reminder. Use the
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
-  tls-key-status [ cmd-opts ]
   inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
@@ -56,7 +55,6 @@ Here is the list of commands available with a short syntax reminder. Use the
   inline-renew <filename_base> [ cmd-opts ]
   inline-status [ cmd-opts ]
   inline-show <filename_base>
-  inline-test (Requires root) (TODO)
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
@@ -99,14 +97,6 @@ cmd_help()
       Create an OpenVPN TLS crypt V2 Client key"
 			opts="
        metadata - Free form quoted text to be encrypted with the key" ;;
-		tls-key-delete) text="
-  tls-key-delete
-      Delete TLS key"
-			opts="
-       key type ?" ;;
-		tls-key-status) text="
-  tls-key-status
-      TLS key vs inline file status" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -562,32 +552,22 @@ update_inline_index ()
 	[ $# -ge 1 ] || die "Required option(s): <update_index_action>"
 
 	update_index_action="$1"
-	easytls_index_backup="$EASYTLS_INLINE_INDEX.bkp"
-	easytls_index_temp="$EASYTLS_INLINE_INDEX.tmp"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || \
 		die "update_inline_index () Missing: $EASYTLS_INLINE_INDEX"
 
-	cp -f "$EASYTLS_INLINE_INDEX" "$easytls_index_backup"
-
 	case "$update_index_action" in
 		add)
-			{ printf "%s\n" "$name $crt_serial"
-			} >> "$EASYTLS_INLINE_INDEX" || \
+			printf "%s\n" "$name $crt_serial" >> "$EASYTLS_INLINE_INDEX" || \
 				die "Failed to update $EASYTLS_INLINE_INDEX"
 		;;
 		del)
-			{ sed "s\`^$name.*$\`\`g" "$easytls_index_backup"
-			} > "$easytls_index_temp" || \
+			sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" || \
 				die "Failed to update $EASYTLS_INLINE_INDEX"
-
-			# TODO: Remove this ..
-			grep -v "^$" "$easytls_index_temp" > "$EASYTLS_INLINE_INDEX"
 		;;
 		*)
 			die "Unknown index action: $update_index_action"
 		;;
 	esac
-	rm -f "$easytls_index_backup" "$easytls_index_temp"
 } # => update_inline_index ()
 
 # Copy inline to stdout
@@ -612,10 +592,17 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
 
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
+	[ -f "$crt_file" ] || die "Missing: $crt_file"
+
+	# get the serial number of the certificate -> serial=XXXX
+	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
+	# remove the serial= part -> we only need the XXXX part
+	crt_serial=${crt_serial##*=}
 
 	# Confirm remove
 	[ ! $silent_remove ] && confirm  "Remove inline file (yes/no) ? " "yes" "Remove: $inline_file"
@@ -653,8 +640,15 @@ inline_renew ()
 	done
 
 	inline_file="$EASYTLS_PKI/$name.inline"
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
+	[ -f "$crt_file" ] || die "Missing: $crt_file"
+
+	# get the serial number of the certificate -> serial=XXXX
+	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
+	# remove the serial= part -> we only need the XXXX part
+	crt_serial=${crt_serial##*=}
 
 	# Collect the attributes of .inline file
 	inline_is_base="$(grep -c 'File name base' "$inline_file")"
@@ -1087,20 +1081,6 @@ Missing file: $cli_cert"
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
 
-# Delete TLS keys
-tls_key_delete ()
-{
-	# TODO
-	print "TODO"
-} # => tls_key_delete ()
-
-# Show TLS keys vs inline file status
-tls_key_status ()
-{
-	# TODO
-	print "TODO"
-} # => tls_key_status ()
-
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
@@ -1190,7 +1170,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.13"
+	EASYTLS_VERSION="1.14"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
@@ -1266,12 +1246,6 @@ case "$cmd" in
 		;;
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
-		;;
-	tls-key-delete)
-		tls_key_delete "$@"
-		;;
-	tls-key-status)
-		tls_key_status "$@"
 		;;
 	inline-base)
 		inline_base "$@"
