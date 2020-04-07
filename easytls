@@ -55,6 +55,7 @@ Here is the list of commands available with a short syntax reminder. Use the
   inline-renew <filename_base> [ cmd-opts ]
   inline-status [ cmd-opts ]
   inline-show <filename_base>
+  cert-expire <filename_base> | <ca>
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
@@ -158,6 +159,12 @@ cmd_help()
 		inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
+		cert-expire) text="
+  cert-expire <filename_base> | <ca>
+      Display certificate expiry date for <filename_base>"
+			opts="
+        If <filename_base> is 'ca' then show ca.crt expiry
+        If no <filename_base> is given then list all certificates expiry dates" ;;
 		options)
 			opt_usage ;;
 		"")
@@ -471,7 +478,7 @@ inline_status ()
 
 status_format_output ()
 {
-	awk '{ print "  Common_Name " $1 "    Serial_number " $2 }'
+	awk '{ print "  Common-Name " $1 "    Serial-number " $2 }'
 }
 
 status_extract_cn ()
@@ -540,11 +547,54 @@ status_easytls_invalid ()
 			*)
 				# $easyrsa_revoked_serial_list MUST never have duplicates
 				warn "EasyRSA index.txt duplicate records detected!"
-				[ $((mismatches)) -gt 1 ] || die "Error in search_for_mismatch: $mismatches"
+				[ $((mismatches)) -gt 1 ] || \
+					die "Error in mismatches: $mismatches"
 			;;
 		esac
 	done
 } # => status_easytls_mismatch
+
+# Extract enddate from certificate
+crt_expire_date ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate | sed 's/^notAfter=//'
+} # => crt_expire_date ()
+
+# Get x509 certificate expiry date
+cert_expire ()
+{
+	crt_name="$1"
+
+	if [ "$crt_name" = "ca" ]
+	then
+		crt_file="$EASYRSA_PKI/ca.crt"
+		[ -f "$crt_file" ] || die "Missing: $crt_file"
+		crt_expire="$(crt_expire_date)"
+		print " Certificate: ca.crt   Expire-date: $crt_expire"
+	elif [ -n "$crt_name" ]
+	then
+		crt_file="$EASYRSA_PKI/issued/$crt_name.crt"
+		[ -f "$crt_file" ] || die "Missing: $crt_file"
+		crt_expire="$(crt_expire_date)"
+		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
+	else
+		easyrsa_valid_file_list="$(grep "^V" "$EASYRSA_INDEX" | status_extract_cn)"
+		for i in $easyrsa_valid_file_list
+		do
+			crt_file="$EASYRSA_PKI/issued/$i.crt"
+			[ -f "$crt_file" ] || die "Missing: $crt_file"
+			crt_expire="$(crt_expire_date)"
+			print " Certificate: $i.crt   Expire-date: $crt_expire"
+		done
+
+		crt_file="$EASYRSA_PKI/ca.crt"
+		[ -f "$crt_file" ] || die "Missing: $crt_file"
+		crt_expire="$(crt_expire_date)"
+		print " Certificate: ca.crt   Expire-date: $crt_expire"
+	fi
+
+	EASYTLS_SILENT=1
+} # => cert_expire ()
 
 # Keep an index file for inline certs to manage revoke/renew
 update_inline_index ()
@@ -1170,7 +1220,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.14"
+	EASYTLS_VERSION="1.15"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
@@ -1270,6 +1320,9 @@ case "$cmd" in
 		;;
 	inline-show)
 		inline_show "$@"
+		;;
+	cert-expire)
+		cert_expire "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
