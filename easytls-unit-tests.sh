@@ -115,7 +115,7 @@ do
 	done
 
 	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" "$EASYTLS_CMD --batch inline-tls-crypt c04" \
-		"$EASYRSA_CMD --batch revoke c04" "$EASYTLS_CMD inline-status"
+		"$EASYRSA_CMD --batch revoke c04" "$EASYTLS_CMD inline-status" "$EASYTLS_CMD cert-expire"
 	do
 		$i
 	done

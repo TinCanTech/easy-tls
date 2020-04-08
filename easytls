@@ -39,14 +39,14 @@ command, run:
 For a listing of options that can be supplied before the command, use:
   ./easytls help options
 
-Here is the list of commands available with a short syntax reminder. Use the
-'help' command above to get full usage details.
+Here is the list of commands available with a short syntax reminder.
+Use the 'help' command above to get full usage details.
 
   init-tls
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> 'metadata'
   inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
@@ -94,10 +94,10 @@ cmd_help()
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> [ 'meta-data' ]
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> 'metadata'
       Create an OpenVPN TLS crypt V2 Client key"
 			opts="
-       metadata - Free form quoted text to be encrypted with the key" ;;
+       'metadata' - Free form quoted text to be encrypted with the key" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -306,7 +306,7 @@ verify_ca_init () {
 		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
 			#[ "$1" = "test" ] && return 1
 			die "\
-Easy-TLS TLS crypt v2 requires that you have built your EASY-RSA PKI node certificates.
+Easy-TLS TLS-crypt-v2 requires that you have built your EASY-RSA PKI.
 
 Easy-RSA error:
 
@@ -346,13 +346,16 @@ verify_openvpn ()
 	fi
 } # => verify_openvpn ()
 
-# Verify Openvpn version, 2.5 required for TLS crypt v2, 2.4 required for TLS crypt v1
+# Verify Openvpn version
+# 2.5 required for TLS crypt v2
+# 2.4 required for TLS crypt v1
 verify_openvpn_version ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
 
 	ovpn_ver_req_maj="$1"
-	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}')"
+	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVPN|awk '{print $2}')"
+
 	ovpn_ver_ints="$(printf "%s" "$ovpn_ver_str" | sed "s/[^0123456789]/\ /g")"
 
 	# SC2039: In POSIX sh, lexicographical < is undefined.
@@ -368,7 +371,7 @@ verify_openvpn_version ()
 	[ $ovpn_ver_main -lt 2 ] && die "Openvpn 2.5 required, Found $ovpn_ver_str"
 	[ $ovpn_ver_major -lt $ovpn_ver_req_maj ] && \
 		die "Openvpn 2.$ovpn_ver_req_maj required, Found $ovpn_ver_str"
-	[ $ovpn_ver_minor -lt 0 ] && die "Openvpn 2.X.X required, Found $ovpn_ver_str"
+	[ $ovpn_ver_minor -lt 0 ] && die "Openvpn 2 required, Found $ovpn_ver_str"
 
 	# explicitly return success for callers
 	return 0
@@ -379,8 +382,8 @@ verify_openvpn_version ()
 verify_tls_init ()
 {
 	verify_openvpn
-	[ -d "$EASYTLS_PKI" ] || die "TLS has not been initialised, run init-tls"
-	[ -f "$EASYTLS_INLINE_INDEX" ] || die "TLS has not been initialised, run init-tls"
+	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
+	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -468,12 +471,7 @@ inline_status ()
 
 	print "Easy-TLS: Invalid inline files:"
 	status_easytls_invalid
-	if [ $mismatch_count -eq 0 ]
-	then
-		print "  No Invalid inline files found."
-	else
-		print "  Use 'easytls inline-remove <filename_base>' to delete invalid inline files."
-	fi
+
 } #=> inline_status ()
 
 status_format_output ()
@@ -535,17 +533,17 @@ status_easytls_invalid ()
 		mismatches="$(print $easyrsa_revoked_serial_list | grep -c $i)"
 		case $mismatches in
 			0)
-				# No mismatches found
+			# No mismatches found
 				:
 			;;
 
 			1)
 				mismatch_count=$((mismatch_count+1))
-				grep $i "$EASYTLS_INLINE_INDEX" | status_format_output
+				grep $i "$EASYTLS_INLINE_INDEX"|status_format_output
 			;;
 
 			*)
-				# $easyrsa_revoked_serial_list MUST never have duplicates
+			# $easyrsa_revoked_serial_list MUST never have duplicates
 				warn "EasyRSA index.txt duplicate records detected!"
 				[ $((mismatches)) -gt 1 ] || \
 					die "Error in mismatches: $mismatches"
@@ -557,7 +555,8 @@ status_easytls_invalid ()
 # Extract enddate from certificate
 crt_expire_date ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate | sed 's/^notAfter=//'
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate | \
+		sed 's/^notAfter=//'
 } # => crt_expire_date ()
 
 # Get x509 certificate expiry date
@@ -578,7 +577,8 @@ cert_expire ()
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
 	else
-		easyrsa_valid_file_list="$(grep "^V" "$EASYRSA_INDEX" | status_extract_cn)"
+		easyrsa_valid_file_list="$(grep ^V "$EASYRSA_INDEX"|status_extract_cn)"
+
 		for i in $easyrsa_valid_file_list
 		do
 			crt_file="$EASYRSA_PKI/issued/$i.crt"
@@ -655,7 +655,8 @@ inline_remove ()
 	crt_serial=${crt_serial##*=}
 
 	# Confirm remove
-	[ ! $silent_remove ] && confirm  "Remove inline file (yes/no) ? " "yes" "Remove: $inline_file"
+	[ ! $silent_remove ] && \
+		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
@@ -708,7 +709,7 @@ inline_renew ()
 
 	# Verify .inline is valid
 	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
-	[ $(( inline_is_tlsauth + inline_is_tlscrypt + inline_is_tlscryptv2 )) -le 1 ] || \
+	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] || \
 		die "File is not valid .inline: $inline_file"
 
 	# Determine the type of .inline file
@@ -718,15 +719,16 @@ inline_renew ()
 	[ $inline_is_tlscryptv2 -eq 1 ] && inline_type="tls-crypt-v2"
 
 	# Confirm renew type
-	confirm  "Renew inline file (yes/no) ? " "yes" "Renew: $inline_file as Type: $inline_type"
+	confirm  "Renew inline file ? " "yes" \
+		"Renew: $inline_file as Type: $inline_type"
 
 	if [ "$inline_type" = "tls-auth" ]
 	then
 		# Determine <key-direction>
-		key_dir="$(grep 'key-direction' "$inline_file" | awk '{ print $2 }' )"
+		key_dir="$(grep 'key-direction' "$inline_file" | awk '{print $2}' )"
 		case "$key_dir" in
 			0|1) : ;;
-			*) die "Key direction must be 0 (For server) or 1 (For client): $key_dir" ;;
+			*) die "Key direction must be 0 (Server) or 1 (Client)" ;;
 		esac
 	fi
 
@@ -1126,7 +1128,7 @@ Missing file: $cli_cert"
 		die "Failed to create tls-crypt-v2-client key: $out_file"
 
 	# Temporary work around for: https://github.com/TinCanTech/easy-tls/issues/1
-	#sed -i -e s/^.$//g "$out_file"
+	sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
