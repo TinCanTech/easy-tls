@@ -111,10 +111,10 @@ cmd_help()
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
-      <key_direction> either '0' (For server) or '1' (For client)"
+      <key_direction> '0' or '1'
+      (If key-direction is omitted then do not add key-direction to inline file)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        nodir   - do not add 'key-direction 0|1'
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
@@ -682,10 +682,10 @@ inline_renew ()
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
-			add-dh) cmd_opts="$cmd_opts add-dh" ;;
-			nokey) cmd_opts="$cmd_opts nokey" ;;
-			nodir) cmd_opts="$cmd_opts nodir" ;;
-			*) warn "Ignoring unknown command option: '$1'" ;;
+			0|1)	key_direction="$1" ;;
+			add-dh)	cmd_opts="$cmd_opts add-dh" ;;
+			nokey)	cmd_opts="$cmd_opts nokey" ;;
+			*)	warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
 	done
@@ -718,19 +718,40 @@ inline_renew ()
 	[ $inline_is_tlscrypt -eq 1 ] && inline_type="tls-crypt"
 	[ $inline_is_tlscryptv2 -eq 1 ] && inline_type="tls-crypt-v2"
 
+	# If --key-direction is specified in command line but does not match
+	# current inline setting then issue a warning
+	if [ "$inline_type" = "tls-auth" ] && [ $key_direction ]
+	then
+		# Determine inline <key-direction>
+		is_key_dir="$(grep ^key-direction "$inline_file"|awk '{print $2}')"
+		case "$is_key_dir" in
+		0|1)
+			# Veify if command line want to change inline
+			[ $key_direction -eq $is_key_dir ] || \
+			warn "Command line will change inline key-direction"
+		;;
+		*)
+			# Assume key-direction is missing from inline
+			warn "TLS-auth key-direction missing"
+		;;
+		esac
+	fi
+
+	# Auto-detect --key-direction if not specified in command line
+	# default to current inline file or no_key_direction
+	if [ "$inline_type" = "tls-auth" ] && [ ! $key_direction ]
+	then
+		# Determine inline <key-direction>
+		is_key_dir="$(grep ^key-direction "$inline_file"|awk '{print $2}')"
+		case "$is_key_dir" in
+			0|1)	key_direction="$is_key_dir" ;;
+			*)	warn "TLS-auth key-direction missing" ;;
+		esac
+	fi
+
 	# Confirm renew type
 	confirm  "Renew inline file ? " "yes" \
 		"Renew: $inline_file as Type: $inline_type"
-
-	if [ "$inline_type" = "tls-auth" ]
-	then
-		# Determine <key-direction>
-		key_dir="$(grep 'key-direction' "$inline_file"|awk '{print $2}')"
-		case "$key_dir" in
-			0|1) : ;;
-			*) die "Key direction must be 0 (Server) or 1 (Client)" ;;
-		esac
-	fi
 
 	# Make a backup of inline file incase renew fails
 	[ -f "$inline_file.backup" ] && \
@@ -751,7 +772,7 @@ inline_renew ()
 			inline_base "$name" $cmd_opts
 		;;
 		tls-auth)
-			inline_tls_auth "$name" "$key_dir" $cmd_opts
+			inline_tls_auth "$name" "$key_direction" $cmd_opts
 		;;
 		tls-crypt)
 			inline_tls_crypt_v1 "$name" $cmd_opts
@@ -881,32 +902,36 @@ $help_note"
 # Append TLS auth file to base file
 inline_tls_auth ()
 {
-	[ $# -ge 2 ] || die "Required option(s): <filename_base> <key_direction>"
+	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
 	verify_tls_init
 
 	name="$1"
-	key_dir="$2"
-	shift 2
+	shift
 
 	cmd_opts=""
 	while [ -n "$1" ]; do
 		case "$1" in
-			add-dh) cmd_opts="$cmd_opts add-dh" ;;
-			nokey) cmd_opts="$cmd_opts nokey" ;;
-			nodir) unsupported_option "nodir" ;;
-			*) warn "Ignoring unknown command option: '$1'" ;;
+			0|1)	key_direction="$1" ;;
+			add-dh)	cmd_opts="$cmd_opts add-dh" ;;
+			nokey)	cmd_opts="$cmd_opts nokey" ;;
+			*) 	warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
 	done
 
-	tls_file="$EASYTLS_PKI/tls-auth.key"
+	tls_auth_key="$EASYTLS_PKI/tls-auth.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
-	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
-	case "$key_dir" in
-		0|1) : ;;
-		*) die "Key direction must be 0 (For server) or 1 (For client)." ;;
+	[ -f "$tls_auth_key" ] || die "TLS key file does not exist: $tls_auth_key"
+	case "$key_direction" in
+		0|1)
+			# Using user specified --key-direction
+			: ;;
+		*)
+			# No key-direction found, not inlining --key-direction
+			[ $silent_inline ] || warn "TLS-auth key-direction missing"
+			no_key_direction=1 ;;
 	esac
 
 	# Inline base file
@@ -915,10 +940,15 @@ inline_tls_auth ()
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
-		printf "%s\n" "key-direction $key_dir"
-		printf "%s\n" ""
+
+		if [ ! $no_key_direction ]
+		then
+			printf "%s\n" "key-direction $key_direction"
+			printf "%s\n" ""
+		fi
+
 		printf "%s\n" "<tls-auth>"
-		cat "$tls_file"
+		cat "$tls_auth_key"
 		printf "%s\n" "</tls-auth>"
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
@@ -1231,7 +1261,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.15"
+	EASYTLS_VERSION="1.16"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
