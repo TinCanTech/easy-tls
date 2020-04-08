@@ -709,8 +709,8 @@ inline_renew ()
 
 	# Verify .inline is valid
 	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
-	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] || \
-		die "File is not valid .inline: $inline_file"
+	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] \
+		|| die "File is not valid .inline: $inline_file"
 
 	# Determine the type of .inline file
 	inline_type="tls-base"
@@ -725,12 +725,18 @@ inline_renew ()
 	if [ "$inline_type" = "tls-auth" ]
 	then
 		# Determine <key-direction>
-		key_dir="$(grep 'key-direction' "$inline_file" | awk '{print $2}' )"
+		key_dir="$(grep 'key-direction' "$inline_file"|awk '{print $2}')"
 		case "$key_dir" in
 			0|1) : ;;
 			*) die "Key direction must be 0 (Server) or 1 (Client)" ;;
 		esac
 	fi
+
+	# Make a backup of inline file incase renew fails
+	[ -f "$inline_file.backup" ] && \
+		die "Backup already exists: $inline_file.backup"
+	cp "$inline_file" "$inline_file.backup" || \
+		die "Unable to create backup: $inline_file.backup"
 
 	# Remove the old .inline file
 	silent_remove=1
@@ -757,6 +763,9 @@ inline_renew ()
 			die "Unknown error inline_type: $inline_type"
 		;;
 	esac
+
+	# Renew successful, remove the backup
+	rm -f "$inline_file.backup"
 
 	notice "Inline $inline_type file renewed: $inline_file"
 } # => inline_renew ()
