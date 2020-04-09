@@ -391,7 +391,8 @@ init_tls ()
 {
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
 	verify_pki_init
-	# If EASYTLS_PKI exists, confirm before we rm -rf (skiped with EASYTLS_BATCH)
+	# If EASYTLS_PKI exists, confirm before we rm -rf
+	# skipped with EASYTLS_BATCH
 	if [ -d "$EASYTLS_PKI" ]; then
 		confirm "Confirm removal: " "yes" "
 WARNING!!!
@@ -487,24 +488,24 @@ status_extract_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX" | awk '{ print $3 }')"
+	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX"|awk '{ print $3 }')"
 	for i in $easyrsa_valid_serial_list
 	do
-		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
+		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_extract_cn)"
 		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
-		[ $silent_status ] || print "$easyrsa_valid_cn $i" | status_format_output
+		[ $silent_status ] || print "$easyrsa_valid_cn $i"|status_format_output
 	done
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX" | awk '{ print $4 }')"
+	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX"|awk '{ print $4 }')"
 	for i in $easyrsa_revoked_serial_list
 	do
-		easyrsa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX" | status_extract_cn)"
+		easyrsa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_extract_cn)"
 		easyrsa_revoked_cn_list="$easyrsa_revoked_cn_list $easyrsa_revoked_cn"
-		[ $silent_status ] || print "$easyrsa_revoked_cn $i" | status_format_output
+		[ $silent_status ] || print "$easyrsa_revoked_cn $i"|status_format_output
 	done
 } # => status_easyrsa_revoked ()
 
@@ -513,7 +514,7 @@ status_easytls_inline ()
 {
 	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
-	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_format_output
+	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX"|status_format_output
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -577,9 +578,9 @@ cert_expire ()
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
 	else
-		easyrsa_valid_file_list="$(grep ^V "$EASYRSA_INDEX"|status_extract_cn)"
+		easyrsa_valid_list="$(grep ^V "$EASYRSA_INDEX"|status_extract_cn)"
 
-		for i in $easyrsa_valid_file_list
+		for i in $easyrsa_valid_list
 		do
 			crt_file="$EASYRSA_PKI/issued/$i.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
@@ -607,12 +608,12 @@ update_inline_index ()
 
 	case "$update_index_action" in
 		add)
-			printf "%s\n" "$name $crt_serial" >> "$EASYTLS_INLINE_INDEX" || \
-				die "Failed to update $EASYTLS_INLINE_INDEX"
+			printf "%s\n" "$name $crt_serial">>"$EASYTLS_INLINE_INDEX" \
+				|| die "Failed to update $EASYTLS_INLINE_INDEX"
 		;;
 		del)
-			sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" || \
-				die "Failed to update $EASYTLS_INLINE_INDEX"
+			sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" \
+				|| die "Failed to update $EASYTLS_INLINE_INDEX"
 		;;
 		*)
 			die "Unknown index action: $update_index_action"
@@ -1117,7 +1118,7 @@ build_tls_crypt_v2_server ()
 	out_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
 
 	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the Easy-RSA certificate has been created.
+		die "Easy-TLS requires that the Easy-RSA certificate has been built.
 Missing file: $srv_cert"
 
 	[ -f "$out_file" ] && die "Server file already exists: $out_file"
@@ -1135,7 +1136,7 @@ Missing file: $srv_cert"
 build_tls_crypt_v2_client ()
 {
 	[ $# -ge 2 ] || \
-		die "Required option(s): <server_filename_base> <client_filename_base>"
+	die "Required option(s): <server_filename_base> <client_filename_base>"
 
 	# Requires openvpn version 2.5
 	verify_openvpn_version 5
@@ -1153,7 +1154,7 @@ build_tls_crypt_v2_client ()
 		die "Server name cannot be the same as the client name."
 
 	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
-		die "Easy-TLS requires that the Easy-RSA certificate has been created.
+		die "Easy-TLS requires that the Easy-RSA certificate has been built.
 Missing file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
