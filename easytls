@@ -354,7 +354,7 @@ verify_openvpn_version ()
 	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
 
 	ovpn_ver_req_maj="$1"
-	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVPN|awk '{print $2}')"
+	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVP|awk '{print $2}')"
 
 	ovpn_ver_ints="$(printf "%s" "$ovpn_ver_str" | sed "s/[^0123456789]/\ /g")"
 
@@ -428,8 +428,8 @@ inline_status ()
 
 	easyrsa_valid_cn_list=""
 	easyrsa_valid_serial_list=""
-	easyrsa_revoked_cn_list=""
-	easyrsa_revoked_serial_list=""
+	easyrsa_rvokd_cn_list=""
+	easyrsa_rvokd_serial_list=""
 	#easytls_valid_cn_list=""
 	easytls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
@@ -438,8 +438,12 @@ inline_status ()
 	then
 		EASYTLS_SILENT=1
 		case "$subsection" in
-		valid)		status_easyrsa_valid ;;
-		revoked)	status_easyrsa_revoked ;;
+		valid)
+				verify_ca_init
+				status_easyrsa_valid ;;
+		revoked)
+				verify_ca_init
+				status_easyrsa_revoked ;;
 		inline)
 				verify_tls_init
 				status_easytls_inline ;;
@@ -475,12 +479,12 @@ inline_status ()
 
 } #=> inline_status ()
 
-status_format_output ()
+status_output ()
 {
-	awk '{ print "  Common-Name " $1 "    Serial-number " $2 }'
+	awk '{print "  Common-Name " $1 "    Serial-number " $2}'
 }
 
-status_extract_cn ()
+status_cn ()
 {
 	sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\`g"
 }
@@ -488,24 +492,25 @@ status_extract_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	easyrsa_valid_serial_list="$(grep "^V" "$EASYRSA_INDEX"|awk '{ print $3 }')"
+	easyrsa_valid_serial_list="$(grep ^V "$EASYRSA_INDEX"|awk '{ print $3 }')"
 	for i in $easyrsa_valid_serial_list
 	do
-		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_extract_cn)"
+		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_cn)"
 		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
-		[ $silent_status ] || print "$easyrsa_valid_cn $i"|status_format_output
+		[ $silent_status ] || \
+			print "$easyrsa_valid_cn $i"|status_output
 	done
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	easyrsa_revoked_serial_list="$(grep "^R" "$EASYRSA_INDEX"|awk '{ print $4 }')"
-	for i in $easyrsa_revoked_serial_list
+	easyrsa_rvokd_serial_list="$(grep ^R "$EASYRSA_INDEX"|awk '{ print $4 }')"
+	for i in $easyrsa_rvokd_serial_list
 	do
-		easyrsa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_extract_cn)"
-		easyrsa_revoked_cn_list="$easyrsa_revoked_cn_list $easyrsa_revoked_cn"
-		[ $silent_status ] || print "$easyrsa_revoked_cn $i"|status_format_output
+		easyrsa_rvokd_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_cn)"
+		easyrsa_rvokd_cn_list="$easyrsa_rvokd_cn_list $easyrsa_rvokd_cn"
+		[ $silent_status ] || print "$easyrsa_rvokd_cn $i"|status_output
 	done
 } # => status_easyrsa_revoked ()
 
@@ -514,7 +519,7 @@ status_easytls_inline ()
 {
 	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
-	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX"|status_format_output
+	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX"|status_output
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -531,7 +536,7 @@ status_easytls_invalid ()
 	mismatch_count=0
 	for i in $easytls_valid_serial_list
 	do
-		mismatches="$(print $easyrsa_revoked_serial_list | grep -c $i)"
+		mismatches="$(print $easyrsa_rvokd_serial_list | grep -c $i)"
 		case $mismatches in
 			0)
 			# No mismatches found
@@ -540,7 +545,7 @@ status_easytls_invalid ()
 
 			1)
 				mismatch_count=$((mismatch_count+1))
-				grep $i "$EASYTLS_INLINE_INDEX"|status_format_output
+				grep $i "$EASYTLS_INLINE_INDEX"|status_output
 			;;
 
 			*)
@@ -578,7 +583,7 @@ cert_expire ()
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
 	else
-		easyrsa_valid_list="$(grep ^V "$EASYRSA_INDEX"|status_extract_cn)"
+		easyrsa_valid_list="$(grep ^V "$EASYRSA_INDEX"|status_cn)"
 
 		for i in $easyrsa_valid_list
 		do
@@ -1262,7 +1267,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.16"
+	EASYTLS_VERSION="1.17"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
