@@ -99,7 +99,9 @@ do
 	done
 
 	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
-		"build-tls-crypt-v2-server s01" "build-tls-crypt-v2-client s01 c01 TLS-crypt-v2-metadata:c01" \
+		"build-tls-crypt-v2-server s01" \
+		"build-tls-crypt-v2-client s01 c01 TLS-crypt-v2-metadata:c01" \
+		"build-tls-crypt-v2-client s01 c02 TLS-crypt-v2-metadata:c02" \
 		"inline-status" "inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
 		"inline-status" "inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
 		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" \
@@ -108,6 +110,7 @@ do
 		"inline-status" "inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" \
 		"inline-status" "inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" \
 		"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" \
+		"inline-status" "inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" \
 		"inline-status"
 	do
 		print "============================================================"
