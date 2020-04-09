@@ -354,7 +354,7 @@ verify_openvpn_version ()
 	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
 
 	ovpn_ver_req_maj="$1"
-	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVP|awk '{print $2}')"
+	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $2}')"
 
 	ovpn_ver_ints="$(printf "%s" "$ovpn_ver_str" | sed "s/[^0123456789]/\ /g")"
 
@@ -426,12 +426,12 @@ inline_status ()
 
 	verify_ca_init
 
-	easyrsa_valid_cn_list=""
-	easyrsa_valid_serial_list=""
-	easyrsa_rvokd_cn_list=""
-	easyrsa_rvokd_serial_list=""
+	ersa_valid_cn_list=""
+	ersa_valid_serial_list=""
+	ersa_revoked_cn_list=""
+	ersa_revoked_serial_list=""
 	#easytls_valid_cn_list=""
-	easytls_valid_serial_list=""
+	etls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
 
 	if [ -n "$subsection" ]
@@ -492,33 +492,32 @@ status_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	easyrsa_valid_serial_list="$(grep ^V "$EASYRSA_INDEX"|awk '{ print $3 }')"
-	for i in $easyrsa_valid_serial_list
+	ersa_valid_serial_list="$(grep ^V "$EASYRSA_INDEX"|awk '{ print $3 }')"
+	for i in $ersa_valid_serial_list
 	do
-		easyrsa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_cn)"
-		easyrsa_valid_cn_list="$easyrsa_valid_cn_list $easyrsa_valid_cn"
-		[ $silent_status ] || \
-			print "$easyrsa_valid_cn $i"|status_output
+		ersa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_cn)"
+		ersa_valid_cn_list="$ersa_valid_cn_list $ersa_valid_cn"
+		[ $silent_status ] || print "$ersa_valid_cn $i"|status_output
 	done
 } # => status_easyrsa_valid ()
 
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	easyrsa_rvokd_serial_list="$(grep ^R "$EASYRSA_INDEX"|awk '{ print $4 }')"
-	for i in $easyrsa_rvokd_serial_list
+	ersa_revoked_serial_list="$(grep ^R "$EASYRSA_INDEX"|awk '{ print $4 }')"
+	for i in $ersa_revoked_serial_list
 	do
-		easyrsa_rvokd_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_cn)"
-		easyrsa_rvokd_cn_list="$easyrsa_rvokd_cn_list $easyrsa_rvokd_cn"
-		[ $silent_status ] || print "$easyrsa_rvokd_cn $i"|status_output
+		ersa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_cn)"
+		ersa_revoked_cn_list="$ersa_revoked_cn_list $ersa_revoked_cn"
+		[ $silent_status ] || print "$ersa_revoked_cn $i"|status_output
 	done
 } # => status_easyrsa_revoked ()
 
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	easytls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
-	easytls_valid_serial_list="$easytls_valid_serial_list $easytls_valid_serial"
+	etls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_serial_list="$etls_valid_serial_list $etls_valid_serial"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX"|status_output
 } # => status_easytls_valid ()
 
@@ -534,9 +533,9 @@ status_easytls_revoked ()
 status_easytls_invalid ()
 {
 	mismatch_count=0
-	for i in $easytls_valid_serial_list
+	for i in $etls_valid_serial_list
 	do
-		mismatches="$(print $easyrsa_rvokd_serial_list | grep -c $i)"
+		mismatches="$(print $ersa_revoked_serial_list | grep -c $i)"
 		case $mismatches in
 			0)
 			# No mismatches found
@@ -550,7 +549,7 @@ status_easytls_invalid ()
 
 			*)
 			# $easyrsa_revoked_serial_list MUST never have duplicates
-				warn "EasyRSA index.txt duplicate records detected!"
+				warn "EasyRSA duplicate records detected!"
 				[ $((mismatches)) -gt 1 ] || \
 					die "Error in mismatches: $mismatches"
 			;;
@@ -612,17 +611,17 @@ update_inline_index ()
 		die "update_inline_index () Missing: $EASYTLS_INLINE_INDEX"
 
 	case "$update_index_action" in
-		add)
-			printf "%s\n" "$name $crt_serial">>"$EASYTLS_INLINE_INDEX" \
-				|| die "Failed to update $EASYTLS_INLINE_INDEX"
-		;;
-		del)
-			sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" \
-				|| die "Failed to update $EASYTLS_INLINE_INDEX"
-		;;
-		*)
-			die "Unknown index action: $update_index_action"
-		;;
+	add)
+		printf "%s\n" "$name $crt_serial">>"$EASYTLS_INLINE_INDEX" \
+			|| die "Failed to update $EASYTLS_INLINE_INDEX"
+	;;
+	del)
+		sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" \
+			|| die "Failed to update $EASYTLS_INLINE_INDEX"
+	;;
+	*)
+		die "Unknown index action: $update_index_action"
+	;;
 	esac
 } # => update_inline_index ()
 
@@ -873,7 +872,8 @@ $help_note"
 
 		if [ "$no_x509_key" ]
 		then
-			printf "%s\n" "  Delete this line and paste your complete x509 key file here"
+			printf "%s\n" \
+			" * Replace this line with your complete x509 key file * "
 		else
 			cat "$key_file"
 		fi
@@ -1048,7 +1048,8 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
-	[ ! $silent_inline ] && notice "Inline TLS crypt v2 file created: $out_file"
+	[ ! $silent_inline ] && \
+		notice "Inline TLS crypt v2 file created: $out_file"
 
 	# explicitly return success for callers
 	return 0
@@ -1123,7 +1124,7 @@ build_tls_crypt_v2_server ()
 	out_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
 
 	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the Easy-RSA certificate has been built.
+		die "Easy-TLS requires that the x509 certificate has been built.
 Missing file: $srv_cert"
 
 	[ -f "$out_file" ] && die "Server file already exists: $out_file"
@@ -1131,7 +1132,7 @@ Missing file: $srv_cert"
 	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
 		die "Failed to create tls-crypt-v2-server key: $out_file"
 
-	# Temporary work around for: https://github.com/TinCanTech/easy-tls/issues/1
+	# Temp work around for: https://github.com/TinCanTech/easy-tls/issues/1
 	sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 server key created: $out_file"
@@ -1159,7 +1160,7 @@ build_tls_crypt_v2_client ()
 		die "Server name cannot be the same as the client name."
 
 	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
-		die "Easy-TLS requires that the Easy-RSA certificate has been built.
+		die "Easy-TLS requires that the x509 certificate has been built.
 Missing file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
@@ -1172,7 +1173,7 @@ Missing file: $cli_cert"
 		--genkey tls-crypt-v2-client "$out_file" "$base64_metadata" || \
 		die "Failed to create tls-crypt-v2-client key: $out_file"
 
-	# Temporary work around for: https://github.com/TinCanTech/easy-tls/issues/1
+	# Temp work around for: https://github.com/TinCanTech/easy-tls/issues/1
 	sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 client key created: $out_file"
@@ -1189,8 +1190,10 @@ vars_setup()
 
 	# set up program path
 	prog_file="$0"
-	prog_file2="$(which -- "$prog_file" 2>/dev/null)" && prog_file="$prog_file2"
-	prog_file2="$(readlink -f "$prog_file" 2>/dev/null)" && prog_file="$prog_file2"
+	prog_file2="$(which -- "$prog_file" 2>/dev/null)" && \
+		prog_file="$prog_file2"
+	prog_file2="$(readlink -f "$prog_file" 2>/dev/null)" && \
+		prog_file="$prog_file2"
 	prog_dir="${prog_file%/*}"
 	prog_vars="${prog_dir}/vars"
 	# set up PKI path
@@ -1199,7 +1202,8 @@ vars_setup()
 	# command-line path:
 	if [ ! -z "$EASYRSA_VARS_FILE" ]; then
 	  if [ ! -f "$EASYRSA_VARS_FILE" ]; then
-		  # If the --vars option does not point to a file, show helpful error.
+		# If the --vars option does not point to a file
+		# then show helpful error.
 			die "The file '$EASYRSA_VARS_FILE' was not found."
 		fi
 		vars="$EASYRSA_VARS_FILE"
@@ -1239,18 +1243,26 @@ vars_setup()
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.tls"
 	set_var EASYTLS_OPENVPN		"openvpn"
 
-	# Assign value to $EASYRSA_TEMP_DIR_session and work around Windows mktemp bug when parent dir is missing
+	# Assign value to $EASYRSA_TEMP_DIR_session and work around
+	# Windows mktemp bug when parent dir is missing
 	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
 		if [ -d "$EASYRSA_TEMP_DIR" ]; then
-			EASYRSA_TEMP_DIR_session="$(mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX")"
+			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
 		else
-			# If the directory does not exist then we have not run init-pki
-			mkdir -p "$EASYRSA_TEMP_DIR" || die "Cannot create $EASYRSA_TEMP_DIR (permission?)"
-			EASYRSA_TEMP_DIR_session="$(mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX")"
+			# Directory does not exist then we have not run init-pki
+			mkdir -p "$EASYRSA_TEMP_DIR" || \
+				die "Cannot create $EASYRSA_TEMP_DIR (permission?)"
+			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
 			rm -rf "$EASYRSA_TEMP_DIR"
 		fi
 	fi
 } # vars_setup()
+
+# mktemp return temp_dir name
+mktemp_make_temp ()
+{
+	mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX"
+} # => mktemp_make_temp ()
 
 # variable assignment by indirection when undefined; merely exports
 # the variable when it is already defined (even if currently null)
