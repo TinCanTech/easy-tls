@@ -46,7 +46,7 @@ Use the 'help' command above to get full usage details.
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> 'metadata'
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> meta data
   inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
@@ -94,10 +94,10 @@ cmd_help()
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> 'metadata'
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> meta data
       Create an OpenVPN TLS crypt V2 Client key"
 			opts="
-       'metadata' - Free form quoted text to be encrypted with the key" ;;
+       meta data - Free form text to be encrypted with the key" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -1153,8 +1153,11 @@ build_tls_crypt_v2_client ()
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
 	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
-	metadata="$3"
-	base64_metadata="$(print "$metadata" | "$EASYRSA_OPENSSL" enc -e -a)"
+	shift 2
+
+	metadata=""
+	base64_metadata=""
+	b64_enc_metadata "$@"
 
 	[ "$srv_name" = "$cli_name" ] && \
 		die "Server name cannot be the same as the client name."
@@ -1178,6 +1181,18 @@ Missing file: $cli_cert"
 
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
+
+# Base64 encode metadata fields
+b64_enc_metadata ()
+{
+	while [ -n "$1" ]; do
+		metadata="$metadata $1"
+		shift
+	done
+	print "$metadata" | "$EASYRSA_OPENSSL" enc -e -a > /dev/null || \
+		die "Failed to base64 encode metadata: $metadata"
+	base64_metadata="$(print "$metadata" | "$EASYRSA_OPENSSL" enc -e -a)"
+} # => b64_enc_metadata ()
 
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
@@ -1279,7 +1294,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.17"
+	EASYTLS_VERSION="1.18"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
