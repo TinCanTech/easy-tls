@@ -20,7 +20,7 @@ See: https://github.com/OpenVPN/easy-rsa <br>
 Note: This is intended to facilitate maximum compatibility with Easy-RSA while extending functionality to include direct support for OpenVPN specific TLS keys and Inline credentials.
 
 ## Credits
-See: https://github.com/TinCanTech/easy-tls/CREDITS.md
+See: https://github.com/TinCanTech/easy-tls/blob/master/CREDITS.md
 
 ### Easy-TLS requirements
 + Easy-RSA Version 3.X
