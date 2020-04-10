@@ -97,7 +97,8 @@ cmd_help()
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base> meta data
       Create an OpenVPN TLS crypt V2 Client key"
 			opts="
-       meta data - Free form text to be encrypted with the key" ;;
+        meta data - Free form text to be encrypted with the key
+        Default meta data: client-cert-serial CA-cert-fingerprint" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -1149,20 +1150,24 @@ build_tls_crypt_v2_client ()
 
 	verify_tls_init
 
+	# Need the CA
+	verify_ca_init
+
+	ca_cert="$EASYRSA_PKI/ca.crt"
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
 	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
 	shift 2
 
-	metadata=""
-	base64_metadata=""
-	b64_enc_metadata "$@"
-
 	[ "$srv_name" = "$cli_name" ] && \
 		die "Server name cannot be the same as the client name."
 
-	[ -f "$EASYRSA_PKI/issued/$cli_name.crt" ] || \
+	[ -f "$srv_cert" ] || \
+		die "Easy-TLS requires that the x509 certificate has been built.
+Missing file: $srv_cert"
+
+	[ -f "$cli_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
 Missing file: $cli_cert"
 
@@ -1171,6 +1176,10 @@ Missing file: $cli_cert"
 
 	[ -f "$in_file" ] || die "Server file does not exist: $in_file"
 	[ -f "$out_file" ] && die "Client file already exists: $out_file"
+
+	metadata=""
+	base64_metadata=""
+	b64_enc_metadata "$@"
 
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
 		--genkey tls-crypt-v2-client "$out_file" "$base64_metadata" || \
@@ -1185,10 +1194,25 @@ Missing file: $cli_cert"
 # Base64 encode metadata fields
 b64_enc_metadata ()
 {
-	while [ -n "$1" ]; do
-		metadata="$metadata $1"
-		shift
-	done
+	if [ $# -eq 0 ]
+	then
+		# https://security.stackexchange.com/questions/14330/
+		# what-is-the-actual-value-of-a-certificate-fingerprint
+		ca_fingerprint="$("$EASYRSA_OPENSSL" x509 -in "$ca_cert" \
+			-outform DER | "$EASYRSA_OPENSSL" sha1)"
+		ca_fingerprint=${ca_fingerprint##* }
+
+		crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$cli_cert" \
+			-noout -serial)"
+		crt_serial=${crt_serial##*=}
+
+		metadata="$crt_serial $ca_fingerprint"
+	else
+		while [ -n "$1" ]; do
+			metadata="$metadata $1"
+			shift
+		done
+	fi
 	print "$metadata" | "$EASYRSA_OPENSSL" enc -e -a > /dev/null || \
 		die "Failed to base64 encode metadata: $metadata"
 	base64_metadata="$(print "$metadata" | "$EASYRSA_OPENSSL" enc -e -a)"
@@ -1294,7 +1318,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.18"
+	EASYTLS_VERSION="1.18b"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
