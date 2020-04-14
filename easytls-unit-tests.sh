@@ -117,7 +117,9 @@ do
 		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
 	done
 
-	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" "$EASYTLS_CMD --batch inline-tls-crypt c04" \
+	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" \
+		"$EASYTLS_CMD --batch build-tls-crypt-v2-client s01 c04" \
+		"$EASYTLS_CMD --batch inline-tls-crypt-v2 c04" \
 		"$EASYRSA_CMD --batch revoke c04" "$EASYRSA_CMD --batch gen-crl" \
 		"$EASYTLS_CMD inline-status" "$EASYTLS_CMD cert-expire"
 	do
