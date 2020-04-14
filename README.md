@@ -3,6 +3,7 @@ An Easy-RSA extension utility to help manage:
 + Easy-RSA based x509 security credentials
 + OpenVPN specific TLS keys
 + Verified `Inline` files for use with OpenVPN
++ `tls-crypt-v2-verify.sh` - Fully compatible with EasyTLS generated keys and inline files.
 
 ## Installation
 Simply copy `easytls` to your `easyrsa` working directory.
