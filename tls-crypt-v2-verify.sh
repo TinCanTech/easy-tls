@@ -68,6 +68,12 @@ fn_read_crl ()
 	"$ssl_bin" crl -in "$crl_pem" -noout -text || die "Bad CRL: $crl_pem" 12
 }
 
+# Search CRL for client cert serial number
+search_crl ()
+{
+	printf "%s\n" "$crl_text" | "$grep_bin" -c "$metadata_client_cert_serno"
+}
+
 # Final check index.txt
 search_index ()
 {
@@ -178,8 +184,7 @@ fi
 	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
 
 # Check metadata client certificate serial number against CRL
-client_cert_revoked="$(printf "%s\n" "$crl_text" | "$grep_bin" -c $metadata_client_cert_serno)"
-
+client_cert_revoked="$(search_crl)"
 case $client_cert_revoked in
 	0)
 		success_msg="$success_msg Client certificate is valid: $metadata_client_cert_serno"
