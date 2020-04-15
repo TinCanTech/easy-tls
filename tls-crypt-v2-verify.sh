@@ -68,6 +68,12 @@ fn_read_crl ()
 	"$ssl_bin" crl -in "$crl_pem" -noout -text || die "Bad CRL: $crl_pem" 12
 }
 
+# Final check index.txt
+search_index ()
+{
+	"$grep_bin" -c "$metadata_client_cert_serno" "$index_txt"
+}
+
 # Must set full paths for scripts in OpenVPN
 case $OS in
 	win)
@@ -92,6 +98,7 @@ case $OS in
 		ssl_bin="/usr/bin/openssl"
 		ca_cert="../pki/ca.crt"
 		crl_pem="../pki/crl.pem"
+		index_txt="../pki/index.txt"
 	;;
 esac
 
@@ -176,6 +183,7 @@ client_cert_revoked="$(printf "%s\n" "$crl_text" | "$grep_bin" -c $metadata_clie
 case $client_cert_revoked in
 	0)
 		success_msg="$success_msg Client certificate is valid: $metadata_client_cert_serno"
+		[ "$(search_index)" -eq 1 ] || fail_and_exit "not in my list" 1
 	;;
 	1)
 		failure_msg="$failure_msg Client certificate is revoked: $metadata_client_cert_serno"
