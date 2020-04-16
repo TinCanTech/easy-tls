@@ -93,6 +93,7 @@ case $OS in
 		ssl_bin="$EASYRSA_DIR/bin/openssl.exe"
 		ca_cert="$EASYRSA_DIR/pki/ca.crt"
 		crl_pem="$EASYRSA_DIR/pki/crl.pem"
+		index_txt="$EASYRSA_DIR/pki/index.txt"
 	;;
 	*)
 		# Standard Linux binaries
