@@ -78,7 +78,7 @@ search_crl ()
 # Final check index.txt
 search_index ()
 {
-	"$grep_bin" -c "$metadata_client_cert_serno" "$index_txt"
+	"$grep_bin" -c "^V.*$metadata_client_cert_serno" "$index_txt"
 }
 
 # Check metadata client certificate serial number against CRL
@@ -88,7 +88,7 @@ client_cert_revoked="$(search_crl)"
 case $client_cert_revoked in
 	0)
 		[ "$(search_index)" -eq 1 ] || fail_and_exit "Client certificate is not in the CA index database" 11
-		success_msg="$success_msg Client certificate is valid and not revoked: $metadata_client_cert_serno"
+		success_msg="$success_msg Client certificate is recognised and not revoked: $metadata_client_cert_serno"
 	;;
 	1)
 		failure_msg="$failure_msg Client certificate is revoked: $metadata_client_cert_serno"
