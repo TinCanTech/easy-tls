@@ -24,5 +24,5 @@ Note: This is intended to facilitate maximum compatibility with Easy-RSA while e
 See: https://github.com/TinCanTech/easy-tls/blob/master/CREDITS.md
 
 ### Easy-TLS requirements
-+ Easy-RSA Version 3.X
-+ OpenVPN Version 2.X
++ Easy-RSA Version 3.0.5 (Or https://github.com/TinCanTech/easyrsa-plus)
++ OpenVPN Version 2.4.8 (Partial support) (Full support: `git/master`)
