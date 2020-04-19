@@ -1201,7 +1201,7 @@ b64_enc_metadata ()
 	# 3. Client certificate serial: (openssl output), contiguous single field
 	if [ $# -eq 0 ]
 	then
-		metadata_version="A1"
+		metadata_version="metadata_version_A1"
 		# Format $ca_fingerprint to one contiguous string
 		openssl_ca_fingerprint="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fingerprint"|sed "s/\ /\_/g")"

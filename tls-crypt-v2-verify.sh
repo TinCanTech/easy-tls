@@ -238,7 +238,8 @@ done
 	#
 	metadata_version="$(fn_metadata_version)"
 	case $metadata_version in
-	A1)	success_msg=" version:A1 ==>" ;;
+	metadata_version_A1)
+		success_msg=" metadata_version_A1 ==>" ;;
 	*)
 		failure_msg="TLS crypt v2 metadata version is not recognised"
 		fail_and_exit "METADATA_VERSION" 7 ;;
