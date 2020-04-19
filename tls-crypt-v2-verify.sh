@@ -36,7 +36,7 @@ fail_and_exit ()
 # Verify CA
 verify_ca ()
 {
-	"$ssl_bin" x509 -in "$ca_cert" -noout || die "Bad CA $ca_cert" 11
+	"$ssl_bin" x509 -in "$ca_cert" -noout
 }
 
 # CA File fingerprint
@@ -45,22 +45,41 @@ fn_local_ca_fingerprint ()
 	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint
 }
 
+# Extract metadata varsion from client tls-crypt-v2 key metadata
+fn_metadata_version ()
+{
+	"$awk_bin" '{print $1}' "$openvpn_metadata_file"
+}
+
 # Extract CA fingerprint from client tls-crypt-v2 key metadata
 fn_metadata_ca_fingerprint ()
 {
-	"$awk_bin" '{print $1}' "$openvpn_metadata_file"
+	"$awk_bin" '{print $2}' "$openvpn_metadata_file"
 }
 
 # Extract client certificate serial number from client tls-crypt-v2 key metadata
 fn_metadata_client_cert_serno ()
 {
-	"$awk_bin" '{print $2}' "$openvpn_metadata_file"
+	"$awk_bin" '{print $3}' "$openvpn_metadata_file"
+}
+
+#
+verify_metadata_client_serial_number ()
+{
+	# Do we have a serial number
+	[ -z "$metadata_client_cert_serno" ] && fail_and_exit "Missing: client certificate serial number" 2
+	# Hex only accepted
+	serial_chars="$(printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]')"
+	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
+	# May not be suitable for non-random serial numbers
+	serial_length=${#metadata_client_cert_serno}
+	[ $serial_length -eq 32 ] || fail_and_exit "Invalid serial number length (Use randomised serial numbers in EasyRSA3)" 2
 }
 
 # Verify CRL
 verify_crl ()
 {
-	"$ssl_bin" crl -in "$crl_pem" -noout || die "Bad CRL: $crl_pem" 12
+	"$ssl_bin" crl -in "$crl_pem" -noout
 }
 
 # Decode CRL
@@ -70,13 +89,13 @@ fn_read_crl ()
 }
 
 # Search CRL for client cert serial number
-search_crl ()
+fn_search_crl ()
 {
 	printf "%s\n" "$crl_text" | "$grep_bin" -c "$metadata_client_cert_serno"
 }
 
 # Final check index.txt
-search_index ()
+fn_search_index ()
 {
 	"$grep_bin" -c "^V.*$metadata_client_cert_serno" "$index_txt"
 }
@@ -84,10 +103,10 @@ search_index ()
 # Check metadata client certificate serial number against CRL
 serial_status_via_crl ()
 {
-client_cert_revoked="$(search_crl)"
+client_cert_revoked="$(fn_search_crl)"
 case $client_cert_revoked in
 	0)
-		[ "$(search_index)" -eq 1 ] || fail_and_exit "Client certificate is not in the CA index database" 11
+		[ "$(fn_search_index)" -eq 1 ] || fail_and_exit "Client certificate is not in the CA index database" 11
 		success_msg="$success_msg Client certificate is recognised and not revoked: $metadata_client_cert_serno"
 	;;
 	1)
@@ -110,8 +129,8 @@ serial_status_via_ca ()
 	printf "%s\n" "client_cert_serno_status: $client_cert_serno_status"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
 	case "$client_cert_serno_status" in
-		Valid)		die "IMPOSSIBLE" 101 ;; # Valid ?
-		Revoked)	die "REVOKED" 1 ;;
+		Valid)		die "IMPOSSIBLE" 102 ;; # Valid ?
+		Revoked)	die "REVOKED" 103 ;;
 		*)		die "Serial status via CA [test_method 2] is broken" 9 ;;
 	esac
 }
@@ -127,7 +146,7 @@ verify_openssl_serial_status ()
 {
 	return 0
 	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" -status "$metadata_client_cert_serno" || \
-		die "openssl failed to return a useful exit code"
+		die "openssl failed to return a useful exit code" 101
 	# Cannot defend an error here because openssl always returns 1
 	# || die "openssl failed to get serial status"
 
@@ -215,10 +234,20 @@ do
 done
 
 
+# Metadata Version
+	#
+	metadata_version="$(fn_metadata_version)"
+	case $metadata_version in
+	A1)	success_msg=" version:A1 ==>" ;;
+	*)
+		failure_msg="TLS crypt v2 metadata version is not recognised"
+		fail_and_exit "METADATA_VERSION" 7 ;;
+	esac
+
 # CA Fingerprint
 
 	# Verify CA
-	verify_ca
+	verify_ca || die "Bad CA $ca_cert" 11
 
 	# Capture CA fingerprint
 	# Format to one contiguous string (Same as encoded metadata)
@@ -246,7 +275,7 @@ fi
 # Client certificate serial number
 
 	# Verify CRL
-	verify_crl
+	verify_crl || die "Bad CRL: $crl_pem" 12
 
 	# Capture CRL
 	crl_text="$(fn_read_crl)"
@@ -256,13 +285,7 @@ fi
 	metadata_client_cert_serno="$(fn_metadata_client_cert_serno|"$sed_bin" "s/^.*=//g")"
 
 	# Client serial number requirements
-	[ -z "$metadata_client_cert_serno" ] && fail_and_exit "Missing: client certificate serial number" 2
-	# May not be suitable for non-random serial numbers
-	serial_length=${#metadata_client_cert_serno}
-	[ $serial_length -eq 32 ] || fail_and_exit "Invalid serial number length" 2
-	# Hex only accepted
-	serial_chars="$(printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]')"
-	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
+	verify_metadata_client_serial_number
 
 # Verify serial status by method 1 or 2
 case $test_method in

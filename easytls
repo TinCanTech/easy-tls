@@ -1194,18 +1194,20 @@ Missing file: $cli_cert"
 # Base64 encode metadata fields
 b64_enc_metadata ()
 {
-	# If command line has no extra strings then add 2x default strings:
-	# 1. CA SHA1 Fingerprint: (openssl output) Change space to underscore,
+	# If command line has no extra strings then add 3x default strings:
+	# 1. Metadata version: A1 (Simple hex)
+	# 2. CA SHA1 Fingerprint: (openssl output) Change space to underscore,
 	#    contiguous single field
-	# 2. Client certificate serial: (openssl output), contiguous single field
+	# 3. Client certificate serial: (openssl output), contiguous single field
 	if [ $# -eq 0 ]
 	then
+		metadata_version="A1"
 		# Format $ca_fingerprint to one contiguous string
 		openssl_ca_fingerprint="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fingerprint"|sed "s/\ /\_/g")"
 		# Client serial is one contiguous string (openssl)
 		crt_serial="$(fn_cert_serial)"
-		metadata="$ca_fingerprint $crt_serial"
+		metadata="$metadata_version $ca_fingerprint $crt_serial"
 	else
 		while [ -n "$1" ]; do
 			metadata="$metadata $1"
@@ -1329,7 +1331,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.21"
+	EASYTLS_VERSION="1.22"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
