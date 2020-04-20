@@ -97,6 +97,7 @@ do
 		"build-client-full c02 nopass" \
 		"build-client-full c03 nopass" "revoke c03" \
 		"build-client-full c05 nopass" \
+		"build-client-full c06 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
@@ -109,6 +110,7 @@ do
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
 		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
 		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
@@ -119,6 +121,7 @@ do
 		"inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" "inline-status" \
 		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
 		"inline-tls-crypt-v2 c05" "inline-status" \
+		"inline-tls-crypt-v2 c06" "inline-status" \
 		## EOL
 	do
 		print "============================================================"
@@ -129,6 +132,7 @@ do
 		"$EASYTLS_CMD --batch build-tls-crypt-v2-client s01 c04" \
 		"$EASYTLS_CMD --batch inline-tls-crypt-v2 c04" \
 		"$EASYRSA_CMD --batch revoke c04" "$EASYRSA_CMD --batch gen-crl" \
+		"$EASYRSA_CMD --batch revoke c06" "$EASYRSA_CMD --batch gen-crl" \
 		"$EASYTLS_CMD inline-status" "$EASYTLS_CMD cert-expire"
 	do
 		$i
