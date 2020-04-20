@@ -21,16 +21,33 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		"$printf_bin" "%s%s%s\n%s\n" "$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg" "$1"
+		"$printf_bin" "%s%s%s\n%s\n" "$tls_crypt_v2_verify_msg" \
+			"$success_msg" "$failure_msg" "$1"
+
 		"$printf_bin" "%s\n" "* ==> metadata_version: $metadata_version"
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" "* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" "* ==> custom_group remote: $metadata_custom_group"
-		"$printf_bin" "%s\n" "* ==> CA Fingerprint  local: $local_ca_fingerprint"
-		"$printf_bin" "%s\n" "* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
-		"$printf_bin" "%s\n" "* ==> Client serial remote: $metadata_client_cert_serno"
-		[ $2 -eq 1 ] && "$printf_bin" "%s\n" "* ==> Client serial status: revoked"
+
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" \
+			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
+
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" \
+			"* ==> custom_group remote: $metadata_custom_group"
+
+		"$printf_bin" "%s\n" \
+			"* ==> CA Fingerprint  local: $local_ca_fingerprint"
+
+		"$printf_bin" "%s\n" \
+			"* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
+
+		"$printf_bin" "%s\n" \
+			"* ==> Client serial remote: $metadata_client_cert_serno"
+
+		[ $2 -eq 1 ] && "$printf_bin" "%s\n" \
+			"* ==> Client serial status: revoked"
+
+		[ -n "$help_note" ] && "$printf_bin" "$help_note"
 	else
-		"$printf_bin" "%s%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg"
+		"$printf_bin" "%s%s%s\n" \
+			"$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg"
 	fi
 	exit "${2:-1}"
 }
@@ -67,7 +84,7 @@ verify_ca ()
 # CA File fingerprint
 fn_local_ca_fingerprint ()
 {
-	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint
+	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint | "$sed_bin" "s/\ /\_/g"
 }
 
 # Extract metadata varsion from client tls-crypt-v2 key metadata
@@ -82,10 +99,10 @@ fn_metadata_ca_fingerprint ()
 	"$awk_bin" '{print $2}' "$openvpn_metadata_file"
 }
 
-# Extract client certificate serial number from client tls-crypt-v2 key metadata
+# Extract client cert serial number from client tls-crypt-v2 key metadata
 fn_metadata_client_cert_serno ()
 {
-	"$awk_bin" '{print $3}' "$openvpn_metadata_file"
+	"$awk_bin" '{print $3}' "$openvpn_metadata_file" | "$sed_bin" "s/^.*=//g"
 }
 
 # Extract custom metadata appendage from client tls-crypt-v2 key metadata
@@ -98,15 +115,26 @@ fn_metadata_custom_group ()
 verify_metadata_client_serial_number ()
 {
 	# Do we have a serial number
-	[ -z "$metadata_client_cert_serno" ] && fail_and_exit "Missing: client certificate serial number" 2
+	[ -z "$metadata_client_cert_serno" ] && fail_and_exit \
+		"Missing: client certificate serial number" 2
+
 	# Hex only accepted
-	serial_chars="$(printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]')"
+	serial_chars="$(Allow_hex_only)"
 	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
+
 	# May not be suitable for non-random serial numbers
+	help_note="Use randomised serial numbers in EasyRSA3"
 	serial_length=${#metadata_client_cert_serno}
-	[ $serial_length -eq 32 ] || fail_and_exit "Invalid serial number length (Use randomised serial numbers in EasyRSA3)" 2
+	[ $serial_length -eq 32 ] || \
+		fail_and_exit "Invalid serial number length" 2
+	unset help_note
 }
 
+# Drop all non-hex chars from serial number and count the rest
+Allow_hex_only ()
+{
+	printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]'
+}
 # Verify CRL
 verify_crl ()
 {
@@ -122,7 +150,8 @@ fn_read_crl ()
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	"$printf_bin" "%s\n" "$crl_text" | "$grep_bin" -c "$metadata_client_cert_serno"
+	"$printf_bin" "%s\n" "$crl_text" | \
+		"$grep_bin" -c "$metadata_client_cert_serno"
 }
 
 # Final check: Search index.txt for client cert serial number
@@ -134,19 +163,25 @@ fn_search_index ()
 # Check metadata client certificate serial number against CRL
 serial_status_via_crl ()
 {
-client_cert_revoked="$(fn_search_crl)"
-case $client_cert_revoked in
+	client_cert_revoked="$(fn_search_crl)"
+	case $client_cert_revoked in
 	0)
-		[ "$(fn_search_index)" -eq 1 ] || fail_and_exit "Client certificate is not in the CA index database" 11
-		success_msg="$success_msg Client certificate is recognised and not revoked: $metadata_client_cert_serno"
+		# Final check: Is this serial in index.txt
+		[ "$(fn_search_index)" -eq 1 ] || fail_and_exit \
+			"Client certificate is not in the CA index database" 11
+
+		insert_msg="Client certificate is recognised and not revoked:"
+		success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
 	;;
 	1)
-		failure_msg="$failure_msg Client certificate is revoked: $metadata_client_cert_serno"
+		insert_msg="Client certificate is revoked:"
+		failure_msg="$failure_msg $insert_msg $metadata_client_cert_serno"
 		fail_and_exit "REVOKED" 1
 	;;
 	*)
-		failure_msg="$failure_msg ==> unknown error occurred: $metadata_client_cert_serno"
-		die "Certificate number is invalid: $metadata_client_cert_serno" 127
+		insert_msg="Duplicate serial numbers detected:"
+		failure_msg="$failure_msg $insert_msg $metadata_client_cert_serno"
+		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
 	;;
 esac
 }
@@ -162,14 +197,15 @@ serial_status_via_ca ()
 	case "$client_cert_serno_status" in
 		Valid)		die "IMPOSSIBLE" 102 ;; # Valid ?
 		Revoked)	die "REVOKED" 103 ;;
-		*)		die "Serial status via CA [test_method 2] is broken" 9 ;;
+		*)		die "Serial status via CA is broken" 9 ;;
 	esac
 }
 
 # Use openssl to return certificate serial number status
 openssl_serial_status ()
 {
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" -status "$metadata_client_cert_serno"
+	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
+		-status "$metadata_client_cert_serno"
 }
 
 # Verify openssl serial status returns ok
@@ -177,7 +213,8 @@ verify_openssl_serial_status ()
 {
 	return 0
 	# Cannot defend an error here because openssl always returns 1
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" -status "$metadata_client_cert_serno" || \
+	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
+		-status "$metadata_client_cert_serno" || \
 		die "openssl failed to return a useful exit code" 101
 
 # I presume they don't want people to use it so they broke it
@@ -185,10 +222,12 @@ verify_openssl_serial_status ()
 WARNINGS
        The ca command is quirky and at times downright unfriendly.
 
-       The ca utility was originally meant as an example of how to do things in a CA. It was not supposed to be used as a full blown CA itself:
+       The ca utility was originally meant as an example of how to do things
+       in a CA. It was not supposed to be used as a full blown CA itself:
        nevertheless some people are using it for this purpose.
 
-       The ca command is effectively a single user command: no locking is done on the various files and attempts to run more than one ca command
+       The ca command is effectively a single user command: no locking is 
+       done on the various files and attempts to run more than one ca command
        on the same database can have unpredictable results.
 MAN_OPENSSL_CA
 }
@@ -205,7 +244,9 @@ do
 		# Silent running, except on ALL errors and failure to verify
 		-v|--verbose)		TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
 		-g|--custom-group)
-					[ -z "$2" ] && die "Invalid custom group field" 253
+					[ -z "$2" ] && \
+						die "Missing custom group" 253
+
 					TLS_CRYPT_V2_VERIFY_CG="$2"
 					shift ;;
 		*)			die "Unknown option: $1" 253 ;;
@@ -285,10 +326,13 @@ failure_msg=""
 		metadata_custom_group="$(fn_metadata_custom_group)"
 		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
-			success_msg="$success_msg custom_group $metadata_custom_group OK ==>"
+			insert_msg="custom_group $metadata_custom_group OK ==>"
+			success_msg="$success_msg $insert_msg"
 		else
-			failure_msg=" TLS crypt v2 metadata custom_group is not correct: $metadata_custom_group"
-			[ -z "$metadata_custom_group" ] && failure_msg=" TLS crypt v2 metadata custom_group is missing"
+			insert_msg="metadata custom_group is not correct:"
+			[ -z "$metadata_custom_group" ] && \
+				insert_msg="metadata custom_group is missing"
+			failure_msg=" $insert_msg $metadata_custom_group"
 			fail_and_exit "METADATA_CG" 8
 		fi
 	fi
@@ -301,16 +345,18 @@ failure_msg=""
 
 	# Capture CA fingerprint
 	# Format to one contiguous string (Same as encoded metadata)
-	local_ca_fingerprint="$(fn_local_ca_fingerprint|"$sed_bin" "s/\ /\_/g")"
+	local_ca_fingerprint="$(fn_local_ca_fingerprint)"
 
 	# local_ca_fingerprint is required
-	[ -z "$local_ca_fingerprint" ] && fail_and_exit "Missing: local CA fingerprint" 3
+	[ -z "$local_ca_fingerprint" ] && \
+		fail_and_exit "Missing: local CA fingerprint" 3
 
 	# Collect CA fingerprint from tls-crypt-v2 metadata
 	metadata_ca_fingerprint="$(fn_metadata_ca_fingerprint)"
 
 	# metadata_ca_fingerprint is required
-	[ -z "$metadata_ca_fingerprint" ] && fail_and_exit "Missing: remote CA fingerprint" 3
+	[ -z "$metadata_ca_fingerprint" ] && \
+		fail_and_exit "Missing: remote CA fingerprint" 3
 
 # Check metadata CA fingerprint against local CA fingerprint
 if [ "$local_ca_fingerprint" = "$metadata_ca_fingerprint" ]
@@ -332,7 +378,7 @@ fi
 
 	# Collect client certificate serial number from tls-crypt-v2 metadata
 	# Drop the 'serial=' part
-	metadata_client_cert_serno="$(fn_metadata_client_cert_serno|"$sed_bin" "s/^.*=//g")"
+	metadata_client_cert_serno="$(fn_metadata_client_cert_serno)"
 
 	# Client serial number requirements
 	verify_metadata_client_serial_number
@@ -352,8 +398,8 @@ case $test_method in
 		# Method 2
 		# Check metadata client certificate serial number against CA
 
-		# Due to openssl being "what it is", it is not possible to reliably
-		# verify the 'openssl ca $cmd'
+		# Due to openssl being "what it is", it is not possible to
+		# reliably verify the 'openssl ca $cmd'
 		#verify_openssl_serial_status
 		serial_status_via_ca
 	;;
@@ -364,6 +410,7 @@ esac
 
 
 [ -z "$failure_msg" ] || fail_and_exit "$failure_msg" 9
-[ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && "$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+[ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
+	"$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
 exit 0
