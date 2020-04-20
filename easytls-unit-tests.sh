@@ -91,27 +91,35 @@ EASYTLS_CMD="./easytls"
 for loops in 1 2
 do
 
-	for i in "init-pki" "build-ca nopass" "build-server-full s01 nopass" \
-		"build-client-full c01 nopass" "build-client-full c02 nopass" \
-		"build-client-full c03 nopass" "revoke c03" "--keysize=64 gen-dh"
+	for i in "init-pki" "build-ca nopass" \
+		"build-server-full s01 nopass" \
+		"build-client-full c01 nopass" \
+		"build-client-full c02 nopass" \
+		"build-client-full c03 nopass" "revoke c03" \
+		"build-client-full c05 nopass" \
+		"--keysize=64 gen-dh" \
+		## EOL
 	do
 		"$EASYRSA_CMD" --batch $i || fail "$EASYRSA_CMD --batch $i"
 	done
 
+	# This may be becoming unwieldy
 	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
-		"inline-status" "inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
-		"inline-status" "inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
-		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" \
-		"inline-status" "inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-remove c01" \
-		"inline-status" "inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" \
-		"inline-status" "inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" \
-		"inline-status" "inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" \
-		"inline-status" "inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" \
-		"inline-status" "inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" \
-		"inline-status"
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
+		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
+		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
+		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
+		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
+		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
+		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
+		"inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" "inline-status" \
+		"inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" "inline-status" \
+		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
+		"inline-tls-crypt-v2 c05" "inline-status" \
+		## EOL
 	do
 		print "============================================================"
 		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"

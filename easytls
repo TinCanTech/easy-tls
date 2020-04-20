@@ -198,7 +198,10 @@ General options:
 --pki-dir=DIR   : declare the PKI directory
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
 --tls-dir=DIR   : declare the TLS directory
---dh=FILE       : define an alternate Diffy Hellman parameters file"
+--dh=FILE       : define an alternate Diffy Hellman parameters file
+--custom-group  : Append a custom field to the default TLS crypt v2 metadata
+                  This feild can also be matched in tls-crtypt-v2-verify.sh
+                  with the command line option -g|--custom-group YourGroup"
 EASYTLS_SILENT=1
 } # => opt_usage()
 
@@ -1165,11 +1168,11 @@ build_tls_crypt_v2_client ()
 
 	[ -f "$srv_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
-Missing file: $srv_cert"
+Missing srv file: $srv_cert"
 
 	[ -f "$cli_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
-Missing file: $cli_cert"
+Missing cli file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
 	out_file="$EASYTLS_PKI/tls-crypt-v2-$cli_name.key"
@@ -1195,25 +1198,32 @@ Missing file: $cli_cert"
 b64_enc_metadata ()
 {
 	# If command line has no extra strings then add 3x default strings:
-	# 1. Metadata version: A1 (Simple hex)
+	# 1. Metadata version: xx (Simple hex)
 	# 2. CA SHA1 Fingerprint: (openssl output) Change space to underscore,
 	#    contiguous single field
 	# 3. Client certificate serial: (openssl output), contiguous single field
 	if [ $# -eq 0 ]
 	then
-		metadata_version="metadata_version_A1"
+		# metadata_version
+		metadata_version="metadata_version_A2"
 		# Format $ca_fingerprint to one contiguous string
 		openssl_ca_fingerprint="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fingerprint"|sed "s/\ /\_/g")"
 		# Client serial is one contiguous string (openssl)
 		crt_serial="$(fn_cert_serial)"
 		metadata="$metadata_version $ca_fingerprint $crt_serial"
+		# --custom-group
+		if [ -n "$EASYTLS_TLSCV2_CG" ]
+		then
+			metadata="$metadata $EASYTLS_TLSCV2_CG"
+		fi
 	else
 		while [ -n "$1" ]; do
 			metadata="$metadata $1"
 			shift
 		done
 	fi
+	[ $EASYTLS_SILENT ] || printf "%s\n" "metadata: $metadata"
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
 
@@ -1364,6 +1374,8 @@ while :; do
 		export EASYTLS_SILENT=1 ;;
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
+	--custom-group)
+		export EASYTLS_TLSCV2_CG="$val" ;;
 	*)
 		break ;;
 	esac

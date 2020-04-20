@@ -23,6 +23,9 @@ fail_and_exit ()
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
 		printf "%s%s%s\n%s\n" "$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg" "$1"
+		printf "%s\n" "* ==> metadata_version: $metadata_version"
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" "* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" "* ==> custom_group remote: $metadata_custom_group"
 		printf "%s\n" "* ==> CA Fingerprint  local: $local_ca_fingerprint"
 		printf "%s\n" "* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
 		printf "%s\n" "* ==> Client serial  remote: $metadata_client_cert_serno"
@@ -61,6 +64,12 @@ fn_metadata_ca_fingerprint ()
 fn_metadata_client_cert_serno ()
 {
 	"$awk_bin" '{print $3}' "$openvpn_metadata_file"
+}
+
+# Extract custom metadata appendage from client tls-crypt-v2 key metadata
+fn_metadata_custom_group ()
+{
+	"$awk_bin" '{print $4}' "$openvpn_metadata_file"
 }
 
 #
@@ -145,10 +154,9 @@ openssl_serial_status ()
 verify_openssl_serial_status ()
 {
 	return 0
+	# Cannot defend an error here because openssl always returns 1
 	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" -status "$metadata_client_cert_serno" || \
 		die "openssl failed to return a useful exit code" 101
-	# Cannot defend an error here because openssl always returns 1
-	# || die "openssl failed to get serial status"
 
 # I presume they don't want people to use it so they broke it
 : << MAN_OPENSSL_CA
@@ -228,6 +236,10 @@ do
 		-1|-m1|--method-1)	test_method=1 ;;
 		-2|-m2|--method-2)	test_method=2 ;;
 		-v|--verbose)		TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
+		-g|--custom-group)
+					[ -z "$2" ] && die "Invalid custom group field" 253
+					TLS_CRYPT_V2_VERIFY_CG="$2"
+					shift ;;
 		*)			die "Unknown option: $1" 253 ;;
 	esac
 	shift
@@ -235,15 +247,27 @@ done
 
 
 # Metadata Version
-	#
 	metadata_version="$(fn_metadata_version)"
 	case $metadata_version in
-	metadata_version_A1)
-		success_msg=" metadata_version_A1 ==>" ;;
+	metadata_version_A2)
+		success_msg=" $metadata_version ==>" ;;
 	*)
-		failure_msg="TLS crypt v2 metadata version is not recognised"
+		failure_msg=" TLS crypt v2 metadata version is not recognised"
 		fail_and_exit "METADATA_VERSION" 7 ;;
 	esac
+
+# Metadata custom_group
+	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
+	then
+		metadata_custom_group="$(fn_metadata_custom_group)"
+		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
+		then
+			success_msg=" custom_group $metadata_custom_group OK ==>"
+		else
+			failure_msg=" TLS crypt v2 metadata custom_group is not correct: $metadata_custom_group"
+			fail_and_exit "METADATA_CG" 8
+		fi
+	fi
 
 # CA Fingerprint
 
