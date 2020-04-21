@@ -200,8 +200,9 @@ General options:
 --tls-dir=DIR   : declare the TLS directory
 --dh=FILE       : define an alternate Diffy Hellman parameters file
 --custom-group  : Append a custom field to the default TLS crypt v2 metadata
-                  This feild can also be matched in tls-crtypt-v2-verify.sh
-                  with the command line option -g|--custom-group YourGroup"
+                  This field can also be matched in tls-crypt-v2-verify.sh
+                  with the command line option: -g|--custom-group XYZ
+                  XYZ MUST be a single alphanumerical word with NO spaces"
 EASYTLS_SILENT=1
 } # => opt_usage()
 
@@ -1207,8 +1208,8 @@ b64_enc_metadata ()
 		# metadata_version
 		metadata_version="metadata_version_A2"
 		# Format $ca_fingerprint to one contiguous string
-		openssl_ca_fingerprint="$(fn_ca_fingerprint)"
-		ca_fingerprint="$(printf "%s" "$openssl_ca_fingerprint"|sed "s/\ /\_/g")"
+		openssl_ca_fp="$(fn_ca_fingerprint)"
+		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
 		# Client serial is one contiguous string (openssl)
 		crt_serial="$(fn_cert_serial)"
 		metadata="$metadata_version $ca_fingerprint $crt_serial"
@@ -1230,15 +1231,13 @@ b64_enc_metadata ()
 # Generate CA fingerprint
 fn_ca_fingerprint ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint || \
-		die "Failed to generate CA fingerprint"
+	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
 } # => fn_ca_fingerprint ()
 
 # Extract client certificate serial
 fn_cert_serial ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial || \
-		die "Failed to extract cerificate serial number"
+	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
 } # => fn_cert_serial ()
 
 # vars setup
