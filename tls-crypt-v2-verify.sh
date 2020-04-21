@@ -78,8 +78,8 @@ help_text ()
   -g|--custom-group   Also verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
-                      easytls --custom-group=Group build-tls-crypt-v2-client
-  --custom-group XYZ  XYZ MUST be a single alphanumerical word with NO spaces.
+                      easytls --custom-group=XYZ build-tls-crypt-v2-client
+                      XYZ MUST be a single alphanumerical word with NO spaces.
 "
 exit 0
 }
@@ -91,6 +91,7 @@ verify_ca ()
 }
 
 # CA Local fingerprint
+# space to underscore
 fn_local_ca_fingerprint ()
 {
 	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint | "$sed_bin" "s/\ /\_/g"
@@ -244,30 +245,11 @@ WARNINGS
 MAN_OPENSSL_CA
 }
 
-#######################################
-
-# Options
-while [ -n "$1" ]
-do
-	case "$1" in
-		-h|--help)		help_text ;;
-		-1|-m1|--method-1)	test_method=1 ;;
-		-2|-m2|--method-2)	test_method=2 ;;
-		# Silent running, except on ALL errors and failure to verify
-		-v|--verbose)		TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
-		-g|--custom-group)
-					[ -z "$2" ] && \
-						die "Missing custom group" 253
-
-					TLS_CRYPT_V2_VERIFY_CG="$2"
-					shift ;;
-		*)			die "Unknown option: $1" 253 ;;
-	esac
-	shift
-done
-
-# Must set full paths for scripts in OpenVPN
-case $OS in
+# Initialise
+init ()
+{
+	# Must set full paths for scripts in OpenVPN
+	case $OS in
 	Windows_NT)
 		# Need these .exe's from easyrsa3 installation
 		EASYRSA_DIR="c:/program files/openvpn/easyrsa3"
@@ -297,28 +279,55 @@ case $OS in
 		openssl_cnf="../pki/safessl-easyrsa.cnf"
 		EASYTLS_OPENSSL="openssl"
 	;;
-esac
+	esac
 
-# From openvpn server
-openvpn_metadata_file="$metadata_file"
+	# From openvpn server
+	openvpn_metadata_file="$metadata_file"
 
-# Ensure we have all the necessary files
-[ -f "$grep_bin" ] || die "Missing: $grep_bin" 10
-[ -f "$sed_bin" ] || die "Missing: $sed_bin" 10
-[ -f "$cat_bin" ] || die "Missing: $cat_bin" 10
-[ -f "$awk_bin" ] || die "Missing: $awk_bin" 10
-[ -f "$printf_bin" ] || die "Missing: $printf_bin" 10
-[ -f "$ssl_bin" ] || die "Missing: $ssl_bin" 10
-[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
-[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
-[ -f "$index_txt" ] || die "Missing: $index_txt" 10
-#[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
-[ -f "$openvpn_metadata_file" ] || die "Missing: $openvpn_metadata_file" 10
+	# Ensure we have all the necessary files
+	[ -f "$grep_bin" ] || die "Missing: $grep_bin" 10
+	[ -f "$sed_bin" ] || die "Missing: $sed_bin" 10
+	[ -f "$cat_bin" ] || die "Missing: $cat_bin" 10
+	[ -f "$awk_bin" ] || die "Missing: $awk_bin" 10
+	[ -f "$printf_bin" ] || die "Missing: $printf_bin" 10
+	[ -f "$ssl_bin" ] || die "Missing: $ssl_bin" 10
+	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
+	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
+	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
+	#[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
+	[ -f "$openvpn_metadata_file" ] || die "Missing: $openvpn_metadata_file" 10
 
-# Log message
-tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
-success_msg=""
-failure_msg=""
+	# Log message
+	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
+	success_msg=""
+	failure_msg=""
+}
+
+#######################################
+
+# Initialise
+init
+
+
+# Options
+while [ -n "$1" ]
+do
+	case "$1" in
+		-h|--help)		help_text ;;
+		-1|-m1|--method-1)	test_method=1 ;;
+		-2|-m2|--method-2)	test_method=2 ;;
+		# Silent running, except on ALL errors and failure to verify
+		-v|--verbose)		TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
+		-g|--custom-group)
+					[ -z "$2" ] && \
+						die "Missing custom group" 253
+
+					TLS_CRYPT_V2_VERIFY_CG="$2"
+					shift ;;
+		*)			die "Unknown option: $1" 253 ;;
+	esac
+	shift
+done
 
 
 # Metadata Version
@@ -342,9 +351,9 @@ failure_msg=""
 			insert_msg="custom_group $metadata_custom_group OK ==>"
 			success_msg="$success_msg $insert_msg"
 		else
-			insert_msg="metadata custom_group is not correct:"
+			insert_msg=" metadata custom_group is not correct:"
 			[ -z "$metadata_custom_group" ] && \
-				insert_msg="metadata custom_group is missing"
+				insert_msg=" metadata custom_group is missing"
 			failure_msg="$insert_msg $metadata_custom_group"
 			fail_and_exit "METADATA_CG" 8
 		fi
