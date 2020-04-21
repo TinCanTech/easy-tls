@@ -1,5 +1,14 @@
 #!/bin/sh
 
+# Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
+# https://github.com/TinCanTech
+# tincanteksup@gmail.com
+# All Rights reserved.
+#
+# This code is released under version 2 of the GNU GPL
+# See LICENSE of this project for full licensing details.
+#
+
 # Verify CA fingerprint
 # Verify client certificate serial number against certificate revokation list
 
@@ -70,7 +79,7 @@ help_text ()
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=Group build-tls-crypt-v2-client
-  --custom-group=X    X must be a sigle alphanumeric word with no spaces.
+  --custom-group XYZ  XYZ MUST be a single alphanumerical word with NO spaces.
 "
 exit 0
 }
