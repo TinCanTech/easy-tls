@@ -90,13 +90,13 @@ verify_ca ()
 	"$ssl_bin" x509 -in "$ca_cert" -noout
 }
 
-# CA File fingerprint
+# CA Local fingerprint
 fn_local_ca_fingerprint ()
 {
 	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint | "$sed_bin" "s/\ /\_/g"
 }
 
-# Extract metadata varsion from client tls-crypt-v2 key metadata
+# Extract metadata version from client tls-crypt-v2 key metadata
 fn_metadata_version ()
 {
 	"$awk_bin" '{print $1}' "$openvpn_metadata_file"
@@ -109,6 +109,7 @@ fn_metadata_ca_fingerprint ()
 }
 
 # Extract client cert serial number from client tls-crypt-v2 key metadata
+# And drop the 'serial='
 fn_metadata_client_cert_serno ()
 {
 	"$awk_bin" '{print $3}' "$openvpn_metadata_file" | "$sed_bin" "s/^.*=//g"
@@ -144,6 +145,7 @@ Allow_hex_only ()
 {
 	printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]'
 }
+
 # Verify CRL
 verify_crl ()
 {
@@ -226,7 +228,8 @@ verify_openssl_serial_status ()
 		-status "$metadata_client_cert_serno" || \
 		die "openssl failed to return a useful exit code" 101
 
-# I presume they don't want people to use it so they broke it
+# I presume they don't want people to use CA so they broke it
+# Which is why I will not use CA
 : << MAN_OPENSSL_CA
 WARNINGS
        The ca command is quirky and at times downright unfriendly.
@@ -324,7 +327,8 @@ failure_msg=""
 	metadata_version_A2)
 		success_msg=" $metadata_version ==>" ;;
 	*)
-		failure_msg=" TLS crypt v2 metadata version is not recognised"
+		insert_msg="TLS crypt v2 metadata version is not recognised:"
+		failure_msg="$insert_msg $metadata_version"
 		fail_and_exit "METADATA_VERSION" 7 ;;
 	esac
 
@@ -341,7 +345,7 @@ failure_msg=""
 			insert_msg="metadata custom_group is not correct:"
 			[ -z "$metadata_custom_group" ] && \
 				insert_msg="metadata custom_group is missing"
-			failure_msg=" $insert_msg $metadata_custom_group"
+			failure_msg="$insert_msg $metadata_custom_group"
 			fail_and_exit "METADATA_CG" 8
 		fi
 	fi
