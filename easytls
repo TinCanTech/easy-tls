@@ -1206,7 +1206,7 @@ b64_enc_metadata ()
 	if [ $# -eq 0 ]
 	then
 		# metadata_version
-		metadata_version="metadata_version_A2"
+		metadata_version="metadata_version_A3"
 		# Format $ca_fingerprint to one contiguous string
 		openssl_ca_fp="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
@@ -1340,7 +1340,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.22"
+	EASYTLS_VERSION="1.23"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 

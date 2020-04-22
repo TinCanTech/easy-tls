@@ -33,7 +33,10 @@ fail_and_exit ()
 		"$printf_bin" "%s%s%s\n%s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg" "$1"
 
-		"$printf_bin" "%s\n" "* ==> metadata_version: $metadata_version"
+		"$printf_bin" "%s\n" \
+			"* ==> metadata  local: $local_metadata_version"
+		"$printf_bin" "%s\n" \
+			"* ==> metadata remote: $remote_metadata_version"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
@@ -290,6 +293,9 @@ init ()
 	# Fail by design
 	absolute_fail=1
 
+	# metadata version
+	local_metadata_version="metadata_version_A3"
+
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
 
@@ -359,13 +365,13 @@ deps
 
 
 # Metadata Version
-	metadata_version="$(fn_metadata_version)"
-	case $metadata_version in
-	metadata_version_A2)
-		success_msg=" $metadata_version ==>" ;;
+	remote_metadata_version="$(fn_metadata_version)"
+	case $remote_metadata_version in
+	"$local_metadata_version")
+		success_msg=" $remote_metadata_version ==>" ;;
 	*)
 		insert_msg="TLS crypt v2 metadata version is not recognised:"
-		failure_msg="$insert_msg $metadata_version"
+		failure_msg="$insert_msg $remote_metadata_version"
 		fail_and_exit "METADATA_VERSION" 7 ;;
 	esac
 
