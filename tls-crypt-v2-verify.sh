@@ -84,7 +84,7 @@ help_text ()
 
 	"$printf_bin" "%s\n" "$help_msg"
 
-	exit 0
+	exit 123
 }
 
 # Verify CA
