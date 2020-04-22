@@ -133,12 +133,14 @@ verify_metadata_client_serial_number ()
 	serial_chars="$(Allow_hex_only)"
 	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
 
-	# May not be suitable for non-random serial numbers
-	help_note="Use randomised serial numbers in EasyRSA3"
-	serial_length=${#metadata_client_cert_serno}
-	[ $serial_length -eq 32 ] || \
-		fail_and_exit "Invalid serial number length" 2
-	unset help_note
+	if [ $allow_only_random_serno -eq 1 ]
+	then
+		help_note="Use randomised serial numbers in EasyRSA3"
+		serial_length=${#metadata_client_cert_serno}
+		[ $serial_length -eq 32 ] || \
+			fail_and_exit "Invalid serial number length" 2
+		unset help_note
+	fi
 }
 
 # Drop all non-hex chars from serial number and count the rest
@@ -301,6 +303,9 @@ init ()
 	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
 	success_msg=""
 	failure_msg=""
+
+	# Verify client cert serno has 32 chars
+	allow_only_random_serno=1
 }
 
 #######################################
@@ -313,18 +318,25 @@ init
 while [ -n "$1" ]
 do
 	case "$1" in
-		-h|--help)		help_text ;;
-		-1|-m1|--method-1)	test_method=1 ;;
-		-2|-m2|--method-2)	test_method=2 ;;
-		# Silent running, except on ALL errors and failure to verify
-		-v|--verbose)		TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
+		-h|--help)
+					help_text ;;
+		-1|-m1|--method-1)
+					test_method=1 ;;
+		-2|-m2|--method-2)
+					test_method=2 ;;
+		-v|--verbose)
+					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
 		-g|--custom-group)
 					[ -z "$2" ] && \
 						die "Missing custom group" 253
 
 					TLS_CRYPT_V2_VERIFY_CG="$2"
 					shift ;;
-		*)			die "Unknown option: $1" 253 ;;
+		-a|--allow-ss)
+		# Allow client cert serial numbers of any length
+					allow_only_random_serno=0 ;;
+		*)
+					die "Unknown option: $1" 253 ;;
 	esac
 	shift
 done
