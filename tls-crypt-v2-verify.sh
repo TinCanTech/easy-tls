@@ -189,6 +189,7 @@ serial_status_via_crl ()
 
 		insert_msg="Client certificate is recognised and not revoked:"
 		success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
+		absolute_fail=0
 	;;
 	1)
 		insert_msg="Client certificate is revoked:"
@@ -285,6 +286,9 @@ init ()
 		EASYTLS_OPENSSL="openssl"
 	;;
 	esac
+
+	# Fail by design
+	absolute_fail=1
 
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
@@ -455,7 +459,7 @@ case $test_method in
 esac
 
 
-[ -z "$failure_msg" ] || fail_and_exit "$failure_msg" 9
+[ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
 	"$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
