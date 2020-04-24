@@ -67,8 +67,6 @@ fail_and_exit ()
 # Help
 help_text ()
 {
-	# Another Linux nuance, must use prinf here ?
-	# As this will only be run be the user, so be it.
 	help_msg='
   tls-crypt-v2-verify.sh
 
@@ -78,6 +76,8 @@ help_text ()
   Options:
   -h|-help|--help     This help text.
   -v|--verbose        Be a little more verbose at run time.
+  -c|--ca <path>      Path to CA *Required*
+  -a|--allow-ss       Allow sequential serial numbers
   -g|--custom-group   Also verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
@@ -225,7 +225,7 @@ serial_status_via_ca ()
 # Use openssl to return certificate serial number status
 openssl_serial_status ()
 {
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	"$ssl_bin" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$metadata_client_cert_serno"
 }
 
@@ -234,7 +234,7 @@ verify_openssl_serial_status ()
 {
 	return 0
 	# Cannot defend an error here because openssl always returns 1
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	"$ssl_bin" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$metadata_client_cert_serno" || \
 		die "openssl failed to return a useful exit code" 101
 
@@ -257,39 +257,6 @@ MAN_OPENSSL_CA
 # Initialise
 init ()
 {
-	# Must set full paths for scripts in OpenVPN
-	case $OS in
-	Windows_NT)
-		# Need these .exe's from easyrsa3 installation
-		EASYRSA_DIR="c:/program files/openvpn/easyrsa3"
-		grep_bin="$EASYRSA_DIR/bin/grep.exe"
-		sed_bin="$EASYRSA_DIR/bin/sed.exe"
-		cat_bin="$EASYRSA_DIR/bin/cat.exe"
-		awk_bin="$EASYRSA_DIR/bin/awk.exe"
-		printf_bin="$EASYRSA_DIR/bin/printf.exe"
-		ssl_bin="$EASYRSA_DIR/bin/openssl.exe"
-		ca_cert="$EASYRSA_DIR/pki/ca.crt"
-		crl_pem="$EASYRSA_DIR/pki/crl.pem"
-		index_txt="$EASYRSA_DIR/pki/index.txt"
-		openssl_cnf="../pki/safessl-easyrsa.cnf"
-		EASYTLS_OPENSSL="openssl"
-	;;
-	*)
-		# Standard Linux binaries
-		grep_bin="/bin/grep"
-		sed_bin="/bin/sed"
-		cat_bin="/bin/cat"
-		awk_bin="/usr/bin/awk"
-		printf_bin="/usr/bin/printf"
-		ssl_bin="/usr/bin/openssl"
-		ca_cert="../pki/ca.crt"
-		crl_pem="../pki/crl.pem"
-		index_txt="../pki/index.txt"
-		openssl_cnf="../pki/safessl-easyrsa.cnf"
-		EASYTLS_OPENSSL="openssl"
-	;;
-	esac
-
 	# Fail by design
 	absolute_fail=1
 
@@ -306,22 +273,51 @@ init ()
 
 	# Verify client cert serno has 32 chars
 	allow_only_random_serno=1
+
+	# Must set full paths for scripts in OpenVPN
+	case $OS in
+	Windows_NT)
+		# Need these .exe's from easyrsa3 installation
+		EASYRSA_DIR="c:/program files/openvpn/easyrsa3"
+		grep_bin="$EASYRSA_DIR/bin/grep.exe"
+		sed_bin="$EASYRSA_DIR/bin/sed.exe"
+		cat_bin="$EASYRSA_DIR/bin/cat.exe"
+		awk_bin="$EASYRSA_DIR/bin/awk.exe"
+		printf_bin="$EASYRSA_DIR/bin/printf.exe"
+		which_bin="$EASYRSA_DIR/bin/which.exe"
+		ssl_bin="$EASYRSA_DIR/bin/openssl.exe"
+	;;
+	*)
+		# Standard Linux binaries
+		grep_bin="grep"
+		sed_bin="sed"
+		cat_bin="cat"
+		awk_bin="awk"
+		printf_bin="printf"
+		ssl_bin="openssl"
+	;;
+	esac
 }
 
 # deps
 deps ()
 {
+	# *nix is expected to have all the binaries
+	# Windoows exe's are checked prior to ruunning this script
+
+	# CA_DIR MUST be set with option: -c|--ca
+	[ -d "$CA_DIR" ] || die "Path to CA directory is required, see --help" 21
+
+	# CA required files
+	ca_cert="${CA_DIR}/ca.crt"
+	crl_pem="$CA_DIR/crl.pem"
+	index_txt="$CA_DIR/index.txt"
+	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
+
 	# Ensure we have all the necessary files
-	[ -f "$grep_bin" ] || die "Missing: $grep_bin" 10
-	[ -f "$sed_bin" ] || die "Missing: $sed_bin" 10
-	[ -f "$cat_bin" ] || die "Missing: $cat_bin" 10
-	[ -f "$awk_bin" ] || die "Missing: $awk_bin" 10
-	[ -f "$printf_bin" ] || die "Missing: $printf_bin" 10
-	[ -f "$ssl_bin" ] || die "Missing: $ssl_bin" 10
 	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
 	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
 	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
-	#[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
 }
@@ -338,12 +334,15 @@ do
 	case "$1" in
 		help|-h|-help|--help)
 					help_text ;;
+		-v|--verbose)
+					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
+		-c|--ca)
+					CA_DIR="$2"
+					shift ;;
 		-1|-m1|--method-1)
 					test_method=1 ;;
 		-2|-m2|--method-2)
 					test_method=2 ;;
-		-v|--verbose)
-					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
 		-g|--custom-group)
 					[ -z "$2" ] && \
 						die "Missing custom group" 253
@@ -351,6 +350,7 @@ do
 					TLS_CRYPT_V2_VERIFY_CG="$2"
 					shift ;;
 		-a|--allow-ss)
+		# Allow sequential serial numbers
 		# Allow client cert serial numbers of any length
 					allow_only_random_serno=0 ;;
 		*)
@@ -456,7 +456,6 @@ case $test_method in
 
 		# Due to openssl being "what it is", it is not possible to
 		# reliably verify the 'openssl ca $cmd'
-		#verify_openssl_serial_status
 		serial_status_via_ca
 	;;
 	*)
@@ -467,6 +466,6 @@ esac
 
 [ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	"$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+	"$printf_bin" "%s %s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
 exit 0
