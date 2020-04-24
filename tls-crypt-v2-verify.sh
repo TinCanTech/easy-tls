@@ -30,11 +30,12 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		"$printf_bin" "%s%s%s\n%s\n" "$tls_crypt_v2_verify_msg" \
+		"$printf_bin" "%s%s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg" "$1"
 
 		"$printf_bin" "%s\n" \
 			"* ==> metadata  local: $local_metadata_version"
+
 		"$printf_bin" "%s\n" \
 			"* ==> metadata remote: $remote_metadata_version"
 
@@ -58,8 +59,8 @@ fail_and_exit ()
 
 		[ -n "$help_note" ] && "$printf_bin" "$help_note"
 	else
-		"$printf_bin" "%s%s%s\n" \
-			"$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg"
+		"$printf_bin" "%s%s%s\n" "$tls_crypt_v2_verify_msg" \
+			"$success_msg" "$failure_msg"
 	fi
 	exit "${2:-255}"
 }
@@ -216,12 +217,12 @@ serial_status_via_crl ()
 	;;
 	1)
 		insert_msg="Client certificate is revoked:"
-		failure_msg="$failure_msg $insert_msg $metadata_client_cert_serno"
+		failure_msg="$insert_msg $metadata_client_cert_serno"
 		fail_and_exit "REVOKED" 1
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected:"
-		failure_msg="$failure_msg $insert_msg $metadata_client_cert_serno"
+		failure_msg="$insert_msg $metadata_client_cert_serno"
 		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
 	;;
 esac
@@ -287,7 +288,7 @@ init ()
 	openvpn_metadata_file="$metadata_file"
 
 	# Log message
-	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
+	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==> "
 	success_msg=""
 	failure_msg=""
 
@@ -301,17 +302,14 @@ init ()
 		EASYRSA_DIR="c:/program files/openvpn/easyrsa3"
 		grep_bin="$EASYRSA_DIR/bin/grep.exe"
 		sed_bin="$EASYRSA_DIR/bin/sed.exe"
-		cat_bin="$EASYRSA_DIR/bin/cat.exe"
 		awk_bin="$EASYRSA_DIR/bin/awk.exe"
 		printf_bin="$EASYRSA_DIR/bin/printf.exe"
-		which_bin="$EASYRSA_DIR/bin/which.exe"
 		ssl_bin="$EASYRSA_DIR/bin/openssl.exe"
 	;;
 	*)
 		# Standard Linux binaries
 		grep_bin="grep"
 		sed_bin="sed"
-		cat_bin="cat"
 		awk_bin="awk"
 		printf_bin="printf"
 		ssl_bin="openssl"
@@ -388,7 +386,7 @@ deps
 	remote_metadata_version="$(fn_metadata_version)"
 	case $remote_metadata_version in
 	"$local_metadata_version")
-		success_msg=" $remote_metadata_version ==>" ;;
+		success_msg="$remote_metadata_version ==>" ;;
 	*)
 		insert_msg="TLS crypt v2 metadata version is not recognised:"
 		failure_msg="$insert_msg $remote_metadata_version"
@@ -405,9 +403,9 @@ deps
 			insert_msg="custom_group $metadata_custom_group OK ==>"
 			success_msg="$success_msg $insert_msg"
 		else
-			insert_msg=" metadata custom_group is not correct:"
+			insert_msg="metadata custom_group is not correct:"
 			[ -z "$metadata_custom_group" ] && \
-				insert_msg=" metadata custom_group is missing"
+				insert_msg="metadata custom_group is missing"
 			failure_msg="$insert_msg $metadata_custom_group"
 			fail_and_exit "METADATA_CG" 8
 		fi
@@ -439,7 +437,7 @@ if [ "$local_ca_fingerprint" = "$metadata_ca_fingerprint" ]
 then
 	success_msg="$success_msg CA Fingerprint OK ==>"
 else
-	failure_msg="$failure_msg CA Fingerprint mismatch"
+	failure_msg="CA Fingerprint mismatch"
 	fail_and_exit "FP_MISMATCH" 3
 fi
 
@@ -486,6 +484,6 @@ esac
 
 [ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	"$printf_bin" "%s %s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+	"$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
 exit 0
