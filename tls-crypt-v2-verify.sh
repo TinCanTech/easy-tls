@@ -61,7 +61,7 @@ fail_and_exit ()
 		"$printf_bin" "%s%s%s\n" \
 			"$tls_crypt_v2_verify_msg" "$success_msg" "$failure_msg"
 	fi
-	exit "${2:-1}"
+	exit "${2:-255}"
 }
 
 # Help
@@ -83,6 +83,26 @@ help_text ()
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
+
+  Exit codes:
+  0   - Allow connection, Client key has passed all tests.
+  1   - Disallow connection, client key has passed all tests but is REVOKED.
+  2   - Disallow connection, client key has invalid serial number.
+  3   - Disallow connection, CA fingerprint does not match.
+  4   - Disallow connection, remote CA fingerprint is missing from client key.
+  5   - Disallow connection, local CA fingerprint is missing.
+  7   - Disallow connection, invalid metadata_version_xx field.
+  8   - Disallow connection, Custom Group does not match.
+  9   - Disallow connection, general script failure.
+  10  - Disallow connection, missing dependancy.
+  11  - Disallow connection, client serial number is not in CA database.
+  12  - Disallow connection, failed to verify CRL.
+  21  - Disallow connection, failed to set --ca <path> *Required*.
+  123 - Disallow connection, exit code when --help is called.
+  127 - Disallow connection, duplicate serial number is in CA database. !?
+  253 - Disallow connection, options error (Bad opt or missing "Custom Group").
+  254 - Disallow connection, die() exited with default error code.
+  255 - Disallow connection, fail_and_exit() exited with default error code.
 '
 
 	"$printf_bin" "%s\n" "$help_msg"
@@ -405,14 +425,14 @@ deps
 
 	# local_ca_fingerprint is required
 	[ -z "$local_ca_fingerprint" ] && \
-		fail_and_exit "Missing: local CA fingerprint" 3
+		fail_and_exit "Missing: local CA fingerprint" 5
 
 	# Collect CA fingerprint from tls-crypt-v2 metadata
 	metadata_ca_fingerprint="$(fn_metadata_ca_fingerprint)"
 
 	# metadata_ca_fingerprint is required
 	[ -z "$metadata_ca_fingerprint" ] && \
-		fail_and_exit "Missing: remote CA fingerprint" 3
+		fail_and_exit "Missing: remote CA fingerprint" 4
 
 # Check metadata CA fingerprint against local CA fingerprint
 if [ "$local_ca_fingerprint" = "$metadata_ca_fingerprint" ]
