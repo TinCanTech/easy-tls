@@ -1206,12 +1206,15 @@ b64_enc_metadata ()
 	if [ $# -eq 0 ]
 	then
 		# metadata_version
-		metadata_version="metadata_version_A3"
+		metadata_version="metadata_version_A4"
 		# Format $ca_fingerprint to one contiguous string
 		openssl_ca_fp="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
 		# Client serial is one contiguous string (openssl)
 		crt_serial="$(fn_cert_serial)"
+		# Drop the 'serial='
+		crt_serial="${crt_serial##*=}"
+		# Build metadata
 		metadata="$metadata_version $ca_fingerprint $crt_serial"
 		# --custom-group
 		if [ -n "$EASYTLS_TLSCV2_CG" ]
@@ -1219,12 +1222,15 @@ b64_enc_metadata ()
 			metadata="$metadata $EASYTLS_TLSCV2_CG"
 		fi
 	else
+	# Add ONLY user defined strings as metadata
+	# Will not work with tls-crypt-v2-verify.sh (Bug ?)
 		while [ -n "$1" ]; do
 			metadata="$metadata $1"
 			shift
 		done
 	fi
 	[ $EASYTLS_SILENT ] || printf "%s\n" "metadata: $metadata"
+	# Base64 encode metadata
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
 
