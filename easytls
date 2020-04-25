@@ -328,6 +328,8 @@ $help_note"
 	for i in issued certs_by_serial
 	do
 		[ -d "$EASYRSA_PKI/$i" ] || die "\
+Easy-TLS TLS-crypt-v2 requires that you have built your EASY-RSA PKI.
+
 Easy-RSA error:
 
 Missing expected CA dir: $i (perhaps you need to run build-ca?)
@@ -342,13 +344,11 @@ $help_note"
 # Verify Openvpn is available
 verify_openvpn ()
 {
-	# Must test Windblows ...
-	if which "$EASYTLS_OPENVPN" > /dev/null
-	then
-		return 0
-	else
-		die "OpenVPN not found: $EASYTLS_OPENVPN"
-	fi
+	[ -f "$EASYTLS_OPENVPN" ] || die "OpenVPN not found: $EASYTLS_OPENVPN"
+	ovpn_test="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $1}')"
+	[ "$ovpn_test" = "OpenVPN" ] || die "OpenVPN invalid: $EASYTLS_OPENVPN"
+	# explicitly return success for callers
+	return 0
 } # => verify_openvpn ()
 
 # Verify Openvpn version
@@ -760,7 +760,7 @@ inline_renew ()
 	fi
 
 	# Confirm renew type
-	confirm  "Renew inline file ? " "yes" \
+	confirm "Renew inline file ? " "yes" \
 		"Renew: $inline_file as Type: $inline_type"
 
 	# Make a backup of inline file incase renew fails
@@ -1257,10 +1257,6 @@ vars_setup()
 
 	# set up program path
 	prog_file="$0"
-	prog_file2="$(which -- "$prog_file" 2>/dev/null)" && \
-		prog_file="$prog_file2"
-	prog_file2="$(readlink -f "$prog_file" 2>/dev/null)" && \
-		prog_file="$prog_file2"
 	prog_dir="${prog_file%/*}"
 	prog_vars="${prog_dir}/vars"
 	# set up PKI path
