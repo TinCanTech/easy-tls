@@ -102,7 +102,7 @@ help_text ()
   21  - Disallow connection, failed to set --ca <path> *Required*.
   123 - Disallow connection, exit code when --help is called.
   127 - Disallow connection, duplicate serial number in CA database. !?
-  253 - Disallow connection, options error (Bad opt or missing "Custom Group").
+  253 - Disallow connection, options error (Bad option or missing "value").
   254 - Disallow connection, die() exited with default error code.
   255 - Disallow connection, fail_and_exit() exited with default error code.
 '
@@ -292,7 +292,7 @@ init ()
 	success_msg=""
 	failure_msg=""
 
-	# Verify client cert serno has 32 chars
+	# Verify client certificate serial number has 32 hex chars (16^32 bits)
 	allow_only_random_serno=1
 }
 
@@ -325,31 +325,43 @@ init
 # Options
 while [ -n "$1" ]
 do
-	case "$1" in
+	# Separate option from value:
+	opt="${1%%=*}"
+	val="${1#*=}"
+	empty_ok="" # Empty values are not allowed unless expected
+
+	case "$opt" in
 		help|-h|-help|--help)
+					empty_ok=1
 					help_text ;;
 		-v|--verbose)
+					empty_ok=1
 					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
 		-c|--ca)
-					CA_DIR="$2"
-					shift ;;
+					CA_DIR="$val" ;;
 		-1|-m1|--method-1)
+					empty_ok=1
 					test_method=1 ;;
 		-2|-m2|--method-2)
+		# This is only included for review until it gets ripped out
+					empty_ok=1
 					test_method=2 ;;
 		-g|--custom-group)
-					[ -z "$2" ] && \
-						die "Missing custom group" 253
-
-					TLS_CRYPT_V2_VERIFY_CG="$2"
-					shift ;;
+					TLS_CRYPT_V2_VERIFY_CG="$val" ;;
 		-a|--allow-ss)
 		# Allow sequential serial numbers
 		# Allow client cert serial numbers of any length
+					empty_ok=1
 					allow_only_random_serno=0 ;;
 		*)
 					die "Unknown option: $1" 253 ;;
 	esac
+
+	# fatal error when no value was provided
+	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
+		die "Missing value to option: $opt" 253
+	fi
+
 	shift
 done
 
