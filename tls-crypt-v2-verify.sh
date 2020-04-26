@@ -294,40 +294,16 @@ init ()
 
 	# Verify client cert serno has 32 chars
 	allow_only_random_serno=1
-
-	# Must set full paths for scripts in OpenVPN
-	case $OS in
-	Windows_NT)
-		# Need these .exe's from easyrsa3 installation
-		EASYRSA_DIR="c:/program files/openvpn/easyrsa3"
-		grep_bin="$EASYRSA_DIR/bin/grep.exe"
-		sed_bin="$EASYRSA_DIR/bin/sed.exe"
-		awk_bin="$EASYRSA_DIR/bin/awk.exe"
-		printf_bin="$EASYRSA_DIR/bin/printf.exe"
-		ssl_bin="$EASYRSA_DIR/bin/openssl.exe"
-	;;
-	*)
-		# Standard Linux binaries
-		grep_bin="grep"
-		sed_bin="sed"
-		awk_bin="awk"
-		printf_bin="printf"
-		ssl_bin="openssl"
-	;;
-	esac
 }
 
 # deps
 deps ()
 {
-	# *nix is expected to have all the binaries
-	# Windoows exe's are checked prior to ruunning this script
-
 	# CA_DIR MUST be set with option: -c|--ca
 	[ -d "$CA_DIR" ] || die "Path to CA directory is required, see --help" 21
 
 	# CA required files
-	ca_cert="${CA_DIR}/ca.crt"
+	ca_cert="$CA_DIR/ca.crt"
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
