@@ -15,13 +15,13 @@
 # This is here to catch "print" statements
 # Wrapper around printf - clobber print since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { "$printf_bin" "%s\n" "$1"; }
+print() { printf "%s\n" "$1"; }
 
 # Exit on error
 die ()
 {
-	"$printf_bin" "\n%s\n" "ERROR: $1"
-	"$printf_bin" "%s\n" "https://github.com/TinCanTech/easy-tls"
+	printf "\n%s\n" "ERROR: $1"
+	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-254}"
 }
 
@@ -30,36 +30,36 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		"$printf_bin" "%s%s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
+		printf "%s%s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg" "$1"
 
-		"$printf_bin" "%s\n" \
+		printf "%s\n" \
 			"* ==> metadata  local: $local_metadata_version"
 
-		"$printf_bin" "%s\n" \
+		printf "%s\n" \
 			"* ==> metadata remote: $remote_metadata_version"
 
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" \
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
 
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && "$printf_bin" "%s\n" \
+		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group remote: $metadata_custom_group"
 
-		"$printf_bin" "%s\n" \
+		printf "%s\n" \
 			"* ==> CA Fingerprint  local: $local_ca_fingerprint"
 
-		"$printf_bin" "%s\n" \
+		printf "%s\n" \
 			"* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
 
-		"$printf_bin" "%s\n" \
+		printf "%s\n" \
 			"* ==> Client serial remote: $metadata_client_cert_serno"
 
-		[ $2 -eq 1 ] && "$printf_bin" "%s\n" \
+		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
 
-		[ -n "$help_note" ] && "$printf_bin" "$help_note"
+		[ -n "$help_note" ] && printf "%s\n" "$help_note"
 	else
-		"$printf_bin" "%s%s%s\n" "$tls_crypt_v2_verify_msg" \
+		printf "%s%s%s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg"
 	fi
 	exit "${2:-255}"
@@ -106,7 +106,7 @@ help_text ()
   254 - Disallow connection, die() exited with default error code.
   255 - Disallow connection, fail_and_exit() exited with default error code.
 '
-	"$printf_bin" "%s\n" "$help_msg"
+	printf "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
 	exit 123
@@ -115,38 +115,38 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	"$ssl_bin" x509 -in "$ca_cert" -noout
+	openssl x509 -in "$ca_cert" -noout
 }
 
 # CA Local fingerprint
 # space to underscore
 fn_local_ca_fingerprint ()
 {
-	"$ssl_bin" x509 -in "$ca_cert" -noout -fingerprint | "$sed_bin" "s/\ /\_/g"
+	openssl x509 -in "$ca_cert" -noout -fingerprint | sed "s/\ /\_/g"
 }
 
 # Extract metadata version from client tls-crypt-v2 key metadata
 fn_metadata_version ()
 {
-	"$awk_bin" '{print $1}' "$openvpn_metadata_file"
+	awk '{print $1}' "$openvpn_metadata_file"
 }
 
 # Extract CA fingerprint from client tls-crypt-v2 key metadata
 fn_metadata_ca_fingerprint ()
 {
-	"$awk_bin" '{print $2}' "$openvpn_metadata_file"
+	awk '{print $2}' "$openvpn_metadata_file"
 }
 
 # Extract client cert serial number from client tls-crypt-v2 key metadata
 fn_metadata_client_cert_serno ()
 {
-	"$awk_bin" '{print $3}' "$openvpn_metadata_file"
+	awk '{print $3}' "$openvpn_metadata_file"
 }
 
 # Extract custom metadata appendage from client tls-crypt-v2 key metadata
 fn_metadata_custom_group ()
 {
-	"$awk_bin" '{print $4}' "$openvpn_metadata_file"
+	awk '{print $4}' "$openvpn_metadata_file"
 }
 
 # Requirements to verify a valid client cert serial number
@@ -179,26 +179,26 @@ Allow_hex_only ()
 # Verify CRL
 verify_crl ()
 {
-	"$ssl_bin" crl -in "$crl_pem" -noout
+	openssl crl -in "$crl_pem" -noout
 }
 
 # Decode CRL
 fn_read_crl ()
 {
-	"$ssl_bin" crl -in "$crl_pem" -noout -text
+	openssl crl -in "$crl_pem" -noout -text
 }
 
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	"$printf_bin" "%s\n" "$crl_text" | \
-		"$grep_bin" -c "$metadata_client_cert_serno"
+	printf "%s\n" "$crl_text" | \
+		grep -c "$metadata_client_cert_serno"
 }
 
 # Final check: Search index.txt for client cert serial number
 fn_search_index ()
 {
-	"$grep_bin" -c "^V.*$metadata_client_cert_serno" "$index_txt"
+	grep -c "^V.*$metadata_client_cert_serno" "$index_txt"
 }
 
 # Check metadata client certificate serial number against CRL
@@ -234,7 +234,7 @@ serial_status_via_ca ()
 	# This does not return openssl output to variable
 	# If you have a fix please make an issue and/or PR
 	client_cert_serno_status="$(openssl_serial_status)"
-	"$printf_bin" "%s\n" "client_cert_serno_status: $client_cert_serno_status"
+	printf "%s\n" "client_cert_serno_status: $client_cert_serno_status"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
 	case "$client_cert_serno_status" in
 		Valid)		die "IMPOSSIBLE" 102 ;; # Valid ?
@@ -246,7 +246,7 @@ serial_status_via_ca ()
 # Use openssl to return certificate serial number status
 openssl_serial_status ()
 {
-	"$ssl_bin" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$metadata_client_cert_serno"
 }
 
@@ -255,7 +255,7 @@ verify_openssl_serial_status ()
 {
 	return 0
 	# Cannot defend an error here because openssl always returns 1
-	"$ssl_bin" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$metadata_client_cert_serno" || \
 		die "openssl failed to return a useful exit code" 101
 
@@ -460,6 +460,6 @@ esac
 
 [ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	"$printf_bin" "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+	printf "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
 exit 0
