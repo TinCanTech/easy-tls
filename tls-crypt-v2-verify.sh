@@ -20,6 +20,7 @@ print() { printf "%s\n" "$1"; }
 # Exit on error
 die ()
 {
+	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
 	printf "\n%s\n" "ERROR: $1"
 	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-254}"
@@ -290,14 +291,13 @@ openssl_serial_status ()
 # Verify openssl serial status returns ok
 verify_openssl_serial_status ()
 {
-	return 0
-	# Cannot defend an error here because openssl always returns 1
+	return 0 # Disable this `return` if you want to test
+	# openssl appears to always exit with error - have not solved this
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$metadata_client_cert_serno" || \
-		die "openssl failed to return a useful exit code" 101
+		die "openssl returned an error exit code" 101
 
-# I presume they don't want people to use CA so they broke it
-# This is why I will not use CA
+# This is why I am not using CA, from `man 1 ca`
 : << MAN_OPENSSL_CA
 WARNINGS
        The ca command is quirky and at times downright unfriendly.
@@ -349,8 +349,10 @@ deps ()
 	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
 	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
 	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
+	help_note="This script can ONLY be used by a running openvpn server."
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
+	unset help_note
 	[ -z "$disabled_list" ] || \
 		[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
 }
