@@ -263,7 +263,7 @@ serial_status_via_crl ()
 		failure_msg="$insert_msg $metadata_client_cert_serno"
 		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
 	;;
-esac
+	esac
 }
 
 # Check metadata client certificate serial number against CA
@@ -271,6 +271,7 @@ serial_status_via_ca ()
 {
 	# This does not return openssl output to variable
 	# If you have a fix please make an issue and/or PR
+	verify_openssl_serial_status
 	client_cert_serno_status="$(openssl_serial_status)"
 	printf "%s\n" "client_cert_serno_status: $client_cert_serno_status"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
