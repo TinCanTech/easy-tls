@@ -186,10 +186,8 @@ Allow_hex_only ()
 # Check metadata client certificate serial number against disabled list
 verify_serial_number_not_disabled ()
 {
-	# If disabled_list is not defined then skip this check
-	[ -z "$disabled_list" ] && return 0
-
-	client_disabled="$(fn_search_disabled)"
+	# Search the disabled_list for client serial number
+	client_disabled="$(fn_search_disabled_list)"
 	case $client_disabled in
 	0)
 	# Client is not disabled
@@ -209,7 +207,7 @@ verify_serial_number_not_disabled ()
 }
 
 # Search disabled list for client serial number
-fn_search_disabled ()
+fn_search_disabled_list ()
 {
 	grep -c "$metadata_client_cert_serno" "$disabled_list"
 }
@@ -354,8 +352,11 @@ deps ()
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
 	unset help_note
-	[ -z "$disabled_list" ] || \
+
+	if [ -n "$disabled_list" ]
+	then
 		[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
+	fi
 }
 
 #######################################
@@ -457,7 +458,10 @@ deps
 # Disabled list check
 
 	# Check serial number is not disabled
-        verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
+	if [ -n "$disabled_list" ]
+	then
+		verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
+	fi
 
 
 # CA Fingerprint
