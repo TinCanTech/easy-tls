@@ -453,7 +453,10 @@ deps
 	# Client serial number requirements
 	verify_metadata_client_serial_number
 
-	# Check serial number is disabled
+
+# Disabled list check
+
+	# Check serial number is not disabled
         verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
 
 
