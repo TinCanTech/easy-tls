@@ -31,7 +31,7 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		printf "%s%s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
+		printf "%s %s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg" "$1"
 
 		printf "%s\n" \
@@ -60,7 +60,7 @@ fail_and_exit ()
 
 		[ -n "$help_note" ] && printf "%s\n" "$help_note"
 	else
-		printf "%s%s%s\n" "$tls_crypt_v2_verify_msg" \
+		printf "%s %s %s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg"
 	fi
 	exit "${2:-255}"
@@ -324,7 +324,7 @@ init ()
 	openvpn_metadata_file="$metadata_file"
 
 	# Log message
-	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==> "
+	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
 	success_msg=""
 	failure_msg=""
 
@@ -531,6 +531,6 @@ esac
 
 [ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	printf "%s%s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+	printf "%s %s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
 
 exit 0
