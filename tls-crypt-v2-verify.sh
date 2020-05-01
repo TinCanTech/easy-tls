@@ -59,6 +59,8 @@ fail_and_exit ()
 			"* ==> Client serial status: revoked"
 
 		[ -n "$help_note" ] && printf "%s\n" "$help_note"
+
+		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
 		printf "%s %s %s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg"
