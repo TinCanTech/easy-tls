@@ -77,7 +77,7 @@ help_text ()
 
   Options:
   help|-h|--help     This help text.
-  -v|--verbose        Be a little more verbose at run time.
+  -v|--verbose        Be a little more verbose at run time (Not Windows).
   -c|--ca <path>      Path to CA *Required*
   -a|--allow-ss       Allow sequential serial numbers
   -g|--custom-group <GROUP>
@@ -161,19 +161,21 @@ verify_metadata_client_serial_number ()
 {
 	# Do we have a serial number
 	[ -z "$metadata_client_cert_serno" ] && fail_and_exit \
-		"Missing: client certificate serial number" 2
+		"SERIALNO_MISSING" 2
 
 	# Hex only accepted
 	serial_chars="$(Allow_hex_only)"
-	[ $serial_chars -eq 0 ] || fail_and_exit "Invalid serial number" 2
+	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 2
 
+	# Serial number must full length
 	if [ $allow_only_random_serno -eq 1 ]
 	then
-		help_note="Use randomised serial numbers in EasyRSA3"
 		serial_length=${#metadata_client_cert_serno}
 		[ $serial_length -eq 32 ] || \
-			fail_and_exit "Invalid serial number length" 2
-		unset help_note
+		{
+			help_note="Use randomised serial numbers in EasyRSA3"
+			fail_and_exit "SERIAL_LENGTH" 2
+		}
 	fi
 }
 
@@ -326,10 +328,15 @@ init ()
 	# Log message
 	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
 	success_msg=""
-	failure_msg=""
+
+	# Do not set this because it only ever gets set for fails
+	#failure_msg=""
 
 	# Verify client certificate serial number has 32 hex chars (16^32 bits)
 	allow_only_random_serno=1
+
+	# Test certificate Valid/Revoked by CRL not CA
+	test_method=1
 }
 
 # Dependancies
@@ -528,9 +535,14 @@ case $test_method in
 	;;
 esac
 
+# failure_msg means fail_and_exit
+[ "$failure_msg" ] && fail_and_exit "NEIN" 9
 
-[ $absolute_fail -eq 0 ] || fail_and_exit "Nein" 9
+# There is only one way out of this...
+[ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE_FAIL" 9
+
+# All is well
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	printf "%s %s\n" "$tls_crypt_v2_verify_msg" "$success_msg"
+	printf "%s\n" "<EXOK> $tls_crypt_v2_verify_msg $success_msg"
 
 exit 0
