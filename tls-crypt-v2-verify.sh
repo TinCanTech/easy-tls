@@ -313,6 +313,7 @@ WARNINGS
        done on the various files and attempts to run more than one ca command
        on the same database can have unpredictable results.
 MAN_OPENSSL_CA
+# This script ONLY reads, .:  I am hoping for better than 'unpredictable' ;-)
 }
 
 # Initialise
