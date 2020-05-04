@@ -1200,23 +1200,23 @@ b64_enc_metadata ()
 {
 	# If command line has no extra strings then add 3x default strings:
 	# 1. Metadata version: xx (Simple hex)
-	# 2. CA SHA1 Fingerprint: (openssl output) Change space to underscore,
-	#    contiguous single field
-	# 3. Client certificate serial: (openssl output), contiguous single field
+	# 2. CA SHA1 Fingerprint, contiguous single field
+	#    `openssl output` Change space to underscore
+	# 3. Client certificate serial, contiguous single field
+	#    `openssl output` Drop the 'serial='
 	if [ $# -eq 0 ]
 	then
 		# metadata_version
 		metadata_version="metadata_version_A4"
-		# Format $ca_fingerprint to one contiguous string
+		# CA fingerprint
 		openssl_ca_fp="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
-		# Client serial is one contiguous string (openssl)
+		# Client serial number
 		crt_serial="$(fn_cert_serial)"
-		# Drop the 'serial='
 		crt_serial="${crt_serial##*=}"
 		# Build metadata
 		metadata="$metadata_version $ca_fingerprint $crt_serial"
-		# --custom-group
+		# Append --custom-group
 		if [ -n "$EASYTLS_TLSCV2_CG" ]
 		then
 			metadata="$metadata $EASYTLS_TLSCV2_CG"
