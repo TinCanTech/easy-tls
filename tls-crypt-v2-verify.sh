@@ -66,7 +66,7 @@ fail_and_exit ()
 			"$success_msg" "$failure_msg"
 	fi
 	exit "${2:-255}"
-}
+} # => fail_and_exit ()
 
 # Help
 help_text ()
@@ -93,6 +93,7 @@ help_text ()
                       <list> is a text file listing of known/temporary banned
                       client certificate serial numbers.  This check happens
                       prior to CRL checking but does not disable CRL checking.
+                      If <list> is not defined then use easytls default list.
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -363,8 +364,13 @@ deps ()
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
 	unset help_note
 
-	if [ -n "$disabled_list" ]
+	# Check disabled list exists, use easytls default list if none specified.
+	if [ "$disabled_list" ]
 	then
+		case "$disabled_list" in
+		-d|--disabled)
+			disabled_list="$CA_DIR/tls/disabled.txt"
+		esac
 		[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
 	fi
 }
@@ -407,6 +413,7 @@ do
 					empty_ok=1
 					allow_only_random_serno=0 ;;
 		-d|--disabled)
+					empty_ok=1
 					disabled_list="$val" ;;
 		*)
 					die "Unknown option: $1" 253 ;;

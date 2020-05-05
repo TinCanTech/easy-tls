@@ -56,6 +56,8 @@ Use the 'help' command above to get full usage details.
   inline-status [ cmd-opts ]
   inline-show <filename_base>
   cert-expire <filename_base> | <ca>
+  disable <filename_base>
+  enable <filename_base>
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
@@ -166,6 +168,14 @@ cmd_help()
 			opts="
         If <filename_base> is 'ca' then show ca.crt expiry
         If no <filename_base> is given then list all certificates expiry dates" ;;
+		disable) text="
+  disable <filename_base>
+      Add serial number for <filename_base> to the
+      tls-crypt-v2-verify script disabled list" ;;
+		enable) text="
+  enable <filename_base>
+      Remove serial number for <filename_base> from the
+      tls-crypt-v2-verify script disabled list" ;;
 		options)
 			opt_usage ;;
 		"")
@@ -415,6 +425,12 @@ and initialize a fresh TLS PKI here."
 	# Create tls dir index file
 	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
+
+	# Create disabled list
+	head_text="# OpenVPN Server tls-crypt-v2-verify.sh disabled list"
+	date_text="# Created: $(date)"
+	printf "%s\n%s\n" "$head_text" "$date_text" > "$EASYTLS_DISABLED_LIST" \
+		|| die "Failed to create disabled list"
 
 	notice "\
 init-tls complete; you may now create TLS keys.
@@ -1246,6 +1262,55 @@ fn_cert_serial ()
 	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
 } # => fn_cert_serial ()
 
+# Manage tls-crypt=v2-verify default tls/disabled_list.txt
+tls_crypt_v2_verify ()
+{
+	cli_name="$2"
+	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
+	[ -f "$cli_cert" ] || die "Cannot find certificate: $cli_cert"
+
+	# Client serial number
+	crt_serial="$(fn_cert_serial)"
+	crt_serial="${crt_serial##*=}"
+
+	# Check list for duplicates
+	serial_disabled_status="$(search_disabled_list)"
+	[ $serial_disabled_status -lt 2 ] || die "Serial is duplicated"
+
+	# Serial number disable or enable and check
+	case $1 in
+	disable) # Add serial number to the list
+		serial_disabled_status="$(search_disabled_list)"
+		[ $serial_disabled_status -eq 0 ] || die "Serial is disabled"
+		printf "%s\n" "$cli_name $crt_serial" >> "$EASYTLS_DISABLED_LIST"
+		serial_disabled_status="$(search_disabled_list)"
+		[ $serial_disabled_status -eq 1 ] || die "Serial disabled failed"
+	;;
+	enable) # Remove serial number from the list
+		serial_disabled_status="$(search_disabled_list)"
+		[ $serial_disabled_status -eq 1 ] || die "Serial is enabled"
+		sed -i "/^.*$crt_serial.*$/d" "$EASYTLS_DISABLED_LIST"
+		serial_disabled_status="$(search_disabled_list)"
+		[ $serial_disabled_status -eq 0 ] || die "Serial enabled failed"
+	;;
+	*) die "tls_crypt_v2_verify action invalid: $1"
+	;;
+	esac
+
+	# Update time-stamp
+	update_text="# Updated: $(date) -- $1: $cli_name"
+	sed -i "/^\#\ Updated:.*$/d" "$EASYTLS_DISABLED_LIST"
+	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
+	notice "Updated disbaled list: $cli_name $1"
+}
+
+# Search disabled list for serial number
+search_disabled_list ()
+{
+	grep -c "$crt_serial" "$EASYTLS_DISABLED_LIST"
+}
+
+
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
@@ -1305,6 +1370,7 @@ vars_setup()
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/tls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.tls"
 	set_var EASYTLS_OPENVPN		"openvpn"
+	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/disabled.txt"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
@@ -1447,6 +1513,12 @@ case "$cmd" in
 		;;
 	cert-expire)
 		cert_expire "$@"
+		;;
+	disable)
+		tls_crypt_v2_verify disable "$@"
+		;;
+	enable)
+		tls_crypt_v2_verify enable "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
