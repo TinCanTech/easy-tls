@@ -1,16 +1,27 @@
 #!/bin/sh
 
+# Copyright - negotiable
+copyright ()
+{
+cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+# tls-crypt-v2-verify.sh -- Do simple magic
+#
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
-# https://github.com/TinCanTech
+# https://github.com/TinCanTech/easy-tls
 # tincanteksup@gmail.com
 # All Rights reserved.
 #
 # This code is released under version 2 of the GNU GPL
 # See LICENSE of this project for full licensing details.
 #
-
+# Acknowledgement:
+# syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+#
 # Verify CA fingerprint
 # Verify client certificate serial number against certificate revokation list
+#
+VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+}
 
 # This is here to catch "print" statements
 # Wrapper around printf - clobber print since it's not POSIX anyway
