@@ -154,6 +154,9 @@ done # => loops
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		"$EASYTLS_CMD" --batch disable "$c"
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 	done
 
 echo "============================================================"
