@@ -151,7 +151,7 @@ done # => loops
 
 	for c in "c05" "c06"
 	do
-		metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 	done
