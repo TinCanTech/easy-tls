@@ -87,6 +87,11 @@ build_easyrsa
 
 EASYRSA_CMD="./easyrsa"
 EASYTLS_CMD="./easytls"
+TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
+export TRAVIS_CI=1
+WORK_DIR="$(pwd)"
+PKI_DIR="$WORK_DIR/pki"
+DBUG_DIR="$WORK_DIR/pki/tls"
 
 for loops in 1 2
 do
@@ -141,6 +146,15 @@ do
 	build_vars
 
 done # => loops
+
+# Test tls-crypt-v2-verify.sh
+
+	for c in "c05" "c06"
+	do
+		metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+	done
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"

@@ -1244,6 +1244,7 @@ b64_enc_metadata ()
 		then
 			metadata="$metadata $EASYTLS_TLSCV2_CG"
 		fi
+		[ $TRAVIS_CI ] && debug_metadata
 	else
 	# Add ONLY user defined strings as metadata
 	# Will not work with tls-crypt-v2-verify.sh (Bug ?)
@@ -1268,6 +1269,13 @@ fn_cert_serial ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
 } # => fn_cert_serial ()
+
+# DEBUG metadata
+debug_metadata ()
+{
+	metadata_debug="$EASYTLS_PKI/tls-crypt-v2-$cli_name.mdd"
+	printf "%s\n" "$metadata" > "$metadata_debug"
+}
 
 # Manage tls-crypt=v2-verify default tls/disabled_list.txt
 tls_crypt_v2_verify ()
