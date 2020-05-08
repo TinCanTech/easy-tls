@@ -262,15 +262,10 @@ serial_status_via_crl ()
 		# Final check: Is this serial in index.txt
 		[ "$(fn_search_index)" -eq 1 ] || fail_and_exit \
 			"Client certificate is not in the CA index database" 11
-
-		insert_msg="Client certificate is recognised and not revoked:"
-		success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
-		absolute_fail=0
+		client_passed_all_tests_connection_allowed
 	;;
 	1)
-		insert_msg="Client certificate is revoked:"
-		failure_msg="$insert_msg $metadata_client_cert_serno"
-		fail_and_exit "REVOKED" 1
+		client_passed_all_tests_certificate_revoked
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected:"
@@ -280,27 +275,56 @@ serial_status_via_crl ()
 	esac
 }
 
+# This is the only way to connect
+client_passed_all_tests_connection_allowed ()
+{
+		insert_msg="Client certificate is recognised and not revoked:"
+		success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
+		absolute_fail=0
+}
+
+# This is the only way to fail for Revokation
+client_passed_all_tests_certificate_revoked ()
+{
+		insert_msg="Client certificate is revoked:"
+		failure_msg="$insert_msg $metadata_client_cert_serno"
+		fail_and_exit "REVOKED" 1
+}
+
 # Check metadata client certificate serial number against CA
 serial_status_via_ca ()
 {
-	# This does not return openssl output to variable
-	# If you have a fix please make an issue and/or PR
+	# This is non-functional until openssl is fixed
 	verify_openssl_serial_status
+
+	# Get serial status via CA
 	client_cert_serno_status="$(openssl_serial_status)"
-	printf "%s\n" "client_cert_serno_status: $client_cert_serno_status"
+
+	# Format serial status
+	client_cert_serno_status="$(capture_serial_status)"
+	client_cert_serno_status="${client_cert_serno_status% *}"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
+
+	# Considering what has to be done, I don't like this
 	case "$client_cert_serno_status" in
-		Valid)		die "IMPOSSIBLE" 102 ;; # Valid ?
-		Revoked)	die "REVOKED" 103 ;;
-		*)		die "Serial status via CA is broken" 9 ;;
+		Valid)		client_passed_all_tests_connection_allowed ;;
+		Revoked)	client_passed_all_tests_certificate_revoked ;;
+		*)		die "Serial status via CA has broken" 9 ;;
 	esac
 }
 
 # Use openssl to return certificate serial number status
 openssl_serial_status ()
 {
+	# openssl appears to always exit with error - but here I do not care
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$metadata_client_cert_serno"
+		-status "$metadata_client_cert_serno" 2>&1
+}
+
+# Capture serial status
+capture_serial_status ()
+{
+	printf "%s\n" "$client_cert_serno_status" | grep '^.*=.*$'
 }
 
 # Verify openssl serial status returns ok
@@ -370,6 +394,7 @@ deps ()
 	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
 	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
 	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
+	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
 	help_note="This script can ONLY be used by a running openvpn server."
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
@@ -413,8 +438,9 @@ do
 					empty_ok=1
 					test_method=1 ;;
 		-2|-m2|--method-2)
-		# This is only included for review until it gets ripped out
+		# This is only included for review
 					empty_ok=1
+			tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (m2) ==>"
 					test_method=2 ;;
 		-g|--custom-group)
 					TLS_CRYPT_V2_VERIFY_CG="$val" ;;
