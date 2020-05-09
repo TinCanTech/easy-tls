@@ -370,10 +370,6 @@ init ()
 
 	# Log message
 	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
-	success_msg=""
-
-	# Do not set this because it only ever gets set for fails
-	#failure_msg=""
 
 	# Verify client certificate serial number has 32 hex chars (16^32 bits)
 	allow_only_random_serno=1
