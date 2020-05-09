@@ -282,17 +282,17 @@ serial_status_via_crl ()
 # This is the only way to connect
 client_passed_all_tests_connection_allowed ()
 {
-		insert_msg="Client certificate is recognised and not revoked:"
-		success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
-		absolute_fail=0
+	insert_msg="Client certificate is recognised and not revoked:"
+	success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
+	absolute_fail=0
 }
 
 # This is the only way to fail for Revokation
 client_passed_all_tests_certificate_revoked ()
 {
-		insert_msg="Client certificate is revoked:"
-		failure_msg="$insert_msg $metadata_client_cert_serno"
-		fail_and_exit "REVOKED" 1
+	insert_msg="Client certificate is revoked:"
+	failure_msg="$insert_msg $metadata_client_cert_serno"
+	fail_and_exit "REVOKED" 1
 }
 
 # Check metadata client certificate serial number against CA
