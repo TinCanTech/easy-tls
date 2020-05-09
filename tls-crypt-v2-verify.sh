@@ -200,7 +200,7 @@ verify_metadata_client_serial_number ()
 # Drop all non-hex chars from serial number and count the rest
 allow_hex_only ()
 {
-	printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]'
+	printf '%s' "$metadata_client_cert_serno"|grep -c '[^0123456789ABCDEF]'
 }
 
 # Check metadata client certificate serial number against disabled list
