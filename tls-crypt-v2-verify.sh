@@ -182,7 +182,7 @@ verify_metadata_client_serial_number ()
 		"SERIALNO_MISSING" 2
 
 	# Hex only accepted
-	serial_chars="$(Allow_hex_only)"
+	serial_chars="$(allow_hex_only)"
 	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 2
 
 	# Serial number must full length
@@ -198,7 +198,7 @@ verify_metadata_client_serial_number ()
 }
 
 # Drop all non-hex chars from serial number and count the rest
-Allow_hex_only ()
+allow_hex_only ()
 {
 	printf '%s' "$metadata_client_cert_serno" | grep -c '[^0123456789ABCDEF]'
 }
