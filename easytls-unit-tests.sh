@@ -66,6 +66,7 @@ keyUsage = digitalSignature
 build_vars ()
 {
 	{
+		print ' set_var EASYRSA_RAND_SN "no"'
 		print ' set_var EASYRSA_DN "org"'
 		print '# Unsupported characters:'
 		print '# `'
