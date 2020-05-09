@@ -406,6 +406,7 @@ verify_tls_init ()
 	verify_openvpn
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
+	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
 } # => verify_tls_init ()
 
 # init-tls backend:

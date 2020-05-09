@@ -403,10 +403,7 @@ deps ()
 	# Check disabled list exists, use easytls default list if none specified.
 	if [ "$disabled_list" ]
 	then
-		case "$disabled_list" in
-		-d|--disabled)
-			disabled_list="$CA_DIR/tls/disabled.txt"
-		esac
+		disabled_list="$CA_DIR/tls/disabled.txt"
 		[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
 	fi
 }
@@ -447,8 +444,7 @@ do
 					empty_ok=1
 					allow_only_random_serno=0 ;;
 		-d|--disabled)
-					empty_ok=1
-					disabled_list="$val" ;;
+					empty_ok=1 ;;
 		*)
 					die "Unknown option: $1" 253 ;;
 	esac
