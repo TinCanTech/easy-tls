@@ -92,14 +92,18 @@ help_text ()
   help|-h|--help     This help text.
   -v|--verbose        Be a little more verbose at run time (Not Windows).
   -c|--ca <path>      Path to CA *Required*
+  --verify-via-ca)    Verify client serial number status via `openssl ca`
+                      NOT RECOMMENDED
+                      The recommended method to verify client serial number
+                      status is via `openssl crl` (This is the Default).
   -a|--allow-ss       Allow sequential serial numbers
-  -g|--custom-group <GROUP>
+  -g|--custom-group=<GROUP>
                       Also verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
-  -d|--disabled <list>
+  -d|--disabled=<list>
                       Instantly drop clients with known "bad serial numbers".
                       <list> is a text file listing of known/temporary banned
                       client certificate serial numbers.  This check happens
@@ -434,13 +438,10 @@ do
 					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
 		-c|--ca)
 					CA_DIR="$val" ;;
-		-1|-m1|--method-1)
-					empty_ok=1
-					test_method=1 ;;
-		-2|-m2|--method-2)
+		--verify-via-ca)
 		# This is only included for review
 					empty_ok=1
-			tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (m2) ==>"
+			tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
 					test_method=2 ;;
 		-g|--custom-group)
 					TLS_CRYPT_V2_VERIFY_CG="$val" ;;
