@@ -266,9 +266,20 @@ serial_status_via_crl ()
 	case $client_cert_revoked in
 	0)
 		# Final check: Is this serial in index.txt
-		[ "$(fn_search_index)" -eq 1 ] || fail_and_exit \
+		case "$(fn_search_index)" in
+		0)
+			fail_and_exit \
 			"Client certificate is not in the CA index database" 11
-		client_passed_all_tests_connection_allowed
+		;;
+		1)
+			client_passed_all_tests_connection_allowed
+		;;
+		*)
+			insert_msg="Duplicate serial numbers detected:"
+			failure_msg="$insert_msg $metadata_client_cert_serno"
+			die "Duplicate serial numbers: $metadata_client_cert_serno" 127
+		;;
+		esac
 	;;
 	1)
 		client_passed_all_tests_certificate_revoked
