@@ -88,6 +88,7 @@ build_easyrsa
 
 EASYRSA_CMD="./easyrsa"
 EASYTLS_CMD="./easytls"
+OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
 export TRAVIS_CI=1
 WORK_DIR="$(pwd)"
@@ -104,6 +105,7 @@ do
 		"build-client-full c03 nopass" "revoke c03" \
 		"build-client-full c05 nopass" \
 		"build-client-full c06 nopass" \
+		"build-client-full c07 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
@@ -144,22 +146,30 @@ do
 		$i
 	done
 
+	# Build a default openvpn tls-crypt-v2 client key with no metadata
+	"$OPENVPN_CMD" --tls-crypt-v2 "$DBUG_DIR/tls-crypt-v2-s01.key" \
+	--genkey tls-crypt-v2-client "$DBUG_DIR/tls-crypt-v2-c07.key"
+	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
+	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
+
 	build_vars
 
 done # => loops
 
 # Test tls-crypt-v2-verify.sh
 
-	for c in "c01" "c05" "c06"
+	for c in "c01" "c05" "c06" "c07"
 	do
+		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 		"$EASYTLS_CMD" --batch disable "$c"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
+		echo
 	done
 
 echo "============================================================"
