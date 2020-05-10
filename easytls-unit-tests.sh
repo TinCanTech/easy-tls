@@ -86,11 +86,12 @@ build_vars ()
 
 build_easyrsa
 
+export EASYTLS_TRAVIS_CI=1
+
 EASYRSA_CMD="./easyrsa"
 EASYTLS_CMD="./easytls"
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
-export TRAVIS_CI=1
 WORK_DIR="$(pwd)"
 PKI_DIR="$WORK_DIR/pki"
 DBUG_DIR="$WORK_DIR/pki/tls"

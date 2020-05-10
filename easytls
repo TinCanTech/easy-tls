@@ -1261,7 +1261,7 @@ b64_enc_metadata ()
 		then
 			metadata="$metadata $EASYTLS_TLSCV2_CG"
 		fi
-		[ $TRAVIS_CI ] && debug_metadata
+		[ $EASYTLS_TRAVIS_CI ] && debug_metadata
 	else
 	# Add ONLY user defined strings as metadata
 	# Will not work with tls-crypt-v2-verify.sh (Bug ?)
