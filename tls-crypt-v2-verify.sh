@@ -106,23 +106,23 @@ help_text ()
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
-  2   - Disallow connection, client key has invalid serial number.
-  3   - Disallow connection, CA fingerprint does not match.
-  4   - Disallow connection, remote CA fingerprint is missing from client key.
-  5   - Disallow connection, local CA fingerprint is missing.
   6   - Disallow connection, serial number is disabled.
+  3   - Disallow connection, local/remote CA fingerprints do not match.
   7   - Disallow connection, invalid metadata_version_xx field.
-  8   - Disallow connection, Custom Group does not match.
-  9   - Disallow connection, general script failure.
-  10  - Disallow connection, missing dependancy.
-  11  - Disallow connection, client serial number is not in CA database.
-  12  - Disallow connection, failed to verify CRL.
-  21  - Disallow connection, failed to set --ca <path> *Required*.
+  8   - Disallow connection, local/remote Custom Groups do not match.
+  9   - BUG Disallow connection, general script failure.
+  2   - ERROR Disallow connection, client key has invalid serial number.
+  4   - ERROR Disallow connection, remote CA fingerprint is missing from client key.
+  5   - ERROR Disallow connection, local CA fingerprint is missing.
+  253 - USER ERROR Disallow connection, options error (Bad option or missing "value").
+  21  - USER ERROR Disallow connection, failed to set --ca <path> *Required*.
+  10  - USER ERROR Disallow connection, missing dependancy.
+  11  - BUG Disallow connection, client serial number is not in CA database.
+  12  - BUG Disallow connection, failed to verify CRL.
+  127 - BUG Disallow connection, duplicate serial number in CA database. !?
   123 - Disallow connection, exit code when --help is called.
-  127 - Disallow connection, duplicate serial number in CA database. !?
-  253 - Disallow connection, options error (Bad option or missing "value").
-  254 - Disallow connection, die() exited with default error code.
-  255 - Disallow connection, fail_and_exit() exited with default error code.
+  255 - BUG Disallow connection, fail_and_exit() exited with default error code.
+  254 - BUG Disallow connection, die() exited with default error code.
 '
 	printf "%s\n" "$help_msg"
 
@@ -391,10 +391,19 @@ deps ()
 	disabled_list="$CA_DIR/tls/disabled.txt"
 
 	# Ensure we have all the necessary files
+	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
+
+	help_note="This script requires an EasyRSA generated CRL."
 	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
+
+	help_note="This script requires an EasyRSA generated DB."
 	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
+
+	help_note="This script requires an EasyRSA generated PKI."
 	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
+
+	help_note="This script requires an EasyTLS generated disabled_list."
 	[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
 
 	# `metadata_file` must be set by openvpn
