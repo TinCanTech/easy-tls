@@ -34,7 +34,7 @@ die ()
 	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
 	printf "\n%s\n" "ERROR: $1"
 	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
-	exit "${2:-254}"
+	exit "${2:-255}"
 }
 
 # Tls-crypt-v2-verify failure, not an error.
@@ -76,7 +76,7 @@ fail_and_exit ()
 		printf "%s %s %s\n" "$tls_crypt_v2_verify_msg" \
 			"$success_msg" "$failure_msg"
 	fi
-	exit "${2:-255}"
+	exit "${2:-254}"
 } # => fail_and_exit ()
 
 # Help
@@ -106,28 +106,33 @@ help_text ()
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
-  6   - Disallow connection, serial number is disabled.
+  2   - Disallow connection, serial number is disabled.
   3   - Disallow connection, local/remote CA fingerprints do not match.
-  7   - Disallow connection, invalid metadata_version_xx field.
-  8   - Disallow connection, local/remote Custom Groups do not match.
+  4   - Disallow connection, invalid metadata_version_xx field.
+  5   - Disallow connection, local/remote Custom Groups do not match.
   9   - BUG Disallow connection, general script failure.
-  2   - ERROR Disallow connection, client key has invalid serial number.
-  4   - ERROR Disallow connection, remote CA fingerprint is missing from client key.
-  5   - ERROR Disallow connection, local CA fingerprint is missing.
-  253 - USER ERROR Disallow connection, options error (Bad option or missing "value").
-  21  - USER ERROR Disallow connection, failed to set --ca <path> *Required*.
-  10  - USER ERROR Disallow connection, missing dependancy.
-  11  - BUG Disallow connection, client serial number is not in CA database.
-  12  - BUG Disallow connection, failed to verify CRL.
+  11  - ERROR Disallow connection, client key has invalid serial number.
+  12  - ERROR Disallow connection, remote CA fingerprint is missing from client key.
+  13  - ERROR Disallow connection, local CA fingerprint is missing.
+  21  - USER ERROR Disallow connection, options error (Bad option or missing "value").
+  22  - USER ERROR Disallow connection, failed to set --ca <path> *Required*.
+  23  - USER ERROR Disallow connection, missing CA certificate.
+  24  - USER ERROR Disallow connection, missing CRL file.
+  25  - USER ERROR Disallow connection, missing index.txt.
+  26  - USER ERROR Disallow connection, missing safessl-easyrsa.cnf.
+  27  - USER ERROR Disallow connection, EasyTLS disabled list.
+  23  - USER ERROR Disallow connection, openvpn server generated metadata_file.
+  121 - BUG Disallow connection, client serial number is not in CA database.
+  122 - BUG Disallow connection, failed to verify CRL.
   127 - BUG Disallow connection, duplicate serial number in CA database. !?
-  123 - Disallow connection, exit code when --help is called.
-  255 - BUG Disallow connection, fail_and_exit() exited with default error code.
-  254 - BUG Disallow connection, die() exited with default error code.
+  253 - Disallow connection, exit code when --help is called.
+  254 - BUG Disallow connection, fail_and_exit() exited with default error code.
+  255 - BUG Disallow connection, die() exited with default error code.
 '
 	printf "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
-	exit 123
+	exit 253
 }
 
 # Verify CA
@@ -172,11 +177,11 @@ verify_metadata_client_serial_number ()
 {
 	# Do we have a serial number
 	[ -z "$metadata_client_cert_serno" ] && fail_and_exit \
-		"SERIALNO_MISSING" 2
+		"SERIAL_MISSING" 11
 
 	# Hex only accepted
 	serial_chars="$(allow_hex_only)"
-	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 2
+	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 11
 }
 
 # Drop all non-hex chars from serial number and count the rest
@@ -252,7 +257,7 @@ serial_status_via_crl ()
 		case "$(fn_search_index)" in
 		0)
 			fail_and_exit \
-			"Client certificate is not in the CA index database" 11
+			"Client certificate is not in the CA index database" 121
 		;;
 		1)
 			client_passed_all_tests_connection_allowed
@@ -381,7 +386,7 @@ init ()
 deps ()
 {
 	# CA_DIR MUST be set with option: -c|--ca
-	[ -d "$CA_DIR" ] || die "Path to CA directory is required, see help" 21
+	[ -d "$CA_DIR" ] || die "Path to CA directory is required, see help" 22
 
 	# CA required files
 	ca_cert="$CA_DIR/ca.crt"
@@ -392,24 +397,24 @@ deps ()
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
-	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
+	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 23
 
 	help_note="This script requires an EasyRSA generated CRL."
-	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
+	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 24
 
 	help_note="This script requires an EasyRSA generated DB."
-	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
+	[ -f "$index_txt" ] || die "Missing: $index_txt" 25
 
 	help_note="This script requires an EasyRSA generated PKI."
-	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
+	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 26
 
 	help_note="This script requires an EasyTLS generated disabled_list."
-	[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
+	[ -f "$disabled_list" ] || die "Missing: $disabled_list" 27
 
 	# `metadata_file` must be set by openvpn
 	help_note="This script can ONLY be used by a running openvpn server."
 	[ -f "$openvpn_metadata_file" ] || \
-		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
+		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 28
 	unset help_note
 }
 
@@ -455,7 +460,7 @@ do
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		die "Missing value to option: $opt" 253
+		die "Missing value to option: $opt" 21
 	fi
 
 	shift
@@ -475,7 +480,7 @@ deps
 	*)
 		insert_msg="TLS crypt v2 metadata version is not recognised:"
 		failure_msg="$insert_msg $remote_metadata_version"
-		fail_and_exit "METADATA_VERSION" 7
+		fail_and_exit "METADATA_VERSION" 4
 	;;
 	esac
 
@@ -511,7 +516,7 @@ deps
 # Disabled list check
 
 	# Check serial number is not disabled
-	verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
+	verify_serial_number_not_disabled || fail_and_exit "DISABLED" 2
 
 
 # CA Fingerprint
@@ -525,14 +530,14 @@ deps
 
 	# local_ca_fingerprint is required
 	[ -z "$local_ca_fingerprint" ] && \
-		fail_and_exit "Missing: local CA fingerprint" 5
+		fail_and_exit "Missing: local CA fingerprint" 13
 
 	# Collect CA fingerprint from tls-crypt-v2 metadata
 	metadata_ca_fingerprint="$(fn_metadata_ca_fingerprint)"
 
 	# metadata_ca_fingerprint is required
 	[ -z "$metadata_ca_fingerprint" ] && \
-		fail_and_exit "Missing: remote CA fingerprint" 4
+		fail_and_exit "Missing: remote CA fingerprint" 12
 
 
 # Check metadata CA fingerprint against local CA fingerprint
@@ -548,7 +553,7 @@ fi
 # Certificate Revokation List
 
 	# Verify CRL
-	verify_crl || die "Bad CRL: $crl_pem" 12
+	verify_crl || die "Bad CRL: $crl_pem" 122
 
 	# Capture CRL
 	crl_text="$(fn_read_crl)"
