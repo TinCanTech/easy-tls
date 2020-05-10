@@ -1297,8 +1297,8 @@ debug_metadata ()
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
-# Manage tls-crypt=v2-verify default tls/disabled_list.txt
-tls_crypt_v2_verify ()
+# Manage tls-crypt-v2-verify default tls/disabled_list.txt
+tls_crypt_v2_verify_disable_list ()
 {
 	cli_name="$2"
 	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
@@ -1550,10 +1550,10 @@ case "$cmd" in
 		cert_expire "$@"
 		;;
 	disable)
-		tls_crypt_v2_verify disable "$@"
+		tls_crypt_v2_verify_disable_list disable "$@"
 		;;
 	enable)
-		tls_crypt_v2_verify enable "$@"
+		tls_crypt_v2_verify_disable_list enable "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
