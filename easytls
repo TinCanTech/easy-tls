@@ -518,13 +518,22 @@ status_cn ()
 	sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\`g"
 }
 
+status_valid_extract_cn ()
+{
+	grep "^V.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX"|status_cn
+}
+
+status_revoked_extract_cn ()
+{
+	grep "^R.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX"|status_cn
+}
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
 	ersa_valid_serial_list="$(grep ^V "$EASYRSA_INDEX"|awk '{ print $3 }')"
 	for i in $ersa_valid_serial_list
 	do
-		ersa_valid_cn="$(grep "^V.*$i" "$EASYRSA_INDEX"|status_cn)"
+		ersa_valid_cn="$(status_valid_extract_cn)"
 		ersa_valid_cn_list="$ersa_valid_cn_list $ersa_valid_cn"
 		[ $silent_status ] || print "$ersa_valid_cn $i"|status_output
 	done
@@ -536,7 +545,7 @@ status_easyrsa_revoked ()
 	ersa_revoked_serial_list="$(grep ^R "$EASYRSA_INDEX"|awk '{ print $4 }')"
 	for i in $ersa_revoked_serial_list
 	do
-		ersa_revoked_cn="$(grep "^R.*$i" "$EASYRSA_INDEX"|status_cn)"
+		ersa_revoked_cn="$(status_revoked_extract_cn)"
 		ersa_revoked_cn_list="$ersa_revoked_cn_list $ersa_revoked_cn"
 		[ $silent_status ] || print "$ersa_revoked_cn $i"|status_output
 	done
@@ -564,7 +573,7 @@ status_easytls_invalid ()
 	mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
-		mismatches="$(print $ersa_revoked_serial_list | grep -c $i)"
+		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
 			0)
 			# No mismatches found
@@ -585,6 +594,12 @@ status_easytls_invalid ()
 		esac
 	done
 } # => status_easytls_mismatch
+
+# Search ersa revoked serial list for etls valid serial
+status_search_revoked_serial_list()
+{
+	print "$ersa_revoked_serial_list" | grep -c "^${i}$"
+}
 
 # Extract enddate from certificate
 crt_expire_date ()
