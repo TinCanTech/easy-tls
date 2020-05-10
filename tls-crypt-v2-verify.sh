@@ -210,13 +210,15 @@ verify_serial_number_not_disabled ()
 	client_disabled="$(fn_search_disabled_list)"
 	case $client_disabled in
 	0)
-	# Client is not disabled
-		return 0 ;;
+		# Client is not disabled
+		return 0
+	;;
 	*)
-	# Client is disabled
+		# Client is disabled
 		insert_msg="client serial number is disabled:"
 		failure_msg="$insert_msg $metadata_client_cert_serno"
-		return 1 ;;
+		return 1
+	;;
 	esac
 
 	# Otherwise fail
@@ -311,9 +313,15 @@ serial_status_via_ca ()
 
 	# Considering what has to be done, I don't like this
 	case "$client_cert_serno_status" in
-		Valid)		client_passed_all_tests_connection_allowed ;;
-		Revoked)	client_passed_all_tests_certificate_revoked ;;
-		*)		die "Serial status via CA has broken" 9 ;;
+	Valid)
+		client_passed_all_tests_connection_allowed
+	;;
+	Revoked)
+		client_passed_all_tests_certificate_revoked
+	;;
+	*)
+		die "Serial status via CA has broken" 9
+	;;
 	esac
 }
 
@@ -389,23 +397,20 @@ deps ()
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
+	disabled_list="$CA_DIR/tls/disabled.txt"
 
 	# Ensure we have all the necessary files
 	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 10
 	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 10
 	[ -f "$index_txt" ] || die "Missing: $index_txt" 10
 	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 10
+	[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
+
+	# `metadata_file` must be set by openvpn
 	help_note="This script can ONLY be used by a running openvpn server."
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 10
 	unset help_note
-
-	# Check disabled list exists, use easytls default list if none specified.
-	if [ "$disabled_list" ]
-	then
-		disabled_list="$CA_DIR/tls/disabled.txt"
-		[ -f "$disabled_list" ] || die "Missing: $disabled_list" 10
-	fi
 }
 
 #######################################
@@ -423,30 +428,41 @@ do
 	empty_ok="" # Empty values are not allowed unless expected
 
 	case "$opt" in
-		help|-h|-help|--help)
-					empty_ok=1
-					help_text ;;
-		-v|--verbose)
-					empty_ok=1
-					TLS_CRYPT_V2_VERIFY_VERBOSE=1 ;;
-		-c|--ca)
-					CA_DIR="$val" ;;
-		--verify-via-ca)
+	help|-h|-help|--help)
+		empty_ok=1
+		help_text
+	;;
+	-v|--verbose)
+		empty_ok=1
+		TLS_CRYPT_V2_VERIFY_VERBOSE=1
+	;;
+	-c|--ca)
+		CA_DIR="$val"
+	;;
+	--verify-via-ca)
 		# This is only included for review
-					empty_ok=1
-			tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
-					test_method=2 ;;
-		-g|--custom-group)
-					TLS_CRYPT_V2_VERIFY_CG="$val" ;;
-		-a|--allow-ss)
+		empty_ok=1
+		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
+		test_method=2
+	;;
+	-g|--custom-group)
+		TLS_CRYPT_V2_VERIFY_CG="$val"
+	;;
+	-a|--allow-ss)
 		# Allow sequential serial numbers
 		# Allow client cert serial numbers of any length
-					empty_ok=1
-					allow_only_random_serno=0 ;;
-		-d|--disabled)
-					empty_ok=1 ;;
-		*)
-					die "Unknown option: $1" 253 ;;
+		empty_ok=1
+		allow_only_random_serno=0
+	;;
+	-d|--disabled)
+		empty_ok=1
+		# `CA_DIR` may not be verified yet
+		# TODO: Can force use of disabled_list y/n?
+		disabled_list=1
+	;;
+	*)
+		die "Unknown option: $1" 253
+	;;
 	esac
 
 	# fatal error when no value was provided
@@ -466,11 +482,13 @@ deps
 	remote_metadata_version="$(fn_metadata_version)"
 	case $remote_metadata_version in
 	"$local_metadata_version")
-		success_msg="$remote_metadata_version ==>" ;;
+		success_msg="$remote_metadata_version ==>"
+	;;
 	*)
 		insert_msg="TLS crypt v2 metadata version is not recognised:"
 		failure_msg="$insert_msg $remote_metadata_version"
-		fail_and_exit "METADATA_VERSION" 7 ;;
+		fail_and_exit "METADATA_VERSION" 7
+	;;
 	esac
 
 
