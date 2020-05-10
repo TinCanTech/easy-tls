@@ -150,14 +150,16 @@ done # => loops
 
 # Test tls-crypt-v2-verify.sh
 
-	for c in "c05" "c06"
+	for c in "c01" "c05" "c06"
 	do
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		echo "exit: $?"
 		"$EASYTLS_CMD" --batch disable "$c"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech -d
+		echo "exit: $?"
 	done
 
 echo "============================================================"

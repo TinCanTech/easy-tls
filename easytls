@@ -575,22 +575,19 @@ status_easytls_invalid ()
 	do
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
-			0)
-			# No mismatches found
-				:
-			;;
-
-			1)
-				mismatch_count=$((mismatch_count+1))
-				grep $i "$EASYTLS_INLINE_INDEX"|status_output
-			;;
-
-			*)
-			# $easyrsa_revoked_serial_list MUST never have duplicates
-				warn "EasyRSA duplicate records detected!"
-				[ $((mismatches)) -gt 1 ] || \
-					die "Error in mismatches: $mismatches"
-			;;
+		0)
+		# No mismatches found
+			:
+		;;
+		1)
+			mismatch_count=$((mismatch_count+1))
+			grep $i "$EASYTLS_INLINE_INDEX"|status_output
+		;;
+		*)
+			warn "EasyRSA duplicate records detected!"
+			[ $((mismatches)) -gt 1 ] || \
+				die "Error in mismatches: $mismatches"
+		;;
 		esac
 	done
 } # => status_easytls_mismatch

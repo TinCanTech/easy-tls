@@ -96,7 +96,6 @@ help_text ()
                       NOT RECOMMENDED
                       The recommended method to verify client serial number
                       status is via `openssl crl` (This is the Default).
-  -a|--allow-ss       Allow sequential serial numbers
   -g|--custom-group=<GROUP>
                       Also verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
@@ -184,17 +183,6 @@ verify_metadata_client_serial_number ()
 	# Hex only accepted
 	serial_chars="$(allow_hex_only)"
 	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 2
-
-	# Serial number must full length
-	if [ $allow_only_random_serno -eq 1 ]
-	then
-		serial_length=${#metadata_client_cert_serno}
-		[ $serial_length -eq 32 ] || \
-		{
-			help_note="Use randomised serial numbers in EasyRSA3"
-			fail_and_exit "SERIAL_LENGTH" 2
-		}
-	fi
 }
 
 # Drop all non-hex chars from serial number and count the rest
@@ -256,7 +244,8 @@ fn_search_crl ()
 # Final check: Search index.txt for client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*\ $metadata_client_cert_serno\ .*$" "$index_txt"
+	grep -c "^V.*[[:space:]]${metadata_client_cert_serno}[[:space:]].*$" \
+		"$index_txt"
 }
 
 # Check metadata client certificate serial number against CRL
@@ -390,9 +379,6 @@ init ()
 	# Log message
 	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
 
-	# Verify client certificate serial number has 32 hex chars (16^32 bits)
-	allow_only_random_serno=1
-
 	# Test certificate Valid/Revoked by CRL not CA
 	test_method=1
 }
@@ -458,12 +444,6 @@ do
 	;;
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"
-	;;
-	-a|--allow-ss)
-		# Allow sequential serial numbers
-		# Allow client cert serial numbers of any length
-		empty_ok=1
-		allow_only_random_serno=0
 	;;
 	-d|--disabled)
 		empty_ok=1
