@@ -676,17 +676,13 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
-	crt_file="$EASYRSA_PKI/issued/$name.crt"
 
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	[ -f "$crt_file" ] || die "Missing: $crt_file"
 
-	# get the serial number of the certificate -> serial=XXXX
-	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
-	# remove the serial= part -> we only need the XXXX part
-	crt_serial=${crt_serial##*=}
+	# Get serial number from inline file
+	crt_serial="$(inline_serial_number)"
 
 	# Confirm remove
 	[ ! $silent_remove ] && \
@@ -702,6 +698,13 @@ inline_remove ()
 	return 0
 
 } # => inline_remove ()
+
+# Get serial number from inline file
+inline_serial_number ()
+{
+	grep "^# Serial number: .*$" "$inline_file" | awk '{ print $4 }'
+}
+
 
 # Renew .inline file
 inline_renew ()
