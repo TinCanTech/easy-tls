@@ -231,7 +231,7 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^$metadata_client_cert_serno" "$disabled_list"
+	grep -c "^$metadata_client_cert_serno\ " "$disabled_list"
 }
 
 # Verify CRL
@@ -250,13 +250,13 @@ fn_read_crl ()
 fn_search_crl ()
 {
 	printf "%s\n" "$crl_text" | \
-		grep -c "$metadata_client_cert_serno"
+		grep -c "^\ *Serial Number: $metadata_client_cert_serno$"
 }
 
 # Final check: Search index.txt for client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*$metadata_client_cert_serno" "$index_txt"
+	grep -c "^V.*\ $metadata_client_cert_serno\ .*$" "$index_txt"
 }
 
 # Check metadata client certificate serial number against CRL
