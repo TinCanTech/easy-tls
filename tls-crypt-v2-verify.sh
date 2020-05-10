@@ -102,12 +102,6 @@ help_text ()
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
-  -d|--disabled=<list>
-                      Instantly drop clients with known "bad serial numbers".
-                      <list> is a text file listing of known/temporary banned
-                      client certificate serial numbers.  This check happens
-                      prior to CRL checking but does not disable CRL checking.
-                      If <list> is not defined then use easytls default list.
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -445,12 +439,6 @@ do
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"
 	;;
-	-d|--disabled)
-		empty_ok=1
-		# `CA_DIR` may not be verified yet
-		# TODO: Can force use of disabled_list y/n?
-		disabled_list=1
-	;;
 	*)
 		die "Unknown option: $1" 253
 	;;
@@ -514,10 +502,7 @@ deps
 # Disabled list check
 
 	# Check serial number is not disabled
-	if [ -n "$disabled_list" ]
-	then
-		verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
-	fi
+	verify_serial_number_not_disabled || fail_and_exit "DISABLED" 6
 
 
 # CA Fingerprint
