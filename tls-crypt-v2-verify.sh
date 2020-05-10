@@ -237,8 +237,8 @@ fn_read_crl ()
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	printf "%s\n" "$crl_text" | \
-		grep -c "^\ *Serial Number: $metadata_client_cert_serno$"
+	printf "%s\n" "$crl_text" | grep -c \
+		"^[[:space:]]Serial Number: $metadata_client_cert_serno$"
 }
 
 # Final check: Search index.txt for client cert serial number
