@@ -152,6 +152,7 @@ do
 	--genkey tls-crypt-v2-client "$DBUG_DIR/tls-crypt-v2-c07.key"
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
+	"$EASYTLS_CMD" --batch inline-tls-crypt-v2 c07
 
 	build_vars
 

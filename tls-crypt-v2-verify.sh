@@ -166,10 +166,16 @@ fn_metadata_client_cert_serno ()
 	awk '{print $3}' "$openvpn_metadata_file"
 }
 
+# Extract client name appendage from client tls-crypt-v2 key metadata
+fn_metadata_client_CN ()
+{
+	awk '{print $4}' "$openvpn_metadata_file"
+}
+
 # Extract custom metadata appendage from client tls-crypt-v2 key metadata
 fn_metadata_custom_group ()
 {
-	awk '{print $4}' "$openvpn_metadata_file"
+	awk '{print $5}' "$openvpn_metadata_file"
 }
 
 # Requirements to verify a valid client cert serial number
@@ -218,7 +224,9 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^$metadata_client_cert_serno[[:blank:]]" "$disabled_list"
+	client_CN="$(fn_metadata_client_CN)"
+	grep -c "^${metadata_client_cert_serno}[[:blank:]]${client_CN}$" \
+		"$disabled_list"
 }
 
 # Verify CRL
@@ -370,7 +378,7 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_metadata_version="metadata_version_A4"
+	local_metadata_version="metadata_version_easytls_A4"
 
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"

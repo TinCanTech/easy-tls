@@ -1247,7 +1247,7 @@ b64_enc_metadata ()
 	if [ $# -eq 0 ]
 	then
 		# metadata_version
-		metadata_version="metadata_version_A4"
+		metadata_version="metadata_version_easytls_A4"
 		# CA fingerprint
 		openssl_ca_fp="$(fn_ca_fingerprint)"
 		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
@@ -1255,7 +1255,7 @@ b64_enc_metadata ()
 		crt_serial="$(fn_cert_serial)"
 		crt_serial="${crt_serial##*=}"
 		# Build metadata
-		metadata="$metadata_version $ca_fingerprint $crt_serial"
+		metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name"
 		# Append --custom-group
 		if [ -n "$EASYTLS_TLSCV2_CG" ]
 		then
@@ -1440,7 +1440,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.23"
+	EASYTLS_VERSION="1.24"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
