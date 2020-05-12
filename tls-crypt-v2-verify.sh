@@ -483,6 +483,7 @@ deps
 	remote_metadata_version="$(fn_metadata_version)"
 	case $remote_metadata_version in
 	"$local_metadata_version")
+		# metadata_version_easytls_XX is correct
 		success_msg="$remote_metadata_version ==>"
 	;;
 	*)
@@ -499,6 +500,7 @@ deps
 		metadata_custom_group="$(fn_metadata_custom_group)"
 		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
+			# Custom group is correct
 			insert_msg="custom_group $metadata_custom_group OK ==>"
 			success_msg="$success_msg $insert_msg"
 		else
