@@ -113,7 +113,7 @@ help_text ()
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote CA fingerprint.
-  13  - ERROR Disallow connection, missing local CA fingerprint.
+  13  - ERROR Disallow connection, missing local CA fingerprint. (Unlucky)
   21  - USER ERROR Disallow connection, options error.
   22  - USER ERROR Disallow connection, failed to set --ca <path> *Required*.
   23  - USER ERROR Disallow connection, missing CA certificate.
@@ -124,6 +124,7 @@ help_text ()
   28  - USER ERROR Disallow connection, missing openvpn server metadata_file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
+  123 - BUG Disallow connection, failed to verify CA.
   127 - BUG Disallow connection, duplicate serial number in CA database. !?
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -530,7 +531,7 @@ deps
 # CA Fingerprint
 
 	# Verify CA
-	verify_ca || die "Bad CA $ca_cert" 11
+	verify_ca || die "Bad CA $ca_cert" 123
 
 	# Capture CA fingerprint
 	# Format to one contiguous string (Same as encoded metadata)
