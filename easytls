@@ -241,6 +241,7 @@ $1" 1>&2
 # remove temp files and do terminal cleanups
 cleanup()
 {
+	auto_check_inline
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
@@ -249,7 +250,8 @@ cleanup()
 # non-fatal warning output
 warn()
 {
-	[ ! "$EASYTLS_BATCH" ] && \
+	[ "$EASYTLS_BATCH" ] && return 0
+	[ "$EASYTLS_SILENT" ] && return 0
 		print "
 $1" 1>&2
 } # => warn()
@@ -403,10 +405,10 @@ verify_openvpn_version ()
 # Verify TLS has been initialised
 verify_tls_init ()
 {
-	verify_openvpn
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
+	verify_openvpn
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -447,6 +449,17 @@ Your newly created TLS dir is: $EASYTLS_PKI
 	return 0
 } # => init_tls ()
 
+# Auto-check for invalid inline files
+# Run on exit to avoid "checken and egg" with init-tls
+auto_check_inline ()
+{
+	auto_check=1
+	inline_status invalid
+	[ $mismatch_count -eq 0 ] || \
+		warn "Warning: Inline vs revoked mismatches found"
+	unset auto_check
+}
+
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
 inline_status ()
@@ -465,27 +478,27 @@ inline_status ()
 
 	if [ -n "$subsection" ]
 	then
-		EASYTLS_SILENT=1
+		#EASYTLS_SILENT=1
 		case "$subsection" in
 		valid)
-				verify_ca_init
 				status_easyrsa_valid ;;
 		revoked)
-				verify_ca_init
 				status_easyrsa_revoked ;;
 		inline)
 				verify_tls_init
 				status_easytls_inline ;;
 		invalid)
-				verify_tls_init
 				silent_status=1
 				status_easyrsa_valid
 				status_easyrsa_revoked
+				verify_tls_init
 				status_easytls_inline
 				status_easytls_invalid
+				unset silent_status
 				;;
 		*)		print "Unknown status option" ;;
 		esac
+		#unset EASYTLS_SILENT
 		return 0
 	fi
 
@@ -581,7 +594,8 @@ status_easytls_invalid ()
 		;;
 		1)
 			mismatch_count=$((mismatch_count+1))
-			grep $i "$EASYTLS_INLINE_INDEX"|status_output
+			[ $auto_check ] || \
+				grep $i "$EASYTLS_INLINE_INDEX"|status_output
 		;;
 		*)
 			warn "EasyRSA duplicate records detected!"
@@ -609,6 +623,8 @@ crt_expire_date ()
 cert_expire ()
 {
 	crt_name="$1"
+
+	verify_tls_init
 
 	if [ "$crt_name" = "ca" ]
 	then
