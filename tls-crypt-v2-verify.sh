@@ -265,16 +265,15 @@ serial_status_via_crl ()
 		# Final check: Is this serial in index.txt
 		case "$(fn_search_index)" in
 		0)
-			fail_and_exit \
-			"Client certificate is not in the CA index database" 121
+		insert_msg="Serial number is not in the CA database:"
+		failure_msg="$insert_msg $metadata_client_cert_serno"
+		fail_and_exit "" 121
 		;;
 		1)
-			client_passed_all_tests_connection_allowed
+		client_passed_all_tests_connection_allowed
 		;;
 		*)
-			insert_msg="Duplicate serial numbers detected:"
-			failure_msg="$insert_msg $metadata_client_cert_serno"
-			die "Duplicate serial numbers: $metadata_client_cert_serno" 127
+		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
 		;;
 		esac
 	;;
