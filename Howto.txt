@@ -93,3 +93,5 @@ Note about exit codes:
   OpenVPN --log does not accept data from scripts under Windblows
   so the exit codes are absolutely necessary to debug errors.
 
+
+Note: I am not very good at documentation

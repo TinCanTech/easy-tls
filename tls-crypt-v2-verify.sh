@@ -108,8 +108,8 @@ help_text ()
   1   - Disallow connection, client key has passed all tests but is REVOKED.
   2   - Disallow connection, serial number is disabled.
   3   - Disallow connection, local/remote CA fingerprints do not match.
-  4   - Disallow connection, invalid metadata_version_xx field.
-  5   - Disallow connection, local/remote Custom Groups do not match.
+  4   - Disallow connection, local/remote Custom Groups do not match.
+  5   - Disallow connection, invalid metadata_version_xx field.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote CA fingerprint.
@@ -494,7 +494,7 @@ deps
 	*)
 		insert_msg="TLS crypt v2 metadata version is not recognised:"
 		failure_msg="$insert_msg $remote_metadata_version"
-		fail_and_exit "METADATA_VERSION" 4
+		fail_and_exit "METADATA_VERSION" 5
 	;;
 	esac
 
@@ -514,7 +514,7 @@ deps
 				insert_msg="metadata custom_group is missing"
 
 			failure_msg="$insert_msg $metadata_custom_group"
-			fail_and_exit "METADATA_CG" 5
+			fail_and_exit "METADATA_CG" 4
 		fi
 	fi
 
