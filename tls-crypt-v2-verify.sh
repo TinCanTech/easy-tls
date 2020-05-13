@@ -409,19 +409,20 @@ deps ()
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
-	[ -f "$ca_cert" ] || die "Missing: $ca_cert" 23
+	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
 	help_note="This script requires an EasyRSA generated CRL."
-	[ -f "$crl_pem" ] || die "Missing: $crl_pem" 24
+	[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
 
 	help_note="This script requires an EasyRSA generated DB."
-	[ -f "$index_txt" ] || die "Missing: $index_txt" 25
+	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
 
 	help_note="This script requires an EasyRSA generated PKI."
-	[ -f "$openssl_cnf" ] || die "Missing: $openssl_cnf" 26
+	[ -f "$openssl_cnf" ] || die "Missing openssl config: $openssl_cnf" 26
 
 	help_note="This script requires an EasyTLS generated disabled_list."
-	[ -f "$disabled_list" ] || die "Missing: $disabled_list" 27
+	[ -f "$disabled_list" ] || \
+		die "Missing disabled list: $disabled_list" 27
 
 	# `metadata_file` must be set by openvpn
 	help_note="This script can ONLY be used by a running openvpn server."
