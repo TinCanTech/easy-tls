@@ -2,14 +2,87 @@ EasyTLS HOWTO:
 
 Introduction:
 
-  todo
+  The main focus of Easy-TLS is to provide an easy way to manage OpenVPN
+  and EasyRSA assorted certificates and keys into fully verified 'inline'
+  files which can be used immediately.
+
+  The second focus of Easy-TLS is to provide TLS-crypt-v2 key metadata
+  which conforms to the original format as described by syzzer.
+  (See full details below)
 
 Overview:
 
-  * metadata
-  * --verify-via-ca
-  * --custom-group
-  * --disabled-list
+
+  * OpenVPN --tls-crypt-v2 keys and --tls-crypt-v2-verify script.
+
+    This is a *new* script hook for OpenVPN.
+
+    For full details see:
+    https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+    (syzzer's work)
+
+
+  * Easy-TLS
+
+    Easy-TLS plugs directly into Easy-RSA3. This is a hard requirement.
+    Once installed into your Easy-RSA3 working directory Easy-TLS can 
+    manage the following items:
+
+    * OpenVPN TLS Auth keys: OpenVPN --tls-auth / --key-direction
+
+    * OpenVPN TLS Crypt keys: OpenVPN --tls-crypt
+
+    * OpenVPN TLS Crypt Version 2 keys ** Nice **
+
+    * Manage 'inline' files, including:
+
+      * Easy-RSA3 x509 Public Key Infra-structure
+      * OpenVPN specific TLS keys
+
+    * Provide metadata for TLS-crypt-v2 keys
+
+    * Provide server side script tls-crypt-v2-verify.sh
+      This script uses meatadata fields to verify a client certificate
+      serial number and CA finger print before exposing any x509 code.
+      This is effectively a software configurable firewall for OpenVPN.
+
+
+TLS Crypt v2 details:
+
+  * TLS Crypt v2 client key metadata
+
+    This metadata field is constructed as follows:
+
+    1. metadata_version string: "metadata_version_easytls_A4"
+
+    2. CA Fingerprint (Formatted to one contiguous string)
+
+    3. Client certificate serial number
+
+    4. Client certificate Common Name
+
+    5. User definable custom group
+
+       This is a string which the user can use for identification
+       eg. "CompanyName" (One contiguous string)
+
+  * TLS Crypt v2 disabled list
+
+    Use this list to temporarily drop specific client connections.
+
+  * TLS Crypt v2 verification method
+
+    1. Verify via CRL
+
+       The CRL is searched for client serial number and the client 
+       connection is dropped if the client is found to be revoked.
+       This is the default method which conforms to syzzers original
+       specification.
+
+    2. Verify via CA
+
+       The client serial number status is verified via `openssl ca`
+       This method works but is not recommended by OpenSSL.
 
 
 Note about exit codes:
