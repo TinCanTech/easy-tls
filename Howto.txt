@@ -10,6 +10,9 @@ Introduction:
   which conforms to the original format as described by syzzer.
   (See full details below)
 
+  The third focus is to provide a server side script to verify TLS crypt v2
+  metadata and manage a disabled list, all prior to exposing x509 code.
+
 Overview:
 
 

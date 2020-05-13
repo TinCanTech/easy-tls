@@ -183,12 +183,17 @@ fn_metadata_custom_group ()
 verify_metadata_client_serial_number ()
 {
 	# Do we have a serial number
-	[ -z "$metadata_client_cert_serno" ] && fail_and_exit \
-		"SERIAL_MISSING" 11
+	[ -z "$metadata_client_cert_serno" ] && {
+		failure_msg="Missing: Client serial number"
+		fail_and_exit "SERIAL_MISSING" 11
+		}
 
 	# Hex only accepted
 	serial_chars="$(allow_hex_only)"
-	[ $serial_chars -eq 0 ] || fail_and_exit "SERIAL_INVALID" 11
+	[ $serial_chars -eq 0 ] || {
+		failure_msg="Invalid: Client serial number"
+		fail_and_exit "SERIAL_INVALID" 11
+		}
 }
 
 # Drop all non-hex chars from serial number and count the rest
@@ -265,9 +270,8 @@ serial_status_via_crl ()
 		# Final check: Is this serial in index.txt
 		case "$(fn_search_index)" in
 		0)
-		insert_msg="Serial number is not in the CA database:"
-		failure_msg="$insert_msg $metadata_client_cert_serno"
-		fail_and_exit "" 121
+		failure_msg="Serial number is not in the CA database:"
+		fail_and_exit "UNKNOWN_SERIAL" 121
 		;;
 		1)
 		client_passed_all_tests_connection_allowed
@@ -281,7 +285,7 @@ serial_status_via_crl ()
 		client_passed_all_tests_certificate_revoked
 	;;
 	*)
-		insert_msg="Duplicate serial numbers detected:"
+		insert_msg="Duplicate serial numbers detected: "
 		failure_msg="$insert_msg $metadata_client_cert_serno"
 		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
 	;;
@@ -539,15 +543,19 @@ deps
 	local_ca_fingerprint="$(fn_local_ca_fingerprint)"
 
 	# local_ca_fingerprint is required
-	[ -z "$local_ca_fingerprint" ] && \
-		fail_and_exit "Missing: local CA fingerprint" 13
+	[ -z "$local_ca_fingerprint" ] && {
+		failure_msg="Missing: local CA fingerprint"
+		fail_and_exit "LOCAL_FP" 13
+		}
 
 	# Collect CA fingerprint from tls-crypt-v2 metadata
 	metadata_ca_fingerprint="$(fn_metadata_ca_fingerprint)"
 
 	# metadata_ca_fingerprint is required
-	[ -z "$metadata_ca_fingerprint" ] && \
-		fail_and_exit "Missing: remote CA fingerprint" 12
+	[ -z "$metadata_ca_fingerprint" ] && {
+		failure_msg="Missing: remote CA fingerprint"
+		fail_and_exit "REMOTE_FP" 12
+		}
 
 
 # Check metadata CA fingerprint against local CA fingerprint
