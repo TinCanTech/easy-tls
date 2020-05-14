@@ -134,6 +134,7 @@ do
 		## EOL
 	do
 		print "============================================================"
+		echo "==> $EASYTLS_CMD --batch $i"
 		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
 	done
 

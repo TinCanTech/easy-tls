@@ -241,7 +241,7 @@ $1" 1>&2
 # remove temp files and do terminal cleanups
 cleanup()
 {
-	auto_check_inline
+	[ $no_exit_check ] || inline_auto_check
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
@@ -360,6 +360,11 @@ $help_note"
 
 } # => verify_ca_init()
 
+############################################################################
+#
+# EASYTLS MANGEMENT Section
+#
+
 # Verify Openvpn is available
 verify_openvpn ()
 {
@@ -451,7 +456,7 @@ Your newly created TLS dir is: $EASYTLS_PKI
 
 # Auto-check for invalid inline files
 # Run on exit to avoid "checken and egg" with init-tls
-auto_check_inline ()
+inline_auto_check ()
 {
 	auto_check=1
 	inline_status invalid
@@ -586,6 +591,7 @@ status_easytls_invalid ()
 	mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
+		inline_index_check_hash $i || die "Failed HASH: $inline_file"
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
 		0)
@@ -673,14 +679,69 @@ update_inline_index ()
 			|| die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
-		sed -i -e "/^.*$crt_serial$/d" "$EASYTLS_INLINE_INDEX" \
-			|| die "Failed to update $EASYTLS_INLINE_INDEX"
+		sed -i -e "/^${name}[[:blank:]]${crt_serial}[[:blank:]].*$/d" \
+			"$EASYTLS_INLINE_INDEX" || \
+			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	*)
 		die "Unknown index action: $update_index_action"
 	;;
 	esac
 } # => update_inline_index ()
+
+# Add inline hash to inline index
+inline_index_add_hash ()
+{
+	inline_hash="$(openssl sha1 "$out_file" | awk '{print $2}')"
+	sed -i -e \
+	"s/^${name}[[:blank:]]${crt_serial}$/$name $crt_serial $inline_hash/g" \
+	"$EASYTLS_INLINE_INDEX"
+}
+
+# Check inline hash
+inline_index_check_hash ()
+{
+	crt_serial="$1"
+	name="$(inline_index_serial_to_common_name $crt_serial)"
+
+	check_in_file="$EASYTLS_PKI/$name.inline"
+	[ -f "$check_in_file" ] || \
+		die "inline_index_check_hash Missing file: $check_in_file"
+
+	inline_hash="$(openssl sha1 "$check_in_file" | awk '{print $2}')"
+	find_hash="$(inline_index_search_hash)"
+	case "$find_hash" in
+	0) # HASH check failed
+		insert_msg="HASH check: Hash not found for: $check_in_file"
+		die "$insert_msg - Expecting: $inline_hash"
+	;;
+	1) return 0 ;;
+	*) die "HASH check: unknown error" ;;
+	esac
+}
+
+# Get Common name from inline file using serial number as key
+inline_index_common_name_to_serial ()
+{
+	index_CN="$1"
+	grep "^$index_CN[[:blank:]].*$" \
+	"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
+}
+
+# Get serial number from inline file using Common name as key
+inline_index_serial_to_common_name ()
+{
+	index_serial="$1"
+	grep "^.*[[:blank:]]$index_serial[[:blank:]].*$" \
+	"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
+}
+
+# Search for hash
+inline_index_search_hash ()
+{
+	grep -c "^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$" \
+	"$EASYTLS_INLINE_INDEX"
+}
 
 # Copy inline to stdout
 inline_show ()
@@ -691,9 +752,9 @@ inline_show ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	verify_tls_init
-
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-
+	serial="$(inline_index_common_name_to_serial $name)"
+	inline_index_check_hash "$serial" || die "Failed HASH: $inline_file"
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
 
@@ -733,6 +794,10 @@ inline_serial_number ()
 	grep "^# Serial number: .*$" "$inline_file" | awk '{ print $4 }'
 }
 
+############################################################################
+#
+# EASYTLS BUILD Section
+#
 
 # Renew .inline file
 inline_renew ()
@@ -776,6 +841,9 @@ inline_renew ()
 	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
 	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] \
 		|| die "File is not valid .inline: $inline_file"
+
+	# HASH check
+	inline_index_check_hash $crt_serial || die "Renew failed HASH"
 
 	# Determine the type of .inline file
 	inline_type="tls-base"
@@ -835,6 +903,7 @@ inline_renew ()
 		tls-base)
 			silent_base=1
 			inline_base "$name" $cmd_opts
+			inline_index_add_hash
 		;;
 		tls-auth)
 			inline_tls_auth "$name" "$key_direction" $cmd_opts
@@ -959,6 +1028,10 @@ $help_note"
 	# Update INLINE index
 	update_inline_index add
 
+	# Hash inline file and add hash to index
+	# Only if this is the root caller
+	[ ! $silent_base ] && inline_index_add_hash
+
 	[ ! $silent_base ] && notice "Inline base file created: $out_file"
 
 	# explicitly return success for callers
@@ -1020,6 +1093,9 @@ inline_tls_auth ()
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
 
+	# Hash inline file and add hash to index
+	inline_index_add_hash
+
 	[ ! $silent_inline ] && notice "Inline TLS auth file created: $out_file"
 
 	# explicitly return success for callers
@@ -1063,6 +1139,9 @@ inline_tls_crypt_v1 ()
 		printf "%s\n" "</tls-crypt>"
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
+
+	# Hash inline file and add hash to index
+	inline_index_add_hash
 
 	[ ! $silent_inline ] && notice "Inline TLS crypt file created: $out_file"
 
@@ -1108,6 +1187,9 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" "</tls-crypt-v2>"
 		printf "%s\n" ""
 	} >> "$out_file" || die "Failed to create inline file: $out_file"
+
+	# Hash inline file and add hash to index
+	inline_index_add_hash
 
 	[ ! $silent_inline ] && \
 		notice "Inline TLS crypt v2 file created: $out_file"
@@ -1310,6 +1392,11 @@ debug_metadata ()
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
+############################################################################
+#
+# DISABLED LIST Section
+#
+
 # Manage tls-crypt-v2-verify default tls/disabled_list.txt
 tls_crypt_v2_verify_disable_list ()
 {
@@ -1358,6 +1445,10 @@ search_disabled_list ()
 	grep -c "^$crt_serial" "$EASYTLS_DISABLED_LIST"
 }
 
+############################################################################
+#
+# EASYTLS SETUP Section
+#
 
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
@@ -1416,7 +1507,7 @@ vars_setup()
 	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/tls"
-	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.tls"
+	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/inline-index.txt"
 	set_var EASYTLS_OPENVPN		"openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/disabled.txt"
 
@@ -1456,9 +1547,14 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.24"
+	EASYTLS_VERSION="1.25"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
+
+############################################################################
+#
+# EASYTLS COMMAND Section
+#
 
 ########################################
 # Invocation entry point:
@@ -1554,6 +1650,7 @@ case "$cmd" in
 		inline_renew "$@"
 		;;
 	inline-status)
+		no_exit_check=1
 		inline_status "$@"
 		;;
 	inline-show)
