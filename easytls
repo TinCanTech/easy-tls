@@ -545,6 +545,7 @@ status_revoked_extract_cn ()
 {
 	grep "^R.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX"|status_cn
 }
+
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
@@ -600,8 +601,7 @@ status_easytls_invalid ()
 		;;
 		1)
 			mismatch_count=$((mismatch_count+1))
-			[ $auto_check ] || \
-				grep $i "$EASYTLS_INLINE_INDEX"|status_output
+			[ $auto_check ] || inline_status_invalid_list
 		;;
 		*)
 			warn "EasyRSA duplicate records detected!"
@@ -616,6 +616,12 @@ status_easytls_invalid ()
 status_search_revoked_serial_list()
 {
 	print "$ersa_revoked_serial_list" | grep -c "^${i}$"
+}
+
+# List the invalid inline file record by serial number
+inline_status_invalid_list ()
+{
+	grep "[[:blank:]]${i}[[:blank:]]" "$EASYTLS_INLINE_INDEX" | status_output
 }
 
 # Extract enddate from certificate
