@@ -382,27 +382,26 @@ verify_openvpn_version ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
 
-	ovpn_ver_req_maj="$1"
-	ovpn_ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $2}')"
+	Ver_req_maj="$1"
+	Ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $2}')"
 
-	ovpn_ver_ints="$(printf "%s" "$ovpn_ver_str" | sed "s/[^0123456789]/\ /g")"
+	Ver_ints="$(printf "%s" "$Ver_str" | sed "s/[^0123456789]/\ /g")"
 
-	# SC2039: In POSIX sh, lexicographical < is undefined.
+	Ver_main="$(printf "%s" "$Ver_ints" | awk '{print $1}')"
+	Ver_major="$(printf "%s" "$Ver_ints" | awk '{print $2}')"
+	Ver_minor="$(printf "%s" "$Ver_ints" | awk '{print $3}')"
 
-	ovpn_ver_main="$(printf "%s" "$ovpn_ver_ints" | awk '{print $1}')"
-	ovpn_ver_major="$(printf "%s" "$ovpn_ver_ints" | awk '{print $2}')"
-	ovpn_ver_minor="$(printf "%s" "$ovpn_ver_ints" | awk '{print $3}')"
+	Ver_main="${Ver_main:-0}"
+	Ver_major="${Ver_major:-0}"
+	Ver_minor="${Ver_minor:-0}"
 
-	ovpn_ver_main="${ovpn_ver_main:-0}"
-	ovpn_ver_major="${ovpn_ver_major:-0}"
-	ovpn_ver_minor="${ovpn_ver_minor:-0}"
-
-	[ $ovpn_ver_main -lt 2 ] && die "Openvpn 2.5 required, Found $ovpn_ver_str"
-	[ $ovpn_ver_major -lt $ovpn_ver_req_maj ] && \
-		die "Openvpn 2.$ovpn_ver_req_maj required, Found $ovpn_ver_str"
-	[ $ovpn_ver_minor -lt 0 ] && die "Openvpn 2 required, Found $ovpn_ver_str"
+	[ $Ver_main -lt 2 ] && die "Openvpn 2.5 required, Found $Ver_str"
+	[ $Ver_major -lt $Ver_req_maj ] && \
+		die "Openvpn 2.$Ver_req_maj required, Found $Ver_str"
+	[ $Ver_minor -lt 0 ] && die "Openvpn 2 required, Found $Ver_str"
 
 	# explicitly return success for callers
+	# because reasons..
 	return 0
 
 } # => verify_openvpn_version ()
