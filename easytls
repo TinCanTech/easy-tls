@@ -574,7 +574,7 @@ status_easytls_inline ()
 {
 	etls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
 	etls_valid_serial_list="$etls_valid_serial_list $etls_valid_serial"
-	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX"|status_output
+	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -729,7 +729,7 @@ inline_index_check_hash ()
 inline_index_common_name_to_serial ()
 {
 	index_CN="$1"
-	grep "^$index_CN[[:blank:]].*$" \
+	grep "^${index_CN}[[:blank:]].*$" \
 	"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
 }
 
@@ -737,7 +737,7 @@ inline_index_common_name_to_serial ()
 inline_index_serial_to_common_name ()
 {
 	index_serial="$1"
-	grep "^.*[[:blank:]]$index_serial[[:blank:]].*$" \
+	grep "^.*[[:blank:]]${index_serial}[[:blank:]].*$" \
 	"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
 }
 
