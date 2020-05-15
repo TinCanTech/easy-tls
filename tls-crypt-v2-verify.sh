@@ -42,8 +42,8 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		printf "%s %s %s\n%s\n" "$tls_crypt_v2_verify_msg" \
-			"$success_msg" "$failure_msg" "$1"
+		printf "%s %s" "$tls_crypt_v2_verify_msg" "$success_msg"
+		printf "%s\n%s\n" "$failure_msg" "$1"
 
 		printf "%s\n" \
 			"* ==> metadata  local: $local_metadata_version"
@@ -492,7 +492,12 @@ deps
 		success_msg="$remote_metadata_version ==>"
 	;;
 	*)
-		insert_msg="TLS crypt v2 metadata version is not recognised:"
+		if [ -z "$remote_metadata_version" ]
+		then
+		insert_msg="metadata version is missing."
+		else
+		insert_msg="metadata version is not recognised:"
+		fi
 		failure_msg="$insert_msg $remote_metadata_version"
 		fail_and_exit "METADATA_VERSION" 5
 	;;
