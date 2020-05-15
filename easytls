@@ -862,7 +862,7 @@ inline_renew ()
 	if [ "$inline_type" = "tls-auth" ] && [ $key_direction ]
 	then
 		# Determine inline <key-direction>
-		is_key_dir="$(grep ^key-direction "$inline_file"|awk '{print $2}')"
+		is_key_dir="$(inline_renew_key_direction)"
 		case "$is_key_dir" in
 		0|1)
 			# Veify if command line want to change inline
@@ -881,7 +881,7 @@ inline_renew ()
 	if [ "$inline_type" = "tls-auth" ] && [ ! $key_direction ]
 	then
 		# Determine inline <key-direction>
-		is_key_dir="$(grep ^key-direction "$inline_file"|awk '{print $2}')"
+		is_key_dir="$(inline_renew_key_direction)"
 		case "$is_key_dir" in
 			0|1)	key_direction="$is_key_dir" ;;
 			*)	warn "TLS-auth key-direction missing" ;;
@@ -930,6 +930,12 @@ inline_renew ()
 
 	notice "Inline $inline_type file renewed: $inline_file"
 } # => inline_renew ()
+
+# Get current inline key direction
+inline_renew_key_direction ()
+{
+	grep "^key-direction [01]$" "$inline_file" | awk '{ print $2 }'
+}
 
 # Create inline credentials file from Easy-RSA PKI
 inline_base ()
@@ -1073,11 +1079,14 @@ inline_tls_auth ()
 	case "$key_direction" in
 		0|1)
 			# Using user specified --key-direction
-			: ;;
+			:
+		;;
 		*)
 			# No key-direction found, not inlining --key-direction
-			[ $silent_inline ] || warn "TLS-auth key-direction missing"
-			no_key_direction=1 ;;
+			[ $silent_inline ] || \
+				warn "TLS-auth key-direction missing"
+			no_key_direction=1
+		;;
 	esac
 
 	# Inline base file
