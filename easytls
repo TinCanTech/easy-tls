@@ -1184,7 +1184,7 @@ inline_tls_crypt_v2 ()
 		shift
 	done
 
-	tls_file="$EASYTLS_PKI/tls-crypt-v2-$name.key"
+	tls_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
 	out_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
@@ -1278,7 +1278,7 @@ build_tls_crypt_v2_server ()
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
-	out_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
+	out_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 
 	[ -f "$srv_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
@@ -1327,8 +1327,8 @@ Missing srv file: $srv_cert"
 		die "Easy-TLS requires that the x509 certificate has been built.
 Missing cli file: $cli_cert"
 
-	in_file="$EASYTLS_PKI/tls-crypt-v2-$srv_name.key"
-	out_file="$EASYTLS_PKI/tls-crypt-v2-$cli_name.key"
+	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
+	out_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
 
 	[ -f "$in_file" ] || die "Server file does not exist: $in_file"
 	[ -f "$out_file" ] && die "Client file already exists: $out_file"
