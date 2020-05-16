@@ -1290,7 +1290,7 @@ Missing file: $srv_cert"
 		die "Failed to create tls-crypt-v2-server key: $out_file"
 
 	# Temp work around for: https://github.com/TinCanTech/easy-tls/issues/1
-	sed -i -e s/^.$//g "$out_file"
+	#sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 server key created: $out_file"
 } # => build_tls_crypt_v2_server ()
@@ -1342,7 +1342,7 @@ Missing cli file: $cli_cert"
 		die "Failed to create tls-crypt-v2-client key: $out_file"
 
 	# Temp work around for: https://github.com/TinCanTech/easy-tls/issues/1
-	sed -i -e s/^.$//g "$out_file"
+	#sed -i -e s/^.$//g "$out_file"
 
 	notice "TLS crypt v2 client key created: $out_file"
 } # => build_tls_crypt_v2_client ()
