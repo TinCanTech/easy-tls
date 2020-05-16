@@ -700,7 +700,7 @@ inline_index_add_hash ()
 	inline_hash="$(openssl sha1 "$out_file" | awk '{print $2}')"
 	sed -i -e \
 	"s/^${name}[[:blank:]]${crt_serial}$/$name $crt_serial $inline_hash/g" \
-	"$EASYTLS_INLINE_INDEX"
+		"$EASYTLS_INLINE_INDEX"
 }
 
 # Check inline hash
@@ -730,7 +730,7 @@ inline_index_common_name_to_serial ()
 {
 	index_CN="$1"
 	grep "^${index_CN}[[:blank:]].*$" \
-	"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
+		"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
 }
 
 # Get serial number from inline file using Common name as key
@@ -738,14 +738,14 @@ inline_index_serial_to_common_name ()
 {
 	index_serial="$1"
 	grep "^.*[[:blank:]]${index_serial}[[:blank:]].*$" \
-	"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
+		"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
 }
 
 # Search for hash
 inline_index_search_hash ()
 {
 	grep -c "^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$" \
-	"$EASYTLS_INLINE_INDEX"
+		"$EASYTLS_INLINE_INDEX"
 }
 
 # Copy inline to stdout
