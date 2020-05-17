@@ -163,12 +163,25 @@ do
 	do
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "exit: $?"
+
+		echo "$EASYTLS_CMD" --batch disable "$c"
 		"$EASYTLS_CMD" --batch disable "$c"
+		echo "exit: $?"
+
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "exit: $?"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 		echo
 	done
