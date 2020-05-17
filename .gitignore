@@ -1,4 +1,5 @@
 pki/*
+pki2/*
 x509-types/*
 easyrsa
 vars
