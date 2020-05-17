@@ -185,14 +185,14 @@ verify_metadata_client_serial_number ()
 	# Do we have a serial number
 	[ -z "$metadata_client_cert_serno" ] && {
 		failure_msg="Missing: Client serial number"
-		fail_and_exit "SERIAL_MISSING" 11
+		fail_and_exit "SERIAL_NUMBER_MISSING" 11
 		}
 
 	# Hex only accepted
 	serial_chars="$(allow_hex_only)"
 	[ $serial_chars -eq 0 ] || {
 		failure_msg="Invalid: Client serial number"
-		fail_and_exit "SERIAL_INVALID" 11
+		fail_and_exit "SERIAL_NUMBER_INVALID" 11
 		}
 }
 
@@ -271,7 +271,7 @@ serial_status_via_crl ()
 		case "$(fn_search_index)" in
 		0)
 		failure_msg="Serial number is not in the CA database:"
-		fail_and_exit "UNKNOWN_SERIAL" 121
+		fail_and_exit "SERIAL_NUMBER_UNKNOWN" 121
 		;;
 		1)
 		client_passed_all_tests_connection_allowed
@@ -519,7 +519,7 @@ deps
 				insert_msg="metadata custom_group is missing"
 
 			failure_msg="$insert_msg $metadata_custom_group"
-			fail_and_exit "METADATA_CG" 4
+			fail_and_exit "METADATA_CUSTOM_GROUP" 4
 		fi
 	fi
 
@@ -536,7 +536,7 @@ deps
 # Disabled list check
 
 	# Check serial number is not disabled
-	verify_serial_number_not_disabled || fail_and_exit "DISABLED" 2
+	verify_serial_number_not_disabled || fail_and_exit "CLIENT_DISABLED" 2
 
 
 # CA Fingerprint
@@ -551,7 +551,7 @@ deps
 	# local_ca_fingerprint is required
 	[ -z "$local_ca_fingerprint" ] && {
 		failure_msg="Missing: local CA fingerprint"
-		fail_and_exit "LOCAL_FP" 13
+		fail_and_exit "LOCAL_FINGER_PRINT" 13
 		}
 
 	# Collect CA fingerprint from tls-crypt-v2 metadata
@@ -560,7 +560,7 @@ deps
 	# metadata_ca_fingerprint is required
 	[ -z "$metadata_ca_fingerprint" ] && {
 		failure_msg="Missing: remote CA fingerprint"
-		fail_and_exit "REMOTE_FP" 12
+		fail_and_exit "REMOTE_FINGER_PRINT" 12
 		}
 
 
@@ -570,7 +570,7 @@ then
 	success_msg="$success_msg CA Fingerprint OK ==>"
 else
 	failure_msg="CA Fingerprint mismatch"
-	fail_and_exit "FP_MISMATCH" 3
+	fail_and_exit "FINGER_PRINT_MISMATCH" 3
 fi
 
 
