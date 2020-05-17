@@ -95,6 +95,7 @@ TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
 WORK_DIR="$(pwd)"
 PKI_DIR="$WORK_DIR/pki"
 DBUG_DIR="$WORK_DIR/pki/tls"
+LOOP_PKI=""
 
 for loops in 1 2
 do
@@ -110,7 +111,7 @@ do
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
-		"$EASYRSA_CMD" --batch $i || fail "$EASYRSA_CMD --batch $i"
+		"$EASYRSA_CMD" --batch $ERSA_LOOP_PKI $i || fail "err1: $EASYRSA_CMD --batch $ERSA_LOOP_PKI $i"
 	done
 
 	# This may be becoming unwieldy
@@ -134,16 +135,16 @@ do
 		## EOL
 	do
 		print "============================================================"
-		echo "==> $EASYTLS_CMD --batch $i"
-		"$EASYTLS_CMD" --batch $i || fail "$EASYTLS_CMD $i"
+		echo "==> $EASYTLS_CMD $ETLS_LOOP_PKI --batch $i"
+		"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI $i || fail "err2: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
 	done
 
-	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" \
-		"$EASYTLS_CMD --batch build-tls-crypt-v2-client s01 c04" \
-		"$EASYTLS_CMD --batch inline-tls-crypt-v2 c04" \
-		"$EASYRSA_CMD --batch revoke c04" "$EASYRSA_CMD --batch gen-crl" \
-		"$EASYRSA_CMD --batch revoke c06" "$EASYRSA_CMD --batch gen-crl" \
-		"$EASYTLS_CMD inline-status" "$EASYTLS_CMD cert-expire"
+	for i in "$EASYRSA_CMD --batch $ERSA_LOOP_PKI build-client-full c04 nopass" \
+		"$EASYTLS_CMD --batch $ETLS_LOOP_PKI build-tls-crypt-v2-client s01 c04" \
+		"$EASYTLS_CMD --batch $ETLS_LOOP_PKI inline-tls-crypt-v2 c04" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c04" "$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c06" "$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
+		"$EASYTLS_CMD $ETLS_LOOP_PKI inline-status" "$EASYTLS_CMD $ETLS_LOOP_PKI cert-expire"
 	do
 		$i
 	done
@@ -154,9 +155,6 @@ do
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
 	"$EASYTLS_CMD" --batch inline-tls-crypt-v2 c07
-
-	build_vars
-
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
@@ -186,7 +184,51 @@ do
 		echo
 	done
 
+
+	# Build env for next loop
+	build_vars
+
+	# Good old directory structure mallarky
+	export EASYRSA_PKI="$WORK_DIR/pki2"
+	PKI_DIR="$WORK_DIR/pki2"
+	DBUG_DIR="$WORK_DIR/pki2/tls"
+
+	#ERSA_LOOP_PKI="--pki-dir=$WORK_DIR/pki2"
+	ETLS_LOOP_PKI="--tls-dir=$WORK_DIR/pki2/tls"
+
 done # => loops
+
+# Now test a cross-polinated TCV2 key
+# SORT THIS DIRECTOTY WAR OUT CORRECTLY
+DBUG_DIR="$WORK_DIR/pki/tls"
+
+	# Test tls-crypt-v2-verify.sh
+	for c in "c01" "c05" "c06" "c07"
+	do
+		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "exit: $?"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "exit: $?"
+
+		echo "$EASYTLS_CMD" --batch disable "$c"
+		"$EASYTLS_CMD" --batch disable "$c"
+		echo "exit: $?"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "exit: $?"
+
+		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "exit: $?"
+		echo
+	done
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
