@@ -53,7 +53,7 @@ Use the 'help' command above to get full usage details.
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <filename_base>
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> meta data
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
   inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
@@ -103,11 +103,8 @@ cmd_help()
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base> meta data
-      Create an OpenVPN TLS crypt V2 Client key"
-			opts="
-        meta data - Free form text to be encrypted with the key
-        Default meta data: client-cert-serial CA-cert-fingerprint" ;;
+  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+      Create an OpenVPN TLS crypt V2 Client key" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -1335,7 +1332,7 @@ Missing cli file: $cli_cert"
 
 	metadata=""
 	b64_metadata=""
-	b64_enc_metadata "$@"
+	b64_enc_metadata
 
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
 		--genkey tls-crypt-v2-client "$out_file" "$b64_metadata" || \
@@ -1350,38 +1347,31 @@ Missing cli file: $cli_cert"
 # Base64 encode metadata fields
 b64_enc_metadata ()
 {
-	# If command line has no extra strings then add 3x default strings:
+	# metadata strings:
 	# 1. Metadata version: xx (Simple hex)
 	# 2. CA SHA1 Fingerprint, contiguous single field
 	#    `openssl output` Change space to underscore
 	# 3. Client certificate serial, contiguous single field
 	#    `openssl output` Drop the 'serial='
-	if [ $# -eq 0 ]
+
+	# metadata_version
+	metadata_version="metadata_version_easytls_A4"
+	# CA fingerprint
+	openssl_ca_fp="$(fn_ca_fingerprint)"
+	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
+	# Client serial number
+	crt_serial="$(fn_cert_serial)"
+	crt_serial="${crt_serial##*=}"
+	# Build metadata
+	metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name"
+	# Append --custom-group
+	if [ -n "$EASYTLS_TLSCV2_CG" ]
 	then
-		# metadata_version
-		metadata_version="metadata_version_easytls_A4"
-		# CA fingerprint
-		openssl_ca_fp="$(fn_ca_fingerprint)"
-		ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
-		# Client serial number
-		crt_serial="$(fn_cert_serial)"
-		crt_serial="${crt_serial##*=}"
-		# Build metadata
-		metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name"
-		# Append --custom-group
-		if [ -n "$EASYTLS_TLSCV2_CG" ]
-		then
-			metadata="$metadata $EASYTLS_TLSCV2_CG"
-		fi
-		[ $EASYTLS_TRAVIS_CI ] && debug_metadata
-	else
-	# Add ONLY user defined strings as metadata
-	# Will not work with tls-crypt-v2-verify.sh (Bug ?)
-		while [ -n "$1" ]; do
-			metadata="$metadata $1"
-			shift
-		done
+		metadata="$metadata $EASYTLS_TLSCV2_CG"
 	fi
+
+	[ $EASYTLS_TRAVIS_CI ] && debug_metadata
+
 	[ $EASYTLS_SILENT ] || printf "%s\n" "metadata: $metadata"
 	# Base64 encode metadata
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
@@ -1561,7 +1551,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.25"
+	EASYTLS_VERSION="1.26"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 

@@ -149,18 +149,16 @@ do
 	done
 
 	# Build a default openvpn tls-crypt-v2 client key with no metadata
-	"$OPENVPN_CMD" --tls-crypt-v2 "$DBUG_DIR/tls-crypt-v2-s01.key" \
-	--genkey tls-crypt-v2-client "$DBUG_DIR/tls-crypt-v2-c07.key"
+	"$OPENVPN_CMD" --tls-crypt-v2 "$DBUG_DIR/s01-tls-crypt-v2.key" \
+	--genkey tls-crypt-v2-client "$DBUG_DIR/c07-tls-crypt-v2.key"
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
 	"$EASYTLS_CMD" --batch inline-tls-crypt-v2 c07
 
 	build_vars
 
-done # => loops
 
-# Test tls-crypt-v2-verify.sh
-
+	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
 	do
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
@@ -174,6 +172,8 @@ done # => loops
 		echo "exit: $?"
 		echo
 	done
+
+done # => loops
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
