@@ -48,4 +48,7 @@ Others		- Probably ..
 My friends 	- They know who they are  
   
 Libations	- Because I do  
+
+Blame:
+Corona Virus	- For the time being..
 ```
