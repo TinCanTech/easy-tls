@@ -494,9 +494,9 @@ deps
 	*)
 		if [ -z "$remote_metadata_version" ]
 		then
-		insert_msg="metadata version is missing."
+			insert_msg="metadata version is missing."
 		else
-		insert_msg="metadata version is not recognised:"
+			insert_msg="metadata version is not recognised:"
 		fi
 		failure_msg="$insert_msg $remote_metadata_version"
 		fail_and_exit "METADATA_VERSION" 5
