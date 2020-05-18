@@ -588,7 +588,8 @@ status_easytls_invalid ()
 	mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
-		inline_index_check_hash $i || die "Failed HASH: $inline_file"
+		crt_serial=$i
+		inline_index_check_hash || die "Failed HASH: $inline_file"
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
 		0)
@@ -703,7 +704,6 @@ inline_index_add_hash ()
 # Check inline hash
 inline_index_check_hash ()
 {
-	crt_serial="$1"
 	name="$(inline_index_serial_to_common_name $crt_serial)"
 
 	check_in_file="$EASYTLS_PKI/$name.inline"
@@ -714,7 +714,7 @@ inline_index_check_hash ()
 	find_hash="$(inline_index_search_hash)"
 	case "$find_hash" in
 	0) # HASH check failed
-		insert_msg="HASH check: Hash not found for: $check_in_file"
+		insert_msg="Hash not correct for: $check_in_file"
 		die "$insert_msg - Expecting: $inline_hash"
 	;;
 	1) return 0 ;;
@@ -755,8 +755,8 @@ inline_show ()
 
 	verify_tls_init
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	serial="$(inline_index_common_name_to_serial $name)"
-	inline_index_check_hash "$serial" || die "Failed HASH: $inline_file"
+	crt_serial="$(inline_index_common_name_to_serial $name)"
+	inline_index_check_hash || die "Failed HASH: $inline_file"
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
 
@@ -833,6 +833,9 @@ inline_renew ()
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
 
+	# HASH check
+	inline_index_check_hash || die "Renew failed HASH"
+
 	# Collect the attributes of .inline file
 	inline_is_base="$(grep -c 'File name base' "$inline_file")"
 	inline_is_tlsauth="$(grep -c '<tls-auth>' "$inline_file")"
@@ -843,9 +846,6 @@ inline_renew ()
 	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
 	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] \
 		|| die "File is not valid .inline: $inline_file"
-
-	# HASH check
-	inline_index_check_hash $crt_serial || die "Renew failed HASH"
 
 	# Determine the type of .inline file
 	inline_type="tls-base"
