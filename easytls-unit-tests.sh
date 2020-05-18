@@ -159,6 +159,7 @@ do
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
 	do
+		print "============================================================"
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
@@ -205,6 +206,7 @@ DBUG_DIR="$WORK_DIR/pki/tls"
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
 	do
+		print "============================================================"
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
