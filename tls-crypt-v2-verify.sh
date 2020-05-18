@@ -42,7 +42,8 @@ fail_and_exit ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
-		printf "%s %s" "$tls_crypt_v2_verify_msg" "$success_msg"
+		printf "%s " "$tls_crypt_v2_verify_msg"
+		[ -z "$success_msg" ] || printf "%s " "$success_msg"
 		printf "%s\n%s\n" "$failure_msg" "$1"
 
 		printf "%s\n" \
