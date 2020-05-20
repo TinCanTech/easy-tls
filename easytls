@@ -668,13 +668,13 @@ cert_expire ()
 } # => cert_expire ()
 
 # Keep an index file for inline certs to manage revoke/renew
-update_inline_index ()
+inline_index_update ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <update_index_action>"
 
 	update_index_action="$1"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || \
-		die "update_inline_index () Missing: $EASYTLS_INLINE_INDEX"
+		die "inline_index_update () Missing: $EASYTLS_INLINE_INDEX"
 
 	case "$update_index_action" in
 	add)
@@ -690,7 +690,7 @@ update_inline_index ()
 		die "Unknown index action: $update_index_action"
 	;;
 	esac
-} # => update_inline_index ()
+} # => inline_index_update ()
 
 # Add inline hash to inline index
 inline_index_add_hash ()
@@ -780,7 +780,7 @@ inline_remove ()
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
-	update_inline_index del
+	inline_index_update del
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
@@ -1034,7 +1034,7 @@ $help_note"
 	} > "$out_file" || die "Failed to create inline file: $out_file"
 
 	# Update INLINE index
-	update_inline_index add
+	inline_index_update add
 
 	# Hash inline file and add hash to index
 	# Only if this is the root caller
