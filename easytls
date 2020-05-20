@@ -704,7 +704,7 @@ inline_index_add_hash ()
 # Check inline hash
 inline_index_check_hash ()
 {
-	name="$(inline_index_serial_to_common_name $crt_serial)"
+	name="$(inline_index_serial_to_common_name)"
 
 	check_in_file="$EASYTLS_PKI/$name.inline"
 	[ -f "$check_in_file" ] || \
@@ -725,16 +725,15 @@ inline_index_check_hash ()
 # Get Common name from inline file using serial number as key
 inline_index_common_name_to_serial ()
 {
-	index_CN="$1"
-	grep "^${index_CN}[[:blank:]].*$" \
+	# TODO: This could be effected by duplicate names from easyrsa
+	grep "^${name}[[:blank:]].*$" \
 		"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
 }
 
 # Get serial number from inline file using Common name as key
 inline_index_serial_to_common_name ()
 {
-	index_serial="$1"
-	grep "^.*[[:blank:]]${index_serial}[[:blank:]].*$" \
+	grep "^.*[[:blank:]]${crt_serial}[[:blank:]].*$" \
 		"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
 }
 
@@ -755,7 +754,7 @@ inline_show ()
 
 	verify_tls_init
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	crt_serial="$(inline_index_common_name_to_serial $name)"
+	crt_serial="$(inline_index_common_name_to_serial)"
 	inline_index_check_hash || die "Failed HASH: $inline_file"
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
