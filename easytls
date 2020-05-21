@@ -209,9 +209,8 @@ General options:
 
 --batch         : set automatic (no-prompts when possible) mode
 --silent        : Silence all message output except prompts
---pki-dir=DIR   : declare the PKI directory
+--pki-dir=DIR   : declare the EasyRSA PKI directory
 --vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
---tls-dir=DIR   : declare the TLS directory
 --dh=FILE       : define an alternate Diffy Hellman parameters file
 --custom-group  : Append a custom field to the default TLS crypt v2 metadata
                   This field can also be matched in tls-crypt-v2-verify.sh
@@ -1492,7 +1491,7 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR	"$EASYRSA_PKI"
 	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
 
-	set_var EASYTLS_PKI		"$EASYRSA_PKI/tls"
+	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
 	set_var EASYTLS_OPENVPN		"openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled.txt"
@@ -1565,8 +1564,6 @@ while :; do
 		export EASYRSA_PKI="$val" ;;
 	--vars)
 		export EASYRSA_VARS_FILE="$val" ;;
-	--tls-dir)
-		export EASYTLS_PKI="$val" ;;
 	--silent)
 		empty_ok=1
 		export EASYTLS_SILENT=1 ;;

@@ -94,7 +94,7 @@ OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
 WORK_DIR="$(pwd)"
 PKI_DIR="$WORK_DIR/pki"
-DBUG_DIR="$WORK_DIR/pki/tls"
+DBUG_DIR="$WORK_DIR/pki/easytls"
 LOOP_PKI=""
 
 for loops in 1 2
@@ -192,16 +192,14 @@ do
 	# Good old directory structure mallarky
 	export EASYRSA_PKI="$WORK_DIR/pki2"
 	PKI_DIR="$WORK_DIR/pki2"
-	DBUG_DIR="$WORK_DIR/pki2/tls"
+	DBUG_DIR="$WORK_DIR/pki2/easytls"
 
-	#ERSA_LOOP_PKI="--pki-dir=$WORK_DIR/pki2"
-	ETLS_LOOP_PKI="--tls-dir=$WORK_DIR/pki2/tls"
+	ETLS_LOOP_PKI="--pki-dir=$WORK_DIR/pki2"
 
 done # => loops
 
 # Now test a cross-polinated TCV2 key
-# SORT THIS DIRECTOTY WAR OUT CORRECTLY
-DBUG_DIR="$WORK_DIR/pki/tls"
+DBUG_DIR="$WORK_DIR/pki/easytls"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
