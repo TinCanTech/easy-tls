@@ -679,11 +679,17 @@ inline_index_update ()
 
 	case "$update_index_action" in
 	add)
-		printf "%s\n" "$name $crt_serial">>"$EASYTLS_INLINE_INDEX" \
-			|| die "Failed to update $EASYTLS_INLINE_INDEX"
+		# Create new HASH here
+		inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
+		printf "%s\n" "$name $crt_serial $inline_hash" >> \
+			"$EASYTLS_INLINE_INDEX" || \
+			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
-		sed -i -e "/^${name}[[:blank:]]${crt_serial}[[:blank:]].*$/d" \
+		# Check saved HASH here
+		inline_index_check_hash
+		sed -i -e \
+		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
@@ -705,14 +711,21 @@ inline_index_add_hash ()
 # Check inline hash
 inline_index_check_hash ()
 {
-	name="$(inline_index_serial_to_common_name)"
+	# This is a check so check everything here
+	# every value and file must exist at this time
 
-	check_in_file="$EASYTLS_PKI/$name.inline"
-	[ -f "$check_in_file" ] || \
-		die "inline_index_check_hash Missing file: $check_in_file"
+	[ -z "$name" ] && die "inline_index_check_hash: Missing value: name"
+	[ -z "$crt_serial" ] && die "inline_index_check_hash: Missing value: crt_serial"
+	[ -z "$inline_file" ] && die "inline_index_check_hash: Missing value: inline_file"
 
-	inline_hash="$(openssl sha1 "$check_in_file" | awk '{print $2}')"
+	[ -f "$inline_file" ] || die "inline_index_check_hash: Missing file: $inline_file"
+
+	# Calculate current file HASH
+	inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
+
+	# Search for calculated current HASH
 	find_hash="$(inline_index_search_hash)"
+
 	case "$find_hash" in
 	0) # HASH check failed
 		insert_msg="HASH incorrect for: $check_in_file"
@@ -779,9 +792,10 @@ inline_remove ()
 	[ ! $silent_remove ] && \
 		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
-	rm "$inline_file" || die "Failed to remove: $inline_file"
-
+	# TODO: Fix inline_index_update so that it does not require .inline file
 	inline_index_update del
+
+	rm "$inline_file" || die "Failed to remove: $inline_file"
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
@@ -904,7 +918,7 @@ inline_renew ()
 		tls-base)
 			silent_base=1
 			inline_base "$name" $cmd_opts
-			inline_index_add_hash
+			inline_index_update add
 		;;
 		tls-auth)
 			inline_tls_auth "$name" "$key_direction" $cmd_opts
@@ -1033,11 +1047,8 @@ $help_note"
 	} > "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Update INLINE index
-	inline_index_update add
-
-	# Hash inline file and add hash to index
 	# Only if this is the root caller
-	[ ! $silent_base ] && inline_index_add_hash
+	[ ! $silent_base ] && inline_index_update add
 
 	[ ! $silent_base ] && notice "Inline base file created: $inline_file"
 
@@ -1106,7 +1117,7 @@ inline_tls_auth ()
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
-	inline_index_add_hash
+	inline_index_update add
 
 	[ ! $silent_inline ] && \
 		notice "Inline TLS auth file created: $inline_file"
@@ -1154,7 +1165,7 @@ inline_tls_crypt_v1 ()
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
-	inline_index_add_hash
+	inline_index_update add
 
 	[ ! $silent_inline ] && \
 		notice "Inline TLS crypt file created: $inline_file"
@@ -1203,7 +1214,7 @@ inline_tls_crypt_v2 ()
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
-	inline_index_add_hash
+	inline_index_update add
 
 	[ ! $silent_inline ] && \
 		notice "Inline TLS crypt v2 file created: $inline_file"
