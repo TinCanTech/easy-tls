@@ -822,8 +822,8 @@ inline_renew ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 
-	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	[ -f "$crt_file" ] || die "Missing: $crt_file"
+	[ -f "$inline_file" ] || die "inline_renew: Missing: $inline_file"
+	[ -f "$crt_file" ] || die "inline_renew: Missing: $crt_file"
 
 	# get the serial number of the certificate -> serial=XXXX
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
