@@ -1432,7 +1432,7 @@ tls_crypt_v2_verify_disable_list ()
 # Search disabled list for serial number
 search_disabled_list ()
 {
-	grep -c "^$crt_serial[[:blank:]]" "$EASYTLS_DISABLED_LIST"
+	grep -c "^${crt_serial}[[:blank:]]" "$EASYTLS_DISABLED_LIST"
 }
 
 ############################################################################
