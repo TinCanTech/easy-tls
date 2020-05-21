@@ -1382,6 +1382,7 @@ debug_metadata ()
 #
 
 # Manage tls-crypt-v2-verify default tls/disabled_list.txt
+# TODO: Change cli_name to name and add to search_disabled_list
 tls_crypt_v2_verify_disable_list ()
 {
 	cli_name="$2"
@@ -1426,7 +1427,7 @@ tls_crypt_v2_verify_disable_list ()
 # Search disabled list for serial number
 search_disabled_list ()
 {
-	grep -c "^$crt_serial" "$EASYTLS_DISABLED_LIST"
+	grep -c "^$crt_serial[[:blank:]]" "$EASYTLS_DISABLED_LIST"
 }
 
 ############################################################################
