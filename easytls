@@ -171,15 +171,15 @@ cmd_help()
       Display certificate expiry date for <filename_base>"
 			opts="
         If <filename_base> is 'ca' then show ca.crt expiry
-        If no <filename_base> is given then list all certificates expiry dates" ;;
+        If no <filename_base> is given then list all certificate expiry dates" ;;
 		disable) text="
   disable <filename_base>
-      Add serial number for <filename_base> to the
-      tls-crypt-v2-verify script disabled list" ;;
+      Add serial number for <filename_base> to the disabled list
+      for immediate use by the tls-crypt-v2-verify script" ;;
 		enable) text="
   enable <filename_base>
-      Remove serial number for <filename_base> from the
-      tls-crypt-v2-verify script disabled list" ;;
+      Remove serial number for <filename_base> from the disabled list
+      for immediate use by the tls-crypt-v2-verify script" ;;
 		options)
 			opt_usage ;;
 		"")
@@ -223,7 +223,7 @@ EASYTLS_SILENT=1
 print() { printf "%s\n" "$*"; }
 
 # Exit fatally with a message to stderr
-# present even with EASYRSA_BATCH as these are fatal problems
+# present even with EASYTLS_BATCH as these are fatal problems
 die()
 {
 	easy_tls_version
@@ -246,7 +246,6 @@ cleanup()
 # non-fatal warning output
 warn()
 {
-	#[ "$EASYTLS_BATCH" ] && return 0
 	[ "$EASYTLS_SILENT" ] && return 0
 		print "
 $1" 1>&2
@@ -379,7 +378,7 @@ verify_openvpn_version ()
 	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
 
 	Ver_req_maj="$1"
-	Ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $2}')"
+	Ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVPN|awk '{print $2}')"
 
 	Ver_ints="$(printf "%s" "$Ver_str" | sed "s/[^0123456789]/\ /g")"
 
@@ -561,7 +560,7 @@ status_easyrsa_revoked ()
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
 		ersa_revoked_cn_list="$ersa_revoked_cn_list $ersa_revoked_cn"
-		[ $silent_status ] || print "$ersa_revoked_cn $i"|status_output
+		[ $silent_status ] || print "$ersa_revoked_cn $i" | status_output
 	done
 } # => status_easyrsa_revoked ()
 
@@ -721,7 +720,7 @@ inline_index_check_hash ()
 	esac
 }
 
-# Get Common name from inline file using serial number as key
+# Get serial number from inline index file using Common name as key
 inline_index_common_name_to_serial ()
 {
 	# TODO: This could be effected by duplicate names from easyrsa
@@ -729,7 +728,7 @@ inline_index_common_name_to_serial ()
 		"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
 }
 
-# Get serial number from inline file using Common name as key
+# Get Common name from inline index file using serial number as key
 inline_index_serial_to_common_name ()
 {
 	grep "^.*[[:blank:]]${crt_serial}[[:blank:]].*$" \
@@ -899,6 +898,7 @@ inline_renew ()
 	# Disable completion notices from sub processes
 	silent_inline=1
 
+	# Build the new .inline file
 	case "$inline_type" in
 		tls-base)
 			silent_base=1
@@ -988,9 +988,7 @@ $help_note"
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
 
-	# Check that the requested certificate is not revoked before inline
-	#inline_cert_status || die "Certificate is revoked: $crt_file"
-
+	# Check .inline file does not exist
 	if [ "$EASYTLS_BATCH" ]
 	then
 		rm -f "$out_file"
@@ -998,6 +996,7 @@ $help_note"
 		[ -f "$out_file" ] && die "Inline file exists: $out_file"
 	fi
 
+	# Build .inline file
 	{	printf "%s\n" "# File name base: $name"
 		printf "%s\n" "# Serial number: $crt_serial"
 		printf "%s\n" ""
