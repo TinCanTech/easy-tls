@@ -728,7 +728,7 @@ inline_index_check_hash ()
 
 	case "$find_hash" in
 	0) # HASH check failed
-		insert_msg="HASH incorrect for: $check_in_file"
+		insert_msg="HASH incorrect for: $inline_file"
 		die "$insert_msg - Expecting: $inline_hash"
 	;;
 	1) return 0 ;;
