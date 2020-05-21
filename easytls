@@ -1214,15 +1214,15 @@ build_tls_auth ()
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
-	out_file="$EASYTLS_PKI/tls-auth.key"
+	key_file="$EASYTLS_PKI/tls-auth.key"
 
-	[ -f "$out_file" ] && \
-		die "TLS auth key already exists: $out_file"
+	[ -f "$key_file" ] && \
+		die "TLS auth key already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
-		die "Failed to create TLS auth key: $out_file"
+	"$EASYTLS_OPENVPN" --genkey --secret "$key_file" || \
+		die "Failed to create TLS auth key: $key_file"
 
-	notice "TLS auth key created: $out_file"
+	notice "TLS auth key created: $key_file"
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -1235,15 +1235,15 @@ build_tls_crypt_v1 ()
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
 
-	out_file="$EASYTLS_PKI/tls-crypt.key"
+	key_file="$EASYTLS_PKI/tls-crypt.key"
 
-	[ -f "$out_file" ] && \
-		die "TLS crypt v1 key already exists: $out_file"
+	[ -f "$key_file" ] && \
+		die "TLS crypt v1 key already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$out_file" || \
-		die "Failed to create TLS crypt v1 key: $out_file"
+	"$EASYTLS_OPENVPN" --genkey --secret "$key_file" || \
+		die "Failed to create TLS crypt v1 key: $key_file"
 
-	notice "TLS crypt v1 key created: $out_file"
+	notice "TLS crypt v1 key created: $key_file"
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -1258,18 +1258,18 @@ build_tls_crypt_v2_server ()
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
-	out_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
+	key_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 
 	[ -f "$srv_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
 Missing file: $srv_cert"
 
-	[ -f "$out_file" ] && die "Server file already exists: $out_file"
+	[ -f "$key_file" ] && die "Server file already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$out_file" || \
-		die "Failed to create tls-crypt-v2-server key: $out_file"
+	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$key_file" || \
+		die "Failed to create tls-crypt-v2-server key: $key_file"
 
-	notice "TLS crypt v2 server key created: $out_file"
+	notice "TLS crypt v2 server key created: $key_file"
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -1308,20 +1308,20 @@ Missing srv file: $srv_cert"
 Missing cli file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
-	out_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
+	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
 
 	[ -f "$in_file" ] || die "Server file does not exist: $in_file"
-	[ -f "$out_file" ] && die "Client file already exists: $out_file"
+	[ -f "$key_file" ] && die "Client file already exists: $key_file"
 
 	metadata=""
 	b64_metadata=""
 	b64_enc_metadata
 
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
-		--genkey tls-crypt-v2-client "$out_file" "$b64_metadata" || \
-		die "Failed to create tls-crypt-v2-client key: $out_file"
+		--genkey tls-crypt-v2-client "$key_file" "$b64_metadata" || \
+		die "Failed to create tls-crypt-v2-client key: $key_file"
 
-	notice "TLS crypt v2 client key created: $out_file"
+	notice "TLS crypt v2 client key created: $key_file"
 } # => build_tls_crypt_v2_client ()
 
 # Base64 encode metadata fields
