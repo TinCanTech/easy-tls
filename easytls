@@ -693,7 +693,7 @@ inline_index_update ()
 # Add inline hash to inline index
 inline_index_add_hash ()
 {
-	inline_hash="$(openssl sha1 "$out_file" | awk '{print $2}')"
+	inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
 	sed -i -e \
 	"s/^${name}[[:blank:]]${crt_serial}$/$name $crt_serial $inline_hash/g" \
 		"$EASYTLS_INLINE_INDEX"
@@ -840,7 +840,8 @@ inline_renew ()
 	inline_is_tlscryptv2="$(grep -c '<tls-crypt-v2>' "$inline_file")"
 
 	# Verify .inline is valid
-	[ $inline_is_base -eq 1 ] || die "File is not valid .inline: $inline_file"
+	[ $inline_is_base -eq 1 ] || \
+		die "File is not valid .inline: $inline_file"
 	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] \
 		|| die "File is not valid .inline: $inline_file"
 
@@ -953,7 +954,7 @@ inline_base ()
 	ca_file="$EASYRSA_PKI/ca.crt"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
-	out_file="$EASYTLS_PKI/$name.inline"
+	inline_file="$EASYTLS_PKI/$name.inline"
 	help_note="Run 'easytls inline-status' to verify certificate revokation."
 
 	[ -f "$crt_file" ] || die "\
@@ -991,9 +992,9 @@ $help_note"
 	# Check .inline file does not exist
 	if [ "$EASYTLS_BATCH" ]
 	then
-		rm -f "$out_file"
+		rm -f "$inline_file"
 	else
-		[ -f "$out_file" ] && die "Inline file exists: $out_file"
+		[ -f "$inline_file" ] && die "Inline file exists: $inline_file"
 	fi
 
 	# Build .inline file
@@ -1029,7 +1030,7 @@ $help_note"
 			printf "%s\n" ""
 		fi
 
-	} > "$out_file" || die "Failed to create inline file: $out_file"
+	} > "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Update INLINE index
 	inline_index_update add
@@ -1038,7 +1039,7 @@ $help_note"
 	# Only if this is the root caller
 	[ ! $silent_base ] && inline_index_add_hash
 
-	[ ! $silent_base ] && notice "Inline base file created: $out_file"
+	[ ! $silent_base ] && notice "Inline base file created: $inline_file"
 
 	# explicitly return success for callers
 	return 0
@@ -1067,9 +1068,11 @@ inline_tls_auth ()
 	done
 
 	tls_auth_key="$EASYTLS_PKI/tls-auth.key"
-	out_file="$EASYTLS_PKI/$name.inline"
+	inline_file="$EASYTLS_PKI/$name.inline"
 
-	[ -f "$tls_auth_key" ] || die "TLS key file does not exist: $tls_auth_key"
+	[ -f "$tls_auth_key" ] || \
+		die "TLS key file does not exist: $tls_auth_key"
+
 	case "$key_direction" in
 		0|1)
 			# Using user specified --key-direction
@@ -1100,12 +1103,13 @@ inline_tls_auth ()
 		cat "$tls_auth_key"
 		printf "%s\n" "</tls-auth>"
 		printf "%s\n" ""
-	} >> "$out_file" || die "Failed to create inline file: $out_file"
+	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
 	inline_index_add_hash
 
-	[ ! $silent_inline ] && notice "Inline TLS auth file created: $out_file"
+	[ ! $silent_inline ] && \
+		notice "Inline TLS auth file created: $inline_file"
 
 	# explicitly return success for callers
 	return 0
@@ -1133,7 +1137,7 @@ inline_tls_crypt_v1 ()
 	done
 
 	tls_file="$EASYTLS_PKI/tls-crypt.key"
-	out_file="$EASYTLS_PKI/$name.inline"
+	inline_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
@@ -1147,12 +1151,13 @@ inline_tls_crypt_v1 ()
 		cat "$tls_file"
 		printf "%s\n" "</tls-crypt>"
 		printf "%s\n" ""
-	} >> "$out_file" || die "Failed to create inline file: $out_file"
+	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
 	inline_index_add_hash
 
-	[ ! $silent_inline ] && notice "Inline TLS crypt file created: $out_file"
+	[ ! $silent_inline ] && \
+		notice "Inline TLS crypt file created: $inline_file"
 
 	# explicitly return success for callers
 	return 0
@@ -1180,10 +1185,10 @@ inline_tls_crypt_v2 ()
 	done
 
 	tls_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
-	out_file="$EASYTLS_PKI/$name.inline"
+	inline_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
-	[ -f "$out_file" ] && die "TLS Inline file already exist: $out_file"
+	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
 
 	# Inline base file
 	silent_base=1
@@ -1195,13 +1200,13 @@ inline_tls_crypt_v2 ()
 		cat "$tls_file"
 		printf "%s\n" "</tls-crypt-v2>"
 		printf "%s\n" ""
-	} >> "$out_file" || die "Failed to create inline file: $out_file"
+	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
 
 	# Hash inline file and add hash to index
 	inline_index_add_hash
 
 	[ ! $silent_inline ] && \
-		notice "Inline TLS crypt v2 file created: $out_file"
+		notice "Inline TLS crypt v2 file created: $inline_file"
 
 	# explicitly return success for callers
 	return 0
