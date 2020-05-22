@@ -40,11 +40,13 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
+	metadata_client_CN="$(fn_metadata_client_CN)"
+
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
 		printf "%s " "$tls_crypt_v2_verify_msg"
 		[ -z "$success_msg" ] || printf "%s " "$success_msg"
-		printf "%s\n%s\n" "$failure_msg" "$1"
+		printf "%s\n%s\n" "$failure_msg $metadata_client_CN" "$1"
 
 		printf "%s\n" \
 			"* ==> metadata  local: $local_metadata_version"
@@ -67,6 +69,9 @@ fail_and_exit ()
 		printf "%s\n" \
 			"* ==> Client serial remote: $metadata_client_cert_serno"
 
+		printf "%s\n" \
+			"* ==> Client CN     remote: $metadata_client_CN"
+
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
 
@@ -74,8 +79,8 @@ fail_and_exit ()
 
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s\n" "$tls_crypt_v2_verify_msg" \
-			"$success_msg" "$failure_msg"
+		printf "%s %s %s %s\n" "$tls_crypt_v2_verify_msg" \
+			"$success_msg" "$failure_msg" "$metadata_client_CN"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -296,8 +301,10 @@ serial_status_via_crl ()
 # This is the only way to connect
 client_passed_all_tests_connection_allowed ()
 {
+	metadata_client_CN="$(fn_metadata_client_CN)"
 	insert_msg="Client certificate is recognised and not revoked:"
 	success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
+	success_msg="$success_msg $metadata_client_CN"
 	absolute_fail=0
 }
 
