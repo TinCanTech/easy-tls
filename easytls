@@ -856,16 +856,16 @@ inline_renew ()
 	crt_serial=${crt_serial##*=}
 
 	# Collect the attributes of .inline file
-	inline_is_base="$(grep -c 'File name base' "$inline_file")"
-	inline_is_tlsauth="$(grep -c '<tls-auth>' "$inline_file")"
-	inline_is_tlscrypt="$(grep -c '<tls-crypt>' "$inline_file")"
-	inline_is_tlscryptv2="$(grep -c '<tls-crypt-v2>' "$inline_file")"
+	inline_is_base="$(grep -c '^# File name base:.*$' "$inline_file")"
+	inline_is_tlsauth="$(grep -c '^<tls-auth>$' "$inline_file")"
+	inline_is_tlscrypt="$(grep -c '^<tls-crypt>$' "$inline_file")"
+	inline_is_tlscryptv2="$(grep -c '^<tls-crypt-v2>$' "$inline_file")"
 
 	# Verify .inline is valid
 	[ $inline_is_base -eq 1 ] || \
 		die "File is not valid .inline: $inline_file"
-	[ $((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2)) -le 1 ] \
-		|| die "File is not valid .inline: $inline_file"
+	one_type=$((inline_is_tlsauth+inline_is_tlscrypt+inline_is_tlscryptv2))
+	[ $one_type -le 1 ] || die "File is not valid .inline: $inline_file"
 
 	# Determine the type of .inline file
 	inline_type="tls-base"
@@ -915,6 +915,7 @@ inline_renew ()
 		die "Unable to create backup: $inline_file.backup"
 
 	# Remove the old .inline file
+	# .inline HASH is checked prior to removal
 	silent_remove=1
 	inline_remove "$name"
 
@@ -1682,7 +1683,7 @@ case "$cmd" in
 		exit 0
 		;;
 	*)
-		die "Unknown command '$cmd'. Run without commands for usage help."
+		die "Unknown command '$cmd'. Run without commands for help."
 		;;
 esac
 
