@@ -111,6 +111,7 @@ do
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
+		print "============================================================"
 		"$EASYRSA_CMD" --batch $ERSA_LOOP_PKI $i || fail "err1: $EASYRSA_CMD --batch $ERSA_LOOP_PKI $i"
 	done
 
@@ -121,12 +122,12 @@ do
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
-		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
-		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
-		"inline-status" "inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
-		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
-		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-remove s01" "inline-status" \
-		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-remove c01" "inline-status" \
+		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
+		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
+		"inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
+		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
+		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
+		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
 		"inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" "inline-status" \
 		"inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" "inline-status" \
 		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
@@ -149,6 +150,7 @@ do
 		$i
 	done
 
+	print "============================================================"
 	# Build a default openvpn tls-crypt-v2 client key with no metadata
 	"$OPENVPN_CMD" --tls-crypt-v2 "$DBUG_DIR/s01-tls-crypt-v2.key" \
 	--genkey tls-crypt-v2-client "$DBUG_DIR/c07-tls-crypt-v2.key"
@@ -163,27 +165,33 @@ do
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
 		"$EASYTLS_CMD" --batch disable "$c"
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 		echo
 	done
+	print "============================================================"
 
 
 	# Build env for next loop
@@ -208,22 +216,27 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
 		"$EASYTLS_CMD" --batch disable "$c"
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
