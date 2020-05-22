@@ -699,15 +699,6 @@ inline_index_update ()
 	esac
 } # => inline_index_update ()
 
-# Add inline hash to inline index
-inline_index_add_hash ()
-{
-	inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
-	sed -i -e \
-	"s/^${name}[[:blank:]]${crt_serial}$/$name $crt_serial $inline_hash/g" \
-		"$EASYTLS_INLINE_INDEX"
-}
-
 # Check inline hash
 inline_index_check_hash ()
 {
@@ -1407,7 +1398,6 @@ debug_metadata ()
 #
 
 # Manage tls-crypt-v2-verify default tls/disabled_list.txt
-# TODO: Change cli_name to name and add to search_disabled_list
 tls_crypt_v2_verify_disable_list ()
 {
 	name="$2"
@@ -1560,7 +1550,7 @@ set_var()
 # Set the Easy-TLS version
 easy_tls_version ()
 {
-	EASYTLS_VERSION="1.26"
+	EASYTLS_VERSION="1.27"
 	print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
