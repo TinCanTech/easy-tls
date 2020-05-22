@@ -1410,8 +1410,8 @@ debug_metadata ()
 # TODO: Change cli_name to name and add to search_disabled_list
 tls_crypt_v2_verify_disable_list ()
 {
-	cli_name="$2"
-	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
+	name="$2"
+	cli_cert="$EASYRSA_PKI/issued/$name.crt"
 	[ -f "$cli_cert" ] || die "Cannot find certificate: $cli_cert"
 
 	# Client serial number
@@ -1427,14 +1427,16 @@ tls_crypt_v2_verify_disable_list ()
 	disable) # Add serial number to the list
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 0 ] || die "Serial is disabled"
-		printf "%s\n" "$crt_serial $cli_name" >> "$EASYTLS_DISABLED_LIST"
+		printf "%s\n" "$crt_serial $name" >> "$EASYTLS_DISABLED_LIST"
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 1 ] || die "Serial disabled failed"
 	;;
 	enable) # Remove serial number from the list
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 1 ] || die "Serial is enabled"
-		sed -i "/^$crt_serial.*$/d" "$EASYTLS_DISABLED_LIST"
+		sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
+			"$EASYTLS_DISABLED_LIST"
+
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 0 ] || die "Serial enabled failed"
 	;;
@@ -1443,16 +1445,16 @@ tls_crypt_v2_verify_disable_list ()
 	esac
 
 	# Update time-stamp
-	update_text="# Updated: $(date) -- $1: $cli_name"
+	update_text="# Updated: $(date) -- $1: $name"
 	sed -i "/^\#\ Updated:.*$/d" "$EASYTLS_DISABLED_LIST"
 	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
-	notice "Updated disabled list: $cli_name $1"
+	notice "Updated disabled list: $name $1"
 }
 
 # Search disabled list for serial number
 search_disabled_list ()
 {
-	grep -c "^${crt_serial}[[:blank:]]" "$EASYTLS_DISABLED_LIST"
+	grep -c "^${crt_serial}[[:blank:]]${name}$" "$EASYTLS_DISABLED_LIST"
 }
 
 ############################################################################
