@@ -237,7 +237,6 @@ $1" 1>&2
 # remove temp files and do terminal cleanups
 cleanup()
 {
-	[ $no_exit_check ] || inline_auto_check
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
@@ -687,7 +686,8 @@ inline_index_update ()
 	;;
 	del)
 		# Check saved HASH here
-		inline_index_check_hash
+		# If .inline file has been removed then this check has been run
+		[ $inline_removed ] || inline_index_check_hash
 		sed -i -e \
 		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
 			"$EASYTLS_INLINE_INDEX" || \
@@ -715,10 +715,15 @@ inline_index_check_hash ()
 	# every value and file must exist at this time
 
 	[ -z "$name" ] && die "inline_index_check_hash: Missing value: name"
-	[ -z "$crt_serial" ] && die "inline_index_check_hash: Missing value: crt_serial"
-	[ -z "$inline_file" ] && die "inline_index_check_hash: Missing value: inline_file"
 
-	[ -f "$inline_file" ] || die "inline_index_check_hash: Missing file: $inline_file"
+	[ -z "$crt_serial" ] && \
+		die "inline_index_check_hash: Missing value: crt_serial"
+
+	[ -z "$inline_file" ] && \
+		die "inline_index_check_hash: Missing value: inline_file"
+
+	[ -f "$inline_file" ] || \
+		die "inline_index_check_hash: Missing file: $inline_file"
 
 	# Calculate current file HASH
 	inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
@@ -792,10 +797,13 @@ inline_remove ()
 	[ ! $silent_remove ] && \
 		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
-	# TODO: Fix inline_index_update so that it does not require .inline file
-	inline_index_update del
+	# Check .inline HASH prior to removal
+	inline_index_check_hash
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
+
+	inline_removed=1
+	inline_index_update del
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
@@ -1677,5 +1685,7 @@ case "$cmd" in
 		die "Unknown command '$cmd'. Run without commands for usage help."
 		;;
 esac
+
+[ $no_exit_check ] || inline_auto_check
 
 # vim: ft=sh nu ai sw=8 ts=8 noet
