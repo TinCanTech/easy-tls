@@ -195,7 +195,8 @@ do
 		echo
 	done
 	print "============================================================"
-
+	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
+	print "============================================================"
 
 	# Build env for next loop
 	build_vars
@@ -245,6 +246,7 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 		echo "exit: $?"
 		echo
 	done
+	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
