@@ -841,11 +841,7 @@ inline_renew ()
 
 	[ -f "$inline_file" ] || die "inline_renew: Missing: $inline_file"
 	[ -f "$crt_file" ] || die "inline_renew: Missing: $crt_file"
-
-	# get the serial number of the certificate -> serial=XXXX
-	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
-	# remove the serial= part -> we only need the XXXX part
-	crt_serial=${crt_serial##*=}
+	openssl_crt_serial
 
 	# Collect the attributes of .inline file
 	inline_is_base="$(grep -c '^# File name base:.*$' "$inline_file")"
@@ -941,6 +937,14 @@ inline_renew ()
 	notice "Inline $inline_type file renewed: $inline_file"
 } # => inline_renew ()
 
+# Get and format openssl serial number output
+openssl_crt_serial ()
+{
+	# get the serial number of the certificate -> serial=XXXX
+	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
+	# remove the serial= part -> we only need the XXXX part
+	crt_serial=${crt_serial##*=}
+}
 # Get current inline key direction
 inline_renew_key_direction ()
 {
