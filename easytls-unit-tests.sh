@@ -66,6 +66,8 @@ keyUsage = digitalSignature
 build_vars ()
 {
 	{
+	# openssl did not break this stuff diliberately, "of course".
+	# NEVER use '/CN=' in these fields
 		print ' set_var EASYRSA_RAND_SN "no"'
 		print ' set_var EASYRSA_DN "org"'
 		print '# Unsupported characters:'
@@ -133,6 +135,7 @@ do
 		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
 		"inline-tls-crypt-v2 c05" "inline-status" \
 		"inline-tls-crypt-v2 c06" "inline-status" \
+		"inline-index-rebuild" \
 		## EOL
 	do
 		print "============================================================"

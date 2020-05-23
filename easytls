@@ -62,6 +62,7 @@ Use the 'help' command above to get full usage details.
   inline-renew <filename_base> [ cmd-opts ]
   inline-status [ cmd-opts ]
   inline-show <filename_base>
+  inline-index-rebuild
   cert-expire <filename_base> | <ca>
   disable <filename_base>
   enable <filename_base>
@@ -161,11 +162,15 @@ cmd_help()
 	valid   - List only Easy-RSA valid certificates
 	revoked - List only Easy-RSA revoked certificates
 	inline  - List only Easy-TLS inline files
-	invalid - List only Easy-TLS invalid inline files
-        rebuild - rebuild inline-index.tls (TODO)" ;;
+	invalid - List only Easy-TLS invalid inline files" ;;
 		inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
+		inline-index-rebuild) text="
+  inline-index-rebuild
+      Rebuild easytls-index.txt
+      If you need to do this then you may have found a bug, please
+      raise an issue https://github.com/TinCanTech/easy-tls/issues" ;;
 		cert-expire) text="
   cert-expire <filename_base> | <ca>
       Display certificate expiry date for <filename_base>"
@@ -229,6 +234,8 @@ die()
 	easy_tls_version
 	print "
 Easy-TLS error:
+
+$help_note
 
 $1" 1>&2
 	exit "${2:-1}"
@@ -441,7 +448,7 @@ and initialize a fresh TLS PKI here."
 		|| die "Failed to create disabled list"
 
 	notice "\
-init-tls complete; you may now create TLS keys.
+init-tls complete; you may now create TLS keys and .inline files.
 Your newly created TLS dir is: $EASYTLS_PKI
 "
 	return 0
@@ -454,7 +461,7 @@ inline_auto_check ()
 	auto_check=1
 	inline_status invalid
 	[ $mismatch_count -eq 0 ] || \
-		warn "Warning: Inline vs revoked mismatches found"
+		warn "Invalid EasyTLS .inline files found."
 	unset auto_check
 }
 
@@ -809,6 +816,120 @@ inline_serial_number ()
 {
 	grep "^# Serial number: .*$" "$inline_file" | awk '{ print $4 }'
 }
+
+# Rebuild inline index
+inline_index_rebuild ()
+{
+	# Warn!
+	confirm "Rebuild inline index file ? " "yes" \
+		"WARNING: You are about to rebuild easytls-index.txt"
+
+	# Check easytls-index.txt
+	[ -f "$EASYTLS_INLINE_INDEX" ] || warn "Missing: $EASYTLS_INLINE_INDEX"
+
+	# Backup current easytls-index.txt
+	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
+		die "Backup file already exists: $EASYTLS_INLINE_INDEX.backup"
+
+	[ -f "$EASYTLS_INLINE_INDEX" ] && \
+		cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup"
+
+	# Get list of files from easytls directory
+	#etls_inline_file_list="$(inline_index_easytls_inline_file_list)"
+	etls_inline_file_list="$(ls -1 "$EASYTLS_PKI/"*".inline")"
+
+	# Check openssl index.txt
+	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
+
+	# Get list of certs from openssl index.txt
+	ersa_valid_cert_list="$(inline_index_openssl_cert_list)"
+
+	# Create new easytls index file
+	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
+		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
+
+	# Create records from openssl Valid names list
+	for i in $ersa_valid_cert_list
+	do
+		# Reset flag
+		unset add_inline_record
+
+		name="$i"
+		crt_serial=""
+		inline_file="$EASYTLS_PKI/$name.inline"
+		crt_file="$EASYRSA_PKI/issued/$name.crt"
+
+		# If the list contains this name but there is no cert
+		# then cannot recreate easytls-index
+		# The EasyRSA PKI has been tainted
+		help_note="EasyRSA has a record of $name but no certificate."
+		[ -f "$crt_file" ] || die "Missing crt_file: $crt_file"
+		unset help_note
+
+		# If there is an inline file for this name
+		# then recreate the inline easytls-index record
+		# EasyTLS User can create a new inline file
+		# Note: The extra space ..
+		[ -f "$inline_file" ] && {
+			add_inline_record=1
+			etls_inline_record_list="$etls_inline_record_list $name "
+			}
+
+		openssl_crt_serial
+
+		[ $add_inline_record ] && inline_index_update add
+	done
+
+	# Create records from easytls current inline files list
+	for full_file_name in $etls_inline_file_list
+	do
+		# Reset flag
+		unset add_inline_record
+
+		# Get name only from full file name
+		# Yes, I know this is a bad idea .. raise an issue
+		# https://github.com/TinCanTech/easy-tls/issues
+		part_file_name="${full_file_name%*.inline}"
+		name="${part_file_name##*/}"
+		inline_file="$EASYTLS_PKI/$name.inline"
+		[ -f "$inline_file" ] || die "Missing: $inline_file"
+		crt_serial="$(inline_serial_number)"
+
+		# If found an un-indexed inline file then index it
+		inline_file_found_indexed="$(inline_index_search_index_for_name)"
+		[ $inline_file_found_indexed -eq 0 ] && add_inline_record=1
+
+		[ $add_inline_record ] && inline_index_update add
+	done
+
+	# Verify
+	inline_status
+
+	# Inform
+	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
+} # => inline_index_rebuild
+
+# Seems legit ..
+inline_index_search_index_for_name ()
+{
+	printf '%s\n' "$etls_inline_record_list" | \
+		grep -c "[[:blank:]]${name}[[:blank:]]"
+}
+
+# Never do this
+inline_index_easytls_inline_file_list ()
+{
+	ls -1 "$EASYTLS_PKI/"*".inline"
+}
+
+# Dragon be here !
+inline_index_openssl_cert_list ()
+{
+	grep "^V.*$" "$EASYRSA_INDEX" | \
+		sed "\`^.*/CN=\`d" | \
+		sed "\`/emailAddress=.*$\`d"
+}
+
 
 ############################################################################
 #
@@ -1662,6 +1783,9 @@ case "$cmd" in
 	inline-show)
 		inline_show "$@"
 		;;
+	inline-index-rebuild)
+		inline_index_rebuild "$@"
+		;;
 	cert-expire)
 		cert_expire "$@"
 		;;
@@ -1684,6 +1808,7 @@ case "$cmd" in
 		;;
 esac
 
-[ $no_exit_check ] || inline_auto_check
+# EasyTLS auto-check
+inline_auto_check
 
 # vim: ft=sh nu ai sw=8 ts=8 noet
