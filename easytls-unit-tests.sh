@@ -247,6 +247,8 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 		echo
 	done
 	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
+
+	# This last rebuild over writes the backup from prior to making+revoke c04+c06
 	rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
 	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-index-rebuild
 
