@@ -526,21 +526,25 @@ inline_status ()
 
 } #=> inline_status ()
 
+# Format inline_status output
 status_output ()
 {
 	awk '{print "  Common-Name " $1 "    Serial-number " $2}'
 }
 
+# Format inline_status CN
 status_cn ()
 {
 	sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\`g"
 }
 
+# Extract Valid records from openssl index.txt
 status_valid_extract_cn ()
 {
 	grep "^V.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
 }
 
+# Extract Revoked records from openssl index.txt
 status_revoked_extract_cn ()
 {
 	grep "^R.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
@@ -738,7 +742,7 @@ inline_index_check_hash ()
 	1) return 0 ;;
 	*) die "HASH check: unknown error" ;;
 	esac
-}
+} # => inline_index_check_hash ()
 
 # Get serial number from inline index file using Common name as key
 inline_index_common_name_to_serial ()
@@ -827,15 +831,16 @@ inline_index_rebuild ()
 	# Check easytls-index.txt
 	[ -f "$EASYTLS_INLINE_INDEX" ] || warn "Missing: $EASYTLS_INLINE_INDEX"
 
-	# Backup current easytls-index.txt
+	# Do not over write current easytls-index.txt.backup
 	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
 		die "Backup file already exists: $EASYTLS_INLINE_INDEX.backup"
 
+	# Backup current easytls-index.txt
 	[ -f "$EASYTLS_INLINE_INDEX" ] && \
 		cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup"
 
 	# Get list of files from easytls directory
-	#etls_inline_file_list="$(inline_index_easytls_inline_file_list)"
+	# There is no other way to do this because we need the actual files
 	etls_inline_file_list="$(ls -1 "$EASYTLS_PKI/"*".inline")"
 
 	# Check openssl index.txt
@@ -868,13 +873,14 @@ inline_index_rebuild ()
 
 		# If there is an inline file for this name
 		# then recreate the inline easytls-index record
-		# EasyTLS User can create a new inline file
+		# EasyTLS User can remove/create a new inline file
 		# Note: The extra space ..
 		[ -f "$inline_file" ] && {
 			add_inline_record=1
 			etls_inline_record_list="$etls_inline_record_list $name "
 			}
 
+		# Get the openssl cert serial
 		openssl_crt_serial
 
 		[ $add_inline_record ] && inline_index_update add
@@ -909,20 +915,14 @@ inline_index_rebuild ()
 	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
 } # => inline_index_rebuild
 
-# Seems legit ..
+# Does this .inline file name already have an index record
 inline_index_search_index_for_name ()
 {
 	printf '%s\n' "$etls_inline_record_list" | \
 		grep -c "[[:blank:]]${name}[[:blank:]]"
 }
 
-# Never do this
-inline_index_easytls_inline_file_list ()
-{
-	ls -1 "$EASYTLS_PKI/"*".inline"
-}
-
-# Dragon be here !
+# Dragon be here ! - Extract CN from openssl index.txt
 inline_index_openssl_cert_list ()
 {
 	grep "^V.*$" "$EASYRSA_INDEX" | \
@@ -1066,6 +1066,7 @@ openssl_crt_serial ()
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
 }
+
 # Get current inline key direction
 inline_renew_key_direction ()
 {
@@ -1475,6 +1476,8 @@ b64_enc_metadata ()
 	#    `openssl output` Change space to underscore
 	# 3. Client certificate serial, contiguous single field
 	#    `openssl output` Drop the 'serial='
+	# 4. Client CommonName
+	# 5. Custom Group string
 
 	# metadata_version
 	metadata_version="metadata_version_easytls_A4"
@@ -1565,7 +1568,7 @@ tls_crypt_v2_verify_disable_list ()
 	sed -i "/^\#\ Updated:.*$/d" "$EASYTLS_DISABLED_LIST"
 	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
 	notice "Updated disabled list: $name $1"
-}
+} # => tls_crypt_v2_verify_disable_list ()
 
 # Search disabled list for serial number
 search_disabled_list ()
