@@ -926,8 +926,8 @@ inline_index_easytls_inline_file_list ()
 inline_index_openssl_cert_list ()
 {
 	grep "^V.*$" "$EASYRSA_INDEX" | \
-		sed "\`^.*/CN=\`d" | \
-		sed "\`/emailAddress=.*$\`d"
+		sed -e "s\`^.*/CN=\`\`g" | \
+		sed -e "s\`/emailAddress=.*$\`\`g"
 }
 
 
