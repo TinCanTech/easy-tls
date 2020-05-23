@@ -880,6 +880,11 @@ inline_index_rebuild ()
 			etls_inline_record_list="$etls_inline_record_list $name "
 			}
 
+		# Verify the openssl cert CN
+		openssl_cert_cn="$(openssl_crt_cn)"
+		[ "$name" = "$openssl_cert_cn" ] || \
+			die "CommonName mismatch for :$name: :$openssl_cert_cn:"
+
 		# Get the openssl cert serial
 		openssl_crt_serial
 
@@ -1065,6 +1070,15 @@ openssl_crt_serial ()
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
+}
+
+# Extract the CommonName from openssl -subject
+openssl_crt_cn ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
+		-noout -subject -nameopt sep_multiline | \
+		grep "^[[:blank:]]*CN=.*$" | \
+		sed "s/^[[:blank:]]*CN=//g"
 }
 
 # Get current inline key direction
