@@ -247,6 +247,8 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 		echo
 	done
 	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
+	rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
+	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-index-rebuild
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
