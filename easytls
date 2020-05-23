@@ -900,9 +900,9 @@ inline_index_rebuild ()
 		# Get name only from full file name
 		# Yes, I know this is a bad idea .. raise an issue
 		# https://github.com/TinCanTech/easy-tls/issues
+		inline_file="$full_file_name"
 		part_file_name="${full_file_name%*.inline}"
 		name="${part_file_name##*/}"
-		inline_file="$EASYTLS_PKI/$name.inline"
 		[ -f "$inline_file" ] || die "Missing: $inline_file"
 		crt_serial="$(inline_serial_number)"
 
@@ -931,8 +931,7 @@ inline_index_search_index_for_name ()
 inline_index_openssl_cert_list ()
 {
 	grep "^V.*$" "$EASYRSA_INDEX" | \
-		sed -e "s\`^.*/CN=\`\`g" | \
-		sed -e "s\`/emailAddress=.*$\`\`g"
+		sed -e "s\`^.*/CN=\`\`g" -e "s\`/emailAddress=.*$\`\`g"
 }
 
 
