@@ -461,7 +461,7 @@ inline_auto_check ()
 	auto_check=1
 	inline_status invalid
 	[ $mismatch_count -eq 0 ] || \
-		warn "Invalid EasyTLS .inline files found."
+		warn "EasyTLS: Invalid .inline files found."
 	unset auto_check
 }
 
@@ -717,7 +717,8 @@ inline_index_check_hash ()
 	# This is a check so check everything here
 	# every value and file must exist at this time
 
-	[ -z "$name" ] && die "inline_index_check_hash: Missing value: name"
+	[ -z "$name" ] && \
+		die "inline_index_check_hash: Missing value: name"
 
 	[ -z "$crt_serial" ] && \
 		die "inline_index_check_hash: Missing value: crt_serial"
@@ -1138,10 +1139,9 @@ $help_note"
 	fi
 	unset help_note
 
-	# get the serial number of the certificate -> serial=XXXX
-	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
-	# remove the serial= part -> we only need the XXXX part
-	crt_serial=${crt_serial##*=}
+	# get the serial number of the certificate from openssl
+	crt_serial=""
+	openssl_crt_serial
 
 	# Check .inline file does not exist
 	if [ "$EASYTLS_BATCH" ]
@@ -1497,9 +1497,10 @@ b64_enc_metadata ()
 	# CA fingerprint
 	openssl_ca_fp="$(fn_ca_fingerprint)"
 	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
-	# Client serial number
-	crt_serial="$(fn_cert_serial)"
-	crt_serial="${crt_serial##*=}"
+	# get the serial number of the certificate from openssl
+	crt_serial=""
+	openssl_crt_serial
+
 	# Build metadata
 	metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name"
 	# Append --custom-group
@@ -1522,10 +1523,10 @@ fn_ca_fingerprint ()
 } # => fn_ca_fingerprint ()
 
 # Extract client certificate serial
-fn_cert_serial ()
-{
-	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
-} # => fn_cert_serial ()
+#fn_cert_serial ()
+#{
+#	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
+#} # => fn_cert_serial ()
 
 # DEBUG metadata
 debug_metadata ()
@@ -1546,9 +1547,9 @@ tls_crypt_v2_verify_disable_list ()
 	cli_cert="$EASYRSA_PKI/issued/$name.crt"
 	[ -f "$cli_cert" ] || die "Cannot find certificate: $cli_cert"
 
-	# Client serial number
-	crt_serial="$(fn_cert_serial)"
-	crt_serial="${crt_serial##*=}"
+	# get the serial number of the certificate from openssl
+	crt_serial=""
+	openssl_crt_serial
 
 	# Check list for duplicates
 	serial_disabled_status="$(search_disabled_list)"
