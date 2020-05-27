@@ -133,14 +133,14 @@ do
 		"inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" "inline-status" \
 		"inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" "inline-status" \
 		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
-		"inline-tls-crypt-v2 c05" "inline-status" \
+		"inline-tls-crypt-v2 c05" "inline-status" "disable c05" "enable c05" \
 		"inline-tls-crypt-v2 c06" "inline-status" \
 		"inline-index-rebuild" \
 		## EOL
 	do
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $ETLS_LOOP_PKI --batch $i"
-		"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI $i || fail "err2: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
+		"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI $i || fail "Unit test error: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
 	done
 
 	for i in "$EASYRSA_CMD --batch $ERSA_LOOP_PKI build-client-full c04 nopass" \
