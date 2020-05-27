@@ -1066,6 +1066,7 @@ inline_renew ()
 # Get and format openssl serial number output
 openssl_crt_serial ()
 {
+	[ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
 	# get the serial number of the certificate -> serial=XXXX
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
 	# remove the serial= part -> we only need the XXXX part
@@ -1498,6 +1499,7 @@ b64_enc_metadata ()
 	openssl_ca_fp="$(fn_ca_fingerprint)"
 	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
 	# get the serial number of the certificate from openssl
+	crt_file="$cli_cert"
 	crt_serial=""
 	openssl_crt_serial
 
@@ -1544,8 +1546,8 @@ debug_metadata ()
 tls_crypt_v2_verify_disable_list ()
 {
 	name="$2"
-	cli_cert="$EASYRSA_PKI/issued/$name.crt"
-	[ -f "$cli_cert" ] || die "Cannot find certificate: $cli_cert"
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
+	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
 
 	# get the serial number of the certificate from openssl
 	crt_serial=""
@@ -1559,17 +1561,23 @@ tls_crypt_v2_verify_disable_list ()
 	case $1 in
 	disable) # Add serial number to the list
 		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 0 ] || die "Serial is disabled"
-		printf "%s\n" "$crt_serial $name" >> "$EASYTLS_DISABLED_LIST"
+		if [ $serial_disabled_status -eq 0 ]
+		then
+			disabled_list_updated=1
+			printf "%s\n" "$crt_serial $name" >> \
+			"$EASYTLS_DISABLED_LIST"
+		fi
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 1 ] || die "Serial disabled failed"
 	;;
 	enable) # Remove serial number from the list
 		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 1 ] || die "Serial is enabled"
-		sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
+		if [ $serial_disabled_status -eq 1 ]
+		then
+			disabled_list_updated=1
+			sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
 			"$EASYTLS_DISABLED_LIST"
-
+		fi
 		serial_disabled_status="$(search_disabled_list)"
 		[ $serial_disabled_status -eq 0 ] || die "Serial enabled failed"
 	;;
@@ -1581,7 +1589,12 @@ tls_crypt_v2_verify_disable_list ()
 	update_text="# Updated: $(date) -- $1: $name"
 	sed -i "/^\#\ Updated:.*$/d" "$EASYTLS_DISABLED_LIST"
 	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
-	notice "Updated disabled list: $name $1"
+	if [ $disabled_list_updated ]
+	then
+		notice "Updated disabled list: $name ${1}d"
+	else
+		notice "No change: $name is already ${1}d"
+	fi
 } # => tls_crypt_v2_verify_disable_list ()
 
 # Search disabled list for serial number
