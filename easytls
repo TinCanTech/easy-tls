@@ -938,7 +938,7 @@ inline_index_openssl_cert_list ()
 
 ############################################################################
 #
-# EASYTLS BUILD Section
+# EASYTLS INLINE Section
 #
 
 # Renew .inline file
@@ -1364,6 +1364,12 @@ inline_tls_crypt_v2 ()
 	return 0
 
 } # => inline_tls_crypt_v2 ()
+
+
+############################################################################
+#
+# EASYTLS BUILD Section
+#
 
 # Create TLS auth file
 build_tls_auth ()
