@@ -376,35 +376,13 @@ verify_openvpn ()
 	return 0
 } # => verify_openvpn ()
 
-# Verify Openvpn version
+# Jump through some hoops
 # 2.5 required for TLS crypt v2
 # 2.4 required for TLS crypt v1
-verify_openvpn_version ()
+extract_openvpn_version ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <ovpn_ver_req_maj>"
-
-	Ver_req_maj="$1"
-	Ver_str="$("$EASYTLS_OPENVPN" --version|grep ^OpenVPN|awk '{print $2}')"
-
-	Ver_ints="$(printf "%s" "$Ver_str" | sed "s/[^0123456789]/\ /g")"
-
-	Ver_main="$(printf "%s" "$Ver_ints" | awk '{print $1}')"
-	Ver_major="$(printf "%s" "$Ver_ints" | awk '{print $2}')"
-	Ver_minor="$(printf "%s" "$Ver_ints" | awk '{print $3}')"
-
-	Ver_main="${Ver_main:-0}"
-	Ver_major="${Ver_major:-0}"
-	Ver_minor="${Ver_minor:-0}"
-
-	[ $Ver_main -lt 2 ] && die "Openvpn 2.5 required, Found $Ver_str"
-	[ $Ver_major -lt $Ver_req_maj ] && \
-		die "Openvpn 2.$Ver_req_maj required, Found $Ver_str"
-	[ $Ver_minor -lt 0 ] && die "Openvpn 2 required, Found $Ver_str"
-
-	# explicitly return success for callers
-	# because reasons..
-	return 0
-
+	"$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}' | \
+	sed 's/[^0-9]/\ /g' | awk '{print $1 "." $2}'
 } # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
@@ -1377,12 +1355,21 @@ build_tls_auth ()
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	openvpn_version="$(extract_openvpn_version)"
+	case $openvpn_version in
+	2.5) build_string="--genkey tls-auth" ;;
+	2.4) build_string="--genkey --secret" ;;
+	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
+
 	key_file="$EASYTLS_PKI/tls-auth.key"
 
 	[ -f "$key_file" ] && \
 		die "TLS auth key already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$key_file" || \
+	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
 		die "Failed to create TLS auth key: $key_file"
 
 	notice "TLS auth key created: $key_file"
@@ -1391,19 +1378,24 @@ build_tls_auth ()
 # Create TLS crypt v1 file
 build_tls_crypt_v1 ()
 {
-	# Requires openvpn version 2.4
-	verify_openvpn_version 4
-
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	openvpn_version="$(extract_openvpn_version)"
+	case $openvpn_version in
+	2.5) build_string="--genkey tls-crypt" ;;
+	2.4) build_string="--genkey --secret" ;;
+	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
 
 	key_file="$EASYTLS_PKI/tls-crypt.key"
 
 	[ -f "$key_file" ] && \
 		die "TLS crypt v1 key already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey --secret "$key_file" || \
+	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
 		die "Failed to create TLS crypt v1 key: $key_file"
 
 	notice "TLS crypt v1 key created: $key_file"
@@ -1414,10 +1406,16 @@ build_tls_crypt_v2_server ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
 
-	# Requires openvpn version 2.5
-	verify_openvpn_version 5
-
+	# This is allowed without a complete Easy-RSA PKI
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
+
+	# Verify OpenVPN version - Requires openvpn version 2.5
+	openvpn_version="$(extract_openvpn_version)"
+	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
+
+	# and use correct syntax to --genkey
+	build_string="--genkey tls-crypt-v2-server"
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
@@ -1429,7 +1427,7 @@ Missing file: $srv_cert"
 
 	[ -f "$key_file" ] && die "Server file already exists: $key_file"
 
-	"$EASYTLS_OPENVPN" --genkey tls-crypt-v2-server "$key_file" || \
+	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
 		die "Failed to create tls-crypt-v2-server key: $key_file"
 
 	notice "TLS crypt v2 server key created: $key_file"
@@ -1444,13 +1442,18 @@ build_tls_crypt_v2_client ()
 	[ $# -eq 2 ] || \
 	warn "Ignoring unknown option(s): $3 $4 $5 .. etc."
 
-	# Requires openvpn version 2.5
-	verify_openvpn_version 5
-
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	verify_tls_init
 
 	# Need the CA
 	verify_ca_init
+
+	# Verify OpenVPN version - Requires openvpn version 2.5
+	openvpn_version="$(extract_openvpn_version)"
+	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
+
+	# and use correct syntax to --genkey
+	build_string="--genkey tls-crypt-v2-client"
 
 	ca_cert="$EASYRSA_PKI/ca.crt"
 	srv_name="$1"
@@ -1481,7 +1484,7 @@ Missing cli file: $cli_cert"
 	b64_enc_metadata
 
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
-		--genkey tls-crypt-v2-client "$key_file" "$b64_metadata" || \
+		$build_string "$key_file" "$b64_metadata" || \
 		die "Failed to create tls-crypt-v2-client key: $key_file"
 
 	notice "TLS crypt v2 client key created: $key_file"
