@@ -1524,12 +1524,6 @@ fn_ca_fingerprint ()
 	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
 } # => fn_ca_fingerprint ()
 
-# Extract client certificate serial
-#fn_cert_serial ()
-#{
-#	"$EASYRSA_OPENSSL" x509 -in "$cli_cert" -noout -serial
-#} # => fn_cert_serial ()
-
 # DEBUG metadata
 debug_metadata ()
 {
