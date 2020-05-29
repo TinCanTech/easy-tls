@@ -382,7 +382,7 @@ verify_openvpn ()
 extract_openvpn_version ()
 {
 	"$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}' | \
-	sed 's/[^0-9]/\ /g' | awk '{print $1 "." $2}'
+	sed 's/[^0-9]/ /g' | awk '{print $1 "." $2}'
 } # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
@@ -513,7 +513,7 @@ status_output ()
 # Format inline_status CN
 status_cn ()
 {
-	sed -e "s\`^.*/CN=\`\`g" -e "s\`/.*$\`\`g"
+	sed -e 's`^.*/CN=``g' -e 's`/.*$``g'
 }
 
 # Extract Valid records from openssl index.txt
@@ -910,7 +910,7 @@ inline_index_search_index_for_name ()
 inline_index_openssl_cert_list ()
 {
 	grep "^V.*$" "$EASYRSA_INDEX" | \
-		sed -e "s\`^.*/CN=\`\`g" -e "s\`/emailAddress=.*$\`\`g"
+		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
 }
 
 
@@ -1057,7 +1057,7 @@ openssl_crt_cn ()
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
 		-noout -subject -nameopt sep_multiline | \
 		grep "^[[:blank:]]*CN=.*$" | \
-		sed "s/^[[:blank:]]*CN=//g"
+		sed 's/^[[:blank:]]*CN=//g'
 }
 
 # Get current inline key direction
@@ -1506,7 +1506,7 @@ b64_enc_metadata ()
 	metadata_version="metadata_version_easytls_A4"
 	# CA fingerprint
 	openssl_ca_fp="$(fn_ca_fingerprint)"
-	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed "s/\ /\_/g")"
+	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed 's/ /_/g')"
 	# get the serial number of the certificate from openssl
 	crt_file="$cli_cert"
 	crt_serial=""
@@ -1590,7 +1590,7 @@ tls_crypt_v2_verify_disable_list ()
 
 	# Update time-stamp
 	update_text="# Updated: $(date) -- $1: $name"
-	sed -i "/^\#\ Updated:.*$/d" "$EASYTLS_DISABLED_LIST"
+	sed -i '/^# Updated:.*$/d' "$EASYTLS_DISABLED_LIST"
 	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
 	if [ $disabled_list_updated ]
 	then
