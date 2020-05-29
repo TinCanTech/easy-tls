@@ -369,11 +369,14 @@ $help_note"
 # Verify Openvpn is available
 verify_openvpn ()
 {
+	# TODO: Find openvpn and openvpn.exe correctly
 	[ -f "$EASYTLS_OPENVPN" ] || die "OpenVPN not found: $EASYTLS_OPENVPN"
-	ovpn_test="$("$EASYTLS_OPENVPN" --version|grep '^OpenVPN'|awk '{print $1}')"
-	[ "$ovpn_test" = "OpenVPN" ] || die "OpenVPN invalid: $EASYTLS_OPENVPN"
-	# explicitly return success for callers
-	return 0
+	openvpn_version="$(extract_openvpn_version)"
+	case $openvpn_version in
+	2.5) : ;;
+	2.4) : ;;
+	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
 } # => verify_openvpn ()
 
 # Jump through some hoops
