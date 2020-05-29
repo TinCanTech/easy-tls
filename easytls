@@ -370,7 +370,7 @@ $help_note"
 verify_openvpn ()
 {
 	[ -f "$EASYTLS_OPENVPN" ] || die "OpenVPN not found: $EASYTLS_OPENVPN"
-	ovpn_test="$("$EASYTLS_OPENVPN" --version|grep ^OpenV|awk '{print $1}')"
+	ovpn_test="$("$EASYTLS_OPENVPN" --version|grep '^OpenVPN'|awk '{print $1}')"
 	[ "$ovpn_test" = "OpenVPN" ] || die "OpenVPN invalid: $EASYTLS_OPENVPN"
 	# explicitly return success for callers
 	return 0
@@ -381,7 +381,7 @@ verify_openvpn ()
 # 2.4 required for TLS crypt v1
 extract_openvpn_version ()
 {
-	"$EASYTLS_OPENVPN" --version | grep ^OpenVPN | awk '{print $2}' | \
+	"$EASYTLS_OPENVPN" --version | grep '^OpenVPN' | awk '{print $2}' | \
 	sed 's/[^0-9]/ /g' | awk '{print $1 "." $2}'
 } # => verify_openvpn_version ()
 
@@ -531,7 +531,7 @@ status_revoked_extract_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	ersa_valid_serial_list="$(grep ^V "$EASYRSA_INDEX"|awk '{ print $3 }')"
+	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|awk '{ print $3 }')"
 	for i in $ersa_valid_serial_list
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
@@ -543,7 +543,7 @@ status_easyrsa_valid ()
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	ersa_revoked_serial_list="$(grep ^R "$EASYRSA_INDEX"|awk '{ print $4 }')"
+	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX"|awk '{ print $4 }')"
 	for i in $ersa_revoked_serial_list
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
@@ -638,7 +638,7 @@ cert_expire ()
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
 	else
-		easyrsa_valid_list="$(grep ^V "$EASYRSA_INDEX"|status_cn)"
+		easyrsa_valid_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
 
 		for i in $easyrsa_valid_list
 		do
@@ -909,7 +909,7 @@ inline_index_search_index_for_name ()
 # Dragon be here ! - Extract CN from openssl index.txt
 inline_index_openssl_cert_list ()
 {
-	grep "^V.*$" "$EASYRSA_INDEX" | \
+	grep '^V.*$' "$EASYRSA_INDEX" | \
 		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
 }
 
@@ -1056,14 +1056,14 @@ openssl_crt_cn ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
 		-noout -subject -nameopt sep_multiline | \
-		grep "^[[:blank:]]*CN=.*$" | \
+		grep '^[[:blank:]]*CN=.*$' | \
 		sed 's/^[[:blank:]]*CN=//g'
 }
 
 # Get current inline key direction
 inline_renew_key_direction ()
 {
-	grep "^key-direction [01]$" "$inline_file" | awk '{ print $2 }'
+	grep '^key-direction [01]$' "$inline_file" | awk '{ print $2 }'
 }
 
 # Create inline credentials file from Easy-RSA PKI
