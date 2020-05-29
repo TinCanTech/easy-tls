@@ -531,7 +531,7 @@ status_revoked_extract_cn ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
-	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|awk '{ print $3 }')"
+	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|awk '{print $3}')"
 	for i in $ersa_valid_serial_list
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
@@ -543,7 +543,7 @@ status_easyrsa_valid ()
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
-	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX"|awk '{ print $4 }')"
+	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX"|awk '{print $4}')"
 	for i in $ersa_revoked_serial_list
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
@@ -555,7 +555,7 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	etls_valid_serial="$(awk '{ print $2 }' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_serial="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
 	etls_valid_serial_list="$etls_valid_serial_list $etls_valid_serial"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
@@ -728,14 +728,14 @@ inline_index_common_name_to_serial ()
 {
 	# TODO: This could be effected by duplicate names from easyrsa
 	grep "^${name}[[:blank:]].*$" \
-		"$EASYTLS_INLINE_INDEX" | awk '{ print $2 }'
+		"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
 }
 
 # Get Common name from inline index file using serial number as key
 inline_index_serial_to_common_name ()
 {
 	grep "^.*[[:blank:]]${crt_serial}[[:blank:]].*$" \
-		"$EASYTLS_INLINE_INDEX" | awk '{ print $1 }'
+		"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
 }
 
 # Search for hash
@@ -797,7 +797,7 @@ inline_remove ()
 # Get serial number from inline file
 inline_serial_number ()
 {
-	grep "^# Serial number: .*$" "$inline_file" | awk '{ print $4 }'
+	grep "^# Serial number: .*$" "$inline_file" | awk '{print $4}'
 }
 
 # Rebuild inline index
@@ -1063,7 +1063,7 @@ openssl_crt_cn ()
 # Get current inline key direction
 inline_renew_key_direction ()
 {
-	grep '^key-direction [01]$' "$inline_file" | awk '{ print $2 }'
+	grep '^key-direction [01]$' "$inline_file" | awk '{print $2}'
 }
 
 # Create inline credentials file from Easy-RSA PKI
