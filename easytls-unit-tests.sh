@@ -206,7 +206,7 @@ do
 	PKI_DIR="$WORK_DIR/pki2"
 	DBUG_DIR="$WORK_DIR/pki2/easytls"
 
-	ETLS_LOOP_PKI="--pki-dir=$WORK_DIR/pki2"
+	#ETLS_LOOP_PKI="--pki-dir=\"$WORK_DIR/pki2\""
 
 done # => loops
 

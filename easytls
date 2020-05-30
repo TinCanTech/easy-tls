@@ -674,7 +674,7 @@ inline_index_update ()
 	case "$update_index_action" in
 	add)
 		# Create new HASH here
-		inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
+		inline_hash="$(inline_index_gen_hash)"
 		printf "%s\n" "$name $crt_serial $inline_hash" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
@@ -710,7 +710,7 @@ inline_index_check_hash ()
 		die "inline_index_check_hash: Missing file: $inline_file"
 
 	# Calculate current file HASH
-	inline_hash="$(openssl sha1 "$inline_file" | awk '{print $2}')"
+	inline_hash="$(inline_index_gen_hash)"
 
 	# Search for calculated current HASH
 	find_hash="$(inline_index_search_hash)"
@@ -740,6 +740,11 @@ inline_index_serial_to_common_name ()
 		"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
 }
 
+# Generate HASH of inline file
+inline_index_gen_hash ()
+{
+	openssl sha1 "$inline_file" | awk '{print $NF}'
+}
 # Search for hash
 inline_index_search_hash ()
 {
@@ -871,6 +876,9 @@ inline_index_rebuild ()
 		[ $add_inline_record ] && inline_index_update add
 	done
 
+	OFS="$IFS"
+	IFS='
+'
 	# Create records from easytls current inline files list
 	for full_file_name in $etls_inline_file_list
 	do
@@ -892,6 +900,9 @@ inline_index_rebuild ()
 
 		[ $add_inline_record ] && inline_index_update add
 	done
+
+	IFS="$OFS"
+	unset OFS
 
 	# Verify
 	inline_status
