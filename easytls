@@ -746,7 +746,7 @@ inline_index_serial_to_common_name ()
 # Generate HASH of inline file
 inline_index_gen_hash ()
 {
-	openssl sha1 "$inline_file" | awk '{print $NF}'
+	"$EASYRSA_OPENSSL" sha1 "$inline_file" | awk '{print $NF}'
 }
 # Search for hash
 inline_index_search_hash ()
