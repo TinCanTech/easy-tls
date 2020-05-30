@@ -212,6 +212,8 @@ non-empty values to options are mandatory.
 
 General options:
 
+--openvpn=FILE  : The full (or relative) <path to> and <file-name of>
+                  your preferred openvpn(.exe) executable openvpn file.
 --batch         : set automatic (no-prompts when possible) mode
 --silent        : Silence all message output except prompts
 --pki-dir=DIR   : declare the EasyRSA PKI directory
@@ -1750,6 +1752,8 @@ while :; do
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
 		export EASYTLS_TLSCV2_CG="$val" ;;
+	--openvpn)
+		export EASYTLS_OPENVPN="$val" ;;
 	*)
 		break ;;
 	esac
