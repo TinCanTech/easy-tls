@@ -680,9 +680,6 @@ inline_index_update ()
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
-		# Check saved HASH here
-		# If .inline file has been removed then this check has been run
-		[ $inline_removed ] || inline_index_check_hash
 		sed -i -e \
 		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
 			"$EASYTLS_INLINE_INDEX" || \
@@ -789,7 +786,6 @@ inline_remove ()
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
-	inline_removed=1
 	inline_index_update del
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
