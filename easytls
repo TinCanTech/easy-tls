@@ -755,6 +755,26 @@ inline_index_search_hash ()
 		"$EASYTLS_INLINE_INDEX"
 }
 
+# Get serial number from inline file
+inline_crt_serial ()
+{
+	grep "^# Serial number: .*$" "$inline_file" | awk '{print $4}'
+}
+
+# Does this .inline file name already have an index record
+inline_index_search_index_for_name ()
+{
+	printf '%s\n' "$etls_inline_record_list" | \
+		grep -c "[[:blank:]]${name}[[:blank:]]"
+}
+
+# Dragon be here ! - Extract CN from openssl index.txt
+inline_index_openssl_valid_cn_list ()
+{
+	grep '^V.*$' "$EASYRSA_INDEX" | \
+		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
+}
+
 # Copy inline to stdout
 inline_show ()
 {
@@ -804,12 +824,6 @@ inline_remove ()
 
 } # => inline_remove ()
 
-# Get serial number from inline file
-inline_crt_serial ()
-{
-	grep "^# Serial number: .*$" "$inline_file" | awk '{print $4}'
-}
-
 # Rebuild inline index
 inline_index_rebuild ()
 {
@@ -836,7 +850,7 @@ inline_index_rebuild ()
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
 
 	# Get list of certs from openssl index.txt
-	ersa_valid_cert_list="$(inline_index_openssl_cert_list)"
+	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
 	# Create new easytls index file
 	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
@@ -914,20 +928,6 @@ inline_index_rebuild ()
 	# Inform
 	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
 } # => inline_index_rebuild
-
-# Does this .inline file name already have an index record
-inline_index_search_index_for_name ()
-{
-	printf '%s\n' "$etls_inline_record_list" | \
-		grep -c "[[:blank:]]${name}[[:blank:]]"
-}
-
-# Dragon be here ! - Extract CN from openssl index.txt
-inline_index_openssl_cert_list ()
-{
-	grep '^V.*$' "$EASYRSA_INDEX" | \
-		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
-}
 
 
 ############################################################################
