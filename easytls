@@ -729,6 +729,9 @@ inline_index_check_hash ()
 inline_index_common_name_to_serial ()
 {
 	# TODO: This could be effected by duplicate names from easyrsa
+	# This function is defunct but keep it for the EasyRSA early warning
+	# Other functions could be effected
+	# https://github.com/TinCanTech/easy-tls/issues/48
 	grep "^${name}[[:blank:]].*$" \
 		"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
 }
@@ -761,8 +764,9 @@ inline_show ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	verify_tls_init
+
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	crt_serial="$(inline_index_common_name_to_serial)"
+	crt_serial="$(inline_crt_serial)"
 	inline_index_check_hash || die "Failed HASH: $inline_file"
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
@@ -780,7 +784,7 @@ inline_remove ()
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	# Get serial number from inline file
-	crt_serial="$(inline_serial_number)"
+	crt_serial="$(inline_crt_serial)"
 
 	# Confirm remove
 	[ ! $silent_remove ] && \
@@ -801,7 +805,7 @@ inline_remove ()
 } # => inline_remove ()
 
 # Get serial number from inline file
-inline_serial_number ()
+inline_crt_serial ()
 {
 	grep "^# Serial number: .*$" "$inline_file" | awk '{print $4}'
 }
@@ -892,7 +896,7 @@ inline_index_rebuild ()
 		part_file_name="${full_file_name%*.inline}"
 		name="${part_file_name##*/}"
 		[ -f "$inline_file" ] || die "Missing: $inline_file"
-		crt_serial="$(inline_serial_number)"
+		crt_serial="$(inline_crt_serial)"
 
 		# If found an un-indexed inline file then index it
 		inline_file_found_indexed="$(inline_index_search_index_for_name)"
