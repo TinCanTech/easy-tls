@@ -762,7 +762,7 @@ inline_crt_serial ()
 }
 
 # Does this .inline file name already have an index record
-inline_index_search_valid_cn_list_for_name ()
+inline_index_search_valid_cn_list ()
 {
 	printf '%s\n' "$etls_inline_record_list" | \
 		grep -c "[[:blank:]]${name}[[:blank:]]"
@@ -913,7 +913,7 @@ inline_index_rebuild ()
 		crt_serial="$(inline_crt_serial)"
 
 		# If found an un-indexed inline file then index it
-		inline_file_found_indexed="$(inline_index_search_valid_cn_list_for_name)"
+		inline_file_found_indexed="$(inline_index_search_valid_cn_list)"
 		[ $inline_file_found_indexed -eq 0 ] && add_inline_record=1
 
 		[ $add_inline_record ] && inline_index_update add
