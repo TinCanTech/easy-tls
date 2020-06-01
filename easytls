@@ -548,13 +548,13 @@ status_cn ()
 # Extract Valid records from openssl index.txt by crt_serial
 status_valid_extract_cn ()
 {
-	grep "^V.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
+	grep "^V.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
 }
 
 # Extract Revoked records from openssl index.txt by crt_serial
 status_revoked_extract_cn ()
 {
-	grep "^R.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
+	grep "^R.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
 }
 
 # Search ersa revoked serial list for etls valid serial
@@ -1645,7 +1645,7 @@ b64_enc_metadata ()
 
 	[ $EASYTLS_TRAVIS_CI ] && debug_metadata
 
-	[ $EASYTLS_SILENT ] || printf "%s\n" "metadata: $metadata"
+	[ $EASYTLS_VERBOSE ] && printf "%s\n" "metadata: $metadata"
 	# Base64 encode metadata
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
