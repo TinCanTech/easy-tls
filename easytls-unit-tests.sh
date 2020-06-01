@@ -99,9 +99,14 @@ PKI_DIR="$WORK_DIR/pki"
 DBUG_DIR="$WORK_DIR/pki/easytls"
 LOOP_PKI=""
 
+export EASYTLS_OPENVPN=./openvpn
+export EASYRSA_CERT_RENEW=10000
+
+
 for loops in 1 2
 do
 
+	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-client-full c01 nopass" \
@@ -110,20 +115,22 @@ do
 		"build-client-full c05 nopass" \
 		"build-client-full c06 nopass" \
 		"build-client-full c07 nopass" \
+		"build-client-full c08 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
 		print "============================================================"
-		"$EASYRSA_CMD" --batch $ERSA_LOOP_PKI $i || fail "err1: $EASYRSA_CMD --batch $ERSA_LOOP_PKI $i"
+		"$EASYRSA_CMD" --batch $ERSA_LOOP_PKI $i || fail "Unit test error 1: $EASYRSA_CMD --batch $ERSA_LOOP_PKI $i"
 	done
 
-	# This may be becoming unwieldy
+	# Test EasyTLS
 	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
 		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
 		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
 		"inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
@@ -135,22 +142,33 @@ do
 		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
 		"inline-tls-crypt-v2 c05" "inline-status" "disable c05" "enable c05" \
 		"inline-tls-crypt-v2 c06" "inline-status" \
+		"inline-tls-crypt-v2 c08" "inline-status" \
 		"inline-index-rebuild" \
 		## EOL
 	do
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $ETLS_LOOP_PKI --batch $i"
-		"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI $i || fail "Unit test error: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
+		"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI $i || fail "Unit test error 2: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
 	done
 
+	# Create some certs out of order - These are intended to break EasyTLS
+	# Renew c08, which completely breaks EasyTLS
 	for i in "$EASYRSA_CMD --batch $ERSA_LOOP_PKI build-client-full c04 nopass" \
-		"$EASYTLS_CMD --batch $ETLS_LOOP_PKI build-tls-crypt-v2-client s01 c04" \
-		"$EASYTLS_CMD --batch $ETLS_LOOP_PKI inline-tls-crypt-v2 c04" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c04" "$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c06" "$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
-		"$EASYTLS_CMD $ETLS_LOOP_PKI inline-status" "$EASYTLS_CMD $ETLS_LOOP_PKI cert-expire"
+		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI build-tls-crypt-v2-client s01 c04" \
+		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-tls-crypt-v2 c04" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c04" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c06" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
+		"$EASYTLS_CMD --verbose $ETLS_LOOP_PKI inline-status" \
+		"$EASYTLS_CMD --verbose $ETLS_LOOP_PKI cert-expire" \
+		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-status" \
+		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI renew c08 nopass" \
+		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-status" \
+		## EOL
 	do
-		$i
+		print "============================================================"
+		$i || fail "Unit test error 3: $i"
 	done
 
 	print "============================================================"
@@ -159,7 +177,8 @@ do
 	--genkey tls-crypt-v2-client "$DBUG_DIR/c07-tls-crypt-v2.key"
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
-	"$EASYTLS_CMD" --batch inline-tls-crypt-v2 c07
+	# Inline c07
+	"$EASYTLS_CMD" --verbose --batch inline-tls-crypt-v2 c07
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
@@ -195,7 +214,7 @@ do
 		echo
 	done
 	print "============================================================"
-	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
+	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI inline-status
 	print "============================================================"
 
 	# Build env for next loop
@@ -246,11 +265,17 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 		echo "exit: $?"
 		echo
 	done
-	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-status
+	print "============================================================"
+	print "inline-status"
+	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI inline-status
+	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
 	rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
-	"$EASYTLS_CMD" --batch $ETLS_LOOP_PKI inline-index-rebuild
+	print "============================================================"
+	print "inline-index-rebuild"
+	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI inline-index-rebuild || \
+		fail "Unit test error 4: $EASYTLS_CMD --batch $ETLS_LOOP_PKI inline-index-rebuild"
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"

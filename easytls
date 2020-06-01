@@ -214,12 +214,13 @@ General options:
 
 --openvpn=FILE  : The full (or relative) <path to> and <file-name of>
                   your preferred openvpn(.exe) executable openvpn file.
---batch         : set automatic (no-prompts when possible) mode
---silent        : Silence all message output except prompts
---pki-dir=DIR   : declare the EasyRSA PKI directory
---vars=FILE     : define a specific 'vars' file to use for Easy-RSA config
---dh=FILE       : define an alternate Diffy Hellman parameters file
---custom-group  : Append a custom field to the default TLS crypt v2 metadata
+--batch         : set automatic (no-prompts when possible) mode.
+--verbose       : Verbose output.
+--silent        : Silence all message output except prompts.
+--pki-dir=DIR   : declare the EasyRSA PKI directory.
+--vars=FILE     : define a specific 'vars' file to use for Easy-RSA config.
+--dh=FILE       : define an alternate Diffy Hellman parameters file.
+--custom-group  : Append a custom field to the default TLS crypt v2 metadata.
                   This field can also be matched in tls-crypt-v2-verify.sh
                   with the command line option: -g|--custom-group XYZ
                   XYZ MUST be a single alphanumerical word with NO spaces"
@@ -255,7 +256,7 @@ cleanup()
 warn()
 {
 	[ "$EASYTLS_SILENT" ] && return 0
-		print "
+		print "WARNING
 $1" 1>&2
 } # => warn()
 
@@ -372,6 +373,7 @@ $help_note"
 verify_openvpn ()
 {
 	# TODO: Find openvpn and openvpn.exe correctly
+	help_note="See ./easytls help options - Option: --openvpn"
 	[ -f "$EASYTLS_OPENVPN" ] || die "OpenVPN not found: $EASYTLS_OPENVPN"
 	openvpn_version="$(extract_openvpn_version)"
 	case $openvpn_version in
@@ -379,6 +381,7 @@ verify_openvpn ()
 	2.4) : ;;
 	*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
+	unset help_note
 } # => verify_openvpn ()
 
 # Jump through some hoops
@@ -441,10 +444,16 @@ Your newly created TLS dir is: $EASYTLS_PKI
 # Run on exit to avoid "checken and egg" with init-tls
 inline_auto_check ()
 {
+	[ $auto_check_disabled ] && return 0
 	auto_check=1
 	inline_status invalid
-	[ $mismatch_count -eq 0 ] || \
-		warn "EasyTLS: Invalid .inline files found."
+	[ $revoked_mismatch_count -eq 0 ] || \
+		warn "EasyTLS: Invalid .inline files found: Revoked certs."
+
+	inline_status renewed
+	[ $renewed_mismatch_count -eq 0 ] || \
+		warn "EasyTLS: Invalid .inline files found: Renewed certs."
+
 	unset auto_check
 }
 
@@ -452,6 +461,7 @@ inline_auto_check ()
 # Report invalid inline files due to certificate revokation
 inline_status ()
 {
+	[ $auto_check ] || auto_check_disabled=1
 	subsection="$1"
 
 	verify_ca_init
@@ -461,6 +471,7 @@ inline_status ()
 	ersa_revoked_cn_list=""
 	ersa_revoked_serial_list=""
 	#easytls_valid_cn_list=""
+	etls_valid_name_list=""
 	etls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
 
@@ -481,10 +492,20 @@ inline_status ()
 				status_easyrsa_revoked
 				verify_tls_init
 				status_easytls_inline
-				status_easytls_invalid
 				unset silent_status
+				status_easytls_invalid
 				;;
-		*)		print "Unknown status option" ;;
+		renewed)
+				silent_status=1
+				status_easyrsa_valid
+				status_easyrsa_revoked
+				verify_tls_init
+				status_easytls_inline
+				unset silent_status
+				status_easyrsa_renewed
+				;;
+		*)
+				print "Unknown status option" ;;
 		esac
 		#unset EASYTLS_SILENT
 		return 0
@@ -507,6 +528,9 @@ inline_status ()
 	print "Easy-TLS: Invalid inline files:"
 	status_easytls_invalid
 
+	print "Easy-RSA: Renewed certificates:"
+	status_easyrsa_renewed
+
 } #=> inline_status ()
 
 # Format inline_status output
@@ -521,13 +545,13 @@ status_cn ()
 	sed -e 's`^.*/CN=``g' -e 's`/.*$``g'
 }
 
-# Extract Valid records from openssl index.txt
+# Extract Valid records from openssl index.txt by crt_serial
 status_valid_extract_cn ()
 {
 	grep "^V.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
 }
 
-# Extract Revoked records from openssl index.txt
+# Extract Revoked records from openssl index.txt by crt_serial
 status_revoked_extract_cn ()
 {
 	grep "^R.*[[:space:]]${i}[[:space:]]" "$EASYRSA_INDEX" | status_cn
@@ -573,6 +597,8 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
+	etls_valid_name="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_name_list="$etls_valid_name_list $etls_valid_name"
 	etls_valid_serial="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
 	etls_valid_serial_list="$etls_valid_serial_list $etls_valid_serial"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
@@ -589,7 +615,7 @@ status_easytls_revoked ()
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
-	mismatch_count=0
+	revoked_mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
 		crt_serial=$i
@@ -604,7 +630,7 @@ status_easytls_invalid ()
 			:
 		;;
 		1)
-			mismatch_count=$((mismatch_count+1))
+			revoked_mismatch_count=$((revoked_mismatch_count+1))
 			[ $auto_check ] || status_invalid_inline_list
 		;;
 		*)
@@ -614,7 +640,61 @@ status_easytls_invalid ()
 		;;
 		esac
 	done
-} # => status_easytls_mismatch
+} # => status_easytls_invalid ()
+
+# Print Renewed certs from Easy-RSA if they are inlined
+status_easyrsa_renewed ()
+{
+	renewed_mismatch_count=0
+	# REMEMBER: If there is no inline file for a cert
+	# then EasyTLS does not care if the cert is renewed
+
+	for i in $etls_valid_name_list
+	do
+
+	name=$i
+	inline_file="$EASYTLS_PKI/$name.inline"
+	[ -f "$inline_file" ] || die "Not found: inline_file = $inline_file"
+	inline_serial="$(inline_crt_serial)"
+
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
+	if [ -f "$crt_file" ]
+	then
+
+		# openssl_crt_serial DIFFERENT BEHAVIOUR TO inline_crt_serial
+		crt_serial=""
+		openssl_crt_serial
+
+		if [ "$inline_serial" = "$crt_serial" ]
+		then
+			# serial match, inline is upto date
+			:
+		else
+			# serial mismatch, cert has been renewed in EasyRSA
+			renewed_mismatch_count=$((renewed_mismatch_count+1))
+			if [ $silent_status ]
+			then
+				# No output
+				:
+			else
+				[ $auto_check ] || { \
+				print "  Common-Name $name"
+				print "    Inline-Serial $inline_serial"
+				print "    Cert-Serial   $crt_serial"
+				}
+
+			fi
+		fi
+	else
+		# EasyRSA renew is broken
+		# cert is probably revoked
+		:
+	fi
+
+	# End of for loop
+	done
+
+} # => status_easyrsa_renewed ()
 
 # Extract enddate from certificate
 crt_expire_date ()
@@ -673,13 +753,21 @@ inline_index_update ()
 
 	case "$update_index_action" in
 	add)
+		# Add the inline_serial not the crt_serial
+		inline_serial="$(inline_crt_serial)"
 		# Create new HASH here
 		inline_hash="$(inline_index_gen_hash)"
-		printf "%s\n" "$name $crt_serial $inline_hash" >> \
+		[ $EASYTLS_VERBOSE ] && \
+			printf "%s\n" "  ADD: $name $inline_serial $inline_hash"
+
+		printf "%s\n" "$name $inline_serial $inline_hash" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
+		[ $EASYTLS_VERBOSE ] && \
+			printf "%s\n" "  DEL: $name $crt_serial $inline_hash"
+
 		sed -i -e \
 		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
 			"$EASYTLS_INLINE_INDEX" || \
@@ -758,7 +846,7 @@ inline_index_search_hash ()
 # Get serial number from inline file
 inline_crt_serial ()
 {
-	grep "^# Serial number: .*$" "$inline_file" | awk '{print $4}'
+	grep '^# Serial number: .*$' "$inline_file" | awk '{print $4}'
 }
 
 # Does this .inline file name already have an index record
@@ -842,13 +930,14 @@ inline_index_rebuild ()
 	[ -f "$EASYTLS_INLINE_INDEX" ] && \
 		cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup"
 
-	# Get list of files from easytls directory
 	# There is no other way to do this because we need the actual files
-	etls_inline_file_list="$(ls -1 "$EASYTLS_PKI/"*".inline")"
+	# Get list of files from easytls directory
+	etls_inline_file_list="$(ls -1 "$EASYTLS_PKI"/*.inline)"
 
 	# Check openssl index.txt
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
 
+	# This is where the duplicate names creep in
 	# Get list of certs from openssl index.txt
 	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
@@ -862,7 +951,14 @@ inline_index_rebuild ()
 		# Reset flag
 		unset add_inline_record
 
-		name="$i"
+		# If the name is not a single word then the certificate
+		# has been renewed in EasyRSA, which means:
+		# There are two Valid record in openssl index.txt
+		# with the same CommonName
+		# Mitigate this disaster here
+		name="$(printf "%s" "$i" | awk 1 ORS=' ')"
+		name="${name%% *}"
+
 		crt_serial=""
 		inline_file="$EASYTLS_PKI/$name.inline"
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
@@ -883,12 +979,20 @@ inline_index_rebuild ()
 			etls_inline_record_list="$etls_inline_record_list $name "
 			}
 
+		# If there is an inline-index record for this name
+		# then do NOT add another
+		if grep -q "^${name}[[:blank:]]" "$EASYTLS_INLINE_INDEX"
+		then
+			unset add_inline_record
+		fi
+
 		# Verify the openssl cert CN
 		openssl_cert_cn="$(openssl_crt_cn)"
 		[ "$name" = "$openssl_cert_cn" ] || \
 			die "CommonName mismatch for :$name: :$openssl_cert_cn:"
 
-		# Get the openssl cert serial
+		# This always returns the first crt_serial
+		# Get the openssl crt_serial
 		openssl_crt_serial
 
 		[ $add_inline_record ] && inline_index_update add
@@ -922,12 +1026,14 @@ inline_index_rebuild ()
 	IFS="$OFS"
 	unset OFS
 
+	# Inform
+	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
+	print
+
 	# Verify
 	inline_status
 
-	# Inform
-	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
-} # => inline_index_rebuild
+} # => inline_index_rebuild ()
 
 
 ############################################################################
@@ -1060,7 +1166,8 @@ inline_renew ()
 # Get and format openssl serial number output
 openssl_crt_serial ()
 {
-	[ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
+	# Testing the file here is not suitable
+	# [ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
 	# get the serial number of the certificate -> serial=XXXX
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
 	# remove the serial= part -> we only need the XXXX part
@@ -1756,6 +1863,9 @@ while :; do
 		export EASYRSA_PKI="$val" ;;
 	--vars)
 		export EASYRSA_VARS_FILE="$val" ;;
+	--verbose)
+		empty_ok=1
+		export EASYTLS_VERBOSE=1 ;;
 	--silent)
 		empty_ok=1
 		export EASYTLS_SILENT=1 ;;
@@ -1840,10 +1950,10 @@ case "$cmd" in
 		cert_expire "$@"
 		;;
 	disable)
-		tls_crypt_v2_verify_disable_list disable "$@"
+		tls_crypt_v2_verify_disable_list "disable" "$@"
 		;;
 	enable)
-		tls_crypt_v2_verify_disable_list enable "$@"
+		tls_crypt_v2_verify_disable_list "enable" "$@"
 		;;
 	version|-v|--version)
 		easy_tls_version
