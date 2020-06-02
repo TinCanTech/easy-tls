@@ -1,5 +1,6 @@
 EasyTLS HOWTO:
 
+
 Introduction:
 
   The main focus of Easy-TLS is to provide an easy way to manage OpenVPN
@@ -72,7 +73,7 @@ TLS Crypt v2 details:
 
         CA Identity construction:
 
-            'SHA512_Identity=$ca_identity'
+            "SHA512_Identity=$ca_identity"
 
         ca_identity field construction:
 
@@ -86,7 +87,6 @@ TLS Crypt v2 details:
         easytls-ca-identity.txt:
 
             $( openssl -rand -hex -out easytls/easytls-ca-identity.txt 64 )
-
 
     3.  Client certificate serial number
 
@@ -137,7 +137,7 @@ Howto resolve issues with Invalid .inline files:
   and keep the EasyTLS index up-to-date.
 
 
-Howro resolve issues with the EasyTLS inline-index:
+Howto resolve issues with the EasyTLS inline-index:
 
   In the unlikely event that something does go wrong with the EasyTLS Inline Index
   then simply use './easytls inline-index-rebuild'
