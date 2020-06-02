@@ -154,7 +154,7 @@ fn_local_ca_fingerprint ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
 	then
-		printf "$ca_identity"
+		printf "%s\n" "$ca_identity"
 
 	else
 		openssl x509 -in "$ca_cert" -noout -fingerprint | sed "s/\ /\_/g"

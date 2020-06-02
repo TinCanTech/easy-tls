@@ -1673,12 +1673,23 @@ b64_enc_metadata ()
 	if [ $EASYTLS_SECURE ]
 	then
 		[ -f "$ca_key" ] || die "Missing CA Key!"
+
+		ca_crt_hash="$(openssl sha256 "$ca_cert" | awk '{print $2}')"
+		[ -z "$ca_crt_hash" ] && die "Missing ca_crt_hash: $ca_crt_hash"
+
+		ca_key_hash="$(openssl sha256 "$ca_key" | awk '{print $2}')"
+		[ -z "$ca_key_hash" ] && die "Missing ca_key_hash: $ca_key_hash"
+
 		openssl_ca_id="$(fn_ca_identity)"
-		openssl_ca_id="${openssl_ca_id##* }"
+
+		failed_ca_id="$(printf "%s%s" "" "" | openssl sha512)"
+		[ "$openssl_ca_id" = "$failed_ca_id" ] && \
+			die "CA Identity check failed!"
 
 		ca_identity="SHA512_Identity=$openssl_ca_id"
 		easytls_lock="$ca_identity"
-		printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY"
+		printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
+			die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
 	fi
 
 	# get the serial number of the certificate from openssl
@@ -1710,7 +1721,8 @@ fn_ca_fingerprint ()
 # Generate ultra-secure CA identity
 fn_ca_identity ()
 {
-	cat "$ca_cert" "$ca_key" | "$EASYRSA_OPENSSL" sha512
+	printf "%s%s" "$ca_crt_hash" "$ca_key_hash" | \
+		"$EASYRSA_OPENSSL" sha512 | awk '{print $2}'
 }
 
 # DEBUG metadata
