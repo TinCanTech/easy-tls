@@ -128,6 +128,7 @@ help_text ()
   26  - USER ERROR Disallow connection, missing safessl-easyrsa.cnf.
   27  - USER ERROR Disallow connection, missing EasyTLS disabled list.
   28  - USER ERROR Disallow connection, missing openvpn server metadata_file.
+  33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
@@ -593,7 +594,9 @@ deps
 # Check metadata CA fingerprint against local CA fingerprint
 if [ "$local_ca_fingerprint" = "$metadata_ca_fingerprint" ]
 then
-	success_msg="$success_msg CA Fingerprint OK ==>"
+	insert_msg="CA Fingerprint OK ==>"
+	[ $TLS_CRYPT_V2_VERIFY_SECURE ] && insert_msg="CA Identity OK ==>"
+	success_msg="$success_msg $insert_msg"
 else
 	failure_msg="CA Fingerprint mismatch"
 	fail_and_exit "FINGER_PRINT_MISMATCH" 3

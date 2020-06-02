@@ -220,6 +220,8 @@ General options:
 
 --openvpn=FILE  : The full (or relative) <path to> and <file-name of>
                   your preferred openvpn(.exe) executable openvpn file.
+--secure        : Use a random data field HASH to generate all client
+                  TLS crypt V2 keys.  (Same data is used for all clients)
 --batch         : set automatic (no-prompts when possible) mode.
 --verbose       : Verbose output.
 --silent        : Silence all message output except prompts.
@@ -406,6 +408,7 @@ verify_tls_init ()
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
+	[ -f "$EASYTLS_CA_RANDOM" ] || die "EasyTLS has not been initialised"
 	verify_openvpn
 } # => verify_tls_init ()
 
@@ -439,6 +442,14 @@ and initialize a fresh TLS PKI here."
 	date_text="# Created: $(date)"
 	printf "%s\n%s\n" "$head_text" "$date_text" > "$EASYTLS_DISABLED_LIST" \
 		|| die "Failed to create disabled list"
+
+	# Create and save random data for TLS crypt V2 client "secure CA-ID"
+	openssl rand -hex -out "$EASYTLS_CA_RANDOM" 64
+	# Save random data as record #1 in easytls inline index
+	sec_data="$(cat "$EASYTLS_CA_RANDOM")"
+	printf "%s %s %s\n" "TCV2C" "Secure_HASH" "$sec_data" \
+		> "$EASYTLS_INLINE_INDEX" || \
+		die "Failed to update $EASYTLS_INLINE_INDEX"
 
 	notice "\
 init-tls complete; you may now create TLS keys and .inline files.
@@ -604,8 +615,10 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	etls_valid_name_list="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
-	etls_valid_serial_list="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_name_list="$(awk '{print $1 " "}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_name_list="${etls_valid_name_list#* }"
+	etls_valid_serial_list="$(awk '{print $2 " "}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_serial_list="${etls_valid_serial_list#* }"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
@@ -764,15 +777,17 @@ inline_expire ()
 		inline_expire="$(inline_expire_date)"
 		print " Certificate: $name.inline   Expire-date: $inline_expire"
 	else
-		easytls_inline_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
-		etls_valid_name_list="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
+	# Get a list of Valid names from easytls-inline-index
+	etls_valid_name_list="$(awk '{print $1 " "}' "$EASYTLS_INLINE_INDEX")"
+	# Remove the first record (EasyTLS Random data for TCV"-Client key)
+	etls_valid_name_list="${etls_valid_name_list#* }"
 
 		for name in $etls_valid_name_list
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
 			[ -f "$inline_file" ] || die "Missing: $inline_file"
 			inline_expire="$(inline_expire_date)"
-			print " Certificate: $name.inline   Expire-date: $inline_expire"
+		print " Inline-file: $name.inline   Expire-date: $inline_expire"
 		done
 	fi
 } # => inline_expire ()
@@ -795,8 +810,8 @@ inline_index_update ()
 		[ $EASYTLS_VERBOSE ] && \
 			printf "%s\n" "  ADD: $name $inline_serial $inline_hash"
 
-		printf "%s\n" "$name $inline_serial $inline_hash" >> \
-			"$EASYTLS_INLINE_INDEX" || \
+			printf "%s\n" "$name $inline_serial $inline_hash" >> \
+				"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
@@ -976,8 +991,11 @@ inline_index_rebuild ()
 	# Get list of certs from openssl index.txt
 	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
+	# Get the Random data record
+	random_record="$(grep 'TCV2C Secure_HASH' "$EASYTLS_INLINE_INDEX")"
+
 	# Create new easytls index file
-	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
+	printf "%s\n" "$random_record" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
 	# Create records from openssl Valid names list
@@ -1614,7 +1632,6 @@ build_tls_crypt_v2_client ()
 	build_string="--genkey tls-crypt-v2-client"
 
 	ca_cert="$EASYRSA_PKI/ca.crt"
-	ca_key="$EASYRSA_PKI/private/ca.key"
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
@@ -1653,13 +1670,16 @@ Missing cli file: $cli_cert"
 b64_enc_metadata ()
 {
 	# metadata strings:
-	# 1. Metadata version: xx (Simple hex)
-	# 2. CA SHA1 Fingerprint, contiguous single field
-	#    `openssl output` Change space to underscore
-	# 3. Client certificate serial, contiguous single field
-	#    `openssl output` Drop the 'serial='
-	# 4. Client CommonName
-	# 5. Custom Group string
+	# 1.  Metadata version: xx (Simple hex)
+	# 2.a CA SHA1 Fingerprint, contiguous single field
+	#     `openssl output` Change space to underscore
+	# 2.b SHA512 of (SHA256 of CA.crt + SHA256 of random data field 16^128)
+	#     single contiguous field with hidden data
+	#     Same for all clients of a given PKI
+	# 3.  Client certificate serial, contiguous single field
+	#     `openssl output` Drop the 'serial='
+	# 4.  Client CommonName
+	# 5.  Custom Group string
 
 	# metadata_version
 	metadata_version="metadata_version_easytls"
@@ -1672,22 +1692,33 @@ b64_enc_metadata ()
 	# CA Identity
 	if [ $EASYTLS_SECURE ]
 	then
-		[ -f "$ca_key" ] || die "Missing CA Key!"
+		# If EASYTLS_CA_RANDOM does not exist
+		# then recreate it from inline index
+		[ -f "$EASYTLS_CA_RANDOM" ] || rebuild_ca_random
 
-		ca_crt_hash="$(openssl sha256 "$ca_cert" | awk '{print $2}')"
+		# HASH the random file
+		sec_hash="$(openssl sha256 "$EASYTLS_CA_RANDOM"|awk '{print $NF}')"
+		[ -z "$sec_hash" ] && \
+			die "Missing sec_hash: $sec_hash"
+
+		# HASH the CA certificate
+		ca_crt_hash="$(openssl sha256 "$ca_cert" | awk '{print $NF}')"
 		[ -z "$ca_crt_hash" ] && die "Missing ca_crt_hash: $ca_crt_hash"
 
-		ca_key_hash="$(openssl sha256 "$ca_key" | awk '{print $2}')"
-		[ -z "$ca_key_hash" ] && die "Missing ca_key_hash: $ca_key_hash"
-
+		# Create the CA Identity
 		openssl_ca_id="$(fn_ca_identity)"
 
+		# Check the CA Identity against default/empty CA Identity
 		failed_ca_id="$(printf "%s%s" "" "" | openssl sha512)"
 		[ "$openssl_ca_id" = "$failed_ca_id" ] && \
 			die "CA Identity check failed!"
 
+		# Create the full CA Identity field
 		ca_identity="SHA512_Identity=$openssl_ca_id"
 		easytls_lock="$ca_identity"
+
+		# Save the random data for CA Identity
+		# Use this instead of CA key
 		printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
 			die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
 	fi
@@ -1721,10 +1752,17 @@ fn_ca_fingerprint ()
 # Generate ultra-secure CA identity
 fn_ca_identity ()
 {
-	printf "%s%s" "$ca_crt_hash" "$ca_key_hash" | \
-		"$EASYRSA_OPENSSL" sha512 | awk '{print $2}'
+	printf "%s%s" "$ca_crt_hash" "$sec_hash" | \
+		"$EASYRSA_OPENSSL" sha512 | awk '{print $NF}'
 }
 
+# Recreate EASYTLS_CA_RANDOM from inline index
+rebuild_ca_random ()
+{
+	grep 'TCV2C Secure_HASH' "$EASYTLS_INLINE_INDEX" | \
+		awk '{print $3}' > "$EASYTLS_CA_RANDOM" ||
+		die "Failed to recreate random file: $EASYTLS_CA_RANDOM"
+}
 # DEBUG metadata
 debug_metadata ()
 {
@@ -1864,6 +1902,7 @@ vars_setup()
 	set_var EASYTLS_OPENVPN		"openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled.txt"
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
+	set_var EASYTLS_CA_RANDOM	"$EASYTLS_PKI/easytls-ca-random.txt"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
