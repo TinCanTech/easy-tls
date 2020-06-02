@@ -144,6 +144,8 @@ do
 		"inline-tls-crypt-v2 c06" "inline-status" \
 		"inline-tls-crypt-v2 c08" "inline-status" \
 		"inline-index-rebuild" \
+		"cert-expire" \
+		"inline-expire" \
 		## EOL
 	do
 		print "============================================================"
@@ -276,6 +278,11 @@ DBUG_DIR="$WORK_DIR/pki/easytls"
 	print "inline-index-rebuild"
 	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI inline-index-rebuild || \
 		fail "Unit test error 4: $EASYTLS_CMD --batch $ETLS_LOOP_PKI inline-index-rebuild"
+
+	print "------------------------------------------------------------"
+	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI cert-expire
+	print "------------------------------------------------------------"
+	"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI inline-expire
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"

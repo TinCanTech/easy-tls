@@ -63,6 +63,7 @@ Use the 'help' command above to get full usage details.
   inline-status [ cmd-opts ]
   inline-show <filename_base>
   inline-index-rebuild
+  inline-expire <filename_base>
   cert-expire <filename_base> | <ca>
   disable <filename_base>
   enable <filename_base>
@@ -171,6 +172,11 @@ cmd_help()
       Rebuild easytls-index.txt
       If you need to do this then you may have found a bug, please
       raise an issue https://github.com/TinCanTech/easy-tls/issues" ;;
+		inline-expire) text="
+  inline-expire <filename_base>
+      Display inline expiry date for <filename_base>"
+			opts="
+        If no <filename_base> is given then list all inline expiry dates" ;;
 		cert-expire) text="
   cert-expire <filename_base> | <ca>
       Display certificate expiry date for <filename_base>"
@@ -256,8 +262,9 @@ cleanup()
 warn()
 {
 	[ "$EASYTLS_SILENT" ] && return 0
-		print "WARNING
-$1" 1>&2
+		print "
+WARNING:
+  $1" 1>&2
 } # => warn()
 
 # informational notices to stdout
@@ -597,10 +604,8 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	etls_valid_name="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
-	etls_valid_name_list="$etls_valid_name_list $etls_valid_name"
-	etls_valid_serial="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
-	etls_valid_serial_list="$etls_valid_serial_list $etls_valid_serial"
+	etls_valid_name_list="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_serial_list="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
@@ -703,44 +708,74 @@ crt_expire_date ()
 		sed 's/^notAfter=//'
 } # => crt_expire_date ()
 
+# Extract enddate from certificate
+inline_expire_date ()
+{
+	grep '^[[:blank:]]*Not After : ' "$inline_file" | \
+		sed 's/^[[:blank:]]*Not After : //g'
+} # => crt_expire_date ()
+
 # Get x509 certificate expiry date
 cert_expire ()
 {
-	crt_name="$1"
+	name="$1"
 
 	verify_tls_init
 
-	if [ "$crt_name" = "ca" ]
+	if [ "$name" = "ca" ]
 	then
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
-	elif [ -n "$crt_name" ]
+	elif [ -n "$name" ]
 	then
-		crt_file="$EASYRSA_PKI/issued/$crt_name.crt"
+		crt_file="$EASYRSA_PKI/issued/$name.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
 		crt_expire="$(crt_expire_date)"
-		print " Certificate: $crt_name.crt   Expire-date: $crt_expire"
+		print " Certificate: $name.crt      Expire-date: $crt_expire"
 	else
 		easyrsa_valid_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
-
-		for i in $easyrsa_valid_list
+		for name in $easyrsa_valid_list
 		do
-			crt_file="$EASYRSA_PKI/issued/$i.crt"
+			crt_file="$EASYRSA_PKI/issued/$name.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
 			crt_expire="$(crt_expire_date)"
-			print " Certificate: $i.crt   Expire-date: $crt_expire"
+			print " Certificate: $name.crt      Expire-date: $crt_expire"
 		done
-
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
 		crt_expire="$(crt_expire_date)"
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
 	fi
-
-	EASYTLS_SILENT=1
 } # => cert_expire ()
+
+# Get inline certificate expiry date
+inline_expire ()
+{
+	name="$1"
+
+	verify_tls_init
+
+	if [ -n "$name" ]
+	then
+		inline_file="$EASYTLS_PKI/$name.inline"
+		[ -f "$inline_file" ] || die "Missing: $inline_file"
+		inline_expire="$(inline_expire_date)"
+		print " Certificate: $name.inline   Expire-date: $inline_expire"
+	else
+		easytls_inline_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
+		etls_valid_name_list="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
+
+		for name in $etls_valid_name_list
+		do
+			inline_file="$EASYTLS_PKI/$name.inline"
+			[ -f "$inline_file" ] || die "Missing: $inline_file"
+			inline_expire="$(inline_expire_date)"
+			print " Certificate: $name.inline   Expire-date: $inline_expire"
+		done
+	fi
+} # => inline_expire ()
 
 # Keep an index file for inline certs to manage revoke/renew
 inline_index_update ()
@@ -1945,6 +1980,9 @@ case "$cmd" in
 		;;
 	inline-index-rebuild)
 		inline_index_rebuild "$@"
+		;;
+	inline-expire)
+		inline_expire "$@"
 		;;
 	cert-expire)
 		cert_expire "$@"
