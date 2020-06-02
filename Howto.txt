@@ -13,12 +13,12 @@ Introduction:
   The third focus is to provide a server side script to verify TLS crypt v2
   metadata and manage a disabled list, all prior to exposing x509 code.
 
-Overview:
 
+Overview:
 
   * OpenVPN --tls-crypt-v2 keys and --tls-crypt-v2-verify script.
 
-    This is a *new* script hook for OpenVPN.
+    These are new keys and a new script hook for OpenVPN.
 
     For full details see:
     https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
@@ -56,18 +56,46 @@ TLS Crypt v2 details:
 
     This metadata field is constructed as follows:
 
-    1. metadata_version string: "metadata_version_easytls_A4"
+    1.  metadata_version string: "metadata_version_easytls"
+        (No longer use a specific version because it was to easy to change)
 
-    2. CA Fingerprint (Formatted to one contiguous string)
+    2.a CA Fingerprint (Formatted to one contiguous string)
 
-    3. Client certificate serial number
+    2.b "CA Identity"
 
-    4. Client certificate Common Name
+        If the CA Fingerprint is used only then every field in the metadata
+        string can be verified via public sources or, in the case of the
+        Custom Group, be guessed with some reasonable degree of success.
 
-    5. User definable custom group
+        CA Identity allows secret data to be shared in the metadata field.
+        This secret data *cannot* be verified, guessed or impersonated.
 
-       This is a string which the user can use for identification
-       eg. "CompanyName" (One contiguous string)
+        CA Identity construction:
+
+            'SHA512_Identity=$ca_identity'
+
+        ca_identity field construction:
+
+            $( openssl sha512
+               $(
+                  openssl sha256 easyrsa3/pki/ca.crt
+                  openssl sha256 easyrsa3/pki/easytls/easytls-ca-identity.txt
+                )
+             ) # EOL
+
+        easytls-ca-identity.txt:
+
+            $( openssl -rand -hex -out easytls/easytls-ca-identity.txt 64 )
+
+
+    3.  Client certificate serial number
+
+    4.  Client certificate Common Name
+
+    5.  User definable custom group
+
+        This is a string which the user can use for identification
+        eg. "CompanyName" (One contiguous string)
 
   * TLS Crypt v2 disabled list
 
@@ -94,4 +122,24 @@ Note about exit codes:
   so the exit codes are absolutely necessary to debug errors.
 
 
-Note: I am not very good at documentation
+Howto resolve issues with Invalid .inline files:
+
+  If you receive a message informing you that you have "Revoked certs"
+  then simply use './easytls inline-remove <filename-base>'
+  This will delete the offending file and keep the EasyTLS index up-to-date.
+  Invalid files are caused by x509 certificates which have been revoked.
+  The .inline file is of no further value if the certificate has been revoked.
+
+  If you receive a message informing you that you have "Renewed certs"
+  then simply use './easytls inline-renew <filename-base>'
+  This will delete the offending file and keep the EasyTLS index up-to-date
+  and then recreate a new .inline file from the renewed certificate
+  and keep the EasyTLS index up-to-date.
+
+
+Howro resolve issues with the EasyTLS inline-index:
+
+  In the unlikely event that something does go wrong with the EasyTLS Inline Index
+  then simply use './easytls inline-index-rebuild'
+  EasyTLS will attempt to rebuild your index.  (Please report issues on github)
+
