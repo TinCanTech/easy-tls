@@ -152,7 +152,13 @@ verify_ca ()
 # space to underscore
 fn_local_ca_fingerprint ()
 {
-	openssl x509 -in "$ca_cert" -noout -fingerprint | sed "s/\ /\_/g"
+	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
+	then
+		printf "$ca_identity"
+
+	else
+		openssl x509 -in "$ca_cert" -noout -fingerprint | sed "s/\ /\_/g"
+	fi
 }
 
 # Extract metadata version from client tls-crypt-v2 key metadata
@@ -390,7 +396,7 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_metadata_version="metadata_version_easytls_A4"
+	local_metadata_version="metadata_version_easytls"
 
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
@@ -410,6 +416,7 @@ deps ()
 
 	# CA required files
 	ca_cert="$CA_DIR/ca.crt"
+	ca_identity_file="$CA_DIR/easytls/easytls-ca-identity.txt"
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
@@ -418,6 +425,13 @@ deps ()
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
+
+	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
+	then
+	help_note="This script requires an EasyTLS generated CA identity."
+	[ -f "$ca_identity_file" ] || die "Missing CA identity: $ca_identity_file" 33
+	ca_identity="$(cat "$ca_identity_file")"
+	fi
 
 	help_note="This script requires an EasyRSA generated CRL."
 	[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
@@ -470,6 +484,10 @@ do
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
 		test_method=2
+	;;
+	-s|--secure)
+		empty_ok=1
+		TLS_CRYPT_V2_VERIFY_SECURE=1
 	;;
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"

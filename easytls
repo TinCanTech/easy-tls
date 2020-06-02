@@ -1614,6 +1614,7 @@ build_tls_crypt_v2_client ()
 	build_string="--genkey tls-crypt-v2-client"
 
 	ca_cert="$EASYRSA_PKI/ca.crt"
+	ca_key="$EASYRSA_PKI/private/ca.key"
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
@@ -1661,17 +1662,32 @@ b64_enc_metadata ()
 	# 5. Custom Group string
 
 	# metadata_version
-	metadata_version="metadata_version_easytls_A4"
+	metadata_version="metadata_version_easytls"
+
 	# CA fingerprint
 	openssl_ca_fp="$(fn_ca_fingerprint)"
 	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed 's/ /_/g')"
+	easytls_lock="$ca_fingerprint"
+
+	# CA Identity
+	if [ $EASYTLS_SECURE ]
+	then
+		[ -f "$ca_key" ] || die "Missing CA Key!"
+		openssl_ca_id="$(fn_ca_identity)"
+		openssl_ca_id="${openssl_ca_id##* }"
+
+		ca_identity="SHA512_Identity=$openssl_ca_id"
+		easytls_lock="$ca_identity"
+		printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY"
+	fi
+
 	# get the serial number of the certificate from openssl
 	crt_file="$cli_cert"
 	crt_serial=""
 	openssl_crt_serial
 
 	# Build metadata
-	metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name"
+	metadata="$metadata_version $easytls_lock $crt_serial $cli_name"
 	# Append --custom-group
 	if [ -n "$EASYTLS_TLSCV2_CG" ]
 	then
@@ -1690,6 +1706,12 @@ fn_ca_fingerprint ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
 } # => fn_ca_fingerprint ()
+
+# Generate ultra-secure CA identity
+fn_ca_identity ()
+{
+	cat "$ca_cert" "$ca_key" | "$EASYRSA_OPENSSL" sha512
+}
 
 # DEBUG metadata
 debug_metadata ()
@@ -1829,6 +1851,7 @@ vars_setup()
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
 	set_var EASYTLS_OPENVPN		"openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled.txt"
+	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
@@ -1906,6 +1929,9 @@ while :; do
 		export EASYTLS_SILENT=1 ;;
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
+	--secure)
+		empty_ok=1
+		export EASYTLS_SECURE=1 ;;
 	--custom-group)
 		export EASYTLS_TLSCV2_CG="$val" ;;
 	--openvpn)

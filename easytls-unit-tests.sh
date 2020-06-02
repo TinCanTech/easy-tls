@@ -103,8 +103,10 @@ export EASYTLS_OPENVPN=./openvpn
 export EASYRSA_CERT_RENEW=10000
 
 
-for loops in 1 2
+for loops in 1 2 3
 do
+
+	[ $loops -eq 3 ] && EASYTLS_SECURE="--secure"
 
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
@@ -150,23 +152,23 @@ do
 	do
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $ETLS_LOOP_PKI --batch $i"
-		"$EASYTLS_CMD" --verbose --batch $ETLS_LOOP_PKI $i || fail "Unit test error 2: $EASYTLS_CMD --batch $ETLS_LOOP_PKI $i"
+		"$EASYTLS_CMD" --verbose --batch $EASYTLS_SECURE $i || fail "Unit test error 2: $EASYTLS_CMD --batch $EASYTLS_SECURE $i"
 	done
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
-	for i in "$EASYRSA_CMD --batch $ERSA_LOOP_PKI build-client-full c04 nopass" \
-		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI build-tls-crypt-v2-client s01 c04" \
-		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-tls-crypt-v2 c04" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c04" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI revoke c06" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI gen-crl" \
-		"$EASYTLS_CMD --verbose $ETLS_LOOP_PKI inline-status" \
-		"$EASYTLS_CMD --verbose $ETLS_LOOP_PKI cert-expire" \
-		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-status" \
-		"$EASYRSA_CMD --batch $ERSA_LOOP_PKI renew c08 nopass" \
-		"$EASYTLS_CMD --verbose --batch $ETLS_LOOP_PKI inline-status" \
+	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" \
+		"$EASYTLS_CMD --verbose --batch $EASYTLS_SECURE build-tls-crypt-v2-client s01 c04" \
+		"$EASYTLS_CMD --verbose --batch $EASYTLS_SECURE inline-tls-crypt-v2 c04" \
+		"$EASYRSA_CMD --batch revoke c04" \
+		"$EASYRSA_CMD --batch gen-crl" \
+		"$EASYRSA_CMD --batch revoke c06" \
+		"$EASYRSA_CMD --batch gen-crl" \
+		"$EASYTLS_CMD --verbose $EASYTLS_SECURE inline-status" \
+		"$EASYTLS_CMD --verbose $EASYTLS_SECURE cert-expire" \
+		"$EASYTLS_CMD --verbose --batch $EASYTLS_SECURE inline-status" \
+		"$EASYRSA_CMD --batch renew c08 nopass" \
+		"$EASYTLS_CMD --verbose --batch $EASYTLS_SECURE inline-status" \
 		## EOL
 	do
 		print "============================================================"
@@ -190,28 +192,28 @@ do
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$EASYTLS_CMD" --batch disable "$c"
-		"$EASYTLS_CMD" --batch disable "$c"
+		echo "$EASYTLS_CMD" "$EASYTLS_SECURE" --batch disable "$c"
+		"$EASYTLS_CMD" "$EASYTLS_SECURE" --batch disable "$c"
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech
+		"$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		"$TLSCV2V_CMD" "$EASYTLS_SECURE" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
 		echo "exit: $?"
 		echo
 	done
