@@ -187,9 +187,15 @@ fn_metadata_client_CN ()
 }
 
 # Extract custom metadata appendage from client tls-crypt-v2 key metadata
-fn_metadata_custom_group ()
+fn_metadata_creation_date ()
 {
 	awk '{print $5}' "$openvpn_metadata_file"
+}
+
+# Extract custom metadata appendage from client tls-crypt-v2 key metadata
+fn_metadata_custom_group ()
+{
+	awk '{print $6}' "$openvpn_metadata_file"
 }
 
 # Requirements to verify a valid client cert serial number

@@ -1703,8 +1703,11 @@ b64_enc_metadata ()
 	crt_serial=""
 	openssl_crt_serial
 
+	# Set creation date
+	key_date="$(date +%Y%m%d)"
+
 	# Build metadata
-	metadata="$metadata_version $easytls_lock $crt_serial $cli_name"
+	metadata="$metadata_version $easytls_lock $crt_serial $cli_name $key_date"
 	# Append --custom-group
 	if [ -n "$EASYTLS_TLSCV2_CG" ]
 	then
