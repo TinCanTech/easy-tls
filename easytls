@@ -747,7 +747,7 @@ cert_expire ()
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
 		crt_expire="$(crt_expire_date)"
-		print " Certificate: $name.crt      Expire-date: $crt_expire"
+		print " Certificate: $name.crt   Expire-date: $crt_expire"
 	else
 		easyrsa_valid_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
 		for name in $easyrsa_valid_list
@@ -755,7 +755,7 @@ cert_expire ()
 			crt_file="$EASYRSA_PKI/issued/$name.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
 			crt_expire="$(crt_expire_date)"
-			print " Certificate: $name.crt      Expire-date: $crt_expire"
+			print " Certificate: $name.crt   Expire-date: $crt_expire"
 		done
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
@@ -1653,8 +1653,8 @@ Missing cli file: $cli_cert"
 	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
 
-	[ -f "$in_file" ] || die "Server file does not exist: $in_file"
-	[ -f "$key_file" ] && die "Client file already exists: $key_file"
+	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
+	[ -f "$key_file" ] && die "Client key already exists: $key_file"
 
 	metadata=""
 	b64_metadata=""
