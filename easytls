@@ -446,8 +446,8 @@ and initialize a fresh TLS PKI here."
 	# Create and save random data for TLS crypt V2 client "secure CA-ID"
 	openssl rand -hex -out "$EASYTLS_CA_RANDOM" 64
 	# Save random data as record #1 in easytls inline index
-	sec_data="$(cat "$EASYTLS_CA_RANDOM")"
-	printf "%s %s %s\n" "TCV2C" "Secure_HASH" "$sec_data" \
+	secure_data="$(cat "$EASYTLS_CA_RANDOM")"
+	printf "%s %s %s\n" "TCV2C" "Secure_HASH" "$secure_data" \
 		> "$EASYTLS_INLINE_INDEX" || \
 		die "Failed to update $EASYTLS_INLINE_INDEX"
 
