@@ -617,7 +617,8 @@ status_easytls_inline ()
 	etls_valid_name_list="${etls_valid_name_list#* }"
 	etls_valid_serial_list="$(awk '{print $2 " "}' "$EASYTLS_INLINE_INDEX")"
 	etls_valid_serial_list="${etls_valid_serial_list#* }"
-	[ $silent_status ] || grep -v 'TLS_CRYPT_V2 Secure_HASH' \
+	[ $silent_status ] || \
+	grep -v '^TLS_CRYPT_V2 Secure_HASH[[:blank:]][[:xdigit:]]{128}$' \
 		"$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
