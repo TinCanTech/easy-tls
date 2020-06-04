@@ -1691,7 +1691,9 @@ b64_enc_metadata ()
 	# Push CA Fingerprint to Easytls lock
 	easytls_lock="$ca_fingerprint"
 
-	# CA Identity
+	# Secret field (Random data)
+	# This is pointless in its current form
+	# Perhaps use openssl to encrypt with a key ..
 	if [ $EASYTLS_SECURE ]
 	then
 		# If EASYTLS_CA_RANDOM does not exist
@@ -1703,9 +1705,9 @@ b64_enc_metadata ()
 		[ -z "$secure_hash" ] && \
 			die "Missing secure_hash: $secure_hash"
 
-		# HASH the CA certificate
-		ca_crt_hash="$(openssl sha256 "$ca_cert" | awk '{print $NF}')"
-		[ -z "$ca_crt_hash" ] && die "Missing ca_crt_hash: $ca_crt_hash"
+		# HASH the ca_fingerprint
+		ca_fp_hash="$(printf "%s" "$ca_fingerprint" | openssl sha256 | awk '{print $NF}')"
+		[ -z "$ca_fp_hash" ] && die "Missing ca_fp_hash: $ca_fp_hash"
 
 		# Create the CA Identity
 		openssl_ca_id="$(fn_ca_identity)"
@@ -1755,7 +1757,7 @@ fn_ca_fingerprint ()
 # Generate ultra-secure CA identity
 fn_ca_identity ()
 {
-	printf "%s%s" "$ca_crt_hash" "$secure_hash" | \
+	printf "%s%s" "$ca_fp_hash" "$secure_hash" | \
 		"$EASYRSA_OPENSSL" sha512 | awk '{print $NF}'
 }
 
