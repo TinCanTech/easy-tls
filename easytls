@@ -1697,9 +1697,9 @@ b64_enc_metadata ()
 		[ -f "$EASYTLS_CA_RANDOM" ] || rebuild_ca_random
 
 		# HASH the random file
-		sec_hash="$(openssl sha256 "$EASYTLS_CA_RANDOM"|awk '{print $NF}')"
-		[ -z "$sec_hash" ] && \
-			die "Missing sec_hash: $sec_hash"
+		secure_hash="$(openssl sha256 "$EASYTLS_CA_RANDOM"|awk '{print $NF}')"
+		[ -z "$secure_hash" ] && \
+			die "Missing secure_hash: $secure_hash"
 
 		# HASH the CA certificate
 		ca_crt_hash="$(openssl sha256 "$ca_cert" | awk '{print $NF}')"
@@ -1752,7 +1752,7 @@ fn_ca_fingerprint ()
 # Generate ultra-secure CA identity
 fn_ca_identity ()
 {
-	printf "%s%s" "$ca_crt_hash" "$sec_hash" | \
+	printf "%s%s" "$ca_crt_hash" "$secure_hash" | \
 		"$EASYRSA_OPENSSL" sha512 | awk '{print $NF}'
 }
 
