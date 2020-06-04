@@ -447,7 +447,7 @@ and initialize a fresh TLS PKI here."
 	openssl rand -hex -out "$EASYTLS_CA_RANDOM" 64
 	# Save random data as record #1 in easytls inline index
 	secure_data="$(cat "$EASYTLS_CA_RANDOM")"
-	printf "%s %s %s\n" "TCV2C" "Secure_HASH" "$secure_data" \
+	printf "%s %s %s\n" "TLS_CRYPT_V2" "Secure_HASH" "$secure_data" \
 		> "$EASYTLS_INLINE_INDEX" || \
 		die "Failed to update $EASYTLS_INLINE_INDEX"
 
@@ -992,7 +992,7 @@ inline_index_rebuild ()
 	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
 	# Get the Random data record
-	random_record="$(grep 'TCV2C Secure_HASH' "$EASYTLS_INLINE_INDEX")"
+	random_record="$(grep 'TLS_CRYPT_V2 Secure_HASH' "$EASYTLS_INLINE_INDEX")"
 
 	# Create new easytls index file
 	printf "%s\n" "$random_record" > "$EASYTLS_INLINE_INDEX" \
@@ -1759,7 +1759,7 @@ fn_ca_identity ()
 # Recreate EASYTLS_CA_RANDOM from inline index
 rebuild_ca_random ()
 {
-	grep 'TCV2C Secure_HASH' "$EASYTLS_INLINE_INDEX" | \
+	grep 'TLS_CRYPT_V2 Secure_HASH' "$EASYTLS_INLINE_INDEX" | \
 		awk '{print $3}' > "$EASYTLS_CA_RANDOM" ||
 		die "Failed to recreate random file: $EASYTLS_CA_RANDOM"
 }
