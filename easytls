@@ -1686,8 +1686,9 @@ b64_enc_metadata ()
 	metadata_version="metadata_version_easytls"
 
 	# CA fingerprint
-	openssl_ca_fp="$(fn_ca_fingerprint)"
-	ca_fingerprint="$(printf "%s" "$openssl_ca_fp" | sed 's/ /_/g')"
+	ca_fingerprint="$(fn_ca_fingerprint)"
+
+	# Push CA Fingerprint to Easytls lock
 	easytls_lock="$ca_fingerprint"
 
 	# CA Identity
@@ -1747,7 +1748,8 @@ b64_enc_metadata ()
 # Generate CA fingerprint
 fn_ca_fingerprint ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
+	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint | \
+		 sed 's/ /_/g'
 } # => fn_ca_fingerprint ()
 
 # Generate ultra-secure CA identity
