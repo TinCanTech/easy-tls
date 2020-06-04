@@ -220,8 +220,6 @@ General options:
 
 --openvpn=FILE  : The full (or relative) <path to> and <file-name of>
                   your preferred openvpn(.exe) executable openvpn file.
---secure        : Use a random data field HASH to generate all client
-                  TLS crypt V2 keys.  (Same data is used for all clients)
 --batch         : set automatic (no-prompts when possible) mode.
 --verbose       : Verbose output.
 --silent        : Silence all message output except prompts.
@@ -1696,35 +1694,7 @@ b64_enc_metadata ()
 	# Perhaps use openssl to encrypt with a key ..
 	if [ $EASYTLS_SECURE ]
 	then
-		# If EASYTLS_CA_RANDOM does not exist
-		# then recreate it from inline index
-		[ -f "$EASYTLS_CA_RANDOM" ] || rebuild_ca_random
-
-		# HASH the random file
-		secure_hash="$(openssl sha256 "$EASYTLS_CA_RANDOM"|awk '{print $NF}')"
-		[ -z "$secure_hash" ] && \
-			die "Missing secure_hash: $secure_hash"
-
-		# HASH the ca_fingerprint
-		ca_fp_hash="$(printf "%s" "$ca_fingerprint" | openssl sha256 | awk '{print $NF}')"
-		[ -z "$ca_fp_hash" ] && die "Missing ca_fp_hash: $ca_fp_hash"
-
-		# Create the CA Identity
-		openssl_ca_id="$(fn_ca_identity)"
-
-		# Check the CA Identity against default/empty CA Identity
-		failed_ca_id="$(printf "%s%s" "" "" | openssl sha512)"
-		[ "$openssl_ca_id" = "$failed_ca_id" ] && \
-			die "CA Identity check failed!"
-
-		# Create the full CA Identity field
-		ca_identity="SHA512_Identity=$openssl_ca_id"
-		easytls_lock="$ca_identity"
-
-		# Save the random data for CA Identity
-		# Use this instead of CA key
-		printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
-			die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
+		experimental_nonsense
 	fi
 
 	# get the serial number of the certificate from openssl
@@ -1773,6 +1743,43 @@ debug_metadata ()
 {
 	metadata_debug="$EASYTLS_PKI/tls-crypt-v2-$cli_name.mdd"
 	printf "%s\n" "$metadata" > "$metadata_debug"
+}
+
+# W.I.P. Do not use this
+# Let's re-invent x509
+experimental_nonsense ()
+{
+	warn "Use of easytls --secure is a ridculous waste of time ..."
+
+	# If EASYTLS_CA_RANDOM does not exist
+	# then recreate it from inline index
+	[ -f "$EASYTLS_CA_RANDOM" ] || rebuild_ca_random
+
+	# HASH the random file
+	secure_hash="$(openssl sha256 "$EASYTLS_CA_RANDOM"|awk '{print $NF}')"
+	[ -z "$secure_hash" ] && \
+		die "Missing secure_hash: $secure_hash"
+
+	# HASH the ca_fingerprint
+	ca_fp_hash="$(printf "%s" "$ca_fingerprint" | openssl sha256 | awk '{print $NF}')"
+	[ -z "$ca_fp_hash" ] && die "Missing ca_fp_hash: $ca_fp_hash"
+
+	# Create the CA Identity
+	openssl_ca_id="$(fn_ca_identity)"
+
+	# Check the CA Identity against default/empty CA Identity
+	failed_ca_id="$(printf "%s%s" "" "" | openssl sha512)"
+	[ "$openssl_ca_id" = "$failed_ca_id" ] && \
+		die "CA Identity check failed!"
+
+	# Create the full CA Identity field
+	ca_identity="SHA512_Identity=$openssl_ca_id"
+	easytls_lock="$ca_identity"
+
+	# Save the random data for CA Identity
+	# Use this instead of CA key
+	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
+		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
 }
 
 ############################################################################
