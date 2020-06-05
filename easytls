@@ -1670,19 +1670,30 @@ Missing cli file: $cli_cert"
 b64_enc_metadata ()
 {
 	# metadata strings:
-	# 1.  Metadata version: xx (Simple hex)
-	# 2.a CA SHA1 Fingerprint, contiguous single field
+	#
+	# If you are going to do it then do it right
+	#
+	# 1.  'metadata_version_easytls'
+	#
+	# 2.a CA Fingerprint, contiguous single field
 	#     `openssl output` Change space to underscore
-	# 2.b SHA512 of (SHA256 of CA.crt + SHA256 of random data field 16^128)
-	#     single contiguous field with hidden data
+	#
+	# 2.b SHA512 of (SHA256 of CA FP + experimental_nonsense)
 	#     Same for all clients of a given PKI
+	#
 	# 3.  Client certificate serial, contiguous single field
 	#     `openssl output` Drop the 'serial='
-	# 4.  Client CommonName
-	# 5.  Custom Group string
+	#
+	# 4.  Client CommonName:
+	#
+	# 5.  Creation date of this key:
+	#     "YYYYMMDD"
+	#
+	# 6.  Custom Group string:
+	#     contiguous single field
 
 	# metadata_version
-	metadata_version="metadata_version_easytls"
+	metadata_version='metadata_version_easytls'
 
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
