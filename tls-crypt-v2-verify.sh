@@ -645,6 +645,10 @@ esac
 # failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9
 
+# For DUBUG
+[ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
+	failure_msg="FORCE_ABSOLUTE_FAIL"
+
 # There is only one way out of this...
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE_FAIL" 9
 
