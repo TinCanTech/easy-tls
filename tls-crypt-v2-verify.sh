@@ -65,7 +65,7 @@ fail_and_exit ()
 			"* ==> identity remote: $metadata_identity"
 
 		printf "%s\n" \
-			"* ==> Client serial remote: $metadata_client_cert_serno"
+			"* ==> serial remote: $metadata_serial"
 
 		printf "%s\n" \
 			"* ==> name remote: $metadata_name"
@@ -172,7 +172,7 @@ fn_metadata_identity ()
 }
 
 # Extract client cert serial number from client tls-crypt-v2 key metadata
-fn_metadata_client_cert_serno ()
+fn_metadata_serial ()
 {
 	awk '{print $3}' "$openvpn_metadata_file"
 }
@@ -199,7 +199,7 @@ fn_metadata_custom_group ()
 verify_metadata_client_serial_number ()
 {
 	# Do we have a serial number
-	[ -z "$metadata_client_cert_serno" ] && {
+	[ -z "$metadata_serial" ] && {
 		failure_msg="Missing: Client serial number"
 		fail_and_exit "SERIAL_NUMBER_MISSING" 11
 		}
@@ -215,7 +215,7 @@ verify_metadata_client_serial_number ()
 # Drop all non-hex chars from serial number and count the rest
 allow_hex_only ()
 {
-	printf '%s' "$metadata_client_cert_serno"|grep -c '[^0123456789ABCDEF]'
+	printf '%s' "$metadata_serial"|grep -c '[^0123456789ABCDEF]'
 }
 
 # Check metadata client certificate serial number against disabled list
@@ -231,7 +231,7 @@ verify_serial_number_not_disabled ()
 	*)
 		# Client is disabled
 		insert_msg="client serial number is disabled:"
-		failure_msg="$insert_msg $metadata_client_cert_serno"
+		failure_msg="$insert_msg $metadata_serial"
 		return 1
 	;;
 	esac
@@ -239,14 +239,14 @@ verify_serial_number_not_disabled ()
 	# Otherwise fail
 	help_note="Check your disabled list: $disabled_list"
 	insert_msg="client serial number failed disabled test:"
-	failure_msg="$insert_msg $metadata_client_cert_serno"
+	failure_msg="$insert_msg $metadata_serial"
 	return 1
 }
 
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^${metadata_client_cert_serno}[[:blank:]]${metadata_name}$" \
+	grep -c "^${metadata_serial}[[:blank:]]${metadata_name}$" \
 		"$disabled_list"
 }
 
@@ -266,13 +266,13 @@ fn_read_crl ()
 fn_search_crl ()
 {
 	printf "%s\n" "$crl_text" | grep -c \
-		"^[[:blank:]]*Serial Number: $metadata_client_cert_serno$"
+		"^[[:blank:]]*Serial Number: ${metadata_serial}$"
 }
 
 # Final check: Search index.txt for client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*[[:blank:]]${metadata_client_cert_serno}[[:blank:]].*$" \
+	grep -c "^V.*[[:blank:]]${metadata_serial}[[:blank:]].*$" \
 		"$index_txt"
 }
 
@@ -292,7 +292,7 @@ serial_status_via_crl ()
 		client_passed_all_tests_connection_allowed
 		;;
 		*)
-		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
+		die "Duplicate serial numbers: $metadata_serial" 127
 		;;
 		esac
 	;;
@@ -301,8 +301,8 @@ serial_status_via_crl ()
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected: "
-		failure_msg="$insert_msg $metadata_client_cert_serno"
-		die "Duplicate serial numbers: $metadata_client_cert_serno" 127
+		failure_msg="$insert_msg $metadata_serial"
+		die "Duplicate serial numbers: $metadata_serial" 127
 	;;
 	esac
 }
@@ -311,7 +311,7 @@ serial_status_via_crl ()
 client_passed_all_tests_connection_allowed ()
 {
 	insert_msg="Client certificate is recognised and not revoked:"
-	success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
+	success_msg="$success_msg $insert_msg $metadata_serial"
 	success_msg="$success_msg $metadata_name"
 	absolute_fail=0
 }
@@ -320,7 +320,7 @@ client_passed_all_tests_connection_allowed ()
 client_passed_all_tests_certificate_revoked ()
 {
 	insert_msg="Client certificate is revoked:"
-	failure_msg="$insert_msg $metadata_client_cert_serno"
+	failure_msg="$insert_msg $metadata_serial"
 	fail_and_exit "REVOKED" 1
 }
 
@@ -357,7 +357,7 @@ openssl_serial_status ()
 {
 	# openssl appears to always exit with error - but here I do not care
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$metadata_client_cert_serno" 2>&1
+		-status "$metadata_serial" 2>&1
 }
 
 # Capture serial status
@@ -372,7 +372,7 @@ verify_openssl_serial_status ()
 	return 0 # Disable this `return` if you want to test
 	# openssl appears to always exit with error - have not solved this
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$metadata_client_cert_serno" || \
+		-status "$metadata_serial" || \
 		die "openssl returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
@@ -558,7 +558,7 @@ deps
 # Client certificate serial number
 
 	# Collect client certificate serial number from tls-crypt-v2 metadata
-	metadata_client_cert_serno="$(fn_metadata_client_cert_serno)"
+	metadata_serial="$(fn_metadata_serial)"
 
 	# Client serial number requirements
 	verify_metadata_client_serial_number
