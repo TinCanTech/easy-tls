@@ -40,13 +40,11 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
-	metadata_client_CN="$(fn_metadata_client_CN)"
-
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
 		printf "%s " "$tls_crypt_v2_verify_msg"
 		[ -z "$success_msg" ] || printf "%s " "$success_msg"
-		printf "%s\n%s\n" "$failure_msg $metadata_client_CN" "$1"
+		printf "%s\n%s\n" "$failure_msg $metadata_name" "$1"
 
 		printf "%s\n" \
 			"* ==> version  local: $local_version"
@@ -70,7 +68,7 @@ fail_and_exit ()
 			"* ==> Client serial remote: $metadata_client_cert_serno"
 
 		printf "%s\n" \
-			"* ==> Client CN     remote: $metadata_client_CN"
+			"* ==> name remote: $metadata_name"
 
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
@@ -80,7 +78,7 @@ fail_and_exit ()
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
 		printf "%s %s %s %s\n" "$tls_crypt_v2_verify_msg" \
-			"$success_msg" "$failure_msg" "$metadata_client_CN"
+			"$success_msg" "$failure_msg" "$metadata_name"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -180,7 +178,7 @@ fn_metadata_client_cert_serno ()
 }
 
 # Extract client name appendage from client tls-crypt-v2 key metadata
-fn_metadata_client_CN ()
+fn_metadata_name ()
 {
 	awk '{print $4}' "$openvpn_metadata_file"
 }
@@ -248,8 +246,7 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	client_CN="$(fn_metadata_client_CN)"
-	grep -c "^${metadata_client_cert_serno}[[:blank:]]${client_CN}$" \
+	grep -c "^${metadata_client_cert_serno}[[:blank:]]${metadata_name}$" \
 		"$disabled_list"
 }
 
@@ -313,10 +310,9 @@ serial_status_via_crl ()
 # This is the only way to connect
 client_passed_all_tests_connection_allowed ()
 {
-	metadata_client_CN="$(fn_metadata_client_CN)"
 	insert_msg="Client certificate is recognised and not revoked:"
 	success_msg="$success_msg $insert_msg $metadata_client_cert_serno"
-	success_msg="$success_msg $metadata_client_CN"
+	success_msg="$success_msg $metadata_name"
 	absolute_fail=0
 }
 
@@ -457,6 +453,9 @@ deps ()
 	[ -f "$openvpn_metadata_file" ] || \
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 28
 	unset help_note
+
+	# Temporarily set metadata_name here
+	metadata_name="$(fn_metadata_name)"
 }
 
 #######################################
