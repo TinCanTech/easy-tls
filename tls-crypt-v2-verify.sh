@@ -61,7 +61,7 @@ fail_and_exit ()
 			"* ==> custom_group remote: $metadata_custom_group"
 
 		printf "%s\n" \
-			"* ==> CA Fingerprint  local: $local_ca_fingerprint"
+			"* ==> identity  local: $local_identity"
 
 		printf "%s\n" \
 			"* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
@@ -151,7 +151,7 @@ verify_ca ()
 
 # CA Local fingerprint
 # space to underscore
-fn_local_ca_fingerprint ()
+fn_local_identity ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
 	then
@@ -579,10 +579,10 @@ deps
 
 	# Capture CA fingerprint
 	# Format to one contiguous string (Same as encoded metadata)
-	local_ca_fingerprint="$(fn_local_ca_fingerprint)"
+	local_identity="$(fn_local_identity)"
 
-	# local_ca_fingerprint is required
-	[ -z "$local_ca_fingerprint" ] && {
+	# local_identity is required
+	[ -z "$local_identity" ] && {
 		failure_msg="Missing: local CA fingerprint"
 		fail_and_exit "LOCAL_FINGER_PRINT" 13
 		}
@@ -598,7 +598,7 @@ deps
 
 
 # Check metadata CA fingerprint against local CA fingerprint
-if [ "$local_ca_fingerprint" = "$metadata_ca_fingerprint" ]
+if [ "$local_identity" = "$metadata_ca_fingerprint" ]
 then
 	insert_msg="CA Fingerprint OK ==>"
 	[ $TLS_CRYPT_V2_VERIFY_SECURE ] && insert_msg="CA Identity OK ==>"
