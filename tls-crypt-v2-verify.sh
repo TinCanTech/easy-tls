@@ -49,10 +49,10 @@ fail_and_exit ()
 		printf "%s\n%s\n" "$failure_msg $metadata_client_CN" "$1"
 
 		printf "%s\n" \
-			"* ==> metadata  local: $local_metadata_version"
+			"* ==> version  local: $local_version"
 
 		printf "%s\n" \
-			"* ==> metadata remote: $metadata_version"
+			"* ==> version remote: $metadata_version"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
@@ -403,7 +403,7 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_metadata_version="metadata_version_easytls"
+	local_version="metadata_version_easytls"
 
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
@@ -520,7 +520,7 @@ deps
 # Metadata Version
 	metadata_version="$(fn_metadata_version)"
 	case $metadata_version in
-	"$local_metadata_version")
+	"$local_version")
 		# metadata_version_easytls_XX is correct
 		success_msg="$metadata_version ==>"
 	;;
