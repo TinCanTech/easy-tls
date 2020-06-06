@@ -17,8 +17,14 @@ cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Acknowledgement:
 # syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 #
-# Verify Identity (CA Fingerprint or "Identity")
-# Verify client certificate serial number against certificate revokation list
+# Verify:
+#   metadata version
+#   metadata custom group
+#   TLS key age
+#   disabled list
+#   Identity (CA Fingerprint or "Identity")
+#   Client certificate serial number against certificate revokation list
+#   Or verify client certificate serial number status via `openssl ca`
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
@@ -264,7 +270,7 @@ fn_search_crl ()
 		"^[[:blank:]]*Serial Number: ${metadata_serial}$"
 }
 
-# Final check: Search index.txt for client cert serial number
+# Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
 	grep -c "^V.*[[:blank:]]${metadata_serial}[[:blank:]].*$" \
@@ -571,7 +577,7 @@ deps
 	verify_tls_key_date || {
 		failure_msg="TLS key has passed expiry age:"
 		fail_and_exit "TLS_KEY_EXPIRED" 6
-	}
+		}
 
 # Client certificate serial number
 
