@@ -52,7 +52,7 @@ fail_and_exit ()
 			"* ==> metadata  local: $local_metadata_version"
 
 		printf "%s\n" \
-			"* ==> metadata remote: $remote_metadata_version"
+			"* ==> metadata remote: $metadata_version"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
@@ -518,20 +518,20 @@ deps
 
 
 # Metadata Version
-	remote_metadata_version="$(fn_metadata_version)"
-	case $remote_metadata_version in
+	metadata_version="$(fn_metadata_version)"
+	case $metadata_version in
 	"$local_metadata_version")
 		# metadata_version_easytls_XX is correct
-		success_msg="$remote_metadata_version ==>"
+		success_msg="$metadata_version ==>"
 	;;
 	*)
-		if [ -z "$remote_metadata_version" ]
+		if [ -z "$metadata_version" ]
 		then
 			insert_msg="metadata version is missing."
 		else
 			insert_msg="metadata version is not recognised:"
 		fi
-		failure_msg="$insert_msg $remote_metadata_version"
+		failure_msg="$insert_msg $metadata_version"
 		fail_and_exit "METADATA_VERSION" 5
 	;;
 	esac
