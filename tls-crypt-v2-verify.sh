@@ -113,7 +113,7 @@ help_text ()
   2   - Disallow connection, serial number is disabled.
   3   - Disallow connection, local/remote Identities do not match.
   4   - Disallow connection, local/remote Custom Groups do not match.
-  5   - Disallow connection, invalid metadata_version_xx field.
+  5   - Disallow connection, invalid metadata_version field.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote Identity.
@@ -519,7 +519,7 @@ deps
 	metadata_version="$(fn_metadata_version)"
 	case $metadata_version in
 	"$local_version")
-		# metadata_version_easytls_XX is correct
+		# metadata_version_easytls is correct
 		success_msg="$metadata_version ==>"
 	;;
 	*)
