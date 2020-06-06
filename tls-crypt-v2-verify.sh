@@ -181,42 +181,6 @@ metadata_file_to_metadata_string ()
 	cat "$openvpn_metadata_file"
 }
 
-# Extract metadata version from client tls-crypt-v2 key metadata
-fn_metadata_version ()
-{
-	awk '{print $1}' "$openvpn_metadata_file"
-}
-
-# Extract identity from client tls-crypt-v2 key metadata
-fn_metadata_identity ()
-{
-	awk '{print $2}' "$openvpn_metadata_file"
-}
-
-# Extract client cert serial number from client tls-crypt-v2 key metadata
-fn_metadata_serial ()
-{
-	awk '{print $3}' "$openvpn_metadata_file"
-}
-
-# Extract client name appendage from client tls-crypt-v2 key metadata
-fn_metadata_name ()
-{
-	awk '{print $4}' "$openvpn_metadata_file"
-}
-
-# Extract metadata_date from client tls-crypt-v2 key metadata
-fn_metadata_date ()
-{
-	awk '{print $5}' "$openvpn_metadata_file"
-}
-
-# Extract custom metadata appendage from client tls-crypt-v2 key metadata
-fn_metadata_custom_group ()
-{
-	awk '{print $6}' "$openvpn_metadata_file"
-}
-
 # Verify the age of the TLS key from metadata
 verify_tls_key_date ()
 {
@@ -488,9 +452,11 @@ deps ()
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 28
 	unset help_note
 
-	# Temporarily set metadata_* here
-	metadata_name="$(fn_metadata_name)"
-	metadata_date="$(fn_metadata_date)"
+	# Get metadata_string
+	metadata_string="$(metadata_file_to_metadata_string)"
+
+	# Populate metadata variables
+	metadata_string_to_vars $metadata_string
 
 	# Ensure that TLS expiry age is numeric
 	[ $((TLS_CRYPT_V2_VERIFY_TLS_AGE)) -gt 0 ] || \
@@ -561,17 +527,7 @@ done
 deps
 
 
-# Collect metadata
-
-	# Get metadata_string
-	metadata_string="$(metadata_file_to_metadata_string)"
-
-	# Populate metadata variables
-	metadata_string_to_vars $metadata_string
-
-
 # Metadata Version
-	metadata_version="$(fn_metadata_version)"
 	case $metadata_version in
 	"$local_version")
 		# metadata_version_easytls is correct
@@ -593,7 +549,6 @@ deps
 # Metadata custom_group
 	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
 	then
-		metadata_custom_group="$(fn_metadata_custom_group)"
 		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
 			# Custom group is correct
@@ -620,9 +575,6 @@ deps
 
 # Client certificate serial number
 
-	# Collect client certificate serial number from tls-crypt-v2 metadata
-	metadata_serial="$(fn_metadata_serial)"
-
 	# Client serial number requirements
 	verify_metadata_client_serial_number
 
@@ -646,9 +598,6 @@ deps
 		failure_msg="Missing: local identity"
 		fail_and_exit "LOCAL_IDENTITY" 13
 		}
-
-	# metadata Identity
-	metadata_identity="$(fn_metadata_identity)"
 
 	# metadata_identity is required
 	[ -z "$metadata_identity" ] && {
