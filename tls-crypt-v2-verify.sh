@@ -454,7 +454,6 @@ deps ()
 
 	# Calculate expite age in seconds
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
-
 }
 
 #######################################
@@ -565,6 +564,7 @@ deps
 		fail_and_exit "TLS_KEY_EXPIRED" 6
 		}
 
+
 # Client certificate serial number
 
 	# Non-empty, Hex only string accepted
@@ -575,9 +575,6 @@ deps
 
 
 # Identity
-
-	# Verify CA
-	verify_ca || die "Bad CA $ca_cert" 123
 
 	# Local Identity
 	local_identity="$(fn_local_identity)"
@@ -594,7 +591,6 @@ deps
 		fail_and_exit "REMOTE_IDENTITY" 12
 		}
 
-
 	# Check metadata Identity against local Identity
 	if [ "$local_identity" = "$metadata_identity" ]
 	then
@@ -606,7 +602,7 @@ deps
 	fi
 
 
-# Disabled list check
+# Disabled list
 
 	# Check serial number is not disabled
 	verify_serial_number_not_disabled || {
@@ -615,24 +611,23 @@ deps
 		}
 
 
-# Certificate Revokation List
-
-	# Verify CRL
-	verify_crl || die "Bad CRL: $crl_pem" 122
-
-	# Capture CRL
-	crl_text="$(fn_read_crl)"
-
-
-# Verify serial status by method 1 or 2
-
-# Default test_method=1
+# Verify serial status
 test_method=${test_method:-1}
 
-case $test_method in
+	# Verify CA
+	verify_ca || die "Bad CA $ca_cert" 123
+
+	case $test_method in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
+
+		# Verify CRL
+		verify_crl || die "Bad CRL: $crl_pem" 122
+		# Capture CRL
+		crl_text="$(fn_read_crl)"
+
+		# Verify via CRL
 		serial_status_via_crl
 	;;
 	2)
@@ -641,12 +636,14 @@ case $test_method in
 
 		# Due to openssl being "what it is", it is not possible to
 		# reliably verify the 'openssl ca $cmd'
+
+		# Verify via CA
 		serial_status_via_ca
 	;;
 	*)
 		die "Unknown method for verify: $test_method" 9
 	;;
-esac
+	esac
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9
