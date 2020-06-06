@@ -164,6 +164,23 @@ fn_local_identity ()
 	fi
 }
 
+# Break metadata_string into variables
+metadata_string_to_vars ()
+{
+	metadata_version="$1"
+	metadata_identity="$2"
+	metadata_serial="$3"
+	metadata_name="$4"
+	metadata_date="$5"
+	metadata_custom_group="$6"
+}
+
+# Convert metadata file to metadata_string
+metadata_file_to_metadata_string ()
+{
+	cat "$openvpn_metadata_file"
+}
+
 # Extract metadata version from client tls-crypt-v2 key metadata
 fn_metadata_version ()
 {
@@ -542,6 +559,15 @@ done
 
 # Dependancies
 deps
+
+
+# Collect metadata
+
+	# Get metadata_string
+	metadata_string="$(metadata_file_to_metadata_string)"
+
+	# Populate metadata variables
+	metadata_string_to_vars $metadata_string
 
 
 # Metadata Version
