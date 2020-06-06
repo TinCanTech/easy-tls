@@ -17,7 +17,7 @@ cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Acknowledgement:
 # syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 #
-# Verify CA fingerprint
+# Verify Identity (CA Fingerprint or "Identity")
 # Verify client certificate serial number against certificate revokation list
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
@@ -64,7 +64,7 @@ fail_and_exit ()
 			"* ==> identity  local: $local_identity"
 
 		printf "%s\n" \
-			"* ==> CA Fingerprint remote: $metadata_ca_fingerprint"
+			"* ==> identity remote: $metadata_identity"
 
 		printf "%s\n" \
 			"* ==> Client serial remote: $metadata_client_cert_serno"
@@ -113,13 +113,13 @@ help_text ()
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
   2   - Disallow connection, serial number is disabled.
-  3   - Disallow connection, local/remote CA fingerprints do not match.
+  3   - Disallow connection, local/remote Identities do not match.
   4   - Disallow connection, local/remote Custom Groups do not match.
   5   - Disallow connection, invalid metadata_version_xx field.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
-  12  - ERROR Disallow connection, missing remote CA fingerprint.
-  13  - ERROR Disallow connection, missing local CA fingerprint. (Unlucky)
+  12  - ERROR Disallow connection, missing remote Identity.
+  13  - ERROR Disallow connection, missing local Identity. (Unlucky)
   21  - USER ERROR Disallow connection, options error.
   22  - USER ERROR Disallow connection, failed to set --ca <path> *Required*.
   23  - USER ERROR Disallow connection, missing CA certificate.
@@ -149,8 +149,7 @@ verify_ca ()
 	openssl x509 -in "$ca_cert" -noout
 }
 
-# CA Local fingerprint
-# space to underscore
+# Local identity
 fn_local_identity ()
 {
 	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
@@ -168,8 +167,8 @@ fn_metadata_version ()
 	awk '{print $1}' "$openvpn_metadata_file"
 }
 
-# Extract CA fingerprint from client tls-crypt-v2 key metadata
-fn_metadata_ca_fingerprint ()
+# Extract identity from client tls-crypt-v2 key metadata
+fn_metadata_identity ()
 {
 	awk '{print $2}' "$openvpn_metadata_file"
 }
@@ -572,40 +571,38 @@ deps
 	verify_serial_number_not_disabled || fail_and_exit "CLIENT_DISABLED" 2
 
 
-# CA Fingerprint
+# Identity
 
 	# Verify CA
 	verify_ca || die "Bad CA $ca_cert" 123
 
-	# Capture CA fingerprint
-	# Format to one contiguous string (Same as encoded metadata)
+	# Local Identity
 	local_identity="$(fn_local_identity)"
 
 	# local_identity is required
 	[ -z "$local_identity" ] && {
-		failure_msg="Missing: local CA fingerprint"
-		fail_and_exit "LOCAL_FINGER_PRINT" 13
+		failure_msg="Missing: local identity"
+		fail_and_exit "LOCAL_IDENTITY" 13
 		}
 
-	# Collect CA fingerprint from tls-crypt-v2 metadata
-	metadata_ca_fingerprint="$(fn_metadata_ca_fingerprint)"
+	# metadata Identity
+	metadata_identity="$(fn_metadata_identity)"
 
-	# metadata_ca_fingerprint is required
-	[ -z "$metadata_ca_fingerprint" ] && {
-		failure_msg="Missing: remote CA fingerprint"
-		fail_and_exit "REMOTE_FINGER_PRINT" 12
+	# metadata_identity is required
+	[ -z "$metadata_identity" ] && {
+		failure_msg="Missing: remote identity"
+		fail_and_exit "REMOTE_IDENTITY" 12
 		}
 
 
-# Check metadata CA fingerprint against local CA fingerprint
-if [ "$local_identity" = "$metadata_ca_fingerprint" ]
+# Check metadata Identity against local Identity
+if [ "$local_identity" = "$metadata_identity" ]
 then
-	insert_msg="CA Fingerprint OK ==>"
-	[ $TLS_CRYPT_V2_VERIFY_SECURE ] && insert_msg="CA Identity OK ==>"
+	insert_msg="identity OK ==>"
 	success_msg="$success_msg $insert_msg"
 else
-	failure_msg="CA Fingerprint mismatch"
-	fail_and_exit "FINGER_PRINT_MISMATCH" 3
+	failure_msg="identity mismatch"
+	fail_and_exit "IDENTITY_MISMATCH" 3
 fi
 
 
