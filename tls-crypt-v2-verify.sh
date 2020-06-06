@@ -47,10 +47,10 @@ fail_and_exit ()
 		printf "%s\n%s\n" "$failure_msg $metadata_name" "$1"
 
 		printf "%s\n" \
-			"* ==> version  local: $local_version"
+			"* ==> version       local: $local_version"
 
 		printf "%s\n" \
-			"* ==> version remote: $metadata_version"
+			"* ==> version      remote: $metadata_version"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
@@ -59,16 +59,16 @@ fail_and_exit ()
 			"* ==> custom_group remote: $metadata_custom_group"
 
 		printf "%s\n" \
-			"* ==> identity  local: $local_identity"
+			"* ==> identity      local: $local_identity"
 
 		printf "%s\n" \
-			"* ==> identity remote: $metadata_identity"
+			"* ==> identity     remote: $metadata_identity"
 
 		printf "%s\n" \
-			"* ==> serial remote: $metadata_serial"
+			"* ==> serial       remote: $metadata_serial"
 
 		printf "%s\n" \
-			"* ==> name remote: $metadata_name"
+			"* ==> name         remote: $metadata_name"
 
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
