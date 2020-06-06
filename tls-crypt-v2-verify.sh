@@ -70,6 +70,9 @@ fail_and_exit ()
 		printf "%s\n" \
 			"* ==> name         remote: $metadata_name"
 
+		printf "%s\n" \
+			"* ==> date         remote: $metadata_date"
+
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
 
@@ -96,7 +99,8 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a little more verbose at run time (Not Windows).
   -c|--ca <path>      Path to CA *Required*
-  --verify-via-ca)    Verify client serial number status via `openssl ca`
+  -t|--tls-age        TLS Crypt V2 Key allowable age in days (default=1825).
+  --verify-via-ca     Verify client serial number status via `openssl ca`
                       NOT RECOMMENDED
                       The recommended method to verify client serial number
                       status is via `openssl crl` (This is the Default).
@@ -114,6 +118,7 @@ help_text ()
   3   - Disallow connection, local/remote Identities do not match.
   4   - Disallow connection, local/remote Custom Groups do not match.
   5   - Disallow connection, invalid metadata_version field.
+  6   - Disallow connection, TLS key has expired.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote Identity.
@@ -183,8 +188,8 @@ fn_metadata_name ()
 	awk '{print $4}' "$openvpn_metadata_file"
 }
 
-# Extract custom metadata appendage from client tls-crypt-v2 key metadata
-fn_metadata_creation_date ()
+# Extract metadata_date from client tls-crypt-v2 key metadata
+fn_metadata_date ()
 {
 	awk '{print $5}' "$openvpn_metadata_file"
 }
@@ -193,6 +198,15 @@ fn_metadata_creation_date ()
 fn_metadata_custom_group ()
 {
 	awk '{print $6}' "$openvpn_metadata_file"
+}
+
+# Verify the age of the TLS key from metadata
+verify_tls_key_date ()
+{
+	[ $tls_key_expire_age_seconds -eq 0 ] && return 0
+	local_date=$(date +%s)
+	expire_date=$((metadata_date + tls_key_expire_age_seconds))
+	[ $local_date -lt $expire_date ] || return 1
 }
 
 # Requirements to verify a valid client cert serial number
@@ -400,6 +414,9 @@ init ()
 	# metadata version
 	local_version="metadata_version_easytls"
 
+	# TLS expiry age (days) Default 5 years
+	TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
+
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
 
@@ -454,8 +471,17 @@ deps ()
 		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 28
 	unset help_note
 
-	# Temporarily set metadata_name here
+	# Temporarily set metadata_* here
 	metadata_name="$(fn_metadata_name)"
+	metadata_date="$(fn_metadata_date)"
+
+	# Ensure that TLS expiry age is numeric
+	[ $((TLS_CRYPT_V2_VERIFY_TLS_AGE)) -gt 0 ] || \
+		TLS_CRYPT_V2_VERIFY_TLS_AGE=0
+
+	# Calculate expite age in seconds
+	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
+
 }
 
 #######################################
@@ -483,6 +509,9 @@ do
 	;;
 	-c|--ca)
 		CA_DIR="$val"
+	;;
+	-t|--tls-age)
+		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
 	;;
 	--verify-via-ca)
 		# This is only included for review
@@ -554,6 +583,14 @@ deps
 		fi
 	fi
 
+
+# TLS Key expired
+
+	# Verify key date and expire by --tls-age
+	verify_tls_key_date || {
+		failure_msg="TLS key has passed expiry age:"
+		fail_and_exit "TLS_KEY_EXPIRED" 6
+	}
 
 # Client certificate serial number
 
