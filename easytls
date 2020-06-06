@@ -1687,7 +1687,7 @@ b64_enc_metadata ()
 	# 4.  Client CommonName:
 	#
 	# 5.  Creation date of this key:
-	#     "YYYYMMDD"
+	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
 	# 6.  Custom Group string:
 	#     contiguous single field
@@ -1715,7 +1715,7 @@ b64_enc_metadata ()
 	openssl_crt_serial
 
 	# Set creation date
-	key_date="$(date +%Y%m%d)"
+	key_date="$(date +%s)"
 
 	# Build metadata
 	metadata="$metadata_version $easytls_lock $crt_serial $cli_name $key_date"
