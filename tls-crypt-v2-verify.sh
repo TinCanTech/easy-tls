@@ -197,22 +197,6 @@ verify_tls_key_date ()
 	[ $local_date -lt $expire_date ] || return 1
 }
 
-# Requirements to verify a valid client cert serial number
-verify_metadata_client_serial_number ()
-{
-	# Do we have a serial number
-	[ -z "$metadata_serial" ] && {
-		failure_msg="Missing: Client serial number"
-		fail_and_exit "SERIAL_NUMBER_MISSING" 11
-		}
-
-	# Hex only accepted
-	allow_hex_only || {
-		failure_msg="Invalid: Client serial number"
-		fail_and_exit "SERIAL_NUMBER_INVALID" 11
-		}
-}
-
 # verify serial number is hex only
 allow_hex_only ()
 {
@@ -534,9 +518,10 @@ deps
 
 
 # Metadata Version
+
+	# metadata_version Must equal 'metadata_version_easytls'
 	case $metadata_version in
 	"$local_version")
-		# metadata_version_easytls is correct
 		success_msg="$metadata_version ==>"
 	;;
 	*)
@@ -553,11 +538,12 @@ deps
 
 
 # Metadata custom_group
+
+	# metadata_custom_group Must equal TLS_CRYPT_V2_VERIFY_CG
 	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
 	then
 		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
-			# Custom group is correct
 			insert_msg="custom_group $metadata_custom_group OK ==>"
 			success_msg="$success_msg $insert_msg"
 		else
@@ -581,14 +567,11 @@ deps
 
 # Client certificate serial number
 
-	# Client serial number requirements
-	verify_metadata_client_serial_number
-
-
-# Disabled list check
-
-	# Check serial number is not disabled
-	verify_serial_number_not_disabled || fail_and_exit "CLIENT_DISABLED" 2
+	# Non-empty, Hex only string accepted
+	allow_hex_only || {
+		failure_msg="Invalid: Client serial number"
+		fail_and_exit "SERIAL_NUMBER_INVALID" 11
+		}
 
 
 # Identity
@@ -612,15 +595,24 @@ deps
 		}
 
 
-# Check metadata Identity against local Identity
-if [ "$local_identity" = "$metadata_identity" ]
-then
-	insert_msg="identity OK ==>"
-	success_msg="$success_msg $insert_msg"
-else
-	failure_msg="identity mismatch"
-	fail_and_exit "IDENTITY_MISMATCH" 3
-fi
+	# Check metadata Identity against local Identity
+	if [ "$local_identity" = "$metadata_identity" ]
+	then
+		insert_msg="identity OK ==>"
+		success_msg="$success_msg $insert_msg"
+	else
+		failure_msg="identity mismatch"
+		fail_and_exit "IDENTITY_MISMATCH" 3
+	fi
+
+
+# Disabled list check
+
+	# Check serial number is not disabled
+	verify_serial_number_not_disabled || {
+		failure_msg="Client is disabled"
+		fail_and_exit "CLIENT_DISABLED" 2
+		}
 
 
 # Certificate Revokation List
@@ -656,7 +648,7 @@ case $test_method in
 	;;
 esac
 
-# failure_msg means fail_and_exit
+# Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9
 
 # For DUBUG
