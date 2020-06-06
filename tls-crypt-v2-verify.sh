@@ -106,6 +106,7 @@ help_text ()
   -v|--verbose        Be a little more verbose at run time (Not Windows).
   -c|--ca <path>      Path to CA *Required*
   -t|--tls-age        TLS Crypt V2 Key allowable age in days (default=1825).
+                      To disable age check use --tls-age=0
   --verify-via-ca     Verify client serial number status via `openssl ca`
                       NOT RECOMMENDED
                       The recommended method to verify client serial number
@@ -166,7 +167,7 @@ fn_local_identity ()
 		printf "%s\n" "$ca_identity"
 
 	else
-		openssl x509 -in "$ca_cert" -noout -fingerprint | sed "s/\ /\_/g"
+		openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
 	fi
 }
 
@@ -206,17 +207,16 @@ verify_metadata_client_serial_number ()
 		}
 
 	# Hex only accepted
-	serial_chars="$(allow_hex_only)"
-	[ $serial_chars -eq 0 ] || {
+	allow_hex_only || {
 		failure_msg="Invalid: Client serial number"
 		fail_and_exit "SERIAL_NUMBER_INVALID" 11
 		}
 }
 
-# Drop all non-hex chars from serial number and count the rest
+# verify serial number is hex only
 allow_hex_only ()
 {
-	printf '%s' "$metadata_serial"|grep -c '[^0123456789ABCDEF]'
+	printf '%s' "$metadata_serial" | grep -q '^[[:xdigit:]]\+$'
 }
 
 # Check metadata client certificate serial number against disabled list
