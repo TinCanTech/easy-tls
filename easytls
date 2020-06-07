@@ -220,6 +220,8 @@ General options:
 
 --openvpn=FILE  : The full (or relative) <path to> and <file-name of>
                   your preferred openvpn(.exe) executable openvpn file.
+--disable-auto-check
+                : For performance you can disable auto-check.
 --batch         : set automatic (no-prompts when possible) mode.
 --verbose       : Verbose output.
 --silent        : Silence all message output except prompts.
@@ -1992,6 +1994,9 @@ while :; do
 	empty_ok="" # Empty values are not allowed unless excepted
 
 	case "$opt" in
+	--disable-auto-check)
+		empty_ok=1
+		export auto_check_disabled=1 ;;
 	--batch)
 		empty_ok=1
 		export EASYTLS_BATCH=1 ;;
