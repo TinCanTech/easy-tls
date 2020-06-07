@@ -92,15 +92,14 @@ export EASYTLS_TRAVIS_CI=1
 
 EASYRSA_CMD="./easyrsa"
 EASYTLS_CMD="./easytls"
-UNITTEST_OPTS="--verbose --batch"
+UNITTEST_OPTS="--verbose --batch --disable-auto-check"
 UNITTEST_SECURE=""
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
 WORK_DIR="$(pwd)"
-PKI_DIR="$WORK_DIR/pki"
 DBUG_DIR="$WORK_DIR/pki/easytls"
-LOOP_PKI=""
+
 
 export EASYTLS_OPENVPN=./openvpn
 export EASYRSA_CERT_RENEW=10000
@@ -109,7 +108,10 @@ export EASYRSA_CERT_RENEW=10000
 for loops in 1 2 3
 do
 
-	[ $loops -eq 3 ] && UNITTEST_SECURE="--secure"
+	PKI_DIR="${WORK_DIR}/pki${loops}"
+	export EASYRSA_PKI="$PKI_DIR"
+
+	[ $loops -eq 3 ] && UNITTEST_OPTS="$UNITTEST_OPTS --exp-cache"
 
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
@@ -155,7 +157,14 @@ do
 	do
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE $i"
-		"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE $i || fail "Unit test error 2: $EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE $i"
+
+	if [ "$i" = "inline-status" ]
+	then
+		echo "Skipped inline-status"
+	else
+		"$EASYTLS_CMD" $UNITTEST_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $UNITTEST_OPTS $i"
+	fi
+
 	done
 
 	# Create some certs out of order - These are intended to break EasyTLS

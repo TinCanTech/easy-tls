@@ -1703,12 +1703,10 @@ b64_enc_metadata ()
 	# Push CA Fingerprint to Easytls lock
 	easytls_lock="$ca_fingerprint"
 
-	# Secret field (Random data)
-	# This is pointless in its current form
-	# Perhaps use openssl to encrypt with a key ..
-	if [ $EASYTLS_SECURE ]
+	# Performance
+	if [ $EASYTLS_CACHE_ID ]
 	then
-		experimental_nonsense
+		experimental_cache_id
 	fi
 
 	# get the serial number of the certificate from openssl
@@ -1762,9 +1760,17 @@ debug_metadata ()
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
+# Save the ID
+experimental_cache_id ()
+{
+	# Performance enhancement
+	printf "%s\n" "$easytls_lock" > "$EASYTLS_CA_IDENTITY" || \
+		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
+}
+
 # W.I.P. Do not use this
 # Let's re-invent x509
-experimental_nonsense ()
+experimental_secure_id ()
 {
 	warn "Use of easytls --secure is a ridculous waste of time ..."
 
@@ -1994,9 +2000,6 @@ while :; do
 	empty_ok="" # Empty values are not allowed unless excepted
 
 	case "$opt" in
-	--disable-auto-check)
-		empty_ok=1
-		export auto_check_disabled=1 ;;
 	--batch)
 		empty_ok=1
 		export EASYTLS_BATCH=1 ;;
@@ -2012,13 +2015,19 @@ while :; do
 		export EASYTLS_SILENT=1 ;;
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
-	--secure)
-		empty_ok=1
-		export EASYTLS_SECURE=1 ;;
 	--custom-group)
 		export EASYTLS_TLSCV2_CG="$val" ;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
+	--disable-auto-check)
+		empty_ok=1
+		auto_check_disabled=1 ;;
+	--exp-cache)
+		empty_ok=1
+		export EASYTLS_CACHE_ID=1 ;;
+	--exp-secure)
+		empty_ok=1
+		export EASYTLS_SECURE=1 ;;
 	*)
 		break ;;
 	esac
