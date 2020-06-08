@@ -99,7 +99,7 @@ UNITTEST_SECURE=""
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
-TLSCV2V_OPTS="--verbose"
+TLSCV2V_OPTS="--verbose --exp-cache"
 WORK_DIR="$(pwd)"
 
 
