@@ -77,7 +77,7 @@ fail_and_exit ()
 			"* ==> name         remote: $md_name"
 
 		printf "%s\n" \
-			"* ==> date         remote: $metadata_date"
+			"* ==> date         remote: $md_date"
 
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
@@ -183,7 +183,7 @@ metadata_string_to_vars ()
 	md_identity="$2"
 	md_serial="$3"
 	md_name="$4"
-	metadata_date="$5"
+	md_date="$5"
 	metadata_custom_group="$6"
 }
 
@@ -198,7 +198,7 @@ verify_tls_key_date ()
 {
 	[ $tls_key_expire_age_seconds -eq 0 ] && return 0
 	local_date=$(date +%s)
-	expire_date=$((metadata_date + tls_key_expire_age_seconds))
+	expire_date=$((md_date + tls_key_expire_age_seconds))
 	[ $local_date -lt $expire_date ] || return 1
 }
 
