@@ -119,8 +119,8 @@ do
 	[ $loops -eq 2 ] && build_vars
 
 	[ $loops -eq 3 ] && {
-		EASYTLS_OPTS="$EASYTLS_OPTS --exp-cache"
-		TLSCV2V_OPTS="$TLSCV2V_OPTS --exp-cache"
+		EASYTLS_OPTS="$EASYTLS_OPTS --cache-id"
+		TLSCV2V_OPTS="$TLSCV2V_OPTS --cache-id"
 		}
 
 	# Setup EasyRSA
