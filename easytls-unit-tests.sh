@@ -95,7 +95,6 @@ EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
 EASYTLS_OPTS="--verbose --batch --disable-auto-check"
-UNITTEST_SECURE=""
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
