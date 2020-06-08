@@ -62,7 +62,7 @@ fail_and_exit ()
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
-			"* ==> custom_group remote: $metadata_custom_group"
+			"* ==> custom_group remote: $md_custom_g"
 
 		printf "%s\n" \
 			"* ==> identity      local: $local_identity"
@@ -184,7 +184,7 @@ metadata_string_to_vars ()
 	md_serial="$3"
 	md_name="$4"
 	md_date="$5"
-	metadata_custom_group="$6"
+	md_custom_g="$6"
 }
 
 # Convert metadata file to metadata_string
@@ -586,19 +586,19 @@ deps
 
 # Metadata custom_group
 
-	# metadata_custom_group Must equal TLS_CRYPT_V2_VERIFY_CG
+	# md_custom_g Must equal TLS_CRYPT_V2_VERIFY_CG
 	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
 	then
-		if [ "$metadata_custom_group" = "$TLS_CRYPT_V2_VERIFY_CG" ]
+		if [ "$md_custom_g" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
-			insert_msg="custom_group $metadata_custom_group OK ==>"
+			insert_msg="custom_group $md_custom_g OK ==>"
 			success_msg="$success_msg $insert_msg"
 		else
 			insert_msg="metadata custom_group is not correct:"
-			[ -z "$metadata_custom_group" ] && \
+			[ -z "$md_custom_g" ] && \
 				insert_msg="metadata custom_group is missing"
 
-			failure_msg="$insert_msg $metadata_custom_group"
+			failure_msg="$insert_msg $md_custom_g"
 			fail_and_exit "METADATA_CUSTOM_GROUP" 4
 		fi
 	fi
