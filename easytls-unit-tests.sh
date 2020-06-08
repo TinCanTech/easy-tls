@@ -115,6 +115,9 @@ do
 	DBUG_DIR="$WORK_DIR/pki${loops}/easytls"
 	export EASYRSA_PKI="$PKI_DIR"
 
+	# Build vars, used by all remaining loops
+	[ $loops -eq 2 ] && build_vars
+
 	[ $loops -eq 3 ] && {
 		EASYTLS_OPTS="$EASYTLS_OPTS --exp-cache"
 		TLSCV2V_OPTS="$TLSCV2V_OPTS --exp-cache"
@@ -157,9 +160,9 @@ do
 		"inline-tls-crypt-v2 c05" "inline-status" "disable c05" "enable c05" \
 		"inline-tls-crypt-v2 c06" "inline-status" \
 		"inline-tls-crypt-v2 c08" "inline-status" \
-		"inline-index-rebuild" \
 		"cert-expire" \
 		"inline-expire" \
+		#"inline-index-rebuild" \
 		## EOL
 	do
 		print "============================================================"
@@ -225,6 +228,11 @@ do
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		echo "exit: $?"
+
+		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		echo "exit: $?"
@@ -238,6 +246,12 @@ do
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		echo "exit: $?"
+
 		echo
 	done
 	print "============================================================"
@@ -245,15 +259,17 @@ do
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status
 	print "============================================================"
 
-	# Build env for next loop
-	build_vars
+	print "============================================================"
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild
+	print "============================================================"
 
 done # => loops
 
 # Now test a cross-polinated TCV2 key
 printf '\n\n\n'
 print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-printf '%s\n\n' "Now test a cross-polinated TCV2 key"
+printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 DBUG_DIR="$WORK_DIR/pki1/easytls"
 
 	# Test tls-crypt-v2-verify.sh
@@ -274,6 +290,11 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		echo "exit: $?"
+
+		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
 		     "$EASYTLS_CMD" --batch disable "$c"
 		echo "exit: $?"
@@ -287,6 +308,12 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
+		echo "exit: $?"
+
 		echo
 	done
 	print "============================================================"
