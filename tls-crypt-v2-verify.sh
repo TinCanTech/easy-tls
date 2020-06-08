@@ -156,7 +156,12 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	openssl x509 -in "$ca_cert" -noout
+	if [ $exp_cache ]
+	then
+		return 0
+	else
+		openssl x509 -in "$ca_cert" -noout
+	fi
 }
 
 # Local identity
@@ -165,7 +170,6 @@ fn_local_identity ()
 	if [ $exp_cache ]
 	then
 		printf "%s\n" "$ca_identity"
-
 	else
 		openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
 	fi
@@ -376,6 +380,45 @@ MAN_OPENSSL_CA
 # This script ONLY reads, .:  I am hoping for better than 'unpredictable' ;-)
 }
 
+# Check metadata client certificate serial number against index.txt
+serial_status_via_pki_index ()
+{
+	md_serial="$metadata_serial"
+	md_name="$metadata_name"
+	is_valid="$(fn_search_valid_pki_index)"
+	is_revoked="$(fn_search_revoked_pki_index)"
+	if [ $is_revoked -eq 0 ]
+	then
+		 if [ $is_valid -eq 1 ]
+		then
+			client_passed_all_tests_connection_allowed
+		else
+			# Cert is not known
+			insert_msg="Serial number is not in the CA database:"
+			failure_msg="$insert_msg $metadata_serial"
+			fail_and_exit "SERIAL_NUMBER_UNKNOWN" 121
+		fi
+	else
+		client_passed_all_tests_certificate_revoked
+	fi
+}
+
+# Final check: Search index.txt for Valid client cert serial number
+fn_search_valid_pki_index ()
+{
+	grep -c \
+	"^V.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
+		"$index_txt"
+}
+
+# Final check: Search index.txt for Valid client cert serial number
+fn_search_revoked_pki_index ()
+{
+	grep -c \
+	"^R.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
+		"$index_txt"
+}
+
 # Initialise
 init ()
 {
@@ -392,7 +435,7 @@ init ()
 	openvpn_metadata_file="$metadata_file"
 
 	# Log message
-	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify ==>"
+	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (crl) ==>"
 
 	# Test certificate Valid/Revoked by CRL not CA
 	test_method=1
@@ -419,8 +462,10 @@ deps ()
 	if [ $exp_cache ]
 	then
 	help_note="This script requires an EasyTLS generated CA identity."
-	[ -f "$ca_identity_file" ] || die "Missing CA identity: $ca_identity_file" 33
-	ca_identity="$(cat "$ca_identity_file")"
+	[ -f "$ca_identity_file" ] || \
+		die "Missing CA identity: $ca_identity_file" 33
+
+		ca_identity="$(cat "$ca_identity_file")"
 	fi
 
 	help_note="This script requires an EasyRSA generated CRL."
@@ -452,7 +497,7 @@ deps ()
 	[ $((TLS_CRYPT_V2_VERIFY_TLS_AGE)) -gt 0 ] || \
 		TLS_CRYPT_V2_VERIFY_TLS_AGE=0
 
-	# Calculate expite age in seconds
+	# Calculate maximum age in seconds
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
 }
 
@@ -486,10 +531,14 @@ do
 		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
 	;;
 	--verify-via-ca)
-		# This is only included for review
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
 		test_method=2
+	;;
+	--verify-via-index)
+		empty_ok=1
+		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (index) ==>"
+		test_method=3
 	;;
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"
@@ -576,7 +625,15 @@ deps
 
 # Identity
 
+	# Using --exp-cache openssl is not loaded here
+	# Otherwise it is loaded twice
+
+	# Verify CA
+	# Load openssl (1) and verify the CA cert is valid
+	verify_ca || die "Bad CA $ca_cert" 123
+
 	# Local Identity
+	# Load openssl (2) and return CA fingerprint
 	local_identity="$(fn_local_identity)"
 
 	# local_identity is required
@@ -614,18 +671,20 @@ deps
 # Verify serial status
 test_method=${test_method:-1}
 
-	# Verify CA
-	verify_ca || die "Bad CA $ca_cert" 123
-
 	case $test_method in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
 
 		# Verify CRL
+		# Load openssl (3) and verify the CRL is valid
 		verify_crl || die "Bad CRL: $crl_pem" 122
+
 		# Capture CRL
+		# Load openssl (4) and return the CRL
 		crl_text="$(fn_read_crl)"
+
+		# Load openssl 4 times
 
 		# Verify via CRL
 		serial_status_via_crl
@@ -637,8 +696,18 @@ test_method=${test_method:-1}
 		# Due to openssl being "what it is", it is not possible to
 		# reliably verify the 'openssl ca $cmd'
 
+		# Load openssl 3 times
+
 		# Verify via CA
+		# Load openssl (3) and return the serial status
 		serial_status_via_ca
+	;;
+	3)
+		# Method 3
+		# Search openssl index.txt for client serial number
+		# and return Valid, Revoked or not Known status
+		# openssl is never loaded for this check
+		serial_status_via_pki_index
 	;;
 	*)
 		die "Unknown method for verify: $test_method" 9
