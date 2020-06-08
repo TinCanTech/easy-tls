@@ -60,39 +60,15 @@ TLS Crypt v2 details:
     1.  metadata_version string: "metadata_version_easytls"
         (No longer use a specific version because it was to easy to change)
 
-    2.a CA Fingerprint (Formatted to one contiguous string)
-
-    2.b "CA Identity"
-
-        If the CA Fingerprint is used only then every field in the metadata
-        string can be verified via public sources or, in the case of the
-        Custom Group, be guessed with some reasonable degree of success.
-
-        CA Identity allows secret data to be shared in the metadata field.
-        This secret data *cannot* be verified, guessed or impersonated.
-
-        CA Identity construction:
-
-            "SHA512_Identity=$ca_identity"
-
-        ca_identity field construction:
-
-            $( openssl sha512
-               $(
-                  openssl sha256 easyrsa3/pki/ca.crt
-                  openssl sha256 easyrsa3/pki/easytls/easytls-ca-identity.txt
-                )
-             ) # EOL
-
-        easytls-ca-identity.txt:
-
-            $( openssl -rand -hex -out easytls/easytls-ca-identity.txt 64 )
+    2   CA Fingerprint (Formatted to one contiguous string)
 
     3.  Client certificate serial number
 
     4.  Client certificate Common Name
 
-    5.  User definable custom group
+    5.  Creation date (date +%s - "Seconds since...")
+
+    6.  User definable custom group
 
         This is a string which the user can use for identification
         eg. "CompanyName" (One contiguous string)
@@ -110,11 +86,19 @@ TLS Crypt v2 details:
        This is the default method which conforms to syzzers original
        specification.
 
-    2. Verify via CA
+    2. Verify via CA --verify-via-ca
 
        The client serial number status is verified via `openssl ca`
        This method works but is not recommended by OpenSSL.
 
+    3. Verify via openssl index.txt --verify-via-index
+
+       The client serial number status is verified via the openssl
+       index.txt file.
+
+       Combined with the --cache-id option (In both EasyTLS and
+       tls-crypt-v2-verify.sh) the verify script never has to load
+       openssl -- For some minor performance gain on a busy server.
 
 Note about exit codes:
 
