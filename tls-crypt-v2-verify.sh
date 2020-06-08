@@ -117,6 +117,7 @@ help_text ()
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
+  --cache-id          Use the saved CA ID from easytls.
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -156,7 +157,7 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	if [ $exp_cache ]
+	if [ $use_cache_id ]
 	then
 		return 0
 	else
@@ -167,7 +168,7 @@ verify_ca ()
 # Local identity
 fn_local_identity ()
 {
-	if [ $exp_cache ]
+	if [ $use_cache_id ]
 	then
 		printf "%s\n" "$ca_identity"
 	else
@@ -459,7 +460,7 @@ deps ()
 	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
-	if [ $exp_cache ]
+	if [ $use_cache_id ]
 	then
 	help_note="This script requires an EasyTLS generated CA identity."
 	[ -f "$ca_identity_file" ] || \
@@ -543,9 +544,9 @@ do
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"
 	;;
-	--exp-cache)
+	--cache-id)
 		empty_ok=1
-		exp_cache=1
+		use_cache_id=1
 	;;
 	*)
 		die "Unknown option: $1" 253
