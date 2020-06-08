@@ -105,6 +105,7 @@ WORK_DIR="$(pwd)"
 export EASYTLS_OPENVPN=./openvpn
 export EASYRSA_CERT_RENEW=10000
 
+total_expected_errors=0
 
 for loops in 1 2 3
 do
@@ -201,13 +202,14 @@ do
 	print "Build a default openvpn tls-crypt-v2 client key with no metadata"
 	"$OPENVPN_CMD" --tls-crypt-v2 "$ETLS_DIR/s01-tls-crypt-v2.key" \
 		--genkey tls-crypt-v2-client "$ETLS_DIR/c07-tls-crypt-v2.key" || \
-		fail "Unit test error 55: Probably the wrong directory.."
+		fail "Unit test error 61: Probably the wrong directory.."
 
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	# TODO: get in the right place
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
 	# Inline c07
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07 || \
+		fail "Unit test error 62: inline-tls-crypt-v2 c07"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
@@ -219,48 +221,64 @@ do
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		echo
 	done
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status || \
+		fail "Unit test error 63: inline-status"
 	print "============================================================"
 
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
+		fail "Unit test error 64: inline-index-rebuild"
 	print "============================================================"
 
 done # => loops
@@ -281,43 +299,58 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
 		     "$EASYTLS_CMD" --batch disable "$c"
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index
-		echo "exit: $?"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
 
 		echo
 	done
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status || \
+		fail "Unit test error 65: inline-status"
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
@@ -328,11 +361,14 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 	#	fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
 
 	print "------------------------------------------------------------"
-	"$EASYTLS_CMD" $EASYTLS_OPTS cert-expire
+	"$EASYTLS_CMD" $EASYTLS_OPTS cert-expire || \
+		fail "Unit test error 66: cert-expire"
 	print "------------------------------------------------------------"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
+		fail "Unit test error 67: inline-expire"
 
 echo "============================================================"
+echo "total_expected_errors=$total_expected_errors (Expected 91 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 
