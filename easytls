@@ -982,11 +982,8 @@ inline_index_rebuild ()
 	# Get list of certs from openssl index.txt
 	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
-	# Get the Random data record
-	random_record="$(grep 'TLS_CRYPT_V2 Secure_HASH' "$EASYTLS_INLINE_INDEX")"
-
 	# Create new easytls index file
-	printf "%s\n" "$random_record" > "$EASYTLS_INLINE_INDEX" \
+	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
 
 	# Create records from openssl Valid names list
