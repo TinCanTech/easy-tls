@@ -94,12 +94,12 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch --disable-auto-check --exp-cache"
+EASYTLS_OPTS="--verbose --batch --disable-auto-check"
 UNITTEST_SECURE=""
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
-TLSCV2V_OPTS="--verbose --exp-cache"
+TLSCV2V_OPTS="--verbose"
 WORK_DIR="$(pwd)"
 
 
@@ -115,7 +115,10 @@ do
 	DBUG_DIR="$WORK_DIR/pki${loops}/easytls"
 	export EASYRSA_PKI="$PKI_DIR"
 
-	[ $loops -eq 3 ] && EASYTLS_OPTS="$EASYTLS_OPTS --exp-cache"
+	[ $loops -eq 3 ] && {
+		EASYTLS_OPTS="$EASYTLS_OPTS --exp-cache"
+		TLSCV2V_OPTS="$TLSCV2V_OPTS --exp-cache"
+		}
 
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
