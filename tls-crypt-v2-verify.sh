@@ -162,7 +162,7 @@ verify_ca ()
 # Local identity
 fn_local_identity ()
 {
-	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
+	if [ $exp_cache ]
 	then
 		printf "%s\n" "$ca_identity"
 
@@ -416,7 +416,7 @@ deps ()
 	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
-	if [ $TLS_CRYPT_V2_VERIFY_SECURE ]
+	if [ $exp_cache ]
 	then
 	help_note="This script requires an EasyTLS generated CA identity."
 	[ -f "$ca_identity_file" ] || die "Missing CA identity: $ca_identity_file" 33
@@ -491,12 +491,12 @@ do
 		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
 		test_method=2
 	;;
-	-s|--secure)
-		empty_ok=1
-		TLS_CRYPT_V2_VERIFY_SECURE=1
-	;;
 	-g|--custom-group)
 		TLS_CRYPT_V2_VERIFY_CG="$val"
+	;;
+	--exp-cache)
+		empty_ok=1
+		exp_cache=1
 	;;
 	*)
 		die "Unknown option: $1" 253
