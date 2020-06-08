@@ -71,7 +71,7 @@ fail_and_exit ()
 			"* ==> identity     remote: $md_identity"
 
 		printf "%s\n" \
-			"* ==> serial       remote: $metadata_serial"
+			"* ==> serial       remote: $md_serial"
 
 		printf "%s\n" \
 			"* ==> name         remote: $metadata_name"
@@ -181,7 +181,7 @@ metadata_string_to_vars ()
 {
 	md_version="$1"
 	md_identity="$2"
-	metadata_serial="$3"
+	md_serial="$3"
 	metadata_name="$4"
 	metadata_date="$5"
 	metadata_custom_group="$6"
@@ -205,7 +205,7 @@ verify_tls_key_date ()
 # verify serial number is hex only
 allow_hex_only ()
 {
-	printf '%s' "$metadata_serial" | grep -q '^[[:xdigit:]]\+$'
+	printf '%s' "$md_serial" | grep -q '^[[:xdigit:]]\+$'
 }
 
 # Check metadata client certificate serial number against disabled list
@@ -221,7 +221,7 @@ verify_serial_number_not_disabled ()
 	*)
 		# Client is disabled
 		insert_msg="client serial number is disabled:"
-		failure_msg="$insert_msg $metadata_serial"
+		failure_msg="$insert_msg $md_serial"
 		return 1
 	;;
 	esac
@@ -229,14 +229,14 @@ verify_serial_number_not_disabled ()
 	# Otherwise fail
 	help_note="Check your disabled list: $disabled_list"
 	insert_msg="client serial number failed disabled test:"
-	failure_msg="$insert_msg $metadata_serial"
+	failure_msg="$insert_msg $md_serial"
 	return 1
 }
 
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^${metadata_serial}[[:blank:]]${metadata_name}$" \
+	grep -c "^${md_serial}[[:blank:]]${metadata_name}$" \
 		"$disabled_list"
 }
 
@@ -256,13 +256,13 @@ fn_read_crl ()
 fn_search_crl ()
 {
 	printf "%s\n" "$crl_text" | grep -c \
-		"^[[:blank:]]*Serial Number: ${metadata_serial}$"
+		"^[[:blank:]]*Serial Number: ${md_serial}$"
 }
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*[[:blank:]]${metadata_serial}[[:blank:]].*/CN=${metadata_name}.*$" \
+	grep -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${metadata_name}.*$" \
 		"$index_txt"
 }
 
@@ -282,7 +282,7 @@ serial_status_via_crl ()
 		client_passed_all_tests_connection_allowed
 		;;
 		*)
-		die "Duplicate serial numbers: $metadata_serial" 127
+		die "Duplicate serial numbers: $md_serial" 127
 		;;
 		esac
 	;;
@@ -291,8 +291,8 @@ serial_status_via_crl ()
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected: "
-		failure_msg="$insert_msg $metadata_serial"
-		die "Duplicate serial numbers: $metadata_serial" 127
+		failure_msg="$insert_msg $md_serial"
+		die "Duplicate serial numbers: $md_serial" 127
 	;;
 	esac
 }
@@ -301,7 +301,7 @@ serial_status_via_crl ()
 client_passed_all_tests_connection_allowed ()
 {
 	insert_msg="Client certificate is recognised and not revoked:"
-	success_msg="$success_msg $insert_msg $metadata_serial"
+	success_msg="$success_msg $insert_msg $md_serial"
 	success_msg="$success_msg $metadata_name"
 	absolute_fail=0
 }
@@ -310,7 +310,7 @@ client_passed_all_tests_connection_allowed ()
 client_passed_all_tests_certificate_revoked ()
 {
 	insert_msg="Client certificate is revoked:"
-	failure_msg="$insert_msg $metadata_serial"
+	failure_msg="$insert_msg $md_serial"
 	fail_and_exit "REVOKED" 1
 }
 
@@ -347,7 +347,7 @@ openssl_serial_status ()
 {
 	# openssl appears to always exit with error - but here I do not care
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$metadata_serial" 2>&1
+		-status "$md_serial" 2>&1
 }
 
 # Capture serial status
@@ -362,7 +362,7 @@ verify_openssl_serial_status ()
 	return 0 # Disable this `return` if you want to test
 	# openssl appears to always exit with error - have not solved this
 	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$metadata_serial" || \
+		-status "$md_serial" || \
 		die "openssl returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
@@ -384,7 +384,6 @@ MAN_OPENSSL_CA
 # Check metadata client certificate serial number against index.txt
 serial_status_via_pki_index ()
 {
-	md_serial="$metadata_serial"
 	md_name="$metadata_name"
 	is_valid="$(fn_search_valid_pki_index)"
 	is_revoked="$(fn_search_revoked_pki_index)"
@@ -396,7 +395,7 @@ serial_status_via_pki_index ()
 		else
 			# Cert is not known
 			insert_msg="Serial number is not in the CA database:"
-			failure_msg="$insert_msg $metadata_serial"
+			failure_msg="$insert_msg $md_serial"
 			fail_and_exit "SERIAL_NUMBER_UNKNOWN" 121
 		fi
 	else
