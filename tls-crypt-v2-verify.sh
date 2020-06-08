@@ -569,7 +569,7 @@ deps
 	# metadata_version Must equal 'metadata_version_easytls'
 	case $md_version in
 	"$local_version")
-		success_msg="$metadata_version ==>"
+		success_msg="$md_version ==>"
 	;;
 	*)
 		if [ -z "$md_version" ]
