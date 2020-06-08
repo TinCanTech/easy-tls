@@ -68,7 +68,7 @@ fail_and_exit ()
 			"* ==> identity      local: $local_identity"
 
 		printf "%s\n" \
-			"* ==> identity     remote: $metadata_identity"
+			"* ==> identity     remote: $md_identity"
 
 		printf "%s\n" \
 			"* ==> serial       remote: $metadata_serial"
@@ -180,7 +180,7 @@ fn_local_identity ()
 metadata_string_to_vars ()
 {
 	md_version="$1"
-	metadata_identity="$2"
+	md_identity="$2"
 	metadata_serial="$3"
 	metadata_name="$4"
 	metadata_date="$5"
@@ -643,14 +643,14 @@ deps
 		fail_and_exit "LOCAL_IDENTITY" 13
 		}
 
-	# metadata_identity is required
-	[ -z "$metadata_identity" ] && {
+	# md_identity is required
+	[ -z "$md_identity" ] && {
 		failure_msg="Missing: remote identity"
 		fail_and_exit "REMOTE_IDENTITY" 12
 		}
 
 	# Check metadata Identity against local Identity
-	if [ "$local_identity" = "$metadata_identity" ]
+	if [ "$local_identity" = "$md_identity" ]
 	then
 		insert_msg="identity OK ==>"
 		success_msg="$success_msg $insert_msg"
