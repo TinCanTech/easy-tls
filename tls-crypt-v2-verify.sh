@@ -56,7 +56,7 @@ fail_and_exit ()
 			"* ==> version       local: $local_version"
 
 		printf "%s\n" \
-			"* ==> version      remote: $metadata_version"
+			"* ==> version      remote: $md_version"
 
 		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
 			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
@@ -179,7 +179,7 @@ fn_local_identity ()
 # Break metadata_string into variables
 metadata_string_to_vars ()
 {
-	metadata_version="$1"
+	md_version="$1"
 	metadata_identity="$2"
 	metadata_serial="$3"
 	metadata_name="$4"
@@ -262,7 +262,7 @@ fn_search_crl ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*[[:blank:]]${metadata_serial}[[:blank:]].*$" \
+	grep -c "^V.*[[:blank:]]${metadata_serial}[[:blank:]].*/CN=${metadata_name}.*$" \
 		"$index_txt"
 }
 
@@ -569,18 +569,18 @@ deps
 # Metadata Version
 
 	# metadata_version Must equal 'metadata_version_easytls'
-	case $metadata_version in
+	case $md_version in
 	"$local_version")
 		success_msg="$metadata_version ==>"
 	;;
 	*)
-		if [ -z "$metadata_version" ]
+		if [ -z "$md_version" ]
 		then
 			insert_msg="metadata version is missing."
 		else
 			insert_msg="metadata version is not recognised:"
 		fi
-		failure_msg="$insert_msg $metadata_version"
+		failure_msg="$insert_msg $md_version"
 		fail_and_exit "METADATA_VERSION" 5
 	;;
 	esac
