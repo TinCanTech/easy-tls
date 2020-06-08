@@ -50,7 +50,7 @@ fail_and_exit ()
 	then
 		printf "%s " "$tls_crypt_v2_verify_msg"
 		[ -z "$success_msg" ] || printf "%s " "$success_msg"
-		printf "%s\n%s\n" "$failure_msg $metadata_name" "$1"
+		printf "%s\n%s\n" "$failure_msg $md_name" "$1"
 
 		printf "%s\n" \
 			"* ==> version       local: $local_version"
@@ -74,7 +74,7 @@ fail_and_exit ()
 			"* ==> serial       remote: $md_serial"
 
 		printf "%s\n" \
-			"* ==> name         remote: $metadata_name"
+			"* ==> name         remote: $md_name"
 
 		printf "%s\n" \
 			"* ==> date         remote: $metadata_date"
@@ -87,7 +87,7 @@ fail_and_exit ()
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
 		printf "%s %s %s %s\n" "$tls_crypt_v2_verify_msg" \
-			"$success_msg" "$failure_msg" "$metadata_name"
+			"$success_msg" "$failure_msg" "$md_name"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -182,7 +182,7 @@ metadata_string_to_vars ()
 	md_version="$1"
 	md_identity="$2"
 	md_serial="$3"
-	metadata_name="$4"
+	md_name="$4"
 	metadata_date="$5"
 	metadata_custom_group="$6"
 }
@@ -236,7 +236,7 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^${md_serial}[[:blank:]]${metadata_name}$" \
+	grep -c "^${md_serial}[[:blank:]]${md_name}$" \
 		"$disabled_list"
 }
 
@@ -262,7 +262,7 @@ fn_search_crl ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${metadata_name}.*$" \
+	grep -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
 		"$index_txt"
 }
 
@@ -302,7 +302,7 @@ client_passed_all_tests_connection_allowed ()
 {
 	insert_msg="Client certificate is recognised and not revoked:"
 	success_msg="$success_msg $insert_msg $md_serial"
-	success_msg="$success_msg $metadata_name"
+	success_msg="$success_msg $md_name"
 	absolute_fail=0
 }
 
@@ -384,7 +384,6 @@ MAN_OPENSSL_CA
 # Check metadata client certificate serial number against index.txt
 serial_status_via_pki_index ()
 {
-	md_name="$metadata_name"
 	is_valid="$(fn_search_valid_pki_index)"
 	is_revoked="$(fn_search_revoked_pki_index)"
 	if [ $is_revoked -eq 0 ]
