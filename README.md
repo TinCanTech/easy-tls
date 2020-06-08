@@ -16,9 +16,10 @@ Please use the issues section here on github. <br>
 For live support you can use IRC channel: **Freenode/#easytls**
 
 ## Acknowledgements
-This utility is *written in the style of* and *borrows heavily from* Easy-RSA <br>
+Easy-TLS is *written in the style of* and *borrows heavily from* Easy-RSA <br>
 See: https://github.com/OpenVPN/easy-rsa <br>
 Note: This is intended to facilitate maximum compatibility with Easy-RSA while extending functionality to include direct support for OpenVPN specific TLS keys and Inline credentials.
+`tls-crypt-v2-verify.sh` is inpired by syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 
 ## Credits
 See: https://github.com/TinCanTech/easy-tls/blob/master/CREDITS.md
