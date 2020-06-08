@@ -91,14 +91,16 @@ build_easyrsa
 export EASYTLS_TRAVIS_CI=1
 
 EASYRSA_CMD="./easyrsa"
+EASYRSA_OPTS="--batch"
+
 EASYTLS_CMD="./easytls"
-UNITTEST_OPTS="--verbose --batch --disable-auto-check"
+EASYTLS_OPTS="--verbose --batch --disable-auto-check --exp-cache"
 UNITTEST_SECURE=""
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
+TLSCV2V_OPTS="--verbose"
 WORK_DIR="$(pwd)"
-DBUG_DIR="$WORK_DIR/pki/easytls"
 
 
 export EASYTLS_OPENVPN=./openvpn
@@ -109,9 +111,11 @@ for loops in 1 2 3
 do
 
 	PKI_DIR="${WORK_DIR}/pki${loops}"
+	ETLS_DIR="$WORK_DIR/pki${loops}/easytls"
+	DBUG_DIR="$WORK_DIR/pki${loops}/easytls"
 	export EASYRSA_PKI="$PKI_DIR"
 
-	[ $loops -eq 3 ] && UNITTEST_OPTS="$UNITTEST_OPTS --exp-cache"
+	[ $loops -eq 3 ] && EASYTLS_OPTS="$EASYTLS_OPTS --exp-cache"
 
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
@@ -127,7 +131,7 @@ do
 		## EOL
 	do
 		print "============================================================"
-		"$EASYRSA_CMD" --batch $i || fail "Unit test error 1: $EASYRSA_CMD --batch $i"
+		"$EASYRSA_CMD" $EASYRSA_OPTS $i || fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
 	done
 
 	# Test EasyTLS
@@ -156,145 +160,148 @@ do
 		## EOL
 	do
 		print "============================================================"
-		echo "==> $EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE $i"
+		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $i"
 
-	if [ "$i" = "inline-status" ]
-	then
-		echo "Skipped inline-status"
-	else
-		"$EASYTLS_CMD" $UNITTEST_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $UNITTEST_OPTS $i"
-	fi
+		if [ "$i" = "inline-status" ]
+		then
+			echo "Skipped inline-status"
+		else
+			"$EASYTLS_CMD" $EASYTLS_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $i"
+		fi
 
 	done
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
-	for i in "$EASYRSA_CMD --batch build-client-full c04 nopass" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE build-tls-crypt-v2-client s01 c04" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE inline-tls-crypt-v2 c04" \
-		"$EASYRSA_CMD --batch revoke c04" \
-		"$EASYRSA_CMD --batch gen-crl" \
-		"$EASYRSA_CMD --batch revoke c06" \
-		"$EASYRSA_CMD --batch gen-crl" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE inline-status" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE cert-expire" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE inline-status" \
-		"$EASYRSA_CMD --batch renew c08 nopass" \
-		"$EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE inline-status" \
+	for i in "$EASYRSA_CMD $EASYRSA_OPTS build-client-full c04 nopass" \
+		"$EASYTLS_CMD $EASYTLS_OPTS build-tls-crypt-v2-client s01 c04" \
+		"$EASYTLS_CMD $EASYTLS_OPTS inline-tls-crypt-v2 c04" \
+		"$EASYRSA_CMD $EASYRSA_OPTS revoke c04" \
+		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
+		"$EASYRSA_CMD $EASYRSA_OPTS revoke c06" \
+		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
+		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
+		"$EASYTLS_CMD $EASYTLS_OPTS cert-expire" \
+		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
+		"$EASYRSA_CMD $EASYRSA_OPTS renew c08 nopass" \
+		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
 		## EOL
 	do
 		print "============================================================"
+		print "$i"
 		$i || fail "Unit test error 3: $i"
 	done
 
 	print "============================================================"
-	# Build a default openvpn tls-crypt-v2 client key with no metadata
-	"$OPENVPN_CMD" --tls-crypt-v2 "$DBUG_DIR/s01-tls-crypt-v2.key" \
-	--genkey tls-crypt-v2-client "$DBUG_DIR/c07-tls-crypt-v2.key"
+	print "Build a default openvpn tls-crypt-v2 client key with no metadata"
+	"$OPENVPN_CMD" --tls-crypt-v2 "$ETLS_DIR/s01-tls-crypt-v2.key" \
+		--genkey tls-crypt-v2-client "$ETLS_DIR/c07-tls-crypt-v2.key" || \
+		fail "Unit test error 55: Probably the wrong directory.."
+
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
+	# TODO: get in the right place
 	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
 	# Inline c07
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE inline-tls-crypt-v2 c07
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
 	do
 		print "============================================================"
-		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech "$UNITTEST_SECURE"
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech "$UNITTEST_SECURE"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca "$UNITTEST_SECURE"
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca "$UNITTEST_SECURE"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE disable "$c"
-		"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE disable "$c"
+		echo "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
+		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech "$UNITTEST_SECURE"
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech "$UNITTEST_SECURE"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca "$UNITTEST_SECURE"
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca "$UNITTEST_SECURE"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
 		echo
 	done
 	print "============================================================"
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE inline-status
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status
 	print "============================================================"
 
 	# Build env for next loop
 	build_vars
 
-	# Good old directory structure mallarky
-	export EASYRSA_PKI="$WORK_DIR/pki2"
-	PKI_DIR="$WORK_DIR/pki2"
-	DBUG_DIR="$WORK_DIR/pki2/easytls"
-
 done # => loops
 
 # Now test a cross-polinated TCV2 key
-DBUG_DIR="$WORK_DIR/pki/easytls"
+printf '\n\n\n'
+print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+printf '%s\n\n' "Now test a cross-polinated TCV2 key"
+DBUG_DIR="$WORK_DIR/pki1/easytls"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07"
 	do
 		print "============================================================"
-		echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
-		"$EASYTLS_CMD" --batch disable "$c"
+		     "$EASYTLS_CMD" --batch disable "$c"
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		echo "exit: $?"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
-		"$TLSCV2V_CMD" -c="$PKI_DIR" -v -g=tincantech --verify-via-ca
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		echo "exit: $?"
 		echo
 	done
 	print "============================================================"
-	print "inline-status"
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE inline-status
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
-	rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
-	print "============================================================"
-	print "inline-index-rebuild"
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE inline-index-rebuild || \
-		fail "Unit test error 4: $EASYTLS_CMD $UNITTEST_OPTS $UNITTEST_SECURE inline-index-rebuild"
+	#rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
+	#print "============================================================"
+	#print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
+	#"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
+	#	fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
 
 	print "------------------------------------------------------------"
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE cert-expire
+	"$EASYTLS_CMD" $EASYTLS_OPTS cert-expire
 	print "------------------------------------------------------------"
-	"$EASYTLS_CMD" $UNITTEST_OPTS $UNITTEST_SECURE inline-expire
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire
 
 echo "============================================================"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
