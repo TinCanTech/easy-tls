@@ -21,10 +21,12 @@ cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 #   metadata version
 #   metadata custom group
 #   TLS key age
+#   Identity (CA Fingerprint)
 #   disabled list
-#   Identity (CA Fingerprint or "Identity")
-#   Client certificate serial number against certificate revokation list
-#   Or verify client certificate serial number status via `openssl ca`
+#   Client certificate serial number
+#     * via certificate revokation list (Default)
+#     * via `openssl ca` (Not recommended)
+#     * via openssl index.txt (Preferred)
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
