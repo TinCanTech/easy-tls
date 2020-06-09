@@ -457,6 +457,10 @@ Your newly created TLS dir is: $EASYTLS_PKI
 inline_auto_check ()
 {
 	[ $auto_check_disabled ] && return 0
+	index_size="$(grep -c '^.*$' "$EASYTLS_INLINE_INDEX")"
+	[ $index_size -gt 50 ] && \
+		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
+
 	auto_check=1
 	inline_status invalid
 	[ $revoked_mismatch_count -eq 0 ] || \
