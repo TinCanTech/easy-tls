@@ -9,7 +9,7 @@ An Easy-RSA extension utility to help manage:
 Simply copy `easytls` to your `easyrsa` working directory.
 
 ## Environment
-`easytls` is intended to work **everywhere** that `easyrsa` works.
+`easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
 
 ## Support
 Please use the issues section here on github. <br>
