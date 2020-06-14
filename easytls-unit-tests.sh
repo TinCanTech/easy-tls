@@ -175,6 +175,8 @@ do
 			"$EASYTLS_CMD" $EASYTLS_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $i"
 		fi
 
+		# EasyOut
+		[ "$i" = "Planned break" ] && fail "Planned break"
 	done
 
 	# Create some certs out of order - These are intended to break EasyTLS
