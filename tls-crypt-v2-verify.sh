@@ -106,13 +106,16 @@ help_text ()
   Options:
   help|-h|--help      This help text.
   -v|--verbose        Be a little more verbose at run time (Not Windows).
-  -c|--ca <path>      Path to CA *Required*
+  -c|--ca=<path>      Path to CA *REQUIRED*
   -t|--tls-age        TLS Crypt V2 Key allowable age in days (default=1825).
                       To disable age check use --tls-age=0
   --verify-via-ca     Verify client serial number status via `openssl ca`
                       NOT RECOMMENDED
-                      The recommended method to verify client serial number
-                      status is via `openssl crl` (This is the Default).
+  --verify-via-index  Verify client serial number status via openssl index.txt
+                      PREFERRED - This method does not require the script to
+                      load openssl binary.
+                      The default method is to verify client serial number
+                      status is via the Certificate Revokation List.
   -g|--custom-group=<GROUP>
                       Also verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
