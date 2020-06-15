@@ -807,7 +807,12 @@ inline_index_update ()
 	add)
 		# Add the inline_serial not the crt_serial
 		inline_serial="$(inline_crt_serial)"
-		# Create new HASH here
+
+		# If this HASH is set then another function is responsible for it
+		[ "$inline_hash" ] && \
+			die "Do not allow a HASH here: inline_index_update add"
+
+		# Create new HASH
 		inline_hash="$(inline_index_gen_hash)"
 		[ $EASYTLS_VERBOSE ] && \
 			printf "%s\n" "  ADD: $name $inline_serial $inline_hash"
@@ -821,10 +826,18 @@ inline_index_update ()
 		[ $EASYTLS_VERBOSE ] && \
 			printf "%s\n" "  DEL: $name $crt_serial $inline_hash"
 
+		# Find old record
+		grep \
+		"^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$" \
+			"$EASYTLS_INLINE_INDEX" 1>/dev/null || {
+			help_note="Failed: inline_index_update del"
+			die "Missing record: $name $crt_serial $inline_hash"
+			}
+
+		# Remove old record
 		sed -i -e \
 		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
-			"$EASYTLS_INLINE_INDEX" || \
-			die "Failed to update $EASYTLS_INLINE_INDEX"
+			"$EASYTLS_INLINE_INDEX"
 	;;
 	*)
 		die "Unknown index action: $update_index_action"
