@@ -964,6 +964,10 @@ inline_remove ()
 # Rebuild inline index
 inline_index_rebuild ()
 {
+	# TODO
+	# TODO WARNING, inline_index_rebuild is a work in progress
+	# TODO
+
 	# Warn!
 	confirm "Rebuild inline index file ? " "yes" \
 		"WARNING: You are about to rebuild easytls-index.txt"
@@ -999,6 +1003,9 @@ inline_index_rebuild ()
 	do
 		# Reset flag
 		unset add_inline_record
+
+		# Clear the previous HASH
+		unset inline_hash
 
 		# If the name is not a single word then the certificate
 		# has been renewed in EasyRSA, which means:
@@ -1055,6 +1062,9 @@ inline_index_rebuild ()
 	do
 		# Reset flag
 		unset add_inline_record
+
+		# Clear the previous HASH
+		unset inline_hash
 
 		# Get name only from full file name
 		# Yes, I know this is a bad idea .. raise an issue
