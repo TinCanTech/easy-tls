@@ -837,12 +837,18 @@ inline_index_check_hash ()
 {
 	# This is a check so check everything here
 	# every value and file must exist at this time
+	# Try to logically illiminate the need for these checks
 
 	[ -z "$name" ] && \
 		die "inline_index_check_hash: Missing value: name"
 
 	[ -z "$crt_serial" ] && \
 		die "inline_index_check_hash: Missing value: crt_serial"
+
+	# Should not have this HASH, that is the reaon to do this check
+	# If we already have a HASH then something else is wrong
+	[ -n "$inline_hash" ] && \
+		die "inline_index_check_hash: Found value: inline_hash $inline_hash"
 
 	[ -z "$inline_file" ] && \
 		die "inline_index_check_hash: Missing value: inline_file"
