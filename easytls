@@ -857,19 +857,32 @@ inline_index_check_hash ()
 		die "inline_index_check_hash: Missing file: $inline_file"
 
 	# Calculate current file HASH
-	inline_hash="$(inline_index_gen_hash)"
+	real_hash="$(inline_index_gen_hash)"
 
 	# Search for calculated current HASH
 	find_hash="$(inline_index_search_hash)"
 
 	case "$find_hash" in
-	0) # HASH check failed
+	0)
+		# HASH check failed
 		insert_msg="HASH incorrect for: $inline_file"
-		die "$insert_msg - Expecting: $inline_hash"
+		insert_msg="Inline index HASH : $inline_hash"
+		insert_msg="Inline file HASH : $real_hash"
+		help_note="$insert_msg"
 	;;
-	1) return 0 ;;
-	*) die "HASH check: unknown error" ;;
+	1)
+		# This is the correct HASH so set it
+		# If this does not work in another function
+		# then control it from that function
+		inline_hash="$real_hash"
+
+		# HASH is correct
+		return 0 ;;
+	*) help_note="HASH check unknown error: $find_hash" ;;
 	esac
+
+	# There is only one way out of this..
+	return 1
 } # => inline_index_check_hash ()
 
 # Get serial number from inline index file using Common name as key
@@ -898,7 +911,7 @@ inline_index_gen_hash ()
 # Search for hash
 inline_index_search_hash ()
 {
-	grep -c "^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$" \
+	grep -c "^${name}[[:blank:]]${crt_serial}[[:blank:]]${real_hash}$" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
