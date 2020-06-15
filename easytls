@@ -808,8 +808,9 @@ inline_index_update ()
 		[ $EASYTLS_VERBOSE ] && \
 			printf "%s\n" "  ADD: $name $inline_serial $inline_hash"
 
-			printf "%s\n" "$name $inline_serial $inline_hash" >> \
-				"$EASYTLS_INLINE_INDEX" || \
+		# Create new record
+		printf "%s\n" "$name $inline_serial $inline_hash" >> \
+			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
