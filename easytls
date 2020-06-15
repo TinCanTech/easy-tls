@@ -638,7 +638,11 @@ status_easytls_invalid ()
 		name="$(inline_index_serial_to_common_name)"
 		inline_file="$EASYTLS_PKI/$name.inline"
 
+		# Check the .inline HASH
 		inline_index_check_hash || die "Failed HASH: $inline_file"
+		# HASH has been checked so clear it
+		unset inline_hash
+
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
 		0)
@@ -953,6 +957,11 @@ inline_remove ()
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
 	inline_index_update del
+
+	# Inline file and record deleted - Forget the HASH
+	# Otherwise 'inline_renew add' still has the HASH
+	# Logically, this *cannot* be removed -- tct
+	unset inline_hash
 
 	[ ! $silent_remove ] && notice "Inline file removed: $inline_file"
 
