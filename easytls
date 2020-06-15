@@ -952,7 +952,7 @@ inline_remove ()
 		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
 	# Check .inline HASH prior to removal
-	inline_index_check_hash
+	inline_index_check_hash || die "inline_remove Failed HASH: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
