@@ -393,6 +393,7 @@ verify_openvpn ()
 	openvpn_version="${openvpn_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
 	openvpn_version="${openvpn_version%_*}"
+	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "$openvpn_version" in
 	2.5) : ;;
 	2.4) : ;;
