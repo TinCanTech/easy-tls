@@ -387,23 +387,19 @@ verify_openvpn ()
 	# TODO: Find openvpn and openvpn.exe correctly
 	help_note="See ./easytls help options - Option: --openvpn"
 	[ -f "$EASYTLS_OPENVPN" ] || die "OpenVPN not found: $EASYTLS_OPENVPN"
-	openvpn_version="$(extract_openvpn_version)"
-	case $openvpn_version in
+
+	# extract openvpn version
+	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
+	openvpn_version="${openvpn_version#OpenVPN }"
+	openvpn_version="${openvpn_version%% *}"
+	openvpn_version="${openvpn_version%_*}"
+	case "$openvpn_version" in
 	2.5) : ;;
 	2.4) : ;;
-	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	*) die "Unsupported OpenVPN version: $openvpn_version" ;;
 	esac
 	unset help_note
 } # => verify_openvpn ()
-
-# Jump through some hoops
-# 2.5 required for TLS crypt v2
-# 2.4 required for TLS crypt v1
-extract_openvpn_version ()
-{
-	"$EASYTLS_OPENVPN" --version | grep '^OpenVPN' | awk '{print $2}' | \
-	sed 's/[^0-9]/ /g' | awk '{print $1 "." $2}'
-} # => verify_openvpn_version ()
 
 # Verify TLS has been initialised
 verify_tls_init ()
@@ -1580,7 +1576,6 @@ build_tls_auth ()
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
-	openvpn_version="$(extract_openvpn_version)"
 	case $openvpn_version in
 	2.5) build_string="--genkey tls-auth" ;;
 	2.4) build_string="--genkey --secret" ;;
@@ -1606,7 +1601,6 @@ build_tls_crypt_v1 ()
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
-	openvpn_version="$(extract_openvpn_version)"
 	case $openvpn_version in
 	2.5) build_string="--genkey tls-crypt" ;;
 	2.4) build_string="--genkey --secret" ;;
@@ -1634,7 +1628,6 @@ build_tls_crypt_v2_server ()
 	verify_tls_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
-	openvpn_version="$(extract_openvpn_version)"
 	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
 
 	# and use correct syntax to --genkey
@@ -1672,7 +1665,6 @@ build_tls_crypt_v2_client ()
 	verify_ca_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
-	openvpn_version="$(extract_openvpn_version)"
 	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
 
 	# and use correct syntax to --genkey
