@@ -777,9 +777,6 @@ inline_expire ()
 	else
 	# Get a list of Valid names from easytls-inline-index
 	etls_valid_name_list="$(awk '{print $1 " "}' "$EASYTLS_INLINE_INDEX")"
-	# Remove the first record (EasyTLS Random data for TCV"-Client key)
-	etls_valid_name_list="${etls_valid_name_list#* }"
-
 		for name in $etls_valid_name_list
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
