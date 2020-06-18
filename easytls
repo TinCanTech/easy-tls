@@ -266,7 +266,7 @@ cleanup()
 # non-fatal warning output
 warn()
 {
-	[ "$EASYTLS_SILENT" ] && return 0
+	[ "$EASYTLS_SILENT" ] && return
 		print "
 WARNING:
   $1" 1>&2
@@ -275,7 +275,7 @@ WARNING:
 # informational notices to stdout
 notice()
 {
-	[ "$EASYTLS_SILENT" ] && return 0
+	[ "$EASYTLS_SILENT" ] && return
 		print "
 $1"
 } # => notice()
@@ -446,14 +446,13 @@ and initialize a fresh TLS PKI here."
 init-tls complete; you may now create TLS keys and .inline files.
 Your newly created TLS dir is: $EASYTLS_PKI
 "
-	return 0
 } # => init_tls ()
 
 # Auto-check for invalid inline files
 # Run on exit to avoid "checken and egg" with init-tls
 inline_auto_check ()
 {
-	[ $auto_check_disabled ] && return 0
+	[ $auto_check_disabled ] && return
 	index_size="$(grep -c '^.*$' "$EASYTLS_INLINE_INDEX")"
 	[ $index_size -gt 50 ] && \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
@@ -490,7 +489,6 @@ inline_status ()
 
 	if [ -n "$subsection" ]
 	then
-		#EASYTLS_SILENT=1
 		case "$subsection" in
 		valid)
 				status_easyrsa_valid ;;
@@ -520,8 +518,7 @@ inline_status ()
 		*)
 				print "Unknown status option" ;;
 		esac
-		#unset EASYTLS_SILENT
-		return 0
+		return
 	fi
 
 	print "Easy-RSA: Valid certificates:"
@@ -753,7 +750,7 @@ cert_expire ()
 			crt_file="$EASYRSA_PKI/issued/$name.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
 			crt_expire="$(crt_expire_date)"
-			print " Certificate: $name.crt   Expire-date: $crt_expire"
+		print " Certificate: $name.crt   Expire-date: $crt_expire"
 		done
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
@@ -855,7 +852,7 @@ inline_index_check_hash ()
 	# Should not have this HASH, that is the reaon to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
-		die "inline_index_check_hash: Found value: inline_hash $inline_hash"
+	die "inline_index_check_hash: Found value: inline_hash $inline_hash"
 
 	[ -z "$inline_file" ] && \
 		die "inline_index_check_hash: Missing value: inline_file"
@@ -884,7 +881,7 @@ inline_index_check_hash ()
 		inline_hash="$real_hash"
 
 		# HASH is correct
-		return 0 ;;
+		return ;;
 	*) help_note="HASH check unknown error: $find_hash" ;;
 	esac
 
@@ -1714,6 +1711,8 @@ b64_enc_metadata ()
 	#
 	# 2.a CA Fingerprint, contiguous single field
 	#     `openssl output` Change space to underscore
+	#
+	# 2.b Suggestions welcome (Bad idea removed)
 	#
 	# 3.  Client certificate serial, contiguous single field
 	#     `openssl output` Drop the 'serial='
