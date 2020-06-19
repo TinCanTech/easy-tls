@@ -19,11 +19,10 @@ then
 	chmod 744 "easyrsa"
 	chmod 744 "openvpn"
 	EXIT_CODE=0
-	EASYTLS_UTEST_VERB_LEVEL="${EASYTLS_UTEST_VERB_LEVEL:-"-v"}"
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
-	sh easytls-unit-tests.sh "$EASYTLS_UTEST_VERB_LEVEL" || EXIT_CODE=1
+	time sh easytls-unit-tests.sh || EXIT_CODE=1
 else
 	echo "Failed to DL easyrsa"
 fi

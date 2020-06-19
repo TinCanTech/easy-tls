@@ -148,15 +148,24 @@ do
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
-		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
-		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
-		"inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
-		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
-		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" "inline-remove s01" "inline-status" \
-		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-status" "inline-remove c01" "inline-status" \
-		"inline-tls-crypt-v2 s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-show s01" "inline-status" \
-		"inline-tls-crypt-v2 c01" "inline-status" "inline-renew c01" "inline-show c01" "inline-status" \
-		"inline-tls-crypt-v2 c02 nokey" "inline-status" "inline-renew c02 nokey" "inline-show c02" "inline-status" \
+		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
+		"inline-remove s01" "inline-status" \
+		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
+		"inline-remove s01" "inline-status" \
+		"inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-status" \
+		"inline-remove c01" "inline-status" \
+		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-status" \
+		"inline-remove c01" "inline-status" \
+		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
+		"inline-remove s01" "inline-status" \
+		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-status" \
+		"inline-remove c01" "inline-status" \
+		"inline-tls-crypt-v2 s01 add-dh" "inline-status" \
+		"inline-renew s01 add-dh" "inline-show s01" "inline-status" \
+		"inline-tls-crypt-v2 c01" "inline-status" \
+		"inline-renew c01" "inline-show c01" "inline-status" \
+		"inline-tls-crypt-v2 c02 nokey" "inline-status" \
+		"inline-renew c02 nokey" "inline-show c02" "inline-status" \
 		"inline-tls-crypt-v2 c05" "inline-status" "disable c05" "enable c05" \
 		"inline-tls-crypt-v2 c06" "inline-status" \
 		"inline-tls-crypt-v2 c08" "inline-status" \
