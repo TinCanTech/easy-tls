@@ -414,7 +414,6 @@ verify_tls_init ()
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
-	verify_openvpn
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -1577,6 +1576,7 @@ build_tls_auth ()
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
 	case $openvpn_version in
 	2.5) build_string="--genkey tls-auth" ;;
 	2.4) build_string="--genkey --secret" ;;
@@ -1602,6 +1602,7 @@ build_tls_crypt_v1 ()
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
 	case $openvpn_version in
 	2.5) build_string="--genkey tls-crypt" ;;
 	2.4) build_string="--genkey --secret" ;;
@@ -1629,6 +1630,7 @@ build_tls_crypt_v2_server ()
 	verify_tls_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
+	verify_openvpn
 	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
 
 	# and use correct syntax to --genkey
@@ -1666,6 +1668,7 @@ build_tls_crypt_v2_client ()
 	verify_ca_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
+	verify_openvpn
 	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
 
 	# and use correct syntax to --genkey
