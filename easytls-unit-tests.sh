@@ -358,6 +358,8 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 
 		echo
 	done
+
+	EASYTLS_OPTS="--verbose --batch"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status || \
@@ -372,9 +374,11 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 	#	fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
 
 	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS cert-expire (also test auto-check)"
 	"$EASYTLS_CMD" $EASYTLS_OPTS cert-expire || \
 		fail "Unit test error 66: cert-expire"
 	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-expire (also test auto-check"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
 		fail "Unit test error 67: inline-expire"
 
