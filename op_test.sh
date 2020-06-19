@@ -27,6 +27,7 @@ else
 	echo "Failed to DL easyrsa"
 fi
 
+echo
 echo "exit code: $EXIT_CODE"
 echo "Over ride failure!"
 echo "This is all tested locally prior to release"

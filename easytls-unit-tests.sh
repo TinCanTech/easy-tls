@@ -382,5 +382,5 @@ echo "============================================================"
 echo "total_expected_errors=$total_expected_errors (Expected 91 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
-
+echo
 exit 0
