@@ -388,8 +388,8 @@ verify_openvpn ()
 	help_note="See ./easytls help options - Option: --openvpn"
 	if [ -f "$EASYTLS_OPENVPN" ]; then
 		: # OK
-	elif [ -f "C:/Program Files/OpenVPN/bin/openvpn.exe" ]; then
-		EASYTLS_OPENVPN="C:/Program Files/OpenVPN/bin/openvpn.exe"
+	elif [ -f 'C:/Program Files/OpenVPN/bin/openvpn.exe' ]; then
+		EASYTLS_OPENVPN='C:/Program Files/OpenVPN/bin/openvpn.exe'
 	else
 		die "OpenVPN not found: $EASYTLS_OPENVPN"
 	fi
