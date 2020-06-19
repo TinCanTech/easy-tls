@@ -495,14 +495,14 @@ inline_status ()
 	if [ -n "$subsection" ]
 	then
 		case "$subsection" in
-		valid)
+		val|valid)
 				status_easyrsa_valid ;;
-		revoked)
+		rev|revoked)
 				status_easyrsa_revoked ;;
-		inline)
+		inl|inline)
 				verify_tls_init
 				status_easytls_inline ;;
-		invalid)
+		inv|invalid)
 				silent_status=1
 				status_easyrsa_valid
 				status_easyrsa_revoked
@@ -511,7 +511,7 @@ inline_status ()
 				unset silent_status
 				status_easytls_invalid
 				;;
-		renewed)
+		ren|renewed)
 				silent_status=1
 				status_easyrsa_valid
 				status_easyrsa_revoked
