@@ -715,19 +715,35 @@ status_easyrsa_renewed ()
 
 } # => status_easyrsa_renewed ()
 
+# Cut to only certificate enddate
+crt_expire_date_only ()
+{
+	crt_expire="$(crt_expire_date)"
+	crt_expire="${crt_expire##*=}"
+} # => crt_expire_date_only ()
+
+# Cut to only inline not after
+inline_expire_date_only ()
+{
+	inline_expire="$(inline_expire_date)"
+	inline_expire="${inline_expire##*: }"
+} # => inline_expire_date_only ()
+
 # Extract enddate from certificate
 crt_expire_date ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate | \
-		sed 's/^notAfter=//'
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate
+	# | \
+	#	sed 's/^notAfter=//'
 } # => crt_expire_date ()
 
-# Extract enddate from certificate
+# Extract enddate from .inline certificate
 inline_expire_date ()
 {
-	grep '^[[:blank:]]*Not After : ' "$inline_file" | \
-		sed 's/^[[:blank:]]*Not After : //g'
-} # => crt_expire_date ()
+	grep '^[[:blank:]]*Not After : ' "$inline_file"
+	# | \
+	#	sed 's/^[[:blank:]]*Not After : //g'
+} # => inline_expire_date ()
 
 # Get x509 certificate expiry date
 cert_expire ()
@@ -740,13 +756,13 @@ cert_expire ()
 	then
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire="$(crt_expire_date)"
+		crt_expire_date_only
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
 	elif [ -n "$name" ]
 	then
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire="$(crt_expire_date)"
+		crt_expire_date_only
 		print " Certificate: $name.crt   Expire-date: $crt_expire"
 	else
 		easyrsa_valid_list="$(grep '^V' "$EASYRSA_INDEX"|status_cn)"
@@ -754,12 +770,12 @@ cert_expire ()
 		do
 			crt_file="$EASYRSA_PKI/issued/$name.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
-			crt_expire="$(crt_expire_date)"
+			crt_expire_date_only
 		print " Certificate: $name.crt   Expire-date: $crt_expire"
 		done
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire="$(crt_expire_date)"
+		crt_expire_date_only
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
 	fi
 } # => cert_expire ()
@@ -775,7 +791,7 @@ inline_expire ()
 	then
 		inline_file="$EASYTLS_PKI/$name.inline"
 		[ -f "$inline_file" ] || die "Missing: $inline_file"
-		inline_expire="$(inline_expire_date)"
+		inline_expire_date_only
 		print " Certificate: $name.inline   Expire-date: $inline_expire"
 	else
 	# Get a list of Valid names from easytls-inline-index
@@ -784,7 +800,7 @@ inline_expire ()
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
 			[ -f "$inline_file" ] || die "Missing: $inline_file"
-			inline_expire="$(inline_expire_date)"
+			inline_expire_date_only
 		print " Inline-file: $name.inline   Expire-date: $inline_expire"
 		done
 	fi
