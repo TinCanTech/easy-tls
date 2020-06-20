@@ -696,7 +696,7 @@ status_easyrsa_renewed ()
 				# No output
 				:
 			else
-				[ $auto_check ] || { \
+				[ $auto_check ] || {
 				print "  Common-Name $name"
 				print "    Inline-Serial $inline_serial"
 				print "    Cert-Serial   $crt_serial"
