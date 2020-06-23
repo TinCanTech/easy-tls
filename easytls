@@ -382,6 +382,12 @@ $help_note"
 # EASYTLS MANGEMENT Section
 #
 
+#
+easytls_verbose ()
+{
+	[ $EASYTLS_VERBOSE ] || return
+	print "$@"
+}
 # Verify Openvpn is available
 verify_openvpn ()
 {
@@ -825,8 +831,7 @@ inline_index_update ()
 
 		# Create new HASH
 		inline_hash="$(inline_index_gen_hash)"
-		[ $EASYTLS_VERBOSE ] && \
-			printf "%s\n" "  ADD: $name $inline_serial $inline_hash"
+		easytls_verbose "  ADD: $name $inline_serial $inline_hash"
 
 		# Create new record
 		printf "%s\n" "$name $inline_serial $inline_hash" >> \
@@ -834,8 +839,7 @@ inline_index_update ()
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
-		[ $EASYTLS_VERBOSE ] && \
-			printf "%s\n" "  DEL: $name $crt_serial $inline_hash"
+		easytls_verbose "  DEL: $name $crt_serial $inline_hash"
 
 		# Find old record
 		grep \
@@ -1782,7 +1786,7 @@ b64_enc_metadata ()
 
 	[ $EASYTLS_TRAVIS_CI ] && debug_metadata
 
-	[ $EASYTLS_VERBOSE ] && printf "%s\n" "metadata: $metadata"
+	easytls_verbose "metadata: $metadata"
 	# Base64 encode metadata
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
@@ -1926,7 +1930,7 @@ vars_setup()
 		EASYRSA_CALLER=1
 		. "$vars"
 		# Make this a verbose only noteice
-		#notice "Note: using Easy-RSA configuration from: $vars"
+		easytls_verbose "Note: using Easy-RSA configuration from: $vars"
 	fi
 	
 	# Set defaults, preferring existing env-vars if present
