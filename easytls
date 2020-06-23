@@ -160,10 +160,11 @@ cmd_help()
   inline-status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
 			opts="
-	valid   - List only Easy-RSA valid certificates
-	revoked - List only Easy-RSA revoked certificates
-	inline  - List only Easy-TLS inline files
-	invalid - List only Easy-TLS invalid inline files" ;;
+	val|valid   - List only Easy-RSA valid certificates
+	rev|revoked - List only Easy-RSA revoked certificates
+	inl|inline  - List only Easy-TLS inline files
+	inv|invalid - List only Easy-TLS invalid inline files
+	ren|renewed - List only Easy-RSA renewed certificates" ;;
 		inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
