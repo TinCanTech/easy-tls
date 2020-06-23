@@ -65,8 +65,8 @@ Use the 'help' command above to get full usage details.
   inline-index-rebuild
   inline-expire <filename_base>
   cert-expire <filename_base> | <ca>
-  disable <filename_base>
-  enable <filename_base>
+  d|disable <filename_base>
+  e|enable <filename_base>
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
@@ -2110,10 +2110,10 @@ case "$cmd" in
 	cert-expire)
 		cert_expire "$@"
 		;;
-	disable)
+	d|disable)
 		tls_crypt_v2_verify_disable_list "disable" "$@"
 		;;
-	enable)
+	e|enable)
 		tls_crypt_v2_verify_disable_list "enable" "$@"
 		;;
 	version|-v|--version)
