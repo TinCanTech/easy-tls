@@ -940,12 +940,6 @@ inline_index_search_hash ()
 		"$EASYTLS_INLINE_INDEX"
 }
 
-# Get serial number from inline file
-inline_crt_serial ()
-{
-	grep '^# Serial number: .*$' "$inline_file" | awk '{print $4}'
-}
-
 # Does this .inline file name already have an index record
 inline_index_search_valid_cn_list ()
 {
@@ -958,6 +952,32 @@ inline_index_openssl_valid_cn_list ()
 {
 	grep '^V.*$' "$EASYRSA_INDEX" | \
 		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
+}
+
+# Get serial number from inline file
+inline_crt_serial ()
+{
+	grep '^# Serial number: .*$' "$inline_file" | awk '{print $4}'
+}
+
+# Get and format openssl serial number output
+openssl_crt_serial ()
+{
+	# Testing the file here is not suitable
+	# [ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
+	# get the serial number of the certificate -> serial=XXXX
+	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
+	# remove the serial= part -> we only need the XXXX part
+	crt_serial=${crt_serial##*=}
+}
+
+# Extract the CommonName from openssl -subject
+openssl_crt_cn ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
+		-noout -subject -nameopt sep_multiline | \
+		grep '^[[:blank:]]*CN=.*$' | \
+		sed 's/^[[:blank:]]*CN=//g'
 }
 
 # Copy inline to stdout
@@ -1274,26 +1294,6 @@ inline_renew ()
 
 	notice "Inline $inline_type file renewed: $inline_file"
 } # => inline_renew ()
-
-# Get and format openssl serial number output
-openssl_crt_serial ()
-{
-	# Testing the file here is not suitable
-	# [ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
-	# get the serial number of the certificate -> serial=XXXX
-	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
-	# remove the serial= part -> we only need the XXXX part
-	crt_serial=${crt_serial##*=}
-}
-
-# Extract the CommonName from openssl -subject
-openssl_crt_cn ()
-{
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
-		-noout -subject -nameopt sep_multiline | \
-		grep '^[[:blank:]]*CN=.*$' | \
-		sed 's/^[[:blank:]]*CN=//g'
-}
 
 # Get current inline key direction
 inline_renew_key_direction ()
