@@ -1929,7 +1929,7 @@ vars_setup()
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
 		EASYRSA_CALLER=1
 		. "$vars"
-		# Make this a verbose only noteice
+		# Make this a verbose only notice
 		easytls_verbose "Note: using Easy-RSA configuration from: $vars"
 	fi
 	
@@ -2034,9 +2034,6 @@ while :; do
 	--cache-id)
 		empty_ok=1
 		save_cache_id=1 ;;
-	--exp-secure)
-		empty_ok=1
-		export EASYTLS_SECURE=1 ;;
 	*)
 		break ;;
 	esac
