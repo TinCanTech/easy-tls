@@ -185,11 +185,11 @@ cmd_help()
         If <filename_base> is 'ca' then show ca.crt expiry
         If no <filename_base> is given then list all certificate expiry dates" ;;
 		disable) text="
-  disable <filename_base>
+  d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
       for immediate use by the tls-crypt-v2-verify script" ;;
 		enable) text="
-  enable <filename_base>
+  e|enable <filename_base>
       Remove serial number for <filename_base> from the disabled list
       for immediate use by the tls-crypt-v2-verify script" ;;
 		options)
