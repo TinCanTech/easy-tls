@@ -18,6 +18,7 @@ rob0		- /dev/rob0
 xavierb		- renew  
 LuizLuca	- mktemp  
 James Yonan	- OpenVPN  
+Rich Salz	- An unexpected journey  
   
 Contributors	- OpenVPN & EasyRSA  
   
