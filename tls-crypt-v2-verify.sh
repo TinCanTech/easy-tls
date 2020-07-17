@@ -144,6 +144,7 @@ help_text ()
   26  - USER ERROR Disallow connection, missing safessl-easyrsa.cnf.
   27  - USER ERROR Disallow connection, missing EasyTLS disabled list.
   28  - USER ERROR Disallow connection, missing openvpn server metadata_file.
+  29  - USER ERROR Disallow connection, Invalid value for --tls-age.
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
@@ -498,8 +499,15 @@ deps ()
 	metadata_string_to_vars $metadata_string
 
 	# Ensure that TLS expiry age is numeric
-	[ $((TLS_CRYPT_V2_VERIFY_TLS_AGE)) -gt 0 ] || \
-		TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
+	# https://stackoverflow.com/a/3951175
+	case $TLS_CRYPT_V2_VERIFY_TLS_AGE in
+	''|*[!0-9]*)
+	die "Invalid value for --tls-age: $TLS_CRYPT_V2_VERIFY_TLS_AGE" 29
+	;;
+	*)
+	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
+	;;
+	esac
 
 	# Calculate maximum age in seconds
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
