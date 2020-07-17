@@ -393,7 +393,7 @@ serial_status_via_pki_index ()
 	is_revoked="$(fn_search_revoked_pki_index)"
 	if [ $is_revoked -eq 0 ]
 	then
-		 if [ $is_valid -eq 1 ]
+		if [ $is_valid -eq 1 ]
 		then
 			client_passed_all_tests_connection_allowed
 		else
@@ -499,7 +499,7 @@ deps ()
 
 	# Ensure that TLS expiry age is numeric
 	[ $((TLS_CRYPT_V2_VERIFY_TLS_AGE)) -gt 0 ] || \
-		TLS_CRYPT_V2_VERIFY_TLS_AGE=0
+		TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
 
 	# Calculate maximum age in seconds
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
