@@ -71,6 +71,9 @@ Use the 'help' command above to get full usage details.
 
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
+
+EasyTLS also has a useful Howto.txt with expanded help and examples:
+https://github.com/TinCanTech/easy-tls/blob/master/Howto.txt
 "
 
 	# collect/show dir status:
