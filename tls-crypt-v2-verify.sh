@@ -221,6 +221,7 @@ verify_tls_key_age ()
 }
 
 # verify serial number is hex only
+# grep bug ? \+
 allow_hex_only ()
 {
 	printf '%s' "$md_serial" | grep -q '^[[:xdigit:]]\+$'
@@ -428,7 +429,7 @@ fn_search_valid_pki_index ()
 		"$index_txt"
 }
 
-# Final check: Search index.txt for Valid client cert serial number
+# Final check: Search index.txt for Revoked client cert serial number
 fn_search_revoked_pki_index ()
 {
 	grep -c \
@@ -650,7 +651,7 @@ deps
 
 # Identity
 
-	# Using --exp-cache openssl is not loaded here
+	# Using --cache-id openssl is not loaded here
 	# Otherwise it is loaded twice
 
 	# Verify CA
