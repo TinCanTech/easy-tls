@@ -200,12 +200,24 @@ metadata_file_to_metadata_string ()
 }
 
 # Verify the age of the TLS key from metadata
-verify_tls_key_date ()
+verify_tls_key_age ()
 {
+	# Disable check if --tls-age=0 (Default age is 5 years)
 	[ $tls_key_expire_age_seconds -eq 0 ] && return 0
-	local_date=$(date +%s)
-	expire_date=$((md_date + tls_key_expire_age_seconds))
-	[ $local_date -lt $expire_date ] || return 1
+
+	# current date
+	local_date_sec=$(date +%s)
+
+	# days since key creation
+	key_age_sec=$(( local_date_sec - md_date ))
+	key_age_day=$(( key_age_sec / (60*60*24) ))
+
+	# Check key_age is less than --tls-age
+	[ $key_age_sec -lt $tls_key_expire_age_seconds ] || return 1
+
+	# Success message
+	insert_msg="Key age $key_age_day days OK ==>"
+	success_msg="$success_msg $insert_msg"
 }
 
 # verify serial number is hex only
@@ -502,15 +514,14 @@ deps ()
 	# https://stackoverflow.com/a/3951175
 	case $TLS_CRYPT_V2_VERIFY_TLS_AGE in
 	''|*[!0-9]*)
+	# Exit script with error code 29 and disallow the connection
 	die "Invalid value for --tls-age: $TLS_CRYPT_V2_VERIFY_TLS_AGE" 29
 	;;
 	*)
+	# maximum age in seconds
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
 	;;
 	esac
-
-	# Calculate maximum age in seconds
-	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
 }
 
 #######################################
@@ -582,7 +593,7 @@ deps
 	# metadata_version Must equal 'metadata_version_easytls'
 	case $md_version in
 	"$local_version")
-		success_msg="$md_version ==>"
+		success_msg="$md_version OK ==>"
 	;;
 	*)
 		if [ -z "$md_version" ]
@@ -620,8 +631,10 @@ deps
 # TLS Key expired
 
 	# Verify key date and expire by --tls-age
-	verify_tls_key_date || {
-		failure_msg="TLS key has passed expiry age:"
+	verify_tls_key_age || {
+		max_age_msg="Max age: $TLS_CRYPT_V2_VERIFY_TLS_AGE days"
+		key_age_msg="Key age: $key_age_day days"
+		failure_msg="Key expired: $max_age_msg $key_age_msg ==>"
 		fail_and_exit "TLS_KEY_EXPIRED" 6
 		}
 
