@@ -185,7 +185,7 @@ fn_local_identity ()
 # Break metadata_string into variables
 metadata_string_to_vars ()
 {
-	md_version="${1%_*.*}"
+	md_version="${1%-*.*}"
 	md_identity="$2"
 	md_serial="$3"
 	md_name="$4"

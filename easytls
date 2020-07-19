@@ -1786,12 +1786,10 @@ b64_enc_metadata ()
 	#     contiguous single field
 
 	# Get EasyTLS version
-	EASYTLS_SILENT=1
-	easytls_version
-	unset EASYTLS_SILENT
+	easytls_version 'use'
 
 	# metadata_version
-	metadata_version="easytls_$EASYTLS_VERSION"
+	metadata_version="easytls-$EASYTLS_VERSION"
 
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
@@ -2082,7 +2080,7 @@ set_var()
 easytls_version ()
 {
 	EASYTLS_VERSION="1.27"
-	notice "Easy-TLS version: $EASYTLS_VERSION"
+	[ "$1" = "use" ] || print "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
 ############################################################################
