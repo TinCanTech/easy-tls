@@ -1785,8 +1785,13 @@ b64_enc_metadata ()
 	# 6.  Custom Group string:
 	#     contiguous single field
 
+	# Get EasyTLS version
+	EASYTLS_SILENT=1
+	easytls_version
+	unset EASYTLS_SILENT
+
 	# metadata_version
-	metadata_version='metadata_version_easytls'
+	metadata_version="easytls_$EASYTLS_VERSION"
 
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
@@ -2074,10 +2079,10 @@ set_var()
 } #=> set_var()
 
 # Set the Easy-TLS version
-easy_tls_version ()
+easytls_version ()
 {
 	EASYTLS_VERSION="1.27"
-	print "Easy-TLS version: $EASYTLS_VERSION"
+	notice "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
 ############################################################################
@@ -2212,7 +2217,7 @@ case "$cmd" in
 		import_key "$@"
 		;;
 	version|-v|--version)
-		easy_tls_version
+		easytls_version
 		exit 0
 		;;
 	""|help|-h|--help|--usage)

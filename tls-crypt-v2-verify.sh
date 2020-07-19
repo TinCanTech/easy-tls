@@ -185,7 +185,7 @@ fn_local_identity ()
 # Break metadata_string into variables
 metadata_string_to_vars ()
 {
-	md_version="$1"
+	md_version="${1%_*.*}"
 	md_identity="$2"
 	md_serial="$3"
 	md_name="$4"
@@ -444,7 +444,7 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_version="metadata_version_easytls"
+	local_version="easytls"
 
 	# TLS expiry age (days) Default 5 years
 	TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
