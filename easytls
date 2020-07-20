@@ -276,7 +276,7 @@ print() { printf "%s\n" "$*"; }
 # present even with EASYTLS_BATCH as these are fatal problems
 die()
 {
-	easy_tls_version
+	easytls_version
 	print "
 Easy-TLS error:
 
@@ -300,7 +300,8 @@ warn()
 	[ "$EASYTLS_SILENT" ] && return
 		print "
 WARNING:
-  $1" 1>&2
+  $1
+" 1>&2
 } # => warn()
 
 # informational notices to stdout
@@ -670,7 +671,7 @@ status_easytls_invalid ()
 	revoked_mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
-		crt_serial=$i
+		inline_serial=$i
 		name="$(inline_index_serial_to_common_name)"
 		inline_file="$EASYTLS_PKI/$name.inline"
 
@@ -711,13 +712,15 @@ status_easyrsa_renewed ()
 	name=$i
 	inline_file="$EASYTLS_PKI/$name.inline"
 	[ -f "$inline_file" ] || die "Not found: inline_file = $inline_file"
-	inline_serial="$(inline_crt_serial)"
+	# Inline serial
+	inline_serial=""
+	inline_crt_serial
 
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	if [ -f "$crt_file" ]
 	then
 
-		# openssl_crt_serial DIFFERENT BEHAVIOUR TO inline_crt_serial
+		# Certificate serial
 		crt_serial=""
 		openssl_crt_serial
 
@@ -855,7 +858,9 @@ inline_index_update ()
 	case "$update_index_action" in
 	add)
 		# Add the inline_serial not the crt_serial
-		inline_serial="$(inline_crt_serial)"
+		# Inline serial
+		inline_serial=""
+		inline_crt_serial
 
 		# If this HASH is set then another function is responsible for it
 		[ "$inline_hash" ] && \
@@ -871,19 +876,19 @@ inline_index_update ()
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 	;;
 	del)
-		easytls_verbose "  DEL: $name $crt_serial $inline_hash"
+		easytls_verbose "  DEL: $name $inline_serial $inline_hash"
 
 		# Find old record
 		grep \
-		"^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$" \
+		"^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}$" \
 			"$EASYTLS_INLINE_INDEX" 1>/dev/null || {
 			help_note="Failed: inline_index_update del"
-			die "Missing record: $name $crt_serial $inline_hash"
+			die "Missing record: $name $inline_serial $inline_hash"
 			}
 
 		# Remove old record
 		sed -i -e \
-		"/^${name}[[:blank:]]${crt_serial}[[:blank:]]${inline_hash}$/d" \
+		"/^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}$/d" \
 			"$EASYTLS_INLINE_INDEX"
 	;;
 	*)
@@ -902,10 +907,15 @@ inline_index_check_hash ()
 	[ -z "$name" ] && \
 		die "inline_index_check_hash: Missing value: name"
 
-	[ -z "$crt_serial" ] && \
-		die "inline_index_check_hash: Missing value: crt_serial"
+	# May not require this
+	#[ -z "$crt_serial" ] && \
+	#	die "inline_index_check_hash: Missing value: crt_serial"
 
-	# Should not have this HASH, that is the reaon to do this check
+	# Must have inline_serial
+	[ -z "$inline_serial" ] && \
+		die "inline_index_check_hash: Missing value: inline_serial"
+
+	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
 	die "inline_index_check_hash: Found value: inline_hash $inline_hash"
@@ -913,6 +923,7 @@ inline_index_check_hash ()
 	[ -z "$inline_file" ] && \
 		die "inline_index_check_hash: Missing value: inline_file"
 
+	# Already have inline_serial so this file MUST exist so remove test
 	[ -f "$inline_file" ] || \
 		die "inline_index_check_hash: Missing file: $inline_file"
 
@@ -959,7 +970,7 @@ inline_index_common_name_to_serial ()
 # Get Common name from inline index file using serial number as key
 inline_index_serial_to_common_name ()
 {
-	grep "^.*[[:blank:]]${crt_serial}[[:blank:]].*$" \
+	grep "^.*[[:blank:]]${inline_serial}[[:blank:]].*$" \
 		"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
 }
 
@@ -971,7 +982,7 @@ inline_index_gen_hash ()
 # Search for hash
 inline_index_search_hash ()
 {
-	grep -c "^${name}[[:blank:]]${crt_serial}[[:blank:]]${real_hash}$" \
+	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}$" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
@@ -992,7 +1003,10 @@ inline_index_openssl_valid_cn_list ()
 # Get serial number from inline file
 inline_crt_serial ()
 {
-	grep '^# Serial number: .*$' "$inline_file" | awk '{print $4}'
+	inline_serial="$(grep '^# Serial number: .*$' "$inline_file")"
+	inline_serial="${inline_serial##*number: }"
+
+	 #| awk '{print $4}'
 }
 
 # Get and format openssl serial number output
@@ -1026,7 +1040,10 @@ inline_show ()
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
-	crt_serial="$(inline_crt_serial)"
+	# Inline serial
+	inline_serial=""
+	inline_crt_serial
+
 	inline_index_check_hash || die "Failed HASH: $inline_file"
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
@@ -1044,7 +1061,9 @@ inline_remove ()
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	# Get serial number from inline file
-	crt_serial="$(inline_crt_serial)"
+	# Inline serial
+	inline_serial=""
+	inline_crt_serial
 
 	# Confirm remove
 	[ ! $silent_remove ] && \
@@ -1181,7 +1200,9 @@ inline_index_rebuild ()
 		part_file_name="${full_file_name%*.inline}"
 		name="${part_file_name##*/}"
 		[ -f "$inline_file" ] || die "Missing: $inline_file"
-		crt_serial="$(inline_crt_serial)"
+		# Inline serial
+		inline_serial=""
+		inline_crt_serial
 
 		# If found an un-indexed inline file then index it
 		inline_file_found_indexed="$(inline_index_search_valid_cn_list)"
@@ -1781,6 +1802,9 @@ b64_enc_metadata ()
 	#
 	# 5.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
+	#
+	# Total 138 characters with a 256bit certificate serial number
+	# Plus the number of character in the custom group plus one (space)
 	#
 	# 6.  Custom Group string:
 	#     contiguous single field
