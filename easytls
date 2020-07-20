@@ -1767,7 +1767,7 @@ b64_enc_metadata ()
 	#
 	# If you are going to do it then do it right
 	#
-	# 1.  "easytls_$EASYTLS_VERSION"
+	# 1.  "easytls-$EASYTLS_VERSION"
 	#
 	# 2.a CA Fingerprint, contiguous single field
 	#     `openssl output` Change space to underscore
