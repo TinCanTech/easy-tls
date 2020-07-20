@@ -1785,9 +1785,6 @@ b64_enc_metadata ()
 	# 6.  Custom Group string:
 	#     contiguous single field
 
-	# Get EasyTLS version
-	easytls_version 'use'
-
 	# metadata_version
 	metadata_version="easytls-$EASYTLS_VERSION"
 
@@ -1984,6 +1981,8 @@ import_key ()
 # to support running without a sourced config format
 vars_setup()
 {
+	EASYTLS_VERSION="1.27"
+
 	# Try to locate a 'vars' file in order of location preference.
 	# If one is found, source it
 	vars=
@@ -2079,8 +2078,7 @@ set_var()
 # Set the Easy-TLS version
 easytls_version ()
 {
-	EASYTLS_VERSION="1.27"
-	[ "$1" = "use" ] || print "Easy-TLS version: $EASYTLS_VERSION"
+	notice "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
 
 ############################################################################
