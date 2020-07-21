@@ -84,6 +84,9 @@ fail_and_exit ()
 		[ $2 -eq 1 ] && printf "%s\n" \
 			"* ==> Client serial status: revoked"
 
+		[ $2 -eq 2 ] && printf "%s\n" \
+			"* ==> Client serial status: disabled"
+
 		[ -n "$help_note" ] && printf "%s\n" "$help_note"
 
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"

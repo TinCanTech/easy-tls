@@ -119,7 +119,7 @@ do
 	[ $loops -eq 2 ] && build_vars
 
 	[ $loops -eq 3 ] && {
-		EASYTLS_OPTS="$EASYTLS_OPTS --cache-id"
+		# EASYTLS_OPTS="$EASYTLS_OPTS --cache-id"
 		TLSCV2V_OPTS="$TLSCV2V_OPTS --cache-id"
 		}
 
@@ -142,6 +142,7 @@ do
 
 	# Test EasyTLS
 	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
+		"save-id" \
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \

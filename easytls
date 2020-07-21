@@ -1815,15 +1815,6 @@ b64_enc_metadata ()
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
 
-	# Push CA Fingerprint to Easytls lock
-	easytls_lock="$ca_fingerprint"
-
-	# Performance
-	if [ $save_cache_id ]
-	then
-		save_cache_id
-	fi
-
 	# get the serial number of the certificate from openssl
 	crt_file="$cli_cert"
 	crt_serial=""
@@ -1833,7 +1824,8 @@ b64_enc_metadata ()
 	key_date="$(date +%s)"
 
 	# Build metadata
-	metadata="$metadata_version $easytls_lock $crt_serial $cli_name $key_date"
+	metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name $key_date"
+
 	# Append --custom-group
 	if [ -n "$EASYTLS_TLSCV2_CG" ]
 	then
@@ -1862,11 +1854,18 @@ debug_metadata ()
 }
 
 # Save the ID
-save_cache_id ()
+save_id ()
 {
-	# Performance enhancement
-	printf "%s\n" "$easytls_lock" > "$EASYTLS_CA_IDENTITY" || \
+	# Set the CA
+	ca_cert="$EASYRSA_PKI/ca.crt"
+
+	# CA fingerprint
+	ca_fingerprint="$(fn_ca_fingerprint)"
+
+	printf "%s\n" "$ca_fingerprint" > "$EASYTLS_CA_IDENTITY" || \
 		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
+
+	notice "Saved CA Identify: $EASYTLS_CA_IDENTITY"
 }
 
 
@@ -2147,9 +2146,6 @@ while :; do
 	--disable-auto-check)
 		empty_ok=1
 		auto_check_disabled=1 ;;
-	--cache-id)
-		empty_ok=1
-		save_cache_id=1 ;;
 	*)
 		break ;;
 	esac
@@ -2193,6 +2189,9 @@ case "$cmd" in
 		;;
 	build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@"
+		;;
+	save-id)
+		save_id
 		;;
 	inline-base)
 		inline_base "$@"
