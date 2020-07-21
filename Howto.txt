@@ -57,8 +57,9 @@ TLS Crypt v2 details:
 
     This metadata field is constructed as follows:
 
-    1.  metadata_version string: "metadata_version_easytls"
-        (No longer use a specific version because it was to easy to change)
+    1.  metadata_version string: "easytls"
+        EasyTLS metadata version string is "easytls-$EASYTLS_VERSION"
+        tls-crypt-v2-verify.sh only uses 'easytls' and drops the version nummber.
 
     2   CA Fingerprint (Formatted to one contiguous string)
 
@@ -79,26 +80,30 @@ TLS Crypt v2 details:
 
   * TLS Crypt v2 verification method
 
-    1. Verify via CRL
+    1. Verify via CRL (Default)
 
        The CRL is searched for client serial number and the client 
        connection is dropped if the client is found to be revoked.
        This is the default method which conforms to syzzers original
        specification.
 
-    2. Verify via CA --verify-via-ca
+    2. Verify via CA --verify-via-ca (Not recommended)
 
        The client serial number status is verified via `openssl ca`
        This method works but is not recommended by OpenSSL.
 
-    3. Verify via openssl index.txt --verify-via-index
+    3. Verify via openssl index.txt --verify-via-index (Preferred)
 
        The client serial number status is verified via the openssl
        index.txt file.
 
-       Combined with the --cache-id option (In both EasyTLS and
-       tls-crypt-v2-verify.sh) the verify script never has to load
-       openssl -- For some minor performance gain on a busy server.
+       Combining this with:
+       * EasyTLS 'save-id' command, to save a file containing the
+         CA fingerprint: 'easytls/easytls-ca-identity.txt'
+       * tls-crypt-v2-verify --cache-id option, which uses the file above
+         instead of loading openssl to generate the CA fingerprint.
+       Then tls-crypt-v2-verify.sh *never* has to load the openssl binary;
+       For some minor performance gain on a busy server.
 
 Note about exit codes:
 
