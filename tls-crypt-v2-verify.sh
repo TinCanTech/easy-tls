@@ -173,7 +173,7 @@ verify_ca ()
 # Local identity
 fn_local_identity ()
 {
-		openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
+	openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
 }
 
 # Break metadata_string into variables
@@ -196,9 +196,6 @@ metadata_file_to_metadata_string ()
 # Verify the age of the TLS key from metadata
 verify_tls_key_age ()
 {
-	# Disable check if --tls-age=0 (Default age is 5 years)
-	[ $tls_key_expire_age_seconds -eq 0 ] && return 0
-
 	# current date
 	local_date_sec=$(date +%s)
 
@@ -451,6 +448,9 @@ init ()
 
 	# Test certificate Valid/Revoked by CRL not CA
 	test_method=1
+
+	# Enable disable list by default
+	use_disable_list=1
 }
 
 # Dependancies
@@ -568,6 +568,10 @@ do
 		empty_ok=1
 		enable_serial_Hex_check=1
 	;;
+	--disable-list)
+		empty_ok=1
+		unset use_disable_list
+	;;
 	*)
 		die "Unknown option: $1" 253
 	;;
@@ -583,7 +587,7 @@ done
 
 
 # Dependancies
-# Load binary: cat +1
+# Load binary: cat +1 (cat metadata_file)
 deps
 
 # External binaries loaded so far:
@@ -617,6 +621,8 @@ deps
 
 # Metadata custom_group
 
+	# This test must be enabled by option: --custom-group
+	# Otherwise it is not checked.
 	# md_custom_g Must equal TLS_CRYPT_V2_VERIFY_CG
 	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
 	then
@@ -638,20 +644,24 @@ deps
 # TLS Key expired
 
 	# Verify key date and expire by --tls-age
-	# Load binary: date +1
-	verify_tls_key_age || {
-		max_age_msg="Max age: $TLS_CRYPT_V2_VERIFY_TLS_AGE days"
-		key_age_msg="Key age: $key_age_day days"
-		failure_msg="Key expired: $max_age_msg $key_age_msg ==>"
-		fail_and_exit "TLS_KEY_EXPIRED" 6
-		}
+	# Disable check if --tls-age=0 (Default age is 5 years)
+	if [ $tls_key_expire_age_seconds -gt 0 ]
+	then
+		# Load binary: date +1
+		verify_tls_key_age || {
+			max_age_msg="Max age: $TLS_CRYPT_V2_VERIFY_TLS_AGE days"
+			key_age_msg="Key age: $key_age_day days"
+			failure_msg="Key expired: $max_age_msg $key_age_msg ==>"
+			fail_and_exit "TLS_KEY_EXPIRED" 6
+			}
+	fi
 
 # External binaries loaded so far:
 # openssl x0
 # grep x0
 # sed x0
 # printf x0
-# date x1
+# date x1 (Use --tls-age=0 -1)
 # cat x1
 
 
@@ -670,20 +680,19 @@ deps
 
 # External binaries loaded so far:
 # openssl x0
-# grep x0 (Use --hex-check: +1)
+# grep x0 (Use --hex-check +1)
 # sed x0
-# printf x0 (Use --hex-check: +1)
-# date x1
+# printf x0 (Use --hex-check +1)
+# date x1 (Use --tls-age=0 -1)
 # cat x1
 
 
 # Identity
 
-	# Verify CA the CA cert is valid
+	# Verify CA cert is valid and/or set the CA identity
 	if [ $use_cache_id ]
 	then
 		# Load binary: cat +1
-		#ca_identity="$(cat "$ca_identity_file")"
 		local_identity="$(cat "$ca_identity_file")"
 	else
 		# Verify CA is valid
@@ -702,13 +711,6 @@ deps
 		fail_and_exit "LOCAL_IDENTITY" 13
 		}
 
-	# If md_identity is missing then the equals test will fail anyway
-	# md_identity is required
-	#[ -z "$md_identity" ] && {
-	#	failure_msg="Missing: remote identity"
-	#	fail_and_exit "REMOTE_IDENTITY" 12
-	#	}
-
 	# Check metadata Identity against local Identity
 	if [ "$local_identity" = "$md_identity" ]
 	then
@@ -721,28 +723,32 @@ deps
 
 # External binaries loaded so far:
 # openssl x2 (Use --cache-id -2)
-# grep x0 (Use --hex-check: +1)
+# grep x0 (Use --hex-check +1)
 # sed x1 (Use --cache-id -1)
-# printf x0 (Use --hex-check: +1)
-# date x1
+# printf x0 (Use --hex-check +1)
+# date x1 (Use --tls-age=0 -1)
 # cat x1 (Use --cache-id +1)
 
 
 # Disabled list
 
 	# Check serial number is not disabled
-	# Load binary: grep +1
-	verify_serial_number_not_disabled || {
-		failure_msg="Client is disabled"
-		fail_and_exit "CLIENT_DISABLED" 2
-		}
+	# Use --disable-list to disable this check
+	if [ $use_disable_list ]
+	then
+		# Load binary: grep +1
+		verify_serial_number_not_disabled || {
+			failure_msg="Client is disabled"
+			fail_and_exit "CLIENT_DISABLED" 2
+			}
+	fi
 
 # External binaries loaded so far:
 # openssl x2 (Use --cache-id -2)
-# grep x1 (Use --hex-check: +1)
+# grep x1 (Use --hex-check +1) (Use --disable-list -1)
 # sed x1 (Use --cache-id -1)
-# printf x0 (Use --hex-check: +1)
-# date x1
+# printf x0 (Use --hex-check +1)
+# date x1 (Use --tls-age=0 -1)
 # cat x1 (Use --cache-id +1)
 
 
@@ -769,13 +775,15 @@ test_method=${test_method:-1}
 
 # External binaries loaded Final:
 # openssl x4 (Use --cache-id -2)
-# grep x2 (Use --hex-check: +1)
+# grep x3 (Use --hex-check +1) (Use --disable-list -1)
 # sed x1 (Use --cache-id -1)
-# printf x1 (Use --hex-check: +1)
-# date x1
+# printf x1 (Use --hex-check +1)
+# date x1 (Use --tls-age=0 -1)
 # cat x1 (Use --cache-id +1)
-# TOTAL binaries loaded: x10
-# Use --cache-id: x8
+# TOTAL binaries loaded: x11
+# Use --cache-id: x9
+# +Use --tls-age=0 x8
+# +Use --disable-list x7
 
 	;;
 	2)
@@ -793,13 +801,15 @@ test_method=${test_method:-1}
 
 # External binaries loaded Final:
 # openssl x3 (Use --cache-id -2)
-# grep x2 (Use --hex-check: +1)
+# grep x2 (Use --hex-check: +1) (Use --disable-list -1)
 # sed x1 (Use --cache-id -1)
 # printf x1 (Use --hex-check: +1)
-# date x1
+# date x1 (Use --tls-age=0 -1)
 # cat x1 (Use --cache-id +1)
 # TOTAL binaries loaded: x9
 # Use --cache-id: x7
+# +Use --tls-age=0 x6
+# +Use --disable-list x5
 
 	;;
 	3)
@@ -812,13 +822,15 @@ test_method=${test_method:-1}
 
 # External binaries loaded Final:
 # openssl x2 (Use --cache-id -2)
-# grep x3 (Use --hex-check: +1)
+# grep x3 (Use --hex-check: +1) (Use --disable-list -1)
 # sed x1 (Use --cache-id -1)
 # printf x0 (Use --hex-check: +1)
-# date x1
+# date x1 (Use --tls-age=0 -1)
 # cat x1 (Use --cache-id +1)
 # TOTAL binaries loaded: x8
 # Use --cache-id: x6
+# +Use --tls-age=0 x5
+# +Use --disable-list x4
 
 	;;
 	*)
