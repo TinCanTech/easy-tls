@@ -167,23 +167,13 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	if [ $use_cache_id ]
-	then
-		return 0
-	else
-		openssl x509 -in "$ca_cert" -noout
-	fi
+	openssl x509 -in "$ca_cert" -noout
 }
 
 # Local identity
 fn_local_identity ()
 {
-	if [ $use_cache_id ]
-	then
-		printf "%s\n" "$ca_identity"
-	else
 		openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
-	fi
 }
 
 # Break metadata_string into variables
@@ -295,7 +285,7 @@ serial_status_via_crl ()
 	client_cert_revoked="$(fn_search_crl)"
 	case $client_cert_revoked in
 	0)
-		# Final check: Is this serial in index.txt
+		# Final check: Is this serial in index.txt and Valid
 		case "$(fn_search_index)" in
 		0)
 		failure_msg="Serial number is not in the CA database:"
@@ -323,7 +313,7 @@ serial_status_via_crl ()
 # This is the only way to connect
 client_passed_all_tests_connection_allowed ()
 {
-	insert_msg="Client certificate is recognised and not revoked:"
+	insert_msg="Client certificate is recognised and Valid:"
 	success_msg="$success_msg $insert_msg $md_serial"
 	success_msg="$success_msg $md_name"
 	absolute_fail=0
@@ -484,10 +474,8 @@ deps ()
 	if [ $use_cache_id ]
 	then
 	help_note="This script requires an EasyTLS generated CA identity."
-	[ -f "$ca_identity_file" ] || \
-		die "Missing CA identity: $ca_identity_file" 33
-
-		ca_identity="$(cat "$ca_identity_file")"
+		[ -f "$ca_identity_file" ] || \
+			die "Missing CA identity: $ca_identity_file" 33
 	fi
 
 	help_note="This script requires an EasyRSA generated CRL."
@@ -510,6 +498,7 @@ deps ()
 	unset help_note
 
 	# Get metadata_string
+	# Load binary: cat +1
 	metadata_string="$(metadata_file_to_metadata_string)"
 
 	# Populate metadata variables
@@ -594,12 +583,21 @@ done
 
 
 # Dependancies
+# Load binary: cat +1
 deps
+
+# External binaries loaded so far:
+# openssl x0
+# grep x0
+# sed x0
+# printf x0
+# date x0
+# cat x1
 
 
 # Metadata Version
 
-	# metadata_version Must equal 'metadata_version_easytls'
+	# metadata_version Must equal 'easytls'
 	case $md_version in
 	"$local_version")
 		success_msg="$md_version OK ==>"
@@ -640,6 +638,7 @@ deps
 # TLS Key expired
 
 	# Verify key date and expire by --tls-age
+	# Load binary: date +1
 	verify_tls_key_age || {
 		max_age_msg="Max age: $TLS_CRYPT_V2_VERIFY_TLS_AGE days"
 		key_age_msg="Key age: $key_age_day days"
@@ -647,30 +646,55 @@ deps
 		fail_and_exit "TLS_KEY_EXPIRED" 6
 		}
 
+# External binaries loaded so far:
+# openssl x0
+# grep x0
+# sed x0
+# printf x0
+# date x1
+# cat x1
+
 
 # Client certificate serial number
 
 	# Non-empty, Hex only string accepted
 	if [ $enable_serial_Hex_check ]
 	then
+		# Load binary: printf +1
+		# Load binary: grep +1
 		allow_hex_only || {
 			failure_msg="Invalid: Client serial number"
 			fail_and_exit "SERIAL_NUMBER_INVALID" 11
 		}
 	fi
 
+# External binaries loaded so far:
+# openssl x0
+# grep x0 (Use --hex-check: +1)
+# sed x0
+# printf x0 (Use --hex-check: +1)
+# date x1
+# cat x1
+
+
 # Identity
 
-	# Using --cache-id openssl is not loaded here
-	# Otherwise it is loaded twice
+	# Verify CA the CA cert is valid
+	if [ $use_cache_id ]
+	then
+		# Load binary: cat +1
+		#ca_identity="$(cat "$ca_identity_file")"
+		local_identity="$(cat "$ca_identity_file")"
+	else
+		# Verify CA is valid
+		# Load binary: openssl +1
+		verify_ca || die "Bad CA $ca_cert" 123
 
-	# Verify CA
-	# Load openssl (1) and verify the CA cert is valid
-	verify_ca || die "Bad CA $ca_cert" 123
-
-	# Local Identity
-	# Load openssl (2) and return CA fingerprint
-	local_identity="$(fn_local_identity)"
+		# Set Local Identity: CA fingerprint
+		# Load binary: openssl +1
+		# Load binary: sed +1
+		local_identity="$(fn_local_identity)"
+	fi
 
 	# local_identity is required
 	[ -z "$local_identity" ] && {
@@ -678,11 +702,12 @@ deps
 		fail_and_exit "LOCAL_IDENTITY" 13
 		}
 
+	# If md_identity is missing then the equals test will fail anyway
 	# md_identity is required
-	[ -z "$md_identity" ] && {
-		failure_msg="Missing: remote identity"
-		fail_and_exit "REMOTE_IDENTITY" 12
-		}
+	#[ -z "$md_identity" ] && {
+	#	failure_msg="Missing: remote identity"
+	#	fail_and_exit "REMOTE_IDENTITY" 12
+	#	}
 
 	# Check metadata Identity against local Identity
 	if [ "$local_identity" = "$md_identity" ]
@@ -694,14 +719,31 @@ deps
 		fail_and_exit "IDENTITY_MISMATCH" 3
 	fi
 
+# External binaries loaded so far:
+# openssl x2 (Use --cache-id -2)
+# grep x0 (Use --hex-check: +1)
+# sed x1 (Use --cache-id -1)
+# printf x0 (Use --hex-check: +1)
+# date x1
+# cat x1 (Use --cache-id +1)
+
 
 # Disabled list
 
 	# Check serial number is not disabled
+	# Load binary: grep +1
 	verify_serial_number_not_disabled || {
 		failure_msg="Client is disabled"
 		fail_and_exit "CLIENT_DISABLED" 2
 		}
+
+# External binaries loaded so far:
+# openssl x2 (Use --cache-id -2)
+# grep x1 (Use --hex-check: +1)
+# sed x1 (Use --cache-id -1)
+# printf x0 (Use --hex-check: +1)
+# date x1
+# cat x1 (Use --cache-id +1)
 
 
 # Verify serial status
@@ -712,18 +754,29 @@ test_method=${test_method:-1}
 		# Method 1
 		# Check metadata client certificate serial number against CRL
 
-		# Verify CRL
-		# Load openssl (3) and verify the CRL is valid
+		# Verify CRL is valid
+		# Load binary: openssl +1
 		verify_crl || die "Bad CRL: $crl_pem" 122
 
 		# Capture CRL
-		# Load openssl (4) and return the CRL
+		# Load binary: openssl +1
 		crl_text="$(fn_read_crl)"
 
-		# Load openssl 4 times
-
 		# Verify via CRL
+		# Load binary: printf +1
+		# Load binary: grep +1 +1
 		serial_status_via_crl
+
+# External binaries loaded Final:
+# openssl x4 (Use --cache-id -2)
+# grep x2 (Use --hex-check: +1)
+# sed x1 (Use --cache-id -1)
+# printf x1 (Use --hex-check: +1)
+# date x1
+# cat x1 (Use --cache-id +1)
+# TOTAL binaries loaded: x10
+# Use --cache-id: x8
+
 	;;
 	2)
 		# Method 2
@@ -732,18 +785,41 @@ test_method=${test_method:-1}
 		# Due to openssl being "what it is", it is not possible to
 		# reliably verify the 'openssl ca $cmd'
 
-		# Load openssl 3 times
-
 		# Verify via CA
-		# Load openssl (3) and return the serial status
+		# Load binary: openssl +1
+		# Load binary: printf +1
+		# Load binary: grep +1
 		serial_status_via_ca
+
+# External binaries loaded Final:
+# openssl x3 (Use --cache-id -2)
+# grep x2 (Use --hex-check: +1)
+# sed x1 (Use --cache-id -1)
+# printf x1 (Use --hex-check: +1)
+# date x1
+# cat x1 (Use --cache-id +1)
+# TOTAL binaries loaded: x9
+# Use --cache-id: x7
+
 	;;
 	3)
 		# Method 3
 		# Search openssl index.txt for client serial number
 		# and return Valid, Revoked or not Known status
 		# openssl is never loaded for this check
+		# Load binary: grep +1 +1
 		serial_status_via_pki_index
+
+# External binaries loaded Final:
+# openssl x2 (Use --cache-id -2)
+# grep x3 (Use --hex-check: +1)
+# sed x1 (Use --cache-id -1)
+# printf x0 (Use --hex-check: +1)
+# date x1
+# cat x1 (Use --cache-id +1)
+# TOTAL binaries loaded: x8
+# Use --cache-id: x6
+
 	;;
 	*)
 		die "Unknown method for verify: $test_method" 9
