@@ -105,6 +105,17 @@ TLS Crypt v2 details:
        Then tls-crypt-v2-verify.sh *never* has to load the openssl binary;
        For some minor performance gain on a busy server.
 
+       Option --preload-cache-id="CA_ID" allows the server config to load
+       the CA Identity from the command line as a parameter, eliminating
+       the need to read the CA Identity file from disk, repeatedly,
+       and may be even faster than using --cache-id.
+
+       CA Identity is the openssl output for the CA fingerprint formatted
+       to one contiguous string:
+
+       * openssl fingerprint output:  SHA1 Fingerprint=95:DC:42:
+       * EasyTLS CA Identity format:  SHA1_Fingerprint=95:DC:42:
+
 
 Note about exit codes:
 
