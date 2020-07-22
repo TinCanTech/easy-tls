@@ -118,11 +118,6 @@ do
 	# Build vars, used by all remaining loops
 	[ $loops -eq 2 ] && build_vars
 
-	[ $loops -eq 3 ] && {
-		# EASYTLS_OPTS="$EASYTLS_OPTS --cache-id"
-		TLSCV2V_OPTS="$TLSCV2V_OPTS --cache-id"
-		}
-
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
 		"build-server-full s01 nopass" \
@@ -480,6 +475,14 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
 		echo "exit: $exit_code"
 
+		print "------------------------------------------------------------"
+		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index --cache-id --preload-cache-id="$plcid"
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-index --cache-id --preload-cache-id="$plcid"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+
 		echo
 	done
 
@@ -507,7 +510,7 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		fail "Unit test error 67: inline-expire"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 146 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 208 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo

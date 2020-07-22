@@ -156,6 +156,7 @@ help_text ()
   28  - USER ERROR Disallow connection, missing openvpn server metadata_file.
   29  - USER ERROR Disallow connection, Invalid value for --tls-age.
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
+  34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
@@ -522,6 +523,11 @@ deps ()
 	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
 	;;
 	esac
+
+	# Check for either --cache-id or --preload-cache-id
+	# Do NOT allow both
+	[ $use_cache_id ] && [ $preload_cache_id ] && \
+		die "Cannot use --cache-id and --preload-cache-id together." 34
 }
 
 #######################################
