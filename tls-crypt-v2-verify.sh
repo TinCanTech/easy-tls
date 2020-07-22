@@ -126,6 +126,12 @@ help_text ()
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
   --cache-id          Use the saved CA ID from easytls.
+  --preload-cache-id="CA_fingerprint" (Must be one contiguous field)
+                      Use this option to preload the CA Identity (fingerprint)
+                      into calling the script.
+                      See --cache-id for the the required data.
+                      --preload-cache-id= and --cache-id are mutually exclusive.
+                      Use one or the other not both.
   --hex-check         Enable serial number is Hex only check.
 
   Exit codes:
@@ -564,6 +570,9 @@ do
 		empty_ok=1
 		use_cache_id=1
 	;;
+	--preload-cache-id)
+		preload_cache_id="$val"
+	;;
 	--hex-check)
 		empty_ok=1
 		enable_serial_Hex_check=1
@@ -694,6 +703,9 @@ deps
 	then
 		# Load binary: cat +1
 		local_identity="$(cat "$ca_identity_file")"
+	elif [ -n "$preload_cache_id" ]
+	then
+		local_identity="$preload_cache_id"
 	else
 		# Verify CA is valid
 		# Load binary: openssl +1
