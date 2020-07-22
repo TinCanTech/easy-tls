@@ -113,8 +113,18 @@ TLS Crypt v2 details:
        CA Identity is the openssl output for the CA fingerprint formatted
        to one contiguous string:
 
-       * openssl fingerprint output:  SHA1 Fingerprint=95:DC:42:
-       * EasyTLS CA Identity format:  SHA1_Fingerprint=95:DC:42:
+       * openssl fingerprint output:  SHA1 Fingerprint=95:DC:42:...
+       * EasyTLS CA Identity format:  SHA1_Fingerprint=95:DC:42:...
+
+       Example configuration command to use in an OpenVPN config file:
+
+       NOTE: This example is wrapped at line length, in your config file it
+       must not be wrapped.  Also, OpenVPN does not expand variables in a
+       config file, so all paths and options must be exanded in full.
+
+       tls-crypt-v2-verify /home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
+         -c=/home/tct/easyrsa3/master/pki2 -g=tincantech --verify-via-index
+         -t=365 --preload-cache-id=SHA1_Fingerprint=95:DC:<..snipped..>:03:DA
 
 
 Note about exit codes:
