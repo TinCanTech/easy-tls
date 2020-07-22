@@ -105,6 +105,7 @@ TLS Crypt v2 details:
        Then tls-crypt-v2-verify.sh *never* has to load the openssl binary;
        For some minor performance gain on a busy server.
 
+
 Note about exit codes:
 
   OpenVPN --log does not accept data from scripts under Windblows

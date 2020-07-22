@@ -238,6 +238,13 @@ do
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+		print "------------------------------------------------------------"
+
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		exit_code=$?
@@ -264,6 +271,14 @@ do
 		exit_code=$?
 		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
 		echo "exit: $exit_code"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+		print "------------------------------------------------------------"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
@@ -316,6 +331,14 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+		print "------------------------------------------------------------"
+
+		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
 		exit_code=$?
@@ -342,6 +365,14 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		exit_code=$?
 		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
 		echo "exit: $exit_code"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+		print "------------------------------------------------------------"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --verify-via-ca
@@ -384,7 +415,7 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		fail "Unit test error 67: inline-expire"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 91 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 120 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo

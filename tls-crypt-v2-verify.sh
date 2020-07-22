@@ -126,6 +126,7 @@ help_text ()
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
   --cache-id          Use the saved CA ID from easytls.
+  --hex-check         Enable serial number is Hex only check.
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -574,6 +575,10 @@ do
 		empty_ok=1
 		use_cache_id=1
 	;;
+	--hex-check)
+		empty_ok=1
+		enable_serial_Hex_check=1
+	;;
 	*)
 		die "Unknown option: $1" 253
 	;;
@@ -646,11 +651,13 @@ deps
 # Client certificate serial number
 
 	# Non-empty, Hex only string accepted
-	allow_hex_only || {
-		failure_msg="Invalid: Client serial number"
-		fail_and_exit "SERIAL_NUMBER_INVALID" 11
+	if [ $enable_serial_Hex_check ]
+	then
+		allow_hex_only || {
+			failure_msg="Invalid: Client serial number"
+			fail_and_exit "SERIAL_NUMBER_INVALID" 11
 		}
-
+	fi
 
 # Identity
 
