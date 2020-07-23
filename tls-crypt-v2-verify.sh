@@ -108,7 +108,7 @@ help_text ()
 
   Options:
   help|-h|--help      This help text.
-  -v|--verbose        Be a little more verbose at run time (Not Windows).
+  -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
   -t|--tls-age        TLS Crypt V2 Key allowable age in days (default=1825).
                       To disable age check use --tls-age=0
@@ -125,14 +125,14 @@ help_text ()
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
-  --cache-id          Use the saved CA ID from easytls.
-  --preload-cache-id="CA_fingerprint" (Must be one contiguous field)
-                      Use this option to preload the CA Identity (fingerprint)
-                      into calling the script.
+  --cache-id          Use the saved CA-Identity from EasyTLS.
+  --preload-cache-id="CA-Identity" (Must be one contiguous field)
+                      Use this option to preload the CA-Identity when calling
+                      the script.
                       See --cache-id for the the required data.
                       --preload-cache-id= and --cache-id are mutually exclusive.
                       Use one or the other not both.
-  --hex-check         Enable serial number is Hex only check.
+  --hex-check         Enable serial number is Hex only check. (Not required)
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -307,7 +307,7 @@ serial_status_via_crl ()
 		client_passed_all_tests_certificate_revoked
 	;;
 	*)
-		insert_msg="Duplicate serial numbers detected: "
+		insert_msg="Duplicate serial numbers detected:"
 		failure_msg="$insert_msg $md_serial"
 		die "Duplicate serial numbers: $md_serial" 127
 	;;
