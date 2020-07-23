@@ -740,12 +740,12 @@ deps
 	fi
 
 # External binaries loaded so far:
-# openssl x2 (Use --cache-id -2)
+# openssl x2 (Use --cache-id/--preload-cache-id -2)
 # grep x0 (Use --hex-check +1)
-# sed x1 (Use --cache-id -1)
+# sed x1 (Use --cache-id/--preload-cache-id -1)
 # printf x0 (Use --hex-check +1)
 # date x1 (Use --tls-age=0 -1)
-# cat x1 (Use --cache-id +1)
+# cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 
 
 # Disabled list
@@ -762,12 +762,12 @@ deps
 	fi
 
 # External binaries loaded so far:
-# openssl x2 (Use --cache-id -2)
+# openssl x2 (Use --cache-id/--preload-cache-id -2)
 # grep x1 (Use --hex-check +1) (Use --disable-list -1)
-# sed x1 (Use --cache-id -1)
+# sed x1 (Use --cache-id/--preload-cache-id -1)
 # printf x0 (Use --hex-check +1)
 # date x1 (Use --tls-age=0 -1)
-# cat x1 (Use --cache-id +1)
+# cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 
 
 # Verify serial status
@@ -792,16 +792,19 @@ test_method=${test_method:-1}
 		serial_status_via_crl
 
 # External binaries loaded Final:
-# openssl x4 (Use --cache-id -2)
+# openssl x4 (Use --cache-id/--preload-cache-id -2)
 # grep x3 (Use --hex-check +1) (Use --disable-list -1)
-# sed x1 (Use --cache-id -1)
+# sed x1 (Use --cache-id/--preload-cache-id -1)
 # printf x1 (Use --hex-check +1)
 # date x1 (Use --tls-age=0 -1)
-# cat x1 (Use --cache-id +1)
+# cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 # TOTAL binaries loaded: x11
 # Use --cache-id: x9
 # +Use --tls-age=0 x8
 # +Use --disable-list x7
+# Use --preload-cache-id x7
+# +Use --tls-age=0 x6
+# +Use --disable-list x5
 
 	;;
 	2)
@@ -818,16 +821,19 @@ test_method=${test_method:-1}
 		serial_status_via_ca
 
 # External binaries loaded Final:
-# openssl x3 (Use --cache-id -2)
+# openssl x3 (Use --cache-id/--preload-cache-id -2)
 # grep x2 (Use --hex-check: +1) (Use --disable-list -1)
-# sed x1 (Use --cache-id -1)
+# sed x1 (Use --cache-id/--preload-cache-id -1)
 # printf x1 (Use --hex-check: +1)
 # date x1 (Use --tls-age=0 -1)
-# cat x1 (Use --cache-id +1)
+# cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 # TOTAL binaries loaded: x9
 # Use --cache-id: x7
 # +Use --tls-age=0 x6
 # +Use --disable-list x5
+# Use --preload-cache-id x6
+# +Use --tls-age=0 x5
+# +Use --disable-list x4
 
 	;;
 	3)
@@ -839,16 +845,19 @@ test_method=${test_method:-1}
 		serial_status_via_pki_index
 
 # External binaries loaded Final:
-# openssl x2 (Use --cache-id -2)
+# openssl x2 (Use --cache-id/--preload-cache-id -2)
 # grep x3 (Use --hex-check: +1) (Use --disable-list -1)
-# sed x1 (Use --cache-id -1)
+# sed x1 (Use --cache-id/--preload-cache-id -1)
 # printf x0 (Use --hex-check: +1)
 # date x1 (Use --tls-age=0 -1)
-# cat x1 (Use --cache-id +1)
+# cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 # TOTAL binaries loaded: x8
 # Use --cache-id: x6
 # +Use --tls-age=0 x5
 # +Use --disable-list x4
+# Use --preload-cache-id x5
+# +Use --tls-age=0 x4
+# +Use --disable-list x3
 
 	;;
 	*)
