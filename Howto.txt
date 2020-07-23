@@ -123,7 +123,7 @@ TLS Crypt v2 details:
        config file, so all paths and options must be exanded in full.
 
        tls-crypt-v2-verify /home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
-         -c=/home/tct/easyrsa3/master/pki2 -g=tincantech --verify-via-index
+         -c=/home/tct/easyrsa3/pki2 -g=tincantech --verify-via-index
          -t=365 --preload-cache-id=SHA1_Fingerprint=95:DC:<..snipped..>:03:DA
 
 

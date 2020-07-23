@@ -270,10 +270,7 @@ General options:
 --custom-group  : Append a custom field to the default TLS crypt v2 metadata.
                   This field can also be matched in tls-crypt-v2-verify.sh
                   with the command line option: -g|--custom-group XYZ
-                  XYZ MUST be a single alphanumerical word with NO spaces
- --cache-id     : Saves the CA ID (Currently fingerprint) to file for use by
-                  tls-crypt-v2-verify.sh
-                  File name: easytls/easytls-ca-identity.txt"
+                  XYZ MUST be a single alphanumerical word with NO spaces"
 EASYTLS_SILENT=1
 } # => opt_usage()
 
