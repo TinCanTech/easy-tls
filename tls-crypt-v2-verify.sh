@@ -180,7 +180,8 @@ verify_ca ()
 # Local identity
 fn_local_identity ()
 {
-	openssl x509 -in "$ca_cert" -noout -fingerprint | sed 's/ /_/g'
+	openssl x509 -in "$ca_cert" -noout -fingerprint | \
+		sed -e 's/^.*=//g' -e 's/://g'
 }
 
 # Break metadata_string into variables

@@ -498,7 +498,7 @@ Your newly created TLS dir is: $EASYTLS_PKI
 } # => init_tls ()
 
 # Auto-check for invalid inline files
-# Run on exit to avoid "checken and egg" with init-tls
+# Run on exit to avoid "chicken and egg" with init-tls
 inline_auto_check ()
 {
 	[ $auto_check_disabled ] && return
@@ -746,7 +746,6 @@ status_easyrsa_renewed ()
 				print "    Inline-Serial $inline_serial"
 				print "    Cert-Serial   $crt_serial"
 				}
-
 			fi
 		fi
 	else
@@ -778,16 +777,12 @@ inline_expire_date_only ()
 crt_expire_date ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate
-	# | \
-	#	sed 's/^notAfter=//'
 } # => crt_expire_date ()
 
 # Extract enddate from .inline certificate
 inline_expire_date ()
 {
 	grep '^[[:blank:]]*Not After : ' "$inline_file"
-	# | \
-	#	sed 's/^[[:blank:]]*Not After : //g'
 } # => inline_expire_date ()
 
 # Get x509 certificate expiry date
@@ -929,8 +924,8 @@ inline_index_check_hash ()
 		die "inline_index_check_hash: Missing value: inline_file"
 
 	# Already have inline_serial so this file MUST exist so remove test
-	[ -f "$inline_file" ] || \
-		die "inline_index_check_hash: Missing file: $inline_file"
+	#[ -f "$inline_file" ] || \
+	#	die "inline_index_check_hash: Missing file: $inline_file"
 
 	# Calculate current file HASH
 	real_hash="$(inline_index_gen_hash)"
@@ -984,6 +979,7 @@ inline_index_gen_hash ()
 {
 	"$EASYRSA_OPENSSL" sha1 "$inline_file" | awk '{print $NF}'
 }
+
 # Search for hash
 inline_index_search_hash ()
 {
@@ -1010,15 +1006,11 @@ inline_crt_serial ()
 {
 	inline_serial="$(grep '^# Serial number: .*$' "$inline_file")"
 	inline_serial="${inline_serial##*number: }"
-
-	 #| awk '{print $4}'
 }
 
 # Get and format openssl serial number output
 openssl_crt_serial ()
 {
-	# Testing the file here is not suitable
-	# [ -f "$crt_file" ] || die "Not found: crt_file = $crt_file"
 	# get the serial number of the certificate -> serial=XXXX
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
 	# remove the serial= part -> we only need the XXXX part
@@ -1066,7 +1058,6 @@ inline_remove ()
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
 	# Get serial number from inline file
-	# Inline serial
 	inline_serial=""
 	inline_crt_serial
 
@@ -1288,7 +1279,7 @@ inline_renew ()
 		is_key_dir="$(inline_renew_key_direction)"
 		case "$is_key_dir" in
 		0|1)
-			# Veify if command line want to change inline
+			# Verify if command line wants to change inline
 			[ $key_direction -eq $is_key_dir ] || \
 			warn "Command line will change inline key-direction"
 		;;
@@ -1795,15 +1786,14 @@ b64_enc_metadata ()
 	#
 	# 1.  "easytls-$EASYTLS_VERSION"
 	#
-	# 2.a CA Fingerprint, contiguous single field
+	# 2   CA Identity, contiguous single field
 	#     `openssl output` Change space to underscore
-	#
-	# 2.b Suggestions welcome (Bad idea removed)
+	#     and remove colons ':'
 	#
 	# 3.  Client certificate serial, contiguous single field
 	#     `openssl output` Drop the 'serial='
 	#
-	# 4.  Client CommonName:
+	# 4.  Client CommonName
 	#
 	# 5.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
@@ -1817,8 +1807,8 @@ b64_enc_metadata ()
 	# metadata_version
 	metadata_version="easytls-$EASYTLS_VERSION"
 
-	# CA fingerprint
-	ca_fingerprint="$(fn_ca_fingerprint)"
+	# CA Identity
+	generate_ca_identity
 
 	# get the serial number of the certificate from openssl
 	crt_file="$cli_cert"
@@ -1829,7 +1819,7 @@ b64_enc_metadata ()
 	key_date="$(date +%s)"
 
 	# Build metadata
-	metadata="$metadata_version $ca_fingerprint $crt_serial $cli_name $key_date"
+	metadata="$metadata_version $ca_identity $crt_serial $cli_name $key_date"
 
 	# Append --custom-group
 	if [ -n "$EASYTLS_TLSCV2_CG" ]
@@ -1844,12 +1834,32 @@ b64_enc_metadata ()
 	b64_metadata="$(printf "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
 
-# Generate CA fingerprint
+# Generate CA Identity from CA fingerprint
+generate_ca_identity ()
+{
+	# Set the CA
+	ca_cert="$EASYRSA_PKI/ca.crt"
+
+	# CA fingerprint
+	ca_fingerprint="$(fn_ca_fingerprint)"
+	easytls_verbose "CA fingerprint: $ca_fingerprint"
+
+	# CA Identity
+	ca_identity="$(fn_ca_identity)"
+	easytls_verbose "CA Identity: $ca_identity"
+} # => generate_ca_identity ()
+
+# Collect CA fingerprint
 fn_ca_fingerprint ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint | \
-		 sed 's/ /_/g'
-} # => fn_ca_fingerprint ()
+	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
+}
+
+# Collect CA Identity
+fn_ca_identity ()
+{
+	printf '%s' "$ca_fingerprint" | sed -e 's/^.*=//g' -e 's/://g'
+}
 
 # DEBUG metadata
 debug_metadata ()
@@ -1861,13 +1871,13 @@ debug_metadata ()
 # Save the ID
 save_id ()
 {
-	# Set the CA
-	ca_cert="$EASYRSA_PKI/ca.crt"
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	verify_tls_init
 
-	# CA fingerprint
-	ca_fingerprint="$(fn_ca_fingerprint)"
+	# Generate CA Identity from CA fingerprint
+	generate_ca_identity
 
-	printf "%s\n" "$ca_fingerprint" > "$EASYTLS_CA_IDENTITY" || \
+	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
 		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
 
 	notice "Saved CA Identify: $EASYTLS_CA_IDENTITY"
