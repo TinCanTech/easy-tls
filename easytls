@@ -1640,7 +1640,7 @@ inline_tls_crypt_v2 ()
 build_tls_auth ()
 {
 	# This is allowed without a complete Easy-RSA PKI
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	# Verify Easy-TLS has been correctly setup
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
@@ -1666,7 +1666,7 @@ build_tls_auth ()
 build_tls_crypt_v1 ()
 {
 	# This is allowed without a complete Easy-RSA PKI
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	# Verify Easy-TLS has been correctly setup
 	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
@@ -1693,9 +1693,11 @@ build_tls_crypt_v2_server ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
 
-	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	verify_tls_init
+	# This key does not require EasyRSA PKI
+	# but for the client metadata this script does
+	# So make CA a requirement for both server and client
+	verify_ca_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
 	verify_openvpn
@@ -1730,9 +1732,9 @@ build_tls_crypt_v2_client ()
 	warn "Ignoring unknown option(s): $3 $4 $5 .. etc."
 
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	verify_tls_init
-
-	# Need the CA
+	# This key does not require EasyRSA PKI
+	# but for the client metadata this script does
+	# So make CA a requirement for both server and client
 	verify_ca_init
 
 	# Verify OpenVPN version - Requires openvpn version 2.5
@@ -1872,7 +1874,8 @@ debug_metadata ()
 save_id ()
 {
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	verify_tls_init
+	# Need the CA
+	verify_ca_init
 
 	# Generate CA Identity from CA fingerprint
 	generate_ca_identity
