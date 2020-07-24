@@ -52,7 +52,7 @@ Use the 'help' command above to get full usage details.
   init-tls
   build-tls-auth
   build-tls-crypt
-  build-tls-crypt-v2-server <filename_base>
+  build-tls-crypt-v2-server <server_filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
   save-id
   inline-base <filename_base> [ cmd-opts ]
