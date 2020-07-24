@@ -73,8 +73,8 @@ Use the 'help' command above to get full usage details.
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
 
-EasyTLS also has a useful Howto.txt with expanded help and examples:
-https://github.com/TinCanTech/easy-tls/blob/master/Howto.txt
+EasyTLS also has a useful EasyTLS-Howto.txt with expanded help and examples:
+https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto.txt
 "
 
 	# collect/show dir status:
@@ -114,11 +114,13 @@ cmd_help()
       Create an OpenVPN TLS crypt V2 Client key" ;;
 		save-id) text="
   save-id [ no options ]
-      Save the CA fingerprint to easytls/easytls-ca-identity.txt
+      Save the CA-Identity to easytls/easytls-ca-identity.txt
+      CA-Identity is the Hex ONLY value of the CA finger print.
       This can then by used by tls-crypt-v2-verify.sh as a time-saver
       by not needing to load openssl to generate the CA fingerprint.
       Combining this with 'tls-crypt-v2-verify.sh --verify-via-index',
-      openssl binary never needs to be loaded by tls-crypt-v2-verify.sh" ;;
+      openssl binary never needs to be loaded by tls-crypt-v2-verify.sh
+      See EasyTLS-Howto.txt for an example." ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only

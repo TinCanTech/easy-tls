@@ -124,7 +124,7 @@ TLS Crypt v2 details:
 
        tls-crypt-v2-verify /home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
          -c=/home/tct/easyrsa3/pki2 -g=tincantech --verify-via-index
-         -t=365 --preload-cache-id=SHA1_Fingerprint=95:DC:<..snipped..>:03:DA
+         -t=365 --preload-cache-id=E19982D9C063CEC74F66B7D31BF7B9306A609A8E
 
 
 Note about exit codes:

@@ -120,19 +120,18 @@ help_text ()
                       The default method is to verify client serial number
                       status is via the Certificate Revokation List.
   -g|--custom-group=<GROUP>
-                      Also verify the client metadata against a custom group.
+                      Verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
   --cache-id          Use the saved CA-Identity from EasyTLS.
-  --preload-cache-id="CA-Identity" (Must be one contiguous field)
-                      Use this option to preload the CA-Identity when calling
-                      the script.
-                      See --cache-id for the the required data.
-                      --preload-cache-id= and --cache-id are mutually exclusive.
-                      Use one or the other not both.
+  --preload-cache-id=CA-Identity
+                      Preload the CA-Identity when calling the script.
+                      See EasyTLS command save-id for details of the CA-Identity.
+                      See EasyTLS-Howto.txt for an example.
   --hex-check         Enable serial number is Hex only check. (Not required)
+  --disable-list      Disable the temporary disabled-list check.
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
