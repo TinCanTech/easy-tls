@@ -1802,9 +1802,6 @@ b64_enc_metadata ()
 	# 5.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
-	# Total 138 characters with a 256bit certificate serial number
-	# Plus the number of character in the custom group plus one (space)
-	#
 	# 6.  Custom Group string:
 	#     contiguous single field
 
