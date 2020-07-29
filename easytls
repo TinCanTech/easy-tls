@@ -1898,6 +1898,8 @@ tls_crypt_v2_verify_disable_list ()
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
 
+	verify_tls_init
+
 	# get the serial number of the certificate from openssl
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
