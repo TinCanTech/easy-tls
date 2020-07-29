@@ -1899,6 +1899,7 @@ tls_crypt_v2_verify_disable_list ()
 	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
 
 	# get the serial number of the certificate from openssl
+	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
 	openssl_crt_serial
 
