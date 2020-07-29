@@ -759,6 +759,8 @@ deps
 			failure_msg="Client is disabled"
 			fail_and_exit "CLIENT_DISABLED" 2
 			}
+		insert_msg="Enabled OK ==>"
+		success_msg="$success_msg $insert_msg"
 	fi
 
 # External binaries loaded so far:
