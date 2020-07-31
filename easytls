@@ -1915,23 +1915,27 @@ tls_crypt_v2_verify_disable_list ()
 		serial_disabled_status="$(search_disabled_list)"
 		if [ $serial_disabled_status -eq 0 ]
 		then
+			printf '%s\n' "$crt_serial $name" >> \
+				"$EASYTLS_DISABLED_LIST" \
+				die "Failed to update disabled list."
 			disabled_list_updated=1
-			printf "%s\n" "$crt_serial $name" >> \
-			"$EASYTLS_DISABLED_LIST"
 		fi
 		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 1 ] || die "Serial disabled failed"
+		[ $serial_disabled_status -eq 1 ] || \
+			die "Serial disabled failed"
 	;;
 	enable) # Remove serial number from the list
 		serial_disabled_status="$(search_disabled_list)"
 		if [ $serial_disabled_status -eq 1 ]
 		then
-			disabled_list_updated=1
 			sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
-			"$EASYTLS_DISABLED_LIST"
+				"$EASYTLS_DISABLED_LIST" \
+				die "Failed to update disabled list."
+			disabled_list_updated=1
 		fi
 		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 0 ] || die "Serial enabled failed"
+		[ $serial_disabled_status -eq 0 ] || \
+			die "Serial enabled failed"
 	;;
 	*) die "tls_crypt_v2_verify action invalid: $1"
 	;;
@@ -1940,7 +1944,7 @@ tls_crypt_v2_verify_disable_list ()
 	# Update time-stamp
 	update_text="# Updated: $(date) -- $1: $name"
 	sed -i '/^# Updated:.*$/d' "$EASYTLS_DISABLED_LIST"
-	printf "%s\n" "$update_text" >> "$EASYTLS_DISABLED_LIST"
+	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST"
 	if [ $disabled_list_updated ]
 	then
 		notice "Updated disabled list: $name ${1}d"
