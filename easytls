@@ -1943,8 +1943,12 @@ tls_crypt_v2_verify_disable_list ()
 
 	# Update time-stamp
 	update_text="# Updated: $(date) -- $1: $name"
-	sed -i '/^# Updated:.*$/d' "$EASYTLS_DISABLED_LIST"
-	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST"
+	sed -i '/^# Updated:.*$/d' "$EASYTLS_DISABLED_LIST" || \
+		die "disabled list update failed"
+	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST" || \
+		die "disabled list update failed"
+
+	# Notify
 	if [ $disabled_list_updated ]
 	then
 		notice "Updated disabled list: $name ${1}d"
