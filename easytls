@@ -55,13 +55,13 @@ Use the 'help' command above to get full usage details.
   build-tls-crypt-v2-server <server_filename_base>
   build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
   save-id
+  status [ cmd-opts ]
   inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   inline-remove <filename_base>
   inline-renew <filename_base> [ cmd-opts ]
-  inline-status [ cmd-opts ]
   inline-show <filename_base>
   inline-index-rebuild
   inline-expire <filename_base>
@@ -121,6 +121,15 @@ cmd_help()
       Combining this with 'tls-crypt-v2-verify.sh --verify-via-index',
       openssl binary never needs to be loaded by tls-crypt-v2-verify.sh
       See EasyTLS-Howto.txt for an example." ;;
+		inline-status) text="
+  status [ cmd-opts ]
+      Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
+			opts="
+	val|valid   - List only Easy-RSA valid certificates
+	rev|revoked - List only Easy-RSA revoked certificates
+	inl|inline  - List only Easy-TLS inline files
+	inv|invalid - List only Easy-TLS invalid inline files
+	ren|renewed - List only Easy-RSA renewed certificates" ;;
 		inline-base) text="
   inline-base <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA files only
@@ -170,15 +179,6 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		inline-status) text="
-  inline-status [ cmd-opts ]
-      Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
-			opts="
-	val|valid   - List only Easy-RSA valid certificates
-	rev|revoked - List only Easy-RSA revoked certificates
-	inl|inline  - List only Easy-TLS inline files
-	inv|invalid - List only Easy-TLS invalid inline files
-	ren|renewed - List only Easy-RSA renewed certificates" ;;
 		inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
@@ -513,11 +513,11 @@ inline_auto_check ()
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
-	inline_status invalid
+	status invalid || die "inline_auto_check: status invalid error"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
-	inline_status renewed
+	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
@@ -527,7 +527,7 @@ inline_auto_check ()
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
 # Report duplicate CNs in EasyRSA due to certificate renewal
-inline_status ()
+status ()
 {
 	[ $auto_check ] || auto_check_disabled=1
 	subsection="$1"
@@ -2278,6 +2278,9 @@ case "$cmd" in
 	save-id)
 		save_id
 		;;
+	status)
+		status "$@"
+		;;
 	inline-base)
 		inline_base "$@"
 		;;
@@ -2295,9 +2298,6 @@ case "$cmd" in
 		;;
 	inline-renew)
 		inline_renew "$@"
-		;;
-	inline-status)
-		inline_status "$@"
 		;;
 	inline-show)
 		inline_show "$@"

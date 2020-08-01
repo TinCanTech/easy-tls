@@ -144,28 +144,28 @@ do
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
-		"inline-base s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
-		"inline-remove s01" "inline-status" \
-		"inline-tls-auth s01 0 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
-		"inline-remove s01" "inline-status" \
-		"inline-tls-auth c01 1" "inline-status" "inline-renew c01" "inline-status" \
-		"inline-remove c01" "inline-status" \
-		"inline-tls-auth c01" "inline-status" "inline-renew c01" "inline-status" \
-		"inline-remove c01" "inline-status" \
-		"inline-tls-crypt s01 add-dh" "inline-status" "inline-renew s01 add-dh" "inline-status" \
-		"inline-remove s01" "inline-status" \
-		"inline-tls-crypt c01" "inline-status" "inline-renew c01" "inline-status" \
-		"inline-remove c01" "inline-status" \
-		"inline-tls-crypt-v2 s01 add-dh" "inline-status" \
-		"inline-renew s01 add-dh" "inline-show s01" "inline-status" \
-		"inline-tls-crypt-v2 c01" "inline-status" \
-		"inline-renew c01" "inline-show c01" "inline-status" \
-		"inline-tls-crypt-v2 c02 nokey" "inline-status" \
-		"inline-renew c02 nokey" "inline-show c02" "inline-status" \
-		"inline-tls-crypt-v2 c05" "inline-status" "disable c05" \
+		"inline-base s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"inline-remove s01" "status" \
+		"inline-tls-auth s01 0 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"inline-remove s01" "status" \
+		"inline-tls-auth c01 1" "status" "inline-renew c01" "status" \
+		"inline-remove c01" "status" \
+		"inline-tls-auth c01" "status" "inline-renew c01" "status" \
+		"inline-remove c01" "status" \
+		"inline-tls-crypt s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"inline-remove s01" "status" \
+		"inline-tls-crypt c01" "status" "inline-renew c01" "status" \
+		"inline-remove c01" "status" \
+		"inline-tls-crypt-v2 s01 add-dh" "status" \
+		"inline-renew s01 add-dh" "inline-show s01" "status" \
+		"inline-tls-crypt-v2 c01" "status" \
+		"inline-renew c01" "inline-show c01" "status" \
+		"inline-tls-crypt-v2 c02 nokey" "status" \
+		"inline-renew c02 nokey" "inline-show c02" "status" \
+		"inline-tls-crypt-v2 c05" "status" "disable c05" \
 		"enable c05" \
-		"inline-tls-crypt-v2 c06" "inline-status" \
-		"inline-tls-crypt-v2 c08" "inline-status" \
+		"inline-tls-crypt-v2 c06" "status" \
+		"inline-tls-crypt-v2 c08" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
@@ -177,9 +177,9 @@ do
 		# EasyOut
 		[ "$i" = "Planned break" ] && fail "Planned break"
 
-		if [ "$i" = "inline-status" ]
+		if [ "$i" = "status" ]
 		then
-			echo "Skipped inline-status"
+			echo "Skipped status"
 		else
 			"$EASYTLS_CMD" $EASYTLS_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $i"
 		fi
@@ -194,11 +194,11 @@ do
 		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
 		"$EASYRSA_CMD $EASYRSA_OPTS revoke c06" \
 		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
-		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
+		"$EASYTLS_CMD $EASYTLS_OPTS status" \
 		"$EASYTLS_CMD $EASYTLS_OPTS cert-expire" \
-		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
+		"$EASYTLS_CMD $EASYTLS_OPTS status" \
 		"$EASYRSA_CMD $EASYRSA_OPTS renew c08 nopass" \
-		"$EASYTLS_CMD $EASYTLS_OPTS inline-status" \
+		"$EASYTLS_CMD $EASYTLS_OPTS status" \
 		## EOL
 	do
 		print "============================================================"
@@ -339,9 +339,9 @@ do
 		echo
 	done
 	print "============================================================"
-	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status || \
-		fail "Unit test error 63: inline-status"
+	print "$EASYTLS_CMD $EASYTLS_OPTS status"
+	"$EASYTLS_CMD" $EASYTLS_OPTS status || \
+		fail "Unit test error 63: status"
 	print "============================================================"
 
 	print "============================================================"
@@ -489,9 +489,9 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 
 	EASYTLS_OPTS="--verbose --batch"
 	print "============================================================"
-	print "$EASYTLS_CMD $EASYTLS_OPTS inline-status"
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-status || \
-		fail "Unit test error 65: inline-status"
+	print "$EASYTLS_CMD $EASYTLS_OPTS status"
+	"$EASYTLS_CMD" $EASYTLS_OPTS status || \
+		fail "Unit test error 65: status"
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
