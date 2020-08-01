@@ -460,6 +460,7 @@ verify_tls_init ()
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
+	[ -f "$EASYTLS_DISABLED_HASH" ] || die "EasyTLS has not been initialised"
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -492,6 +493,9 @@ and initialize a fresh TLS PKI here."
 	date_text="# Created: $(date)"
 	printf "%s\n%s\n" "$head_text" "$date_text" > "$EASYTLS_DISABLED_LIST" \
 		|| die "Failed to create disabled list"
+
+	# Create disabled list hash file
+	disabled_list_save_hash || die "Failed to create Disabled list Hash."
 
 	notice "\
 init-tls complete; you may now create TLS keys and .inline files.
@@ -592,6 +596,9 @@ inline_status ()
 
 	print "Easy-RSA: Renewed certificates:"
 	status_easyrsa_renewed
+
+	# Verify disabled list Hash
+	disabled_list_verify_hash || die "Disabled list is corrupt."
 
 } #=> inline_status ()
 
@@ -1789,6 +1796,7 @@ b64_enc_metadata ()
 	# If you are going to do it then do it right
 	#
 	# 1.  "easytls-$EASYTLS_VERSION"
+	#     tls-crypt-v2-verify.sh only uses the 'easytls' part
 	#
 	# 2   CA Identity, contiguous single field
 	#     `openssl output` Change space to underscore
@@ -1888,16 +1896,19 @@ save_id ()
 
 ############################################################################
 #
-# DISABLED LIST Section
+# DISABLED-LIST Section
 #
 
-# Manage tls-crypt-v2-verify default tls/disabled_list.txt
-tls_crypt_v2_verify_disable_list ()
+# Manage easytls/disabled-list.txt - Used by tls-crypt-v2-verify.sh
+disabled_list_manager ()
 {
+	action="$1"
 	name="$2"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
 
+	# TODO: should this be PKI init ?
+	#verify_pki_init
 	verify_tls_init
 
 	# get the serial number of the certificate from openssl
@@ -1905,62 +1916,107 @@ tls_crypt_v2_verify_disable_list ()
 	crt_serial=""
 	openssl_crt_serial
 
-	# Check list for duplicates
-	serial_disabled_status="$(search_disabled_list)"
-	[ $serial_disabled_status -lt 2 ] || die "Serial is duplicated"
+	# Verify disabled-list Hash
+	disabled_list_verify_hash || die "Disabled list is corrupt."
 
-	# Serial number disable or enable and check
-	case $1 in
-	disable) # Add serial number to the list
-		serial_disabled_status="$(search_disabled_list)"
-		if [ $serial_disabled_status -eq 0 ]
+	# Check disabled-list for duplicates
+	disabled_list_serial_status="$(disabled_list_serial_search)"
+	[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
+
+	# 'disable' or 'enable' serial number
+	case $action in
+	disable) # Add serial number to the disabled-list
+		if [ $disabled_list_serial_status -eq 0 ]
 		then
 			printf '%s\n' "$crt_serial $name" >> \
-				"$EASYTLS_DISABLED_LIST" \
-				die "Failed to update disabled list."
-			disabled_list_updated=1
+				"$EASYTLS_DISABLED_LIST" || \
+				die "Failed to update disabled-list."
+		else
+			# serial is already disabled
+			:
 		fi
-		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 1 ] || \
-			die "Serial disabled failed"
+
+		# Verify serial was added
+		disabled_list_serial_status="$(disabled_list_serial_search)"
+		[ $disabled_list_serial_status -eq 1 ] || \
+			die "disabled-list error add"
+		disabled_list_updated=1
 	;;
-	enable) # Remove serial number from the list
-		serial_disabled_status="$(search_disabled_list)"
-		if [ $serial_disabled_status -eq 1 ]
+	enable) # Remove serial number from the disabled-list
+		if [ $disabled_list_serial_status -eq 1 ]
 		then
 			sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
-				"$EASYTLS_DISABLED_LIST" \
-				die "Failed to update disabled list."
-			disabled_list_updated=1
+				"$EASYTLS_DISABLED_LIST" || \
+				die "Failed to update disabled-list."
+		else
+			# serial is already enabled
+			:
 		fi
-		serial_disabled_status="$(search_disabled_list)"
-		[ $serial_disabled_status -eq 0 ] || \
-			die "Serial enabled failed"
+
+		# Verify serial was removed
+		disabled_list_serial_status="$(disabled_list_serial_search)"
+		[ $disabled_list_serial_status -eq 0 ] || \
+			die "disabled-list error del"
+		disabled_list_updated=1
 	;;
-	*) die "tls_crypt_v2_verify action invalid: $1"
+	*) die "disabled-list action invalid: $1"
 	;;
 	esac
 
+	# Update and/or Notify
+	if [ $disabled_list_updated ]
+	then
+		disabled_list_update_and_hash
+		notice "Updated disabled-list: $name ${1}d"
+	else
+		notice "No change: $name is already ${1}d"
+	fi
+} # => disabled_list_manager ()
+
+# Search disabled-list for serial number
+disabled_list_serial_search ()
+{
+	grep -c "^${crt_serial}[[:blank:]]${name}$" "$EASYTLS_DISABLED_LIST"
+}
+
+# Generate SHA1 disabled-list hash
+disabled_list_generate_hash ()
+{
+	openssl sha1 -r "$EASYTLS_DISABLED_LIST"
+}
+
+# Update disabled-list footer and hash
+disabled_list_update_and_hash ()
+{
 	# Update time-stamp
-	update_text="# Updated: $(date) -- $1: $name"
-	sed -i '/^# Updated:.*$/d' "$EASYTLS_DISABLED_LIST" || \
+	update_text="# Updated: $(date) -- $action: $name"
+	sed -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || \
 		die "disabled list update failed"
 	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST" || \
 		die "disabled list update failed"
 
-	# Notify
-	if [ $disabled_list_updated ]
-	then
-		notice "Updated disabled list: $name ${1}d"
-	else
-		notice "No change: $name is already ${1}d"
-	fi
-} # => tls_crypt_v2_verify_disable_list ()
+	# Save new disabled-list Hash
+	disabled_list_save_hash || die "Failed to save disabled-list Hash"
+}
 
-# Search disabled list for serial number
-search_disabled_list ()
+# Verify current disable-list hash
+disabled_list_verify_hash ()
 {
-	grep -c "^${crt_serial}[[:blank:]]${name}$" "$EASYTLS_DISABLED_LIST"
+	disabled_list_saved_hash="$(cat "$EASYTLS_DISABLED_HASH")"
+	annoying_hash="$(disabled_list_generate_hash)"
+	disabled_list_current_hash="${annoying_hash%% *}"
+	[ "$disabled_list_current_hash" = "$disabled_list_saved_hash" ] || \
+		return 1
+}
+
+# Save new disable-list hash
+disabled_list_save_hash ()
+{
+	annoying_hash="$(disabled_list_generate_hash)"
+	disabled_list_current_hash="${annoying_hash%% *}"
+	printf '%s\n' "$disabled_list_current_hash" > \
+		"$EASYTLS_DISABLED_HASH" || \
+		return 1
 }
 
 ############################################################################
@@ -2088,7 +2144,8 @@ vars_setup()
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
 	set_var EASYTLS_OPENVPN		"/usr/sbin/openvpn"
-	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled.txt"
+	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
+	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_PKI/easytls-disabled-list.hash"
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
 	set_var EASYTLS_CA_RANDOM	"$EASYTLS_PKI/easytls-ca-random.txt"
 
@@ -2255,10 +2312,10 @@ case "$cmd" in
 		cert_expire "$@"
 		;;
 	d|disable)
-		tls_crypt_v2_verify_disable_list "disable" "$@"
+		disabled_list_manager "disable" "$@"
 		;;
 	e|enable)
-		tls_crypt_v2_verify_disable_list "enable" "$@"
+		disabled_list_manager "enable" "$@"
 		;;
 	import-key)
 		import_key "$@"

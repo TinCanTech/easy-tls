@@ -472,7 +472,7 @@ deps ()
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
-	disabled_list="$CA_DIR/easytls/easytls-disabled.txt"
+	disabled_list="$CA_DIR/easytls/easytls-disabled-list.txt"
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
