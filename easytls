@@ -459,6 +459,7 @@ verify_tls_init ()
 {
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
+	[ -f "$EASYTLS_IL_INDEX_HASH" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_HASH" ] || die "EasyTLS has not been initialised"
 } # => verify_tls_init ()
@@ -485,17 +486,20 @@ and initialize a fresh TLS PKI here."
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
 	# Create tls dir index file
-	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
-		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
+	head_text="# EastTLS inline-index - Created: $(date)"
+	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
+		|| die "Failed to create inline-index"
+
+	# Create inline-index hash file
+	inline_index_save_index_hash || die "Failed to create inline-index Hash."
 
 	# Create disabled list
-	head_text="# OpenVPN Server tls-crypt-v2-verify.sh disabled list"
-	date_text="# Created: $(date)"
-	printf "%s\n%s\n" "$head_text" "$date_text" > "$EASYTLS_DISABLED_LIST" \
-		|| die "Failed to create disabled list"
+	head_text="# EastTLS disabled-list - Created: $(date)"
+	printf '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" \
+		|| die "Failed to create disabled-list"
 
 	# Create disabled list hash file
-	disabled_list_save_hash || die "Failed to create Disabled list Hash."
+	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
 	notice "\
 init-tls complete; you may now create TLS keys and .inline files.
@@ -666,8 +670,8 @@ status_easyrsa_revoked ()
 # Print Valid certs from Easy-TLS
 status_easytls_inline ()
 {
-	etls_valid_name_list="$(awk '{print $1}' "$EASYTLS_INLINE_INDEX")"
-	etls_valid_serial_list="$(awk '{print $2}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_name_list="$(inline_index_common_name_list)"
+	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	[ $silent_status ] || cat "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
@@ -692,7 +696,7 @@ status_easytls_invalid ()
 		# Clear inline_hash from previous loop
 		unset inline_hash
 		# Check the .inline HASH
-		inline_index_check_hash || die "Failed HASH: $inline_file"
+		inline_index_check_inline_hash || die "Failed HASH: $inline_file"
 
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
@@ -794,6 +798,17 @@ inline_expire_date ()
 	grep '^[[:blank:]]*Not After : ' "$inline_file"
 } # => inline_expire_date ()
 
+# Get a list of commonNames from inline-index
+inline_index_common_name_list ()
+{
+	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
+}
+
+inline_index_serial_number_list ()
+{
+	awk '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
+}
+
 # Get x509 certificate expiry date
 cert_expire ()
 {
@@ -844,7 +859,7 @@ inline_expire ()
 		print " Certificate: $name.inline   Expire-date: $inline_expire"
 	else
 	# Get a list of Valid names from easytls-inline-index
-	etls_valid_name_list="$(awk '{print $1 " "}' "$EASYTLS_INLINE_INDEX")"
+	etls_valid_name_list="$(inline_index_common_name_list)"
 		for name in $etls_valid_name_list
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
@@ -855,14 +870,16 @@ inline_expire ()
 	fi
 } # => inline_expire ()
 
-# Keep an index file for inline certs to manage revoke/renew
+# Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <update_index_action>"
-
 	update_index_action="$1"
-	[ -f "$EASYTLS_INLINE_INDEX" ] || \
-		die "inline_index_update () Missing: $EASYTLS_INLINE_INDEX"
+
+	verify_tls_init
+
+	# Verify inline-index Hash
+	inline_index_verify_index_hash || die "inline-index is corrupt"
 
 	case "$update_index_action" in
 	add)
@@ -876,7 +893,7 @@ inline_index_update ()
 			die "Do not allow a HASH here: inline_index_update add"
 
 		# Create new HASH
-		inline_hash="$(inline_index_gen_hash)"
+		inline_hash="$(inline_index_gen_inline_hash)"
 		easytls_verbose "  ADD: $name $inline_serial $inline_hash"
 
 		# Create new record
@@ -904,43 +921,72 @@ inline_index_update ()
 		die "Unknown index action: $update_index_action"
 	;;
 	esac
+
+	# Keep a hash of the inline-index
+	inline_index_save_index_hash || Die "Failed to update inline-index hash"
 } # => inline_index_update ()
 
+# Verify current disable-list hash
+inline_index_verify_index_hash ()
+{
+	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
+	annoying_hash="$(inline_index_gen_index_hash)"
+	inline_index_current_hash="${annoying_hash%% *}"
+	[ "$inline_index_current_hash" = "$inline_index_saved_hash" ] || \
+		return 1
+}
+
+# Keep a hash of the inline-index
+inline_index_save_index_hash ()
+{
+	annoying_hash="$(inline_index_gen_index_hash)"
+	inline_index_current_hash="${annoying_hash%% *}"
+	printf '%s\n' "$inline_index_current_hash" > \
+		"$EASYTLS_IL_INDEX_HASH" || \
+		return 1
+}
+
+# Generate SHA1 inline-index hash
+inline_index_gen_index_hash ()
+{
+	openssl sha1 -r "$EASYTLS_INLINE_INDEX"
+}
+
 # Check inline hash
-inline_index_check_hash ()
+inline_index_check_inline_hash ()
 {
 	# This is a check so check everything here
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
 
 	[ -z "$name" ] && \
-		die "inline_index_check_hash: Missing value: name"
+		die "inline_index_check_inline_hash: Missing value: name"
 
 	# May not require this
 	#[ -z "$crt_serial" ] && \
-	#	die "inline_index_check_hash: Missing value: crt_serial"
+	#	die "inline_index_check_inline_hash: Missing value: crt_serial"
 
 	# Must have inline_serial
 	[ -z "$inline_serial" ] && \
-		die "inline_index_check_hash: Missing value: inline_serial"
+		die "inline_index_check_inline_hash: Missing value: inline_serial"
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
-	die "inline_index_check_hash: Found value: inline_hash $inline_hash"
+	die "inline_index_check_inline_hash: Found value: inline_hash $inline_hash"
 
 	[ -z "$inline_file" ] && \
-		die "inline_index_check_hash: Missing value: inline_file"
+		die "inline_index_check_inline_hash: Missing value: inline_file"
 
 	# Already have inline_serial so this file MUST exist so remove test
 	#[ -f "$inline_file" ] || \
-	#	die "inline_index_check_hash: Missing file: $inline_file"
+	#	die "inline_index_check_inline_hash: Missing file: $inline_file"
 
 	# Calculate current file HASH
-	real_hash="$(inline_index_gen_hash)"
+	real_hash="$(inline_index_gen_inline_hash)"
 
 	# Search for calculated current HASH
-	find_hash="$(inline_index_search_hash)"
+	find_hash="$(inline_index_search_inline_hash)"
 
 	case "$find_hash" in
 	0)
@@ -963,7 +1009,7 @@ inline_index_check_hash ()
 
 	# There is only one way out of this..
 	return 1
-} # => inline_index_check_hash ()
+} # => inline_index_check_inline_hash ()
 
 # Get serial number from inline index file using Common name as key
 inline_index_common_name_to_serial ()
@@ -984,13 +1030,13 @@ inline_index_serial_to_common_name ()
 }
 
 # Generate HASH of inline file
-inline_index_gen_hash ()
+inline_index_gen_inline_hash ()
 {
 	"$EASYRSA_OPENSSL" sha1 "$inline_file" | awk '{print $NF}'
 }
 
 # Search for hash
-inline_index_search_hash ()
+inline_index_search_inline_hash ()
 {
 	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}$" \
 		"$EASYTLS_INLINE_INDEX"
@@ -1035,7 +1081,7 @@ openssl_crt_cn ()
 		sed 's/^[[:blank:]]*CN=//g'
 }
 
-# Copy inline to stdout
+# Check inline hash and Copy inline to stdout
 inline_show ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
@@ -1046,11 +1092,15 @@ inline_show ()
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
+
 	# Inline serial
 	inline_serial=""
 	inline_crt_serial
 
-	inline_index_check_hash || die "Failed HASH: $inline_file"
+	#Check inline hash
+	inline_index_check_inline_hash || die "Failed HASH: $inline_file"
+
+	# Copy inline to stdout
 	cat "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
 
@@ -1075,7 +1125,7 @@ inline_remove ()
 		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
 	# Check .inline HASH prior to removal
-	inline_index_check_hash || die "inline_remove Failed HASH: $inline_file"
+	inline_index_check_inline_hash || die "inline_remove Failed HASH: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
@@ -1104,8 +1154,7 @@ inline_index_rebuild ()
 	confirm "Rebuild inline index file ? " "yes" \
 		"WARNING: You are about to rebuild easytls-index.txt"
 
-	# Check easytls-index.txt
-	[ -f "$EASYTLS_INLINE_INDEX" ] || warn "Missing: $EASYTLS_INLINE_INDEX"
+	verify_tls_init
 
 	# Do not over write current easytls-index.txt.backup
 	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
@@ -1126,9 +1175,13 @@ inline_index_rebuild ()
 	# Get list of certs from openssl index.txt
 	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
 
-	# Create new easytls index file
-	printf "%s" "" > "$EASYTLS_INLINE_INDEX" \
-		|| die "Failed to create $EASYTLS_INLINE_INDEX (permissions?)"
+	# Create tls dir index file
+	head_text="# EastTLS inline-index - Created: $(date)"
+	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
+		|| die "Failed to create inline-index"
+
+	# Create inline-index hash file
+	inline_index_save_index_hash || die "Failed to create inline-index Hash."
 
 	# Create records from openssl Valid names list
 	for i in $ersa_valid_cert_list
@@ -2143,6 +2196,7 @@ vars_setup()
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
+	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_PKI/easytls-inline-index.hash"
 	set_var EASYTLS_OPENVPN		"/usr/sbin/openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_PKI/easytls-disabled-list.hash"
