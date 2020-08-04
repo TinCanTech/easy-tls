@@ -121,7 +121,7 @@ cmd_help()
       Combining this with 'tls-crypt-v2-verify.sh --verify-via-index',
       openssl binary never needs to be loaded by tls-crypt-v2-verify.sh
       See EasyTLS-Howto.txt for an example." ;;
-		inline-status) text="
+		status) text="
   status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
 			opts="
@@ -604,15 +604,15 @@ status ()
 	# Verify disabled list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
 
-} #=> inline_status ()
+} #=> status ()
 
-# Format inline_status output
+# Format status output
 status_output ()
 {
 	awk '{print "  Common-Name " $1 "    Serial-number " $2}'
 }
 
-# Format inline_status CN
+# Format status CN
 status_cn ()
 {
 	sed -e 's`^.*/CN=``g' -e 's`/.*$``g'
@@ -1277,7 +1277,7 @@ inline_index_rebuild ()
 	print
 
 	# Verify
-	inline_status
+	status
 
 } # => inline_index_rebuild ()
 
@@ -1438,7 +1438,7 @@ inline_base ()
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
 	inline_file="$EASYTLS_PKI/$name.inline"
-	help_note="Run 'easytls inline-status' to verify certificate revokation."
+	help_note="Run 'easytls status' to verify certificate revokation."
 
 	[ -f "$crt_file" ] || die "\
 Certificate file missing or revoked: $crt_file
