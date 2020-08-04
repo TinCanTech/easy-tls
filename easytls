@@ -815,7 +815,7 @@ cert_expire ()
 {
 	name="$1"
 
-	verify_tls_init
+	verify_ca_init
 
 	if [ "$name" = "ca" ]
 	then
