@@ -498,10 +498,31 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 	print "$EASYTLS_CMD $EASYTLS_OPTS cert-expire (also test auto-check)"
 	"$EASYTLS_CMD" $EASYTLS_OPTS cert-expire || \
 		fail "Unit test error 66: cert-expire"
+
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS inline-expire (also test auto-check"
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-expire (also test auto-check)"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
 		fail "Unit test error 67: inline-expire"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS help"
+	"$EASYTLS_CMD" $EASYTLS_OPTS help || \
+		fail "Unit test error 68: help"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS help options"
+	"$EASYTLS_CMD" $EASYTLS_OPTS help options || \
+		fail "Unit test error 69: help"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS help import-key"
+	"$EASYTLS_CMD" $EASYTLS_OPTS help import-key || \
+		fail "Unit test error 70: help"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
+		fail "Unit test error 71: version"
 
 echo "============================================================"
 echo "total_expected_errors=$total_expected_errors (Expected 208 Verified)"

@@ -87,7 +87,7 @@ DIRECTORY STATUS (commands would take effect on these locations)
   EASYRSA: $work_dir
       PKI: $pki_dir
       TLS: $tls_dir"
-EASYTLS_SILENT=1
+	EASYTLS_SILENT=1
 } # => usage()
 
 # Detailed command help
@@ -245,6 +245,7 @@ cmd_help()
 	[ -n "$opts" ] && print "
       cmd-opts is an optional set of command options from this list:
 $opts"
+	EASYTLS_SILENT=1
 } # => cmd_help()
 
 # Options usage
@@ -273,7 +274,7 @@ General options:
                   This field can also be matched in tls-crypt-v2-verify.sh
                   with the command line option: -g|--custom-group XYZ
                   XYZ MUST be a single alphanumerical word with NO spaces"
-EASYTLS_SILENT=1
+	EASYTLS_SILENT=1
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -2315,71 +2316,93 @@ cmd="$1"
 [ -n "$1" ] && shift # scrape off command
 case "$cmd" in
 	init-tls)
-		init_tls "$@"
+		init_tls "$@" || \
+			die "Error: init_tls"
 		;;
 	build-tls-auth)
-		build_tls_auth "$@"
+		build_tls_auth "$@" || \
+			die "Error: build_tls_auth"
 		;;
 	build-tls-crypt)
-		build_tls_crypt_v1 "$@"
+		build_tls_crypt_v1 "$@" || \
+			die "Error: build_tls_crypt_v1"
 		;;
 	build-tls-crypt-v2-server)
-		build_tls_crypt_v2_server "$@"
+		build_tls_crypt_v2_server "$@" || \
+			die "Error: build_tls_crypt_v2_server"
 		;;
 	build-tls-crypt-v2-client)
-		build_tls_crypt_v2_client "$@"
+		build_tls_crypt_v2_client "$@" || \
+			die "Error: build_tls_crypt_v2_client"
 		;;
 	save-id)
-		save_id
+		save_id || \
+			die "Error: save_id"
 		;;
 	status)
-		status "$@"
+		status "$@" || \
+			die "Error: status"
 		;;
 	inline-base)
-		inline_base "$@"
+		inline_base "$@" || \
+			die "Error: inline_base"
 		;;
 	inline-tls-auth)
-		inline_tls_auth "$@"
+		inline_tls_auth "$@" || \
+			die "Error: inline_tls_auth"
 		;;
 	inline-tls-crypt)
-		inline_tls_crypt_v1 "$@"
+		inline_tls_crypt_v1 "$@" || \
+			die "Error: inline_tls_crypt_v1"
 		;;
 	inline-tls-crypt-v2)
-		inline_tls_crypt_v2 "$@"
+		inline_tls_crypt_v2 "$@" || \
+			die "Error: inline_tls_crypt_v2"
 		;;
 	inline-remove)
-		inline_remove "$@"
+		inline_remove "$@" || \
+			die "Error: inline_remove"
 		;;
 	inline-renew)
-		inline_renew "$@"
+		inline_renew "$@" || \
+			die "Error: inline_renew"
 		;;
 	inline-show)
-		inline_show "$@"
+		inline_show "$@" || \
+			die "Error: inline_show"
 		;;
 	inline-index-rebuild)
-		inline_index_rebuild "$@"
+		inline_index_rebuild "$@" || \
+			die "Error: inline_index_rebuild"
 		;;
 	inline-expire)
-		inline_expire "$@"
+		inline_expire "$@" || \
+			die "Error: inline_expire"
 		;;
 	cert-expire)
-		cert_expire "$@"
+		cert_expire "$@" || \
+			die "Error: cert_expire"
 		;;
 	d|disable)
-		disabled_list_manager "disable" "$@"
+		disabled_list_manager "disable" "$@" || \
+			die "Error: disabled_list_manager"
 		;;
 	e|enable)
-		disabled_list_manager "enable" "$@"
+		disabled_list_manager "enable" "$@" || \
+			die "Error: disabled_list_manager"
 		;;
 	import-key)
-		import_key "$@"
+		import_key "$@" || \
+			die "Error: import_key"
 		;;
 	version|-v|--version)
-		easytls_version
+		easytls_version || \
+			die "Error: easytls_version"
 		exit 0
 		;;
 	""|help|-h|--help|--usage)
-		cmd_help "$1"
+		cmd_help "$1" || \
+			die "Error: cmd_help"
 		exit 0
 		;;
 	*)
@@ -2388,6 +2411,6 @@ case "$cmd" in
 esac
 
 # EasyTLS auto-check
-inline_auto_check
+inline_auto_check || die "Error: inline_auto_check"
 
 # vim: ft=sh nu ai sw=8 ts=8 noet
