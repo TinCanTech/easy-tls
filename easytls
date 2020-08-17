@@ -448,7 +448,7 @@ verify_openvpn ()
 	openvpn_version="${openvpn_version%_*}"
 	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "$openvpn_version" in
-	2.5) : ;;
+	2.5|2.6) : ;;
 	2.4) : ;;
 	*) die "Unsupported OpenVPN version: $openvpn_version" ;;
 	esac
@@ -1709,7 +1709,7 @@ build_tls_auth ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5) build_string="--genkey tls-auth" ;;
+	2.5|2.6) build_string="--genkey tls-auth" ;;
 	2.4) build_string="--genkey --secret" ;;
 	*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
@@ -1735,7 +1735,7 @@ build_tls_crypt_v1 ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5) build_string="--genkey tls-crypt" ;;
+	2.5|2.6) build_string="--genkey tls-crypt" ;;
 	2.4) build_string="--genkey --secret" ;;
 	*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
@@ -1762,12 +1762,12 @@ build_tls_crypt_v2_server ()
 	# So make CA a requirement for both server and client
 	verify_ca_init
 
-	# Verify OpenVPN version - Requires openvpn version 2.5
+	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
-
-	# and use correct syntax to --genkey
-	build_string="--genkey tls-crypt-v2-server"
+	case $openvpn_version in
+	2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
 
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
@@ -1800,12 +1800,12 @@ build_tls_crypt_v2_client ()
 	# So make CA a requirement for both server and client
 	verify_ca_init
 
-	# Verify OpenVPN version - Requires openvpn version 2.5
+	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	[ "$openvpn_version" = "2.5" ] || die "OpenVPN version 2.5 required."
-
-	# and use correct syntax to --genkey
-	build_string="--genkey tls-crypt-v2-client"
+	case $openvpn_version in
+	2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
 
 	ca_cert="$EASYRSA_PKI/ca.crt"
 	srv_name="$1"
