@@ -94,7 +94,7 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch --disable-auto-check"
+EASYTLS_OPTS="--verbose --batch --no-auto-check"
 
 OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
@@ -141,9 +141,9 @@ do
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
-		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
-		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
-		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
+		"build-tls-crypt-v2-client s01 c05 tincantech" \
+		"build-tls-crypt-v2-client s01 c06 tincantech" \
+		"build-tls-crypt-v2-client s01 c08 tincantech" \
 		"inline-base s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
 		"inline-tls-auth s01 0 add-dh" "status" "inline-renew s01 add-dh" "status" \

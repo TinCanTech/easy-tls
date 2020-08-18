@@ -53,7 +53,8 @@ Use the 'help' command above to get full usage details.
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <server_filename_base>
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+  build-tls-crypt-v2-client
+        <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
   save-id
   status [ cmd-opts ]
   inline-base <filename_base> [ cmd-opts ]
@@ -109,8 +110,16 @@ cmd_help()
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		build-tls-crypt-v2-client) text="
-  build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
-      Create an OpenVPN TLS crypt V2 Client key" ;;
+  build-tls-crypt-v2-client
+        <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
+      Create an OpenVPN TLS crypt V2 Client key
+
+      <CUSTOM-GROUP> is an optional single word which can be appended to
+      the client key metadata.  This must be a single contiguous word.
+      EG: TinCanTech-EasyTLS.net
+
+      The <CUSTOM-GROUP> can also be matched aganst in 'tls-crypt-v2-verify.sh'
+      by using the command line switch --c|custom-group=TinCanTech-EasyTLS.net" ;;
 		save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
@@ -264,20 +273,15 @@ non-empty values to options are mandatory.
 
 General options:
 
---openvpn=FILE  : The full (or relative) <path to> and <file-name of>
-                  your preferred openvpn(.exe) executable openvpn file.
---disable-auto-check
-                : For performance you can disable auto-check.
---batch         : set automatic (no-prompts when possible) mode.
---verbose       : Verbose output.
---silent        : Silence all message output except prompts.
---pki-dir=DIR   : declare the EasyRSA PKI directory.
---vars=FILE     : define a specific 'vars' file to use for Easy-RSA config.
---dh=FILE       : define an alternate Diffy Hellman parameters file.
---custom-group  : Append a custom field to the default TLS crypt v2 metadata.
-                  This field can also be matched in tls-crypt-v2-verify.sh
-                  with the command line option: -g|--custom-group XYZ
-                  XYZ MUST be a single alphanumerical word with NO spaces"
+--openvpn=\"FILE\"  : The full (or relative) <path-to> and <file-name-of>
+                    your preferred openvpn(.exe) executable openvpn file.
+--no-auto-check   : For performance you can disable auto-check.
+--batch           : set automatic (no-prompts when possible) mode.
+--verbose         : Verbose output.
+--silent          : Silence all message output except prompts.
+--pki-dir=DIR     : declare the EasyRSA PKI directory.
+--vars=FILE       : define a specific 'vars' file to use for Easy-RSA config.
+--dh=FILE         : define an alternate Diffy Hellman parameters file."
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -1794,8 +1798,8 @@ build_tls_crypt_v2_client ()
 	[ $# -ge 2 ] || \
 	die "Required option(s): <server_filename_base> <client_filename_base>"
 
-	[ $# -eq 2 ] || \
-	warn "Ignoring unknown option(s): $3 $4 $5 .. etc."
+	[ $# -ge 4 ] && \
+	warn "Ignoring unknown option(s): $4 $5 .. etc."
 
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	# This key does not require EasyRSA PKI
@@ -1815,7 +1819,7 @@ build_tls_crypt_v2_client ()
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	cli_name="$2"
 	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
-	shift 2
+	EASYTLS_TLSCV2_CG="$3"
 
 	[ "$srv_name" = "$cli_name" ] && \
 		die "Server name cannot be the same as the client name."
@@ -1833,6 +1837,10 @@ Missing cli file: $cli_cert"
 
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
+
+	# Confirm metadata
+	confirm "Is the Custom-Group field correct ? " "yes" \
+		"Custom-Group field for metadata: $EASYTLS_TLSCV2_CG"
 
 	metadata=""
 	b64_metadata=""
@@ -2297,7 +2305,7 @@ while :; do
 		export EASYTLS_TLSCV2_CG="$val" ;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
-	--disable-auto-check)
+	--no-auto-check)
 		empty_ok=1
 		auto_check_disabled=1 ;;
 	*)
