@@ -524,6 +524,12 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
 		fail "Unit test error 71: version"
 
+	print "------------------------------------------------------------"
+	TEST_CMD="disabled-list-rehash"
+	print "$EASYTLS_CMD $EASYTLS_OPTS $TEST_CMD"
+	"$EASYTLS_CMD" $EASYTLS_OPTS $TEST_CMD || \
+		fail "Unit test error 72: $TEST_CMD"
+
 echo "============================================================"
 echo "total_expected_errors=$total_expected_errors (Expected 208 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
