@@ -118,7 +118,7 @@ cmd_help()
       the client key metadata.  This must be a single contiguous word.
       EG: TinCanTech-EasyTLS.net
 
-      The <CUSTOM-GROUP> can also be matched aganst in 'tls-crypt-v2-verify.sh'
+      The <CUSTOM-GROUP> can also be matched against in 'tls-crypt-v2-verify.sh'
       by using the command line switch --c|custom-group=TinCanTech-EasyTLS.net" ;;
 		save-id) text="
   save-id [ no options ]
@@ -934,7 +934,7 @@ inline_index_update ()
 	inline_index_save_index_hash || Die "Failed to update inline-index hash"
 } # => inline_index_update ()
 
-# Verify current disable-list hash
+# Verify current inline-index hash
 inline_index_verify_index_hash ()
 {
 	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
@@ -944,7 +944,7 @@ inline_index_verify_index_hash ()
 		return 1
 }
 
-# Keep a hash of the inline-index
+# Save new inline-index hash
 inline_index_save_index_hash ()
 {
 	annoying_hash="$(inline_index_gen_index_hash)"
@@ -960,7 +960,7 @@ inline_index_gen_index_hash ()
 	openssl sha1 -r "$EASYTLS_INLINE_INDEX"
 }
 
-# Check inline hash
+# Check inline-file hash
 inline_index_check_inline_hash ()
 {
 	# This is a check so check everything here
