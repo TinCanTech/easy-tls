@@ -112,6 +112,7 @@ cmd_help()
 		build-tls-crypt-v2-client) text="
   build-tls-crypt-v2-client
         <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
+
       Create an OpenVPN TLS crypt V2 Client key
 
       <CUSTOM-GROUP> is an optional single word which can be appended to
@@ -431,7 +432,7 @@ $help_note"
 # Verbose messages
 easytls_verbose ()
 {
-	[ $EASYTLS_VERBOSE ] || return
+	[ $EASYTLS_VERBOSE ] || return 0
 	print "$@"
 }
 
@@ -525,16 +526,26 @@ inline_auto_check ()
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
+	# Check for revoked EasyRSA certs
+	# which still have an inline file
 	status invalid || die "inline_auto_check: status invalid error"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
+	# Check serial number for renewed EasyRSA certs
+	# which do not match inline files
 	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
+	# Check inline-index hash
+	inline_index_verify_index_hash || warn "inline-index is corrupt"
+
+	# Check disabled-list hash
+	disabled_list_verify_hash || warn "Disabled list is corrupt."
+
 	unset auto_check
-}
+} # => inline_auto_check ()
 
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
@@ -609,8 +620,11 @@ status ()
 	print "Easy-RSA: Renewed certificates:"
 	status_easyrsa_renewed
 
+	# Check inline-index hash
+	inline_index_verify_index_hash || warn "inline-index is corrupt"
+
 	# Verify disabled list Hash
-	disabled_list_verify_hash || die "Disabled list is corrupt."
+	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
 } #=> status ()
 
@@ -803,7 +817,7 @@ crt_expire_date ()
 # Extract enddate from .inline certificate
 inline_expire_date ()
 {
-	grep '^[[:blank:]]*Not After : ' "$inline_file"
+	grep '^[[:blank:]]Not After : ' "$inline_file"
 } # => inline_expire_date ()
 
 # Get a list of commonNames from inline-index
@@ -901,7 +915,9 @@ inline_index_update ()
 			die "Do not allow a HASH here: inline_index_update add"
 
 		# Create new HASH
-		inline_hash="$(inline_index_gen_inline_hash)"
+		generate_file_hash "$inline_file" || \
+			die "inline_index_update add: Failed to hash: $inline_file"
+		inline_hash="$generated_hash"
 		easytls_verbose "  ADD: $name $inline_serial $inline_hash"
 
 		# Create new record
@@ -937,27 +953,37 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_index_hash ()
 {
+	# Read the saved hash
 	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
-	annoying_hash="$(inline_index_gen_index_hash)"
-	inline_index_current_hash="${annoying_hash%% *}"
-	[ "$inline_index_current_hash" = "$inline_index_saved_hash" ] || \
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_INLINE_INDEX" || \
+		die "inline_index_update add: Failed to hash: $EASYTLS_INLINE_INDEX"
+	inline_index_current_hash="$generated_hash"
+	# Verify hash match
+	[ "$inline_index_saved_hash" = "$inline_index_current_hash" ] || \
 		return 1
+	easytls_verbose "Inline-index hash check OK"
 }
 
 # Save new inline-index hash
 inline_index_save_index_hash ()
 {
-	annoying_hash="$(inline_index_gen_index_hash)"
-	inline_index_current_hash="${annoying_hash%% *}"
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_INLINE_INDEX" || \
+		die "inline_index_update add: Failed to hash: $inline_file"
+	inline_index_current_hash="$generated_hash"
+	# Save the current hash
 	printf '%s\n' "$inline_index_current_hash" > \
 		"$EASYTLS_IL_INDEX_HASH" || \
 		return 1
 }
 
-# Generate SHA1 inline-index hash
-inline_index_gen_index_hash ()
+# Generate SHA1 file hash
+generate_file_hash ()
 {
-	openssl sha1 -r "$EASYTLS_INLINE_INDEX"
+	[ -r "$1" ] || die "Hash failed for: $1"
+	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")"
+	generated_hash="${openssl_hash%% *}"
 }
 
 # Check inline-file hash
@@ -990,10 +1016,12 @@ inline_index_check_inline_hash ()
 	#[ -f "$inline_file" ] || \
 	#	die "inline_index_check_inline_hash: Missing file: $inline_file"
 
-	# Calculate current file HASH
-	real_hash="$(inline_index_gen_inline_hash)"
+	# generate current file HASH
+	generate_file_hash "$inline_file" || \
+		die "inline_index_update add: Failed to hash: $inline_file"
+	real_hash="$generated_hash"
 
-	# Search for calculated current HASH
+	# Search for current HASH
 	find_hash="$(inline_index_search_inline_hash)"
 
 	case "$find_hash" in
@@ -1035,12 +1063,6 @@ inline_index_serial_to_common_name ()
 {
 	grep "^.*[[:blank:]]${inline_serial}[[:blank:]].*$" \
 		"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
-}
-
-# Generate HASH of inline file
-inline_index_gen_inline_hash ()
-{
-	"$EASYRSA_OPENSSL" sha1 "$inline_file" | awk '{print $NF}'
 }
 
 # Search for hash
@@ -2055,12 +2077,6 @@ disabled_list_serial_search ()
 	grep -c "^${crt_serial}[[:blank:]]${name}$" "$EASYTLS_DISABLED_LIST"
 }
 
-# Generate SHA1 disabled-list hash
-disabled_list_generate_hash ()
-{
-	openssl sha1 -r "$EASYTLS_DISABLED_LIST"
-}
-
 # Update disabled-list footer and hash
 disabled_list_update_and_hash ()
 {
@@ -2078,18 +2094,26 @@ disabled_list_update_and_hash ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
+	# Read the saved hash
 	disabled_list_saved_hash="$(cat "$EASYTLS_DISABLED_HASH")"
-	annoying_hash="$(disabled_list_generate_hash)"
-	disabled_list_current_hash="${annoying_hash%% *}"
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_DISABLED_LIST" || \
+		die "disabled_list_verify_hash: Failed to hash: $inline_file"
+	disabled_list_current_hash="$generated_hash"
+	# Verify hash match
 	[ "$disabled_list_current_hash" = "$disabled_list_saved_hash" ] || \
 		return 1
+	easytls_verbose "Disabled-list hash check OK"
 }
 
 # Save new disable-list hash
 disabled_list_save_hash ()
 {
-	annoying_hash="$(disabled_list_generate_hash)"
-	disabled_list_current_hash="${annoying_hash%% *}"
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_DISABLED_LIST" || \
+		die "disabled_list_save_hash: Failed to hash: $inline_file"
+	disabled_list_current_hash="$generated_hash"
+	# Save the current hash
 	printf '%s\n' "$disabled_list_current_hash" > \
 		"$EASYTLS_DISABLED_HASH" || \
 		return 1
