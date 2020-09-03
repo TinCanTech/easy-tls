@@ -2029,16 +2029,16 @@ disabled_list_manager ()
 			printf '%s\n' "$crt_serial $name" >> \
 				"$EASYTLS_DISABLED_LIST" || \
 				die "Failed to update disabled-list."
+
+			# Verify serial was added
+			disabled_list_serial_status="$(disabled_list_serial_search)"
+			[ $disabled_list_serial_status -eq 1 ] || \
+				die "disabled-list error add"
+			disabled_list_updated=1
 		else
 			# serial is already disabled
 			:
 		fi
-
-		# Verify serial was added
-		disabled_list_serial_status="$(disabled_list_serial_search)"
-		[ $disabled_list_serial_status -eq 1 ] || \
-			die "disabled-list error add"
-		disabled_list_updated=1
 	;;
 	enable) # Remove serial number from the disabled-list
 		if [ $disabled_list_serial_status -eq 1 ]
@@ -2046,16 +2046,16 @@ disabled_list_manager ()
 			sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
 				"$EASYTLS_DISABLED_LIST" || \
 				die "Failed to update disabled-list."
+
+			# Verify serial was removed
+			disabled_list_serial_status="$(disabled_list_serial_search)"
+			[ $disabled_list_serial_status -eq 0 ] || \
+				die "disabled-list error del"
+			disabled_list_updated=1
 		else
 			# serial is already enabled
 			:
 		fi
-
-		# Verify serial was removed
-		disabled_list_serial_status="$(disabled_list_serial_search)"
-		[ $disabled_list_serial_status -eq 0 ] || \
-			die "disabled-list error del"
-		disabled_list_updated=1
 	;;
 	*) die "disabled-list action invalid: $1"
 	;;
