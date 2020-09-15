@@ -1,6 +1,5 @@
 ### In some sort of order:
 ```
-ecrist		- Like Tron; Fights for (and against) the user  
 mattock		- Unmatched dedication  
 cron2		- Even cron needs a tireless backup  
 dazo		- The future  

@@ -37,6 +37,10 @@ Overview:
     scripts directory and use option: '-c|--ca=<PATH>' to point the script
     to your working Easy-RSA PKI directory. This is the same directory as above.
 
+    For full help use:
+    * ./easytls -h
+    * ./tls-crypt-v2-verify.sh -h
+
 
 Easy-TLS details:
 

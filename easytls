@@ -19,7 +19,6 @@ cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 #
 # Acknowledgement:
 # This utility is "written in the style of" and "borrows heavily from" Easy-RSA
-# See: https://github.com/OpenVPN/easy-rsa
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
