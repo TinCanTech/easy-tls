@@ -192,6 +192,7 @@ metadata_string_to_vars ()
 	md_name="$4"
 	md_date="$5"
 	md_custom_g="$6"
+	md_hwadds="$7"
 }
 
 # Convert metadata file to metadata_string
@@ -866,6 +867,11 @@ test_method=${test_method:-1}
 		die "Unknown method for verify: $test_method" 9
 	;;
 	esac
+
+# Save the hardware addresses to temp file
+# Need to confirm temp dir location
+client_hw_list="$CA_DIR/easytls/$md_serial.hwl"
+printf '%s\n' "$md_hwadds" > "$client_hw_list"
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9

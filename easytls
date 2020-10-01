@@ -118,16 +118,19 @@ cmd_help()
       the client key metadata.  This must be a single contiguous word.
       EG: TinCanTech-EasyTLS.net
 
-      The <CUSTOM-GROUP> can also be matched against in 'tls-crypt-v2-verify.sh'
-      by using the command line switch --c|custom-group=TinCanTech-EasyTLS.net" ;;
+      The <CUSTOM-GROUP> can also be matched against in easytls-cryptv2-verify.sh
+      by using the command line switch --c|custom-group=TinCanTech-EasyTLS.net
+
+      The metadata can also be used to specify Hardware Addresses which this key
+      is allowed to be used on.  See option --hw-addr for further details." ;;
 		save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
       CA-Identity is the Hex ONLY value of the CA finger print.
-      This can then by used by tls-crypt-v2-verify.sh as a time-saver
+      This can then by used by easytls-cryptv2-verify.sh as a time-saver
       by not needing to load openssl to generate the CA fingerprint.
-      Combining this with 'tls-crypt-v2-verify.sh --verify-via-index',
-      openssl binary never needs to be loaded by tls-crypt-v2-verify.sh
+      Combining this with 'easytls-cryptv2-verify.sh --verify-via-index',
+      openssl binary never needs to be loaded by easytls-cryptv2-verify.sh
       See EasyTLS-Howto.txt for an example." ;;
 		status) text="
   status [ cmd-opts ]
@@ -209,11 +212,11 @@ cmd_help()
 		disable) text="
   d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
-      for immediate use by the tls-crypt-v2-verify script" ;;
+      for immediate use by the easytls-cryptv2-verify.sh script" ;;
 		enable) text="
   e|enable <filename_base>
       Remove serial number for <filename_base> from the disabled list
-      for immediate use by the tls-crypt-v2-verify script" ;;
+      for immediate use by the easytls-cryptv2-verify.sh script" ;;
 		disabled-list-rehash) text="
   disabled-list-rehash
        Rehash the disabled-list if the current hash is corrupted.
@@ -276,12 +279,27 @@ General options:
 --openvpn=\"FILE\"  : The full (or relative) <path-to> and <file-name-of>
                     your preferred openvpn(.exe) executable openvpn file.
 --no-auto-check   : For performance you can disable auto-check.
---batch           : set automatic (no-prompts when possible) mode.
+--batch           : Set automatic (no-prompts when possible) mode.
 --verbose         : Verbose output.
 --silent          : Silence all message output except prompts.
---pki-dir=DIR     : declare the EasyRSA PKI directory.
---vars=FILE       : define a specific 'vars' file to use for Easy-RSA config.
---dh=FILE         : define an alternate Diffy Hellman parameters file."
+--pki-dir=DIR     : Declare the EasyRSA PKI directory.
+--vars=FILE       : Define a specific 'vars' file to use for Easy-RSA config.
+--dh=FILE         : Define an alternate Diffy Hellman parameters file.
+--hw-addr=hex     : Can only be used with 'build-tls-crypt-v2-client' to
+                    define a hardware address to be saved in the metadata.
+                    The hardware address field must be exactly 12 hexidecimal digits.
+                    This option can be specified multiple times.  EG: Eth & Wifi
+                    There are two special values which can be specified:
+                    000000000000: This means that the key can be used from any client.
+                                  But only for one connection at a time.
+                    FFFFFFFFFFFF: This means that the key can be used from any client.
+                                  For any number of concurrent connections.
+                    Example:
+                    ./easytls --hw-addr=ab1234567890 --hw-addr=cd0987654321 \\
+                              --hw-addr=000000000000 build-tls-crypt-v2-client \\
+                              server-01 client-09 tincantech
+                    If no hardware addresses are specified then default actions can be
+                    defined in 'easytls-cryptv2-client-connect.sh'"
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -1819,9 +1837,6 @@ build_tls_crypt_v2_client ()
 	[ $# -ge 2 ] || \
 	die "Required option(s): <server_filename_base> <client_filename_base>"
 
-	[ $# -ge 4 ] && \
-	warn "Ignoring unknown option(s): $4 $5 .. etc."
-
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	# This key does not require EasyRSA PKI
 	# but for the client metadata this script does
@@ -1838,10 +1853,16 @@ build_tls_crypt_v2_client ()
 	ca_cert="$EASYRSA_PKI/ca.crt"
 	srv_name="$1"
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
-	cli_name="$2"
-	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
-	EASYTLS_TLSCV2_CG="$3"
+	shift
 
+	cli_name="$1"
+	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
+	shift
+
+	# Need to decide the best way to set these
+	EASYTLS_TLSCV2_CG="${EASYTLS_TLSCV2_CG:-"$1"}"
+
+	# don't do that ..
 	[ "$srv_name" = "$cli_name" ] && \
 		die "Server name cannot be the same as the client name."
 
@@ -1859,9 +1880,18 @@ Missing cli file: $cli_cert"
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
 
-	# Confirm metadata
-	confirm "Is the Custom-Group field correct ? " "yes" \
+	# Confirm metadata Custom-Group
+	[ $EASYTLS_TLSCV2_CG ] && {
+		confirm "Is the Custom-Group field correct ? " "yes" \
 		"Custom-Group field for metadata: $EASYTLS_TLSCV2_CG"
+		}
+
+	# Confirm metadata Hardware-Address(es)
+	[ $EASYTLS_TLSCV2_HWADDR ] && {
+		notice "All Hardware-Addresses are valid length hexidecimal values."
+		confirm "Is the Hardware-Address field correct ? " "yes" \
+		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
+		}
 
 	metadata=""
 	b64_metadata=""
@@ -1874,6 +1904,20 @@ Missing cli file: $cli_cert"
 	notice "TLS crypt v2 client key created: $key_file"
 } # => build_tls_crypt_v2_client ()
 
+hw_addr_hex_check ()
+{
+	[ 12 -eq ${#EASYTLS_TLSCV2_HWADDR} ] || {
+		help_note="Hardware Adress must be 12 digits exactly!"
+		return 1
+		}
+	printf '%s\n' "$EASYTLS_TLSCV2_HWADDR" | \
+		grep -q '^[[:xdigit:]]\{12\}$' || {
+			help_note="Hardware Adress must be hexidecimal digits!"
+			return 1
+		}
+	return 0
+}
+
 # Base64 encode metadata fields
 b64_enc_metadata ()
 {
@@ -1882,7 +1926,7 @@ b64_enc_metadata ()
 	# If you are going to do it then do it right
 	#
 	# 1.  "easytls-$EASYTLS_VERSION"
-	#     tls-crypt-v2-verify.sh only uses the 'easytls' part
+	#     easytls-cryptv2-verify.sh only uses the 'easytls' part
 	#
 	# 2   CA Identity, contiguous single field
 	#     `openssl output` Change space to underscore
@@ -1898,6 +1942,22 @@ b64_enc_metadata ()
 	#
 	# 6.  Custom Group string:
 	#     contiguous single field
+	#     Default: EASYTLS (easytls-cryptv2-verify.sh understands this)
+	#
+	# 7.  Hardware Address string:
+	#     contiguous single field
+	#     There are two special values available for this field:
+	#     000000000000 - This client can connect from any machine but only once.
+	#                    Subsequent connections will be dropped.
+	#                    This is the inverse of OpenVPN behaviour.
+	#     FFFFFFFFFFFF - This client can connect from any machine multiple times.
+	#                    This means OpenVPN --duplicate-cn status will be in effect.
+	#                    Subsequent connections will be allowed.
+	#
+	#     Make sure you use this field with great care.
+	#
+	#     Default: $EASYTLS_VERSION (easytls-cryptv2-verify.sh understands this)
+	#
 
 	# metadata_version
 	metadata_version="easytls-$EASYTLS_VERSION"
@@ -1920,6 +1980,21 @@ b64_enc_metadata ()
 	if [ -n "$EASYTLS_TLSCV2_CG" ]
 	then
 		metadata="$metadata $EASYTLS_TLSCV2_CG"
+	else
+		metadata="$metadata EASYTLS"
+	fi
+
+	# Append --hw-addr
+	if [ -n "$EASYTLS_TLSCV2_HWUSED" ]
+	then
+		MD_HW_HEAD="HW"
+		for i in $EASYTLS_TLSCV2_HWLIST
+		do
+			MD_HW_LIST="$MD_HW_LIST-$i"
+		done
+		metadata="$metadata ${MD_HW_HEAD}${MD_HW_LIST}"
+	else
+		metadata="$metadata $EASYTLS_VERSION"
 	fi
 
 	[ $EASYTLS_TRAVIS_CI ] && debug_metadata
@@ -1985,7 +2060,7 @@ save_id ()
 # DISABLED-LIST Section
 #
 
-# Manage easytls/disabled-list.txt - Used by tls-crypt-v2-verify.sh
+# Manage easytls/disabled-list.txt - Used by easytls-cryptv2-verify.sh
 disabled_list_manager ()
 {
 	action="$1"
@@ -2187,8 +2262,6 @@ import_key ()
 # to support running without a sourced config format
 vars_setup()
 {
-	EASYTLS_VERSION="1.27"
-
 	# Try to locate a 'vars' file in order of location preference.
 	# If one is found, source it
 	vars=
@@ -2297,6 +2370,7 @@ easytls_version ()
 ########################################
 # Invocation entry point:
 
+EASYTLS_VERSION="1.27"
 
 # Be secure with a restrictive umask
 [ -z "$EASYTLS_NO_UMASK" ] && umask 077
@@ -2325,7 +2399,16 @@ while :; do
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
+		# This is deliberately undocumented
+		# Need to decide between --cmd-opt or cmd-word
 		export EASYTLS_TLSCV2_CG="$val" ;;
+	--hw-addr)
+		# Needs to allow multiples. EG: eth & wifi
+		export EASYTLS_TLSCV2_HWUSED=1
+		EASYTLS_TLSCV2_HWADDR="$val"
+		# Verify this is a 12 digit hex only value
+		hw_addr_hex_check || die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
+		export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${val}" ;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
 	--no-auto-check)

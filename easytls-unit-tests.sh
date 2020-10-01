@@ -97,7 +97,7 @@ EASYTLS_CMD="./easytls"
 EASYTLS_OPTS="--verbose --batch --no-auto-check"
 
 OPENVPN_CMD="./openvpn"
-TLSCV2V_CMD="./tls-crypt-v2-verify.sh"
+TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_OPTS="--verbose"
 WORK_DIR="$(pwd)"
 
@@ -128,6 +128,7 @@ do
 		"build-client-full c06 nopass" \
 		"build-client-full c07 nopass" \
 		"build-client-full c08 nopass" \
+		"build-client-full c09 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
@@ -144,6 +145,8 @@ do
 		"build-tls-crypt-v2-client s01 c05 tincantech" \
 		"build-tls-crypt-v2-client s01 c06 tincantech" \
 		"build-tls-crypt-v2-client s01 c08 tincantech" \
+		"--hw-addr=ef1234567890 --hw-addr=1234567890fe --hw-addr=000000000000 \
+		build-tls-crypt-v2-client s01 c09 tincantech" \
 		"inline-base s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
 		"inline-tls-auth s01 0 add-dh" "status" "inline-renew s01 add-dh" "status" \
@@ -220,7 +223,7 @@ do
 		fail "Unit test error 62: inline-tls-crypt-v2 c07"
 
 	# Test tls-crypt-v2-verify.sh
-	for c in "c01" "c05" "c06" "c07"
+	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
 		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
@@ -356,7 +359,7 @@ printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 DBUG_DIR="$WORK_DIR/pki1/easytls"
 
 	# Test tls-crypt-v2-verify.sh
-	for c in "c01" "c05" "c06" "c07"
+	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
 		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
@@ -531,7 +534,7 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 		fail "Unit test error 72: $TEST_CMD"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 208 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 241 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
