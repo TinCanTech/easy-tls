@@ -39,4 +39,5 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   `./easytls inline-tls-crypt-v2 <filename_base> [ cmd-opts ]` <br>
   Your `filename` could be called `client-09` for example. (As above) <br>
   `[ cmd-opts ]` here consist of `nokey` (When you do not have the private key for this node) and `add-dh` (For server files only) <br>
-  
+* Status: `./easytls status`<br>
+  Use `help` now.
