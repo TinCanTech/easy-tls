@@ -871,7 +871,8 @@ test_method=${test_method:-1}
 # Save the hardware addresses to temp file
 # Need to confirm temp dir location
 client_hw_list="$CA_DIR/easytls/$md_serial.hwl"
-printf '%s\n' "$md_hwadds" > "$client_hw_list"
+[ "$md_hwadds" = "000000000000" ] || \
+	printf '%s\n' "$md_hwadds" > "$client_hw_list"
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9

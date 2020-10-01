@@ -288,18 +288,7 @@ General options:
 --hw-addr=hex     : Can only be used with 'build-tls-crypt-v2-client' to
                     define a hardware address to be saved in the metadata.
                     The hardware address field must be exactly 12 hexidecimal digits.
-                    This option can be specified multiple times.  EG: Eth & Wifi
-                    There are two special values which can be specified:
-                    000000000000: This means that the key can be used from any client.
-                                  But only for one connection at a time.
-                    FFFFFFFFFFFF: This means that the key can be used from any client.
-                                  For any number of concurrent connections.
-                    Example:
-                    ./easytls --hw-addr=ab1234567890 --hw-addr=cd0987654321 \\
-                              --hw-addr=000000000000 build-tls-crypt-v2-client \\
-                              server-01 client-09 tincantech
-                    If no hardware addresses are specified then default actions can be
-                    defined in 'easytls-cryptv2-client-connect.sh'"
+                    This option can be specified multiple times.  EG: Eth & Wifi"
 } # => opt_usage()
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -1923,17 +1912,17 @@ b64_enc_metadata ()
 {
 	# metadata strings:
 	#
-	# If you are going to do it then do it right
+	# All fields are single contiguous words
 	#
 	# 1.  "easytls-$EASYTLS_VERSION"
 	#     easytls-cryptv2-verify.sh only uses the 'easytls' part
 	#
-	# 2   CA Identity, contiguous single field
-	#     `openssl output` Change space to underscore
-	#     and remove colons ':'
+	# 2   CA Identity
+	#     `openssl output`; Drop decription, change space to underscore
+	#                       and remove colons ':' (Hex only field)
 	#
-	# 3.  Client certificate serial, contiguous single field
-	#     `openssl output` Drop the 'serial='
+	# 3.  Client certificate serial
+	#     `openssl output`; Drop the 'serial=' (Hex only field)
 	#
 	# 4.  Client CommonName
 	#
@@ -1941,22 +1930,10 @@ b64_enc_metadata ()
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
 	# 6.  Custom Group string:
-	#     contiguous single field
-	#     Default: EASYTLS (easytls-cryptv2-verify.sh understands this)
+	#     Default: EASYTLS (This is a simple place holder only)
 	#
 	# 7.  Hardware Address string:
-	#     contiguous single field
-	#     There are two special values available for this field:
-	#     000000000000 - This client can connect from any machine but only once.
-	#                    Subsequent connections will be dropped.
-	#                    This is the inverse of OpenVPN behaviour.
-	#     FFFFFFFFFFFF - This client can connect from any machine multiple times.
-	#                    This means OpenVPN --duplicate-cn status will be in effect.
-	#                    Subsequent connections will be allowed.
-	#
-	#     Make sure you use this field with great care.
-	#
-	#     Default: $EASYTLS_VERSION (easytls-cryptv2-verify.sh understands this)
+	#     Default: 000000000000 (This is a simple place holder only)
 	#
 
 	# metadata_version
@@ -1994,7 +1971,7 @@ b64_enc_metadata ()
 		done
 		metadata="$metadata ${MD_HW_HEAD}${MD_HW_LIST}"
 	else
-		metadata="$metadata $EASYTLS_VERSION"
+		metadata="$metadata 000000000000"
 	fi
 
 	[ $EASYTLS_TRAVIS_CI ] && debug_metadata

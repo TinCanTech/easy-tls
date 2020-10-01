@@ -145,8 +145,8 @@ do
 		"build-tls-crypt-v2-client s01 c05 tincantech" \
 		"build-tls-crypt-v2-client s01 c06 tincantech" \
 		"build-tls-crypt-v2-client s01 c08 tincantech" \
-		"--hw-addr=ef1234567890 --hw-addr=1234567890fe --hw-addr=000000000000 \
-		build-tls-crypt-v2-client s01 c09 tincantech" \
+		"--hw-addr=ef1234567890 --hw-addr=1234567890fe \
+			build-tls-crypt-v2-client s01 c09 tincantech" \
 		"inline-base s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
 		"inline-tls-auth s01 0 add-dh" "status" "inline-renew s01 add-dh" "status" \
