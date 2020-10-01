@@ -834,7 +834,7 @@ crt_expire_date ()
 # Extract enddate from .inline certificate
 inline_expire_date ()
 {
-	grep '^[[:blank:]]Not After : ' "$inline_file"
+	grep '^[[:blank:]]\+Not After : ' "$inline_file"
 } # => inline_expire_date ()
 
 # Get a list of commonNames from inline-index
