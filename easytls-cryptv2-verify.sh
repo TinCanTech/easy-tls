@@ -132,6 +132,8 @@ help_text ()
                       See EasyTLS-Howto.txt for an example.
   --hex-check         Enable serial number is Hex only check. (Not required)
   --disable-list      Disable the temporary disabled-list check.
+  --pid-file=<file>   The PID file for the openvpn server instance.
+                      (Required only if easytls-cryptv2-client-connect.sh is used)
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -156,6 +158,7 @@ help_text ()
   29  - USER ERROR Disallow connection, Invalid value for --tls-age.
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
+  35  - USER ERROR Disallow connection, missing openvpn server pid_file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
@@ -445,6 +448,9 @@ init ()
 	# metadata version
 	local_version="easytls"
 
+	# Default temp dir
+	EASYTLS_TMP_DIR="/tmp"
+
 	# TLS expiry age (days) Default 5 years
 	TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
 
@@ -529,6 +535,12 @@ deps ()
 	# Do NOT allow both
 	[ $use_cache_id ] && [ $preload_cache_id ] && \
 		die "Cannot use --cache-id and --preload-cache-id together." 34
+
+	# Check the PID file
+	if [ -n "$server_pid_file" ]
+	then
+		[ -f "$server_pid_file" ] || die "Missing PID file: $server_pid_file" 23
+	fi
 }
 
 #######################################
@@ -557,7 +569,10 @@ do
 	-c|--ca)
 		CA_DIR="$val"
 	;;
-	-t|--tls-age)
+	-t|--tmp-dir)
+		EASYTLS_TMP_DIR="$val"
+	;;
+	-x|--max-tls-age)
 		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
 	;;
 	--verify-via-ca)
@@ -587,6 +602,9 @@ do
 	--disable-list)
 		empty_ok=1
 		unset use_disable_list
+	;;
+	--pid-file)
+		server_pid_file="$val"
 	;;
 	*)
 		die "Unknown option: $1" 253
@@ -870,9 +888,13 @@ test_method=${test_method:-1}
 
 # Save the hardware addresses to temp file
 # Need to confirm temp dir location
-client_hw_list="$CA_DIR/easytls/$md_serial.hwl"
-[ "$md_hwadds" = "000000000000" ] || \
-	printf '%s\n' "$md_hwadds" > "$client_hw_list"
+if [ -n "$server_pid_file" ]
+then
+	daemon_pid="$(cat "$server_pid_file")"
+	client_hw_list="$EASYTLS_TMP_DIR/$md_serial.$daemon_pid"
+	[ "$md_hwadds" = "000000000000" ] || \
+		printf '%s\n' "$md_hwadds" > "$client_hw_list"
+fi
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9
