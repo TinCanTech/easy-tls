@@ -251,6 +251,6 @@ fi
 
 # All is well
 [ $TLS_CRYPT_V2_VERIFY_VERBOSE ] && \
-	printf "%s\n" "<EXOK> $easytls_cryptv2_cc_msg $success_msg"
+	printf "%s\n" "<EXOK> $easytls_msg $success_msg"
 
 exit 0
