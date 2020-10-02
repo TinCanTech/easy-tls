@@ -192,13 +192,15 @@ Howto import your current TLS key files:
     VPN node.
 
     Example:
-      Server; x509 commonName 'server01' and a TLS-Crypt-V2 key 'tls-cr-v2-srv.key'
-      * './easytls import-key tls-crypt-v2 tls-cr-v2-srv.key server01'
-      The imported key will be: ./easyrsa/pki/easytls/server01-tls-crypt-v2.key
 
-      Client; x509 commonName 'alice' and a TLS-Crypt-V2 key 'tls-cr-v2-alice.key'
-      * './easytls import-key tls-crypt-v2 tls-cr-v2-alice.key alice'
-      The imported key will be: ./easyrsa/pki/easytls/alice-tls-crypt-v2.key
+    - Server; x509 commonName 'server01' and a TLS-Crypt-V2 key 'tls-cr-v2-srv.key'
 
-      The default <commonName> is <key-name> without the .key extension.
-      (This is unlikely to be your use case and may be removed in the future)
+        $ ./easytls import-key tls-crypt-v2 tls-cr-v2-srv.key server01
+
+        The imported key will be: ./easyrsa/pki/easytls/server01-tls-crypt-v2.key
+
+    - Client; x509 commonName 'alice' and a TLS-Crypt-V2 key 'tls-cr-v2-alice.key'
+
+        $ ./easytls import-key tls-crypt-v2 tls-cr-v2-alice.key alice
+
+        The imported key will be: ./easyrsa/pki/easytls/alice-tls-crypt-v2.key
