@@ -38,4 +38,5 @@ See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 
 ## Support
 Please use the issues section here on github. <br>
-For live support you can use IRC channel: **Freenode/#easytls**
+For live support you can use IRC channel: **Freenode/#easytls**<br>
+Wiki: https://github.com/TinCanTech/easy-tls/wiki<br>
