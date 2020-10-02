@@ -42,7 +42,7 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
 * Status: `./easytls status`<br>
   Use `help` now.
 
-** Use easytls-cryptv2-verify.sh **
+**Use easytls-cryptv2-verify.sh**
 
 Use this in you OpenVPN server config: <br>
 ` tls-crypt-v2-verify './easytls-cryptv2-verify.sh -c=./pki1 -v -g=tincantech --verify-via-index -x=24 --cache-id -t=/tmp --pid-file=/tmp/easytls-srv.pid'
@@ -50,7 +50,7 @@ Use this in you OpenVPN server config: <br>
 
 Change `tincantech` to your own Custom-Group.<br>
 
-** Use easytls-cryptv2-client-connect.sh **
+**Use easytls-cryptv2-client-connect.sh**
 
 Use this in you OpenVPN server config: <br>
 `client-connect './easytls-cryptv2-client-connect.sh -v -t=/tmp -r'` <br>
