@@ -1899,8 +1899,7 @@ hw_addr_hex_check ()
 		help_note="Hardware Adress must be 12 digits exactly!"
 		return 1
 		}
-	printf '%s\n' "$EASYTLS_TLSCV2_HWADDR" | \
-		grep -q '^[[:xdigit:]]\{12\}$' || {
+	printf '%s\n' "$EASYTLS_TLSCV2_HWADDR" | grep -q '^[[:xdigit:]]\{12\}$' || {
 			help_note="Hardware Adress must be hexidecimal digits!"
 			return 1
 		}
