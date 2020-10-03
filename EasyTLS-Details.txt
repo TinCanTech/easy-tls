@@ -11,7 +11,7 @@ Introduction:
   which conforms to the original format as described by syzzer.
   (See full details below)
 
-  The third focus is to provide a server side script to verify TLS crypt v2
+  The third focus is to provide a server side script to verify TLS-crypt-v2
   metadata and manage a disabled list, all prior to exposing x509 code.
 
 
@@ -33,13 +33,13 @@ Overview:
     a $PATH directory then use option: '--pki-dir=<DIR>' to point the script
     to your working Easy-RSA PKI directory.
 
-    To use the 'tls-crypt-v2-verify.sh' script simply copy it to your server
+    To use the 'easytls-cryptv2-verify.sh' script simply copy it to your server
     scripts directory and use option: '-c|--ca=<PATH>' to point the script
     to your working Easy-RSA PKI directory. This is the same directory as above.
 
     For full help use:
     * ./easytls -h
-    * ./tls-crypt-v2-verify.sh -h
+    * ./easytls-cryptv2-verify.sh -h
 
 
 Easy-TLS details:
@@ -61,40 +61,44 @@ Easy-TLS details:
 
     * Provide metadata for TLS-Crypt-V2 keys
 
-    * Provide server side script 'tls-crypt-v2-verify.sh'
+    * Provide server side script 'easytls-cryptv2-verify.sh'
       This script uses metadata fields to verify a client certificate
       serial number and CA finger print before exposing any x509 code.
       This is effectively a software configurable firewall for OpenVPN.
 
 
-tls-crypt-v2-verify.sh details:
+easytls-cryptv2-verify.sh details:
 
-  * TLS Crypt v2 client key metadata
+  * EasyTLS-Crypt-v2 client key metadata
 
     This metadata field is constructed as follows:
 
     1.  metadata_version string: "easytls"
         EasyTLS metadata version string is "easytls-$EASYTLS_VERSION"
-        tls-crypt-v2-verify.sh only uses 'easytls' and drops the version nummber.
+        easytls-cryptv2-verify.sh only uses 'easytls' and drops the version nummber.
 
     2   CA Fingerprint (Formatted to one contiguous string, CA-Identity)
 
-    3.  Client certificate serial number
+    3.  Client certificate serial-number
 
-    4.  Client certificate Common Name
+    4.  Client certificate CommonName
 
-    5.  Creation date (date +%s - "Seconds since...")
+    5.  Creation-date (date +%s - "Seconds since...")
 
-    6.  User definable custom group
+    6.  User definable Custom-Group
 
         This is a string which the user can use for identification
         eg. "CompanyName" (One contiguous string)
 
-  * TLS Crypt v2 disabled list
+    7.  Hardware-address-list
+
+
+  * EasyTLS-Crypt-v2 disabled list
 
     Use this list to temporarily drop specific client connections.
 
-  * TLS Crypt v2 verification method
+
+  * EasyTLS-Crypt-v2 verification method
 
     1. Verify via CRL (Default)
 
@@ -138,7 +142,7 @@ tls-crypt-v2-verify.sh details:
        must not be wrapped.  Also, OpenVPN does not expand variables in a
        config file, so all paths and options must be exanded in full.
 
-       tls-crypt-v2-verify '/home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
+       tls-cryptv2-verify '/home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
          -c=/home/tct/easyrsa3/pki2 -g=tincantech --verify-via-index
          -t=365 --preload-cache-id=E19982D9C063CEC74F66B7D31BF7B9306A609A8E'
 
