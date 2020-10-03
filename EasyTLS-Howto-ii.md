@@ -13,8 +13,7 @@
   Requires access to the files created by `easytls`.<br>
 
 * Download [easytls-cryptv2-client-connect.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-client-connect.sh)<br>
-  Requires access to temporary files created by `easytls-cryptv2-verify.sh`. (HW list file)<br>
-  Requires access to temporary files created by `openvpn --server`. (Client hardware address list)<br>
+  Requires access to temporary files created by `easytls-cryptv2-verify.sh`. (Client hardware address list)<br>
 
 ### EasyTLS Usage
 
