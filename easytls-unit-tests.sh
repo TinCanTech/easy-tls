@@ -118,6 +118,7 @@ do
 	# Build vars, used by all remaining loops
 	[ $loops -eq 2 ] && build_vars
 
+	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
 		"build-server-full s01 nopass" \
