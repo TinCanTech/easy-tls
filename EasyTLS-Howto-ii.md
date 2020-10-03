@@ -24,85 +24,77 @@ First, you must have your EasyRSA-3 PKI fully setup, which includes CA, Server a
 
 Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls help options`
 
-* Initialise:<br>
+* Initialise:
   ```
   ./easytls init-tls
   ```
-<br>
-
-* Status:<br>
+  <br>
+* Status:
   ```
   ./easytls status
   ```
-Use `help` now.<br>
-<br>
-
-* Create your CA-Identity file:<br>
+  Use `help` now.<br>
+  <br>
+* Create your CA-Identity file:
   ```
   ./easytls save-id
   ```
   (This is your formatted CA fingerprint)<br>
-<br>
-
-* Create a TLS-Crypt-V2 Server key: <br>
+  <br>
+  <br>
+* Create a TLS-Crypt-V2 Server key:
   ```
   ./easytls build-tls-crypt-v2-server <server_filename_base>
   ```
   Your `server` could be called `server01` for example.<br>
   This key is a mandatory requirement before creating a TLS-Crypt-V2 client key.<br>
   There are no user options for this command.<br>
-<br>
-
-* Create a TLS-Crypt-V2 Client key: <br>
+  <br>
+* Create a TLS-Crypt-V2 Client key:
   ```
   ./easytls build-tls-crypt-v2-client <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
   ```
   Your `client` could be called `client-09` for example.<br>
   Your `<CUSTOM-GROUP>` is limited to a single contiguous word.<br>
-<br>
-
-* Create a TLS-Crypt-V2 Client key with hardware _lockdown_: <br>
+  <br>
+* Create a TLS-Crypt-V2 Client key with hardware _lockdown_:
   ```
   ./easytls --hw-addr=1234567890ab --hw-addr=abcdef123456 build-tls-crypt-v2-client <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
   ```
   `--hw-addr=` requires the MAC address of the client machine as hexadecimal only characters. (Eth/Wifi/yw) <br>
-<br>
-
-* Create an `.inline` file: <br>
+  <br>
+* Create an `.inline` file:
   ```
   ./easytls inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   ```
   Your `filename` could be called `client-09` for example. (As above) <br>
   `[ cmd-opts ]` here consist of `nokey` (When you do not have the private key for this node)<br>
   and `add-dh` (For server files only) <br>
-<br>
-
-* Status:<br>
+  <br>
+* Status:
   ```
   ./easytls status
   ```
 Use `help` now.<br>
-<br>
+  <br>
 
-**Use easytls-cryptv2-verify.sh**
+### Use easytls-cryptv2-verify.sh
 
-Use this in your OpenVPN server config: <br>
+* Use this in your OpenVPN server config: <br>
   ```
   tls-crypt-v2-verify './easytls-cryptv2-verify.sh -c=./pki1 -v -g=tincantech --verify-via-index -x=24 --cache-id -t=/tmp --pid-file=/tmp/easytls-srv.pid'
 
   writepid /tmp/easytls-srv.pid'
   ```
-
   Change `tincantech` to your own Custom-Group.<br>
-<br>
+  <br>
 
-**Use easytls-cryptv2-client-connect.sh**
+### Use easytls-cryptv2-client-connect.sh
 
-Use this in your OpenVPN server config: <br>
+* Use this in your OpenVPN server config: <br>
   ```
   client-connect './easytls-cryptv2-client-connect.sh -v -t=/tmp -r'
   ```
-
   If it does not work then try without `-r`. <br>
 
 If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
