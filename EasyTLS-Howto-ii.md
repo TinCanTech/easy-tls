@@ -5,8 +5,9 @@
 ### Installation
 
 * Download [easytls](https://github.com/TinCanTech/easy-tls/blob/master/easytls) to your EasyRSA3 working directory.<br>
-  `easytls` must have access to your PKI to verify and create keys.<br>
-  It is not necessary to have a separate directory for `easytls`<br>
+ `easytls` must have access to your PKI to verify and create keys.<br>
+ `easytls` only needs access to your `private/ca.key` to generate your CA fingerprint.<br>
+ It is not necessary to have a separate directory for `easytls`<br>
 * Download [easytls-cryptv2-verify.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
   `easytls-cryptv2-verify.sh` needs to have access to the files created by `easytls`.<br>
   Run `easytls-cryptv2-verify.sh` from you normal OpenVPN working directory.<br>
