@@ -136,6 +136,8 @@ do
 		"$EASYRSA_CMD" $EASYRSA_OPTS $i || fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
 	done
 
+	#rm "$PKI_DIR/private/ca.key" || Die "fk"
+
 	# Test EasyTLS
 	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
 		"save-id" \

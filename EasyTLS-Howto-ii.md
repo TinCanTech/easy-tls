@@ -55,4 +55,6 @@ Change `tincantech` to your own Custom-Group.<br>
 Use this in your OpenVPN server config: <br>
 `client-connect './easytls-cryptv2-client-connect.sh -v -t=/tmp -r'` <br>
 
-If it does not work then try without `-r`.
+If it does not work then try without `-r`. <br>
+
+If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
