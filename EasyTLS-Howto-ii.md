@@ -57,7 +57,11 @@ Change `tincantech` to your own Custom-Group.<br>
 **Use easytls-cryptv2-client-connect.sh**
 
 Use this in your OpenVPN server config: <br>
-`client-connect './easytls-cryptv2-client-connect.sh -v -t=/tmp -r'` <br>
+```
+tls-crypt-v2-verify './easytls-cryptv2-verify.sh -c=./pki1 -v -g=tincantech --verify-via-index -x=24 --cache-id -t=/tmp --pid-file=/tmp/easytls-server.pid'
+
+writepid /tmp/easytls-server.pid'
+```
 
 If it does not work then try without `-r`. <br>
 
