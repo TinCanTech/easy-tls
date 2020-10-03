@@ -209,13 +209,15 @@ deps
 # File name
 client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
 
+# Get client pushed hardware address
+client_hwaddr="$(get_client_hwaddr)"
+
 # Does the hardware-address-list file exist
 if [ -f "$client_hwaddr_file" ]
 then
-	failure_msg="Hardware address $client_hwaddr not allowed for client $common_name"
+	failure_msg="Hardware address $client_hwaddr not allowed"
 
 	# Client pushed IV_HWADDR - Required for this client
-	client_hwaddr="$(get_client_hwaddr)"
 	verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
 
 	verify_allowed_hwaddr && {
@@ -231,7 +233,6 @@ else
 
 	[ $EASYTLS_hwaddr_required ] && {
 		# Client pushed IV_HWADDR - Required for this client
-		client_hwaddr="$(get_client_hwaddr)"
 		verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
 		}
 
