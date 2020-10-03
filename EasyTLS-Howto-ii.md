@@ -11,12 +11,10 @@
 
 * Download [easytls-cryptv2-verify.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
   Requires access to the files created by `easytls`.<br>
-  Run `easytls-cryptv2-verify.sh` from you normal OpenVPN working directory.<br>
 
 * Download [easytls-cryptv2-client-connect.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-client-connect.sh)<br>
   Requires access to temporary files created by `easytls-cryptv2-verify.sh`. (HW list file)<br>
   Requires access to temporary files created by `openvpn --server`. (PID file)<br>
-  Run `easytls-cryptv2-client-connect.sh` from you normal OpenVPN working directory.<br>
 
 ### EasyTLS Usage
 
