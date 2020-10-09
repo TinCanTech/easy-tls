@@ -1893,16 +1893,21 @@ Missing cli file: $cli_cert"
 	notice "TLS crypt v2 client key created: $key_file"
 } # => build_tls_crypt_v2_client ()
 
+# Verify the input is a 12 digit hex value and export it to the HW list
 hw_addr_hex_check ()
 {
-	[ 12 -eq ${#EASYTLS_TLSCV2_HWADDR} ] || {
-		help_note="Hardware Adress must be 12 digits exactly!"
+	temp_hw_addr="$(printf '%s' "$1" | sed -e 's/\://g' -e 's/\-//g')"
+
+	echo "$temp_hw_addr"
+	[ 12 -eq ${#temp_hw_addr} ] || {
+		help_note="Hardware Address must be 12 digits exactly!"
 		return 1
 		}
-	printf '%s\n' "$EASYTLS_TLSCV2_HWADDR" | grep -q '^[[:xdigit:]]\{12\}$' || {
-			help_note="Hardware Adress must be hexidecimal digits!"
+	printf '%s\n' "$temp_hw_addr" | grep -q '^[[:xdigit:]]\{12\}$' || {
+			help_note="Hardware Address must be hexidecimal digits!"
 			return 1
 		}
+	export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
 	return 0
 }
 
@@ -2383,8 +2388,9 @@ while :; do
 		export EASYTLS_TLSCV2_HWUSED=1
 		EASYTLS_TLSCV2_HWADDR="$val"
 		# Verify this is a 12 digit hex only value
-		hw_addr_hex_check || die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
-		export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${val}" ;;
+		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
+			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
+		;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
 	--no-auto-check)
