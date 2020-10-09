@@ -637,7 +637,7 @@ status ()
 # Format status output
 status_output ()
 {
-	awk '{print "  Common-Name " $1 "    Serial-number " $2}'
+	awk '{print "  Common-Name " $1 "\t    Serial-number " $2}'
 }
 
 # Format status CN
