@@ -1352,7 +1352,7 @@ inline_renew ()
 	openssl_crt_serial
 
 	# Collect the attributes of .inline file
-	inline_is_base="$(grep -c '^# File name base:.*$' "$inline_file")"
+	inline_is_base="$(grep -c '^# EasyTLS - File name base:.*$' "$inline_file")"
 	inline_is_tlsauth="$(grep -c '^<tls-auth>$' "$inline_file")"
 	inline_is_tlscrypt="$(grep -c '^<tls-crypt>$' "$inline_file")"
 	inline_is_tlscryptv2="$(grep -c '^<tls-crypt-v2>$' "$inline_file")"
@@ -1516,7 +1516,7 @@ $help_note"
 	fi
 
 	# Build .inline file
-	{	printf "%s\n" "# File name base: $name"
+	{	printf "%s\n" "# EasyTLS - File name base: $name"
 		printf "%s\n" "# Serial number: $crt_serial"
 		printf "%s\n" ""
 		printf "%s\n" "<cert>"
