@@ -41,6 +41,7 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   ```
   (This is your formatted CA fingerprint)<br>
   <br>
+  If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
   <br>
 * Create a TLS-Crypt-V2 Server key:
   ```
@@ -97,5 +98,4 @@ Use `help` now.<br>
   ```
   If it does not work then try without `-r`. <br>
 
-If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
 
