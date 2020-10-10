@@ -23,7 +23,16 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 ## Environment
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
 
-## Acknowledgements
+## Requirements
++ Easy-RSA Version 3.0.5+ (Or https://github.com/TinCanTech/easyrsa-plus)
++ OpenVPN Version 2.5.0+ (Full support), 2.4.8 (Partial support)
+
+## Support
+Please use the issues section here on github. <br>
+For live support you can use IRC channel: **Freenode/#easytls**<br>
+Wiki: https://github.com/TinCanTech/easy-tls/wiki<br>
+
+# Acknowledgements
 Easy-TLS is *written in the style of* and *borrows heavily from* Easy-RSA <br>
 See: https://github.com/OpenVPN/easy-rsa <br>
 **Note:** <br>
@@ -33,11 +42,4 @@ to include direct support for OpenVPN specific TLS keys and Inline credentials. 
 `easytls-cryptv2-verify.sh` is inspired by **syzzer** <br>
 See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 
-### Easy-TLS requirements
-+ Easy-RSA Version 3.0.5+ (Or https://github.com/TinCanTech/easyrsa-plus)
-+ OpenVPN Version 2.5.0+ (Full support), 2.4.8 (Partial support)
 
-## Support
-Please use the issues section here on github. <br>
-For live support you can use IRC channel: **Freenode/#easytls**<br>
-Wiki: https://github.com/TinCanTech/easy-tls/wiki<br>
