@@ -222,7 +222,7 @@ do
 
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	# TODO: get in the right place
-	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.metadata"
+	printf "%s" "" > "$DBUG_DIR/c07-tls-crypt-v2.metadata"
 	# Inline c07
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 c07"
@@ -231,8 +231,8 @@ do
 	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
-		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
-		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
+		  echo metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
+		export metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
@@ -367,8 +367,8 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
-		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
-		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
+		  echo metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
+		export metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
