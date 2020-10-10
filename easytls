@@ -74,8 +74,8 @@ Use the 'help' command above to get full usage details.
 NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
 
-EasyTLS also has a useful EasyTLS-Howto.txt with expanded help and examples:
-https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto.txt"
+EasyTLS also has a useful Howto with expanded help and examples:
+https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md
 
 	# collect/show dir status:
 	err_source="Not defined: vars autodetect failed and no value provided"
