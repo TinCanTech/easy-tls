@@ -75,7 +75,7 @@ NOTE: Easy-TLS requires that you have a working EasyRSA PKI in place.
 NOTE: Easy-TLS requires that you have OpenVPN installed.
 
 EasyTLS also has a useful Howto with expanded help and examples:
-https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md
+https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md"
 
 	# collect/show dir status:
 	err_source="Not defined: vars autodetect failed and no value provided"
@@ -131,7 +131,7 @@ cmd_help()
       by not needing to load openssl to generate the CA fingerprint.
       Combining this with 'easytls-cryptv2-verify.sh --verify-via-index',
       openssl binary never needs to be loaded by easytls-cryptv2-verify.sh
-      See EasyTLS-Howto.txt for an example." ;;
+      See EasyTLS Howto for an example." ;;
 		status) text="
   status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
