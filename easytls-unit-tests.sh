@@ -173,7 +173,7 @@ do
 		"enable c05" \
 		"inline-tls-crypt-v2 c06" "status" \
 		"inline-tls-crypt-v2 c08" "status" \
-		"inline-tls-crypt-v2 c09" "status" \
+		"inline-tls-crypt-v2 c09 add-md" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \

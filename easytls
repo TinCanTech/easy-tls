@@ -178,7 +178,9 @@ cmd_help()
         nokey   - do not require an x509 key (default: key is required)
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
-                  To specify an alternative file use the --dh option" ;;
+                  To specify an alternative file use the --dh option
+        add-md  - Add public metadata details to inline file
+                  The CA-Identity(private) is replaced with CA serial number" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
@@ -1700,16 +1702,35 @@ inline_tls_crypt_v2 ()
 		case "$1" in
 			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
+			add-md) add_metadata=1 ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
 	done
 
 	tls_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
+	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
+	if [ $add_metadata ]
+	then
+		[ -f "$metadata_file" ] || \
+			die "metadata file does not exist: $metadata_file"
+
+		# Get metadata and remove unwanted fields: easytls and CA-Identity
+		metadata_string="$(cat "$metadata_file")"
+		metadata_string="${metadata_string#* }"
+		metadata_string="${metadata_string#* }"
+		metadata_string="# Key metadata: $metadata_string"
+
+		# Get the CA serial number
+		ca_cert="$EASYRSA_PKI/ca.crt"
+		ca_serial="$(fn_ca_serial)"
+		ca_serial="${ca_serial#*=}"
+		ca_serial_string="# CA serial: $ca_serial"
+	fi
 
 	# Inline base file
 	silent_base=1
@@ -1717,6 +1738,11 @@ inline_tls_crypt_v2 ()
 
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
+		[ $add_metadata ] && {
+			printf '%s\n' "$ca_serial_string"
+			printf '%s\n' "$metadata_string"
+			printf "%s\n" ""
+			}
 		printf "%s\n" "<tls-crypt-v2>"
 		cat "$tls_file"
 		printf "%s\n" "</tls-crypt-v2>"
@@ -2007,6 +2033,12 @@ generate_ca_identity ()
 	easytls_verbose "CA Identity: $ca_identity"
 } # => generate_ca_identity ()
 
+# Collect CA serial number
+fn_ca_serial ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -serial
+}
+
 # Collect CA fingerprint
 fn_ca_fingerprint ()
 {
@@ -2022,7 +2054,7 @@ fn_ca_identity ()
 # Save metadata
 save_metadata ()
 {
-	metadata_debug="$EASYTLS_MD_DIR/tls-crypt-v2-$cli_name.metadata"
+	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
