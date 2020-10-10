@@ -91,7 +91,7 @@ get_client_serial ()
 # Get the client hardware address from env
 get_client_hwaddr ()
 {
-	printf '%s' "$IV_HWADDR" | sed 's/://g'
+	printf '%s' "$IV_HWADDR" | sed 's/://g' | awk '{print toupper($0)}'
 }
 
 # Verify the client serial
@@ -215,11 +215,11 @@ client_hwaddr="$(get_client_hwaddr)"
 # Does the hardware-address-list file exist
 if [ -f "$client_hwaddr_file" ]
 then
-	failure_msg="Hardware address $client_hwaddr not allowed"
-
 	# Client pushed IV_HWADDR - Required for this client
 	verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
 
+	# Search hardware list file for client pushed hardware address
+	failure_msg="Hardware address $client_hwaddr not allowed"
 	verify_allowed_hwaddr && {
 		unset failure_msg
 		success_msg="Hardware address correct: $common_name $client_hwaddr"
