@@ -113,7 +113,7 @@ do
 
 	PKI_DIR="${WORK_DIR}/pki${loops}"
 	ETLS_DIR="$WORK_DIR/pki${loops}/easytls"
-	DBUG_DIR="$WORK_DIR/pki${loops}/easytls"
+	DBUG_DIR="$WORK_DIR/pki${loops}/easytls/metadata"
 	export EASYRSA_PKI="$PKI_DIR"
 
 	# Build vars, used by all remaining loops
@@ -231,8 +231,8 @@ do
 	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
-		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
-		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
+		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
@@ -367,8 +367,8 @@ DBUG_DIR="$WORK_DIR/pki1/easytls"
 	for c in "c01" "c05" "c06" "c07" "c09"
 	do
 		print "============================================================"
-		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
-		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.mdd"
+		  echo metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
+		export metadata_file="$DBUG_DIR/tls-crypt-v2-${c}.metadata"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech

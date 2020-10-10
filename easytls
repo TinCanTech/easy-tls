@@ -500,6 +500,9 @@ and initialize a fresh TLS PKI here."
 	# Create tls dir in Easyrsa PKI dir
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
+	# Create metadata dir in easytls dir
+	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir (permissions?)"
+
 	# Create tls dir index file
 	head_text="# EastTLS inline-index - Created: $(date)"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
@@ -1978,7 +1981,8 @@ b64_enc_metadata ()
 		metadata="$metadata 000000000000"
 	fi
 
-	[ $EASYTLS_TRAVIS_CI ] && debug_metadata
+	# Save metadata in plain text
+	save_metadata
 
 	easytls_verbose "metadata: $metadata"
 	# Base64 encode metadata
@@ -2012,10 +2016,10 @@ fn_ca_identity ()
 	printf '%s' "$ca_fingerprint" | sed -e 's/^.*=//g' -e 's/://g'
 }
 
-# DEBUG metadata
-debug_metadata ()
+# Save metadata
+save_metadata ()
 {
-	metadata_debug="$EASYTLS_PKI/tls-crypt-v2-$cli_name.mdd"
+	metadata_debug="$EASYTLS_MD_DIR/tls-crypt-v2-$cli_name.metadata"
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
@@ -2295,13 +2299,13 @@ vars_setup()
 	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
+	set_var EASYTLS_MD_DIR	"$EASYTLS_PKI/metadata"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
 	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_PKI/easytls-inline-index.hash"
 	set_var EASYTLS_OPENVPN		"/usr/sbin/openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_PKI/easytls-disabled-list.hash"
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
-	set_var EASYTLS_CA_RANDOM	"$EASYTLS_PKI/easytls-ca-random.txt"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
