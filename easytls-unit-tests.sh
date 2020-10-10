@@ -131,6 +131,7 @@ do
 		"build-client-full c07 nopass" \
 		"build-client-full c08 nopass" \
 		"build-client-full c09 nopass" \
+		"build-client-full cw01 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
@@ -226,6 +227,20 @@ do
 	# Inline c07
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 c07"
+
+	# Build a node for Windblows test
+	print "============================================================"
+	print "Build a Windblows tls-crypt-v2 client key with metadata"
+	"$EASYTLS_CMD" $EASYTLS_OPTS \
+		--hw-addr=08-00-27-10-B8-D0 --hw-addr=08:00:27:10:B8:D0 \
+		build-tls-crypt-v2-client s01 cw01 tincantech || \
+		fail "Unit test error 62: build-tls-crypt-v2-client s01 cw01"
+
+	print "============================================================"
+	print "Build a Windblows inline file with metadata and hw-addr"
+	"$EASYTLS_CMD" $EASYTLS_OPTS \
+		inline-tls-crypt-v2 cw01 add-md || \
+		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07" "c09"
