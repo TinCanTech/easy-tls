@@ -500,6 +500,9 @@ and initialize a fresh TLS PKI here."
 	# Create tls dir in Easyrsa PKI dir
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
 
+	# Create data dir in easytls dir
+	mkdir -p "$EASYTLS_DATA_DIR" || die "Failed to create data dir (permissions?)"
+
 	# Create metadata dir in easytls dir
 	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir (permissions?)"
 
@@ -2299,12 +2302,13 @@ vars_setup()
 	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
+	set_var EASYTLS_DATA_DIR	"$EASYTLS_PKI/data"
 	set_var EASYTLS_MD_DIR	"$EASYTLS_PKI/metadata"
-	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_PKI/easytls-inline-index.txt"
-	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_PKI/easytls-inline-index.hash"
+	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_DATA_DIR/easytls-inline-index.txt"
+	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_DATA_DIR/easytls-inline-index.hash"
 	set_var EASYTLS_OPENVPN		"/usr/sbin/openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
-	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_PKI/easytls-disabled-list.hash"
+	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
