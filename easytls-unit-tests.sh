@@ -222,7 +222,7 @@ do
 
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	# TODO: get in the right place
-	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.mdd"
+	printf "%s" "" > "$DBUG_DIR/tls-crypt-v2-c07.metadata"
 	# Inline c07
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 c07"
@@ -361,7 +361,7 @@ done # => loops
 printf '\n\n\n'
 print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
-DBUG_DIR="$WORK_DIR/pki1/easytls"
+DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07" "c09"
