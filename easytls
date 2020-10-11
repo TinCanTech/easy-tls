@@ -179,8 +179,7 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option
-        add-md  - Add public metadata details to inline file
-                  The CA-Identity(private) is replaced with CA serial number" ;;
+        no-md   - Do not add public metadata details to inline file" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
@@ -1702,7 +1701,7 @@ inline_tls_crypt_v2 ()
 		case "$1" in
 			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
-			add-md) add_metadata=1 ;;
+			no-md) no_metadata=1 ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
@@ -1714,22 +1713,23 @@ inline_tls_crypt_v2 ()
 
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
-	if [ $add_metadata ]
+	if [ -f "$metadata_file" ]
 	then
-		[ -f "$metadata_file" ] || \
-			die "metadata file does not exist: $metadata_file"
-
 		# Get metadata and remove unwanted fields: easytls and CA-Identity
 		metadata_string="$(cat "$metadata_file")"
 		metadata_string="${metadata_string#* }"
 		metadata_string="${metadata_string#* }"
 		metadata_string="# Key metadata: $metadata_string"
+		mds1="${metadata_string% * *}"
+		mds2="#               ${metadata_string#* * * * * * }"
 
 		# Get the CA serial number
 		ca_cert="$EASYRSA_PKI/ca.crt"
 		ca_serial="$(fn_ca_serial)"
 		ca_serial="${ca_serial#*=}"
 		ca_serial_string="# CA serial: $ca_serial"
+	else
+		no_metadata=1
 	fi
 
 	# Inline base file
@@ -1738,9 +1738,10 @@ inline_tls_crypt_v2 ()
 
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
-		[ $add_metadata ] && {
+		[ $no_metadata ] || {
 			printf '%s\n' "$ca_serial_string"
-			printf '%s\n' "$metadata_string"
+			printf '%s\n' "$mds1"
+			printf '%s\n' "$mds2"
 			printf "%s\n" ""
 			}
 		printf "%s\n" "<tls-crypt-v2>"

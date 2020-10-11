@@ -174,7 +174,7 @@ do
 		"enable c05" \
 		"inline-tls-crypt-v2 c06" "status" \
 		"inline-tls-crypt-v2 c08" "status" \
-		"inline-tls-crypt-v2 c09 add-md" "status" \
+		"inline-tls-crypt-v2 c09" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
@@ -239,7 +239,7 @@ do
 	print "============================================================"
 	print "Build a Windblows inline file with metadata and hw-addr"
 	"$EASYTLS_CMD" $EASYTLS_OPTS \
-		inline-tls-crypt-v2 cw01 add-md || \
+		inline-tls-crypt-v2 cw01 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
 	# Test tls-crypt-v2-verify.sh
