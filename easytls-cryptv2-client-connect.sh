@@ -85,13 +85,13 @@ help_text ()
 # Get the client serial number from env
 get_client_serial ()
 {
-	printf '%s' "$tls_serial_hex_0" | sed 's/://g' | awk '{print toupper($0)}'
+	printf '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Get the client hardware address from env
 get_client_hwaddr ()
 {
-	printf '%s' "$IV_HWADDR" | sed 's/://g' | awk '{print toupper($0)}'
+	printf '%s' "$IV_HWADDR" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Verify the client serial

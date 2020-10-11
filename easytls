@@ -1928,9 +1928,9 @@ Missing cli file: $cli_cert"
 # Verify the input is a 12 digit hex value and export it to the HW list
 hw_addr_hex_check ()
 {
-	temp_hw_addr="$(printf '%s' "$1" | sed -e 's/\://g' -e 's/\-//g')"
+	temp_hw_addr="$(printf '%s' "$1" | \
+		sed -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
 
-	echo "$temp_hw_addr"
 	[ 12 -eq ${#temp_hw_addr} ] || {
 		help_note="Hardware Address must be 12 digits exactly!"
 		return 1
