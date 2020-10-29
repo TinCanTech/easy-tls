@@ -892,8 +892,13 @@ if [ -n "$server_pid_file" ]
 then
 	daemon_pid="$(cat "$server_pid_file")"
 	client_hw_list="$EASYTLS_TMP_DIR/$md_serial.$daemon_pid"
+	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
 	[ "$md_hwadds" = "000000000000" ] || \
 		printf '%s\n' "$md_hwadds" > "$client_hw_list"
+else
+	# OpenVPN does not give the PID so it must be set via $server_pid_file
+	# In this case, assume hardware address verification is not required
+	:
 fi
 
 # Any failure_msg means fail_and_exit

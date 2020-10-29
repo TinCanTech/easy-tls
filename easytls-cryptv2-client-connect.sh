@@ -135,6 +135,7 @@ verify_allowed_hwaddr ()
 # Allow connection
 connection_allowed ()
 {
+	rm -f "$client_hwaddr_file"
 	absolute_fail=0
 }
 
