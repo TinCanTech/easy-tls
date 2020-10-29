@@ -1999,7 +1999,7 @@ b64_enc_metadata ()
 	fi
 
 	# Append --hw-addr
-	if [ -n "$EASYTLS_TLSCV2_HWUSED" ]
+	if [ -n "$EASYTLS_TLSCV2_HWLIST" ]
 	then
 		MD_HW_LIST=''
 		for i in $EASYTLS_TLSCV2_HWLIST
@@ -2426,7 +2426,6 @@ while :; do
 		export EASYTLS_TLSCV2_CG="$val" ;;
 	--hw-addr)
 		# Needs to allow multiples. EG: eth & wifi
-		export EASYTLS_TLSCV2_HWUSED=1
 		EASYTLS_TLSCV2_HWADDR="$val"
 		# Verify this is a 12 digit hex only value
 		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
