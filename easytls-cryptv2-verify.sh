@@ -112,9 +112,9 @@ help_text ()
   -c|--ca=<path>      Path to CA *REQUIRED*
   -x|--max-tls-age    TLS Crypt V2 Key allowable age in days (default=1825).
                       To disable age check use --tls-age=0
-  --verify-via-ca     Verify client serial number status via `openssl ca`
+  --via-ca            Verify client serial number status via `openssl ca`
                       NOT RECOMMENDED
-  --verify-via-index  Verify client serial number status via openssl index.txt
+  --via-index         Verify client serial number status via openssl index.txt
                       PREFERRED - This method does not require the script to
                       load openssl binary.
                       The default method is to verify client serial number
@@ -126,7 +126,7 @@ help_text ()
                       easytls --custom-group=XYZ build-tls-crypt-v2-client
                       XYZ MUST be a single alphanumerical word with NO spaces.
   --cache-id          Use the saved CA-Identity from EasyTLS.
-  --preload-cache-id=CA-Identity
+  --preload-id=CA-Identity
                       Preload the CA-Identity when calling the script.
                       See EasyTLS command save-id for details of the CA-Identity.
                       See EasyTLS-Howto.txt for an example.
@@ -577,12 +577,12 @@ do
 	-x|--max-tls-age)
 		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
 	;;
-	--verify-via-ca)
+	--via-ca)
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
 		test_method=2
 	;;
-	--verify-via-index)
+	--via-index)
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (index) ==>"
 		test_method=3
@@ -594,7 +594,7 @@ do
 		empty_ok=1
 		use_cache_id=1
 	;;
-	--preload-cache-id)
+	--preload-id)
 		preload_cache_id="$val"
 	;;
 	--hex-check)
