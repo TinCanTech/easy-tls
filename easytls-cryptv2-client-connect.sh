@@ -66,6 +66,7 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -t|--tmp-dir=<path> Temporary directory to load the client hardware list from.
+  -r|--required       Require client to use --push-peer-info
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.

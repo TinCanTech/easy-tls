@@ -110,7 +110,7 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
-  -t|--tls-age        TLS Crypt V2 Key allowable age in days (default=1825).
+  -x|--max-tls-age    TLS Crypt V2 Key allowable age in days (default=1825).
                       To disable age check use --tls-age=0
   --verify-via-ca     Verify client serial number status via `openssl ca`
                       NOT RECOMMENDED
@@ -133,6 +133,8 @@ help_text ()
   --hex-check         Enable serial number is Hex only check. (Not required)
   --disable-list      Disable the temporary disabled-list check.
   --pid-file=<file>   The PID file for the openvpn server instance.
+                      (Required only if easytls-cryptv2-client-connect.sh is used)
+  -t|--tmp-dir        Temp directory where the hardware address list is written.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
 
   Exit codes:
