@@ -890,13 +890,13 @@ test_method=${test_method:-1}
 
 # Save the hardware addresses to temp file
 # Need to confirm temp dir location
-if [ -n "$server_pid_file" ]
+if [ -f "$server_pid_file" ] && [ "$md_hwadds" != "000000000000" ]
 then
 	daemon_pid="$(cat "$server_pid_file")"
 	client_hw_list="$EASYTLS_TMP_DIR/$md_serial.$daemon_pid"
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
-	[ "$md_hwadds" = "000000000000" ] || \
-		printf '%s\n' "$md_hwadds" > "$client_hw_list"
+	printf '%s\n' "$md_hwadds" > "$client_hw_list" || \
+		die "Failed to write HW file"
 else
 	# OpenVPN does not give the PID so it must be set via $server_pid_file
 	# In this case, assume hardware address verification is not required
