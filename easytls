@@ -1207,10 +1207,6 @@ inline_index_rebuild ()
 	[ -f "$EASYTLS_INLINE_INDEX" ] && \
 		cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup"
 
-	# There is no other way to do this because we need the actual files
-	# Get list of files from easytls directory
-	etls_inline_file_list="$(ls -1 "$EASYTLS_PKI"/*.inline)"
-
 	# Check openssl index.txt
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
 
@@ -1286,7 +1282,7 @@ inline_index_rebuild ()
 	IFS='
 '
 	# Create records from easytls current inline files list
-	for full_file_name in $etls_inline_file_list
+	for full_file_name in "$EASYTLS_PKI"/*.inline
 	do
 		# Reset flag
 		unset add_inline_record
@@ -1295,12 +1291,11 @@ inline_index_rebuild ()
 		unset inline_hash
 
 		# Get name only from full file name
-		# Yes, I know this is a bad idea .. raise an issue
-		# https://github.com/TinCanTech/easy-tls/issues
 		inline_file="$full_file_name"
 		part_file_name="${full_file_name%*.inline}"
 		name="${part_file_name##*/}"
 		[ -f "$inline_file" ] || die "Missing: $inline_file"
+
 		# Inline serial
 		inline_serial=""
 		inline_crt_serial
