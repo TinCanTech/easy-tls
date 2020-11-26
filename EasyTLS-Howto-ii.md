@@ -53,16 +53,18 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   <br>
 * Create a TLS-Crypt-V2 Client key:
   ```
-  ./easytls build-tls-crypt-v2-client <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
+  ./easytls --custom-group=<CUSTOM-GROUP> build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
   ```
   Your `client` could be called `client-09` for example.<br>
-  Your `<CUSTOM-GROUP>` is limited to a single contiguous word.<br>
+  Your `<CUSTOM-GROUP>` is limited to a single contiguous word. eg: `tincantech`<br>
   <br>
 * Create a TLS-Crypt-V2 Client key with hardware _lockdown_:
   ```
-  ./easytls --hw-addr=1234567890ab --hw-addr=abcdef123456 build-tls-crypt-v2-client <server_filename_base> <client_filename_base> <CUSTOM-GROUP>
+  ./easytls --custom-group=<CUSTOM-GROUP> build-tls-crypt-v2-client <server_filename_base> <client_filename_base> 12-34-56-78-90-ab ab:cd:ef:12:34:56
   ```
-  `--hw-addr=` requires the MAC address of the client machine as hexadecimal only characters. (Eth/Wifi/yw) <br>
+  Append the MAC addresses of the client machine as hexadecimal only characters. eg: 12-34-56-78-90-ab (Eth/Wifi/yw) <br>
+  <br>
+  This option can be specified for any number of MACs upto the maximum line length or key metadata limit.<br>
   <br>
 * Create an `.inline` file:
   ```
