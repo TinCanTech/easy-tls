@@ -148,8 +148,7 @@ cmd_help()
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
-      <key_direction> '0' or '1'
-      (If key-direction is omitted then do not add key-direction to inline file)"
+      <key_direction> '0' or '1' (key-direction is mandatory)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
         add-dh  - inline Diffy Hellman parameters file
@@ -1597,10 +1596,8 @@ inline_tls_auth ()
 			:
 		;;
 		*)
-			# No key-direction found, not inlining --key-direction
-			[ $silent_inline ] || \
-				warn "TLS-auth key-direction missing"
-			no_key_direction=1
+			# No key-direction found
+			die "key-direction is required! Server=0, client=1."
 		;;
 	esac
 
@@ -1610,16 +1607,8 @@ inline_tls_auth ()
 
 	{	printf "%s\n" "# TLS auth"
 		printf "%s\n" ""
-
-		if [ ! $no_key_direction ]
-		then
-			printf "%s\n" "key-direction $key_direction"
-			printf "%s\n" ""
-		else
-			printf "%s\n" "# key-direction Server=0 Client=1"
-			printf "%s\n" ""
-		fi
-
+		printf "%s\n" "key-direction $key_direction"
+		printf "%s\n" ""
 		printf "%s\n" "<tls-auth>"
 		cat "$tls_auth_key"
 		printf "%s\n" "</tls-auth>"

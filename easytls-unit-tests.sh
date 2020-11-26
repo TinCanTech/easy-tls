@@ -161,9 +161,6 @@ do
 		"--custom-group=tincantech inline-tls-auth c01 1" "status" \
 		"--custom-group=tincantech inline-renew c01" "status" \
 		"inline-remove c01" "status" \
-		"--custom-group=tincantech inline-tls-auth c01" "status" \
-		"--custom-group=tincantech inline-renew c01" "status" \
-		"inline-remove c01" "status" \
 		"--custom-group=tincantech inline-tls-crypt s01 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
