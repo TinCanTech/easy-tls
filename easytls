@@ -1877,9 +1877,6 @@ build_tls_crypt_v2_client ()
 	cli_cert="$EASYRSA_PKI/issued/$cli_name.crt"
 	shift
 
-	# Need to decide the best way to set these
-	EASYTLS_TLSCV2_CG="${EASYTLS_TLSCV2_CG:-"$1"}"
-
 	# don't do that ..
 	[ "$srv_name" = "$cli_name" ] && \
 		die "Server name cannot be the same as the client name."
