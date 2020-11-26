@@ -1,4 +1,4 @@
-Easy-TLS HOWTO:
+Easy-TLS in detail
 
 
 Introduction:
