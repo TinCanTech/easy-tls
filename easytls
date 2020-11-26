@@ -1518,7 +1518,11 @@ $help_note"
 	fi
 
 	# Build .inline file
-	{	printf "%s\n" "# EasyTLS - File name base: $name"
+	{
+		# Add Custom Group if defined
+		[ $EASYTLS_TLSCV2_CG ] && printf "%s\n" "# $EASYTLS_TLSCV2_CG"
+
+		printf "%s\n" "# EasyTLS - File name base: $name"
 		printf "%s\n" "# Serial number: $crt_serial"
 		printf "%s\n" ""
 		printf "%s\n" "<cert>"
