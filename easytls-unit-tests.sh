@@ -147,34 +147,40 @@ do
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
-		"build-tls-crypt-v2-client s01 c05 tincantech" \
-		"build-tls-crypt-v2-client s01 c06 tincantech" \
-		"build-tls-crypt-v2-client s01 c08 tincantech" \
-		"--hw-addr=ef1234567890 --hw-addr=1234567890fe \
-			build-tls-crypt-v2-client s01 c09 tincantech" \
-		"inline-base s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
+		"--custom-group=tincantech --hw-addr=ef1234567890 --hw-addr=1234567890fe \
+			build-tls-crypt-v2-client s01 c09" \
+		"--custom-group=tincantech inline-base s01 add-dh" "status" \
+		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
-		"inline-tls-auth s01 0 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" "status" \
+		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
-		"inline-tls-auth c01 1" "status" "inline-renew c01" "status" \
+		"--custom-group=tincantech inline-tls-auth c01 1" "status" \
+		"--custom-group=tincantech inline-renew c01" "status" \
 		"inline-remove c01" "status" \
-		"inline-tls-auth c01" "status" "inline-renew c01" "status" \
+		"--custom-group=tincantech inline-tls-auth c01" "status" \
+		"--custom-group=tincantech inline-renew c01" "status" \
 		"inline-remove c01" "status" \
-		"inline-tls-crypt s01 add-dh" "status" "inline-renew s01 add-dh" "status" \
+		"--custom-group=tincantech inline-tls-crypt s01 add-dh" "status" \
+		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
-		"inline-tls-crypt c01" "status" "inline-renew c01" "status" \
+		"--custom-group=tincantech inline-tls-crypt c01" "status" \
+		"--custom-group=tincantech inline-renew c01" "status" \
 		"inline-remove c01" "status" \
-		"inline-tls-crypt-v2 s01 add-dh" "status" \
-		"inline-renew s01 add-dh" "inline-show s01" "status" \
-		"inline-tls-crypt-v2 c01" "status" \
-		"inline-renew c01" "inline-show c01" "status" \
-		"inline-tls-crypt-v2 c02 nokey" "status" \
-		"inline-renew c02 nokey" "inline-show c02" "status" \
-		"inline-tls-crypt-v2 c05" "status" "disable c05" \
+		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh" "status" \
+		"--custom-group=tincantech inline-renew s01 add-dh" "inline-show s01" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c01" "status" \
+		"--custom-group=tincantech inline-renew c01" "inline-show c01" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey" "status" \
+		"--custom-group=tincantech inline-renew c02 nokey" "inline-show c02" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c05" "status" "disable c05" \
 		"enable c05" \
-		"inline-tls-crypt-v2 c06" "status" \
-		"inline-tls-crypt-v2 c08" "status" \
-		"inline-tls-crypt-v2 c09" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c06" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c08" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c09" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
