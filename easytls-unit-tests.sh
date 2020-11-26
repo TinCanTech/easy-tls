@@ -150,8 +150,8 @@ do
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
-		"--custom-group=tincantech --hw-addr=ef1234567890 --hw-addr=1234567890fe \
-			build-tls-crypt-v2-client s01 c09" \
+		"--custom-group=tincantech \
+			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
 		"--custom-group=tincantech inline-base s01 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
@@ -238,8 +238,8 @@ do
 	print "============================================================"
 	print "Build a Windblows tls-crypt-v2 client key with metadata"
 	"$EASYTLS_CMD" $EASYTLS_OPTS \
-		--hw-addr=08-00-27-10-B8-D0 --hw-addr=08:00:27:10:B8:D0 \
-		--custom-group=tincantech build-tls-crypt-v2-client s01 cw01 || \
+		--custom-group=tincantech build-tls-crypt-v2-client s01 cw01 \
+		 08-00-27-10-B8-D0 08:00:27:10:B8:D0 || \
 		fail "Unit test error 62: build-tls-crypt-v2-client s01 cw01"
 
 	print "============================================================"
