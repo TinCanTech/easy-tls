@@ -430,7 +430,7 @@ $help_note"
 
 ############################################################################
 #
-# EASYTLS MANGEMENT Section
+# EASYTLS MANAGEMENT Section
 #
 
 # Verbose messages
@@ -460,9 +460,9 @@ verify_openvpn ()
 	openvpn_version="${openvpn_version%_*}"
 	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "$openvpn_version" in
-	2.5|2.6) : ;;
-	2.4) : ;;
-	*) die "Unsupported OpenVPN version: $openvpn_version" ;;
+		2.5|2.6) : ;;
+		2.4) : ;;
+		*) die "Unsupported OpenVPN version: $openvpn_version" ;;
 	esac
 	unset help_note
 } # => verify_openvpn ()
@@ -470,11 +470,13 @@ verify_openvpn ()
 # Verify TLS has been initialised
 verify_tls_init ()
 {
+	help_note="Use './easytls init-tls' to initialise"
 	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_IL_INDEX_HASH" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
 	[ -f "$EASYTLS_DISABLED_HASH" ] || die "EasyTLS has not been initialised"
+	unset help_note
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -836,6 +838,7 @@ inline_index_common_name_list ()
 	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
+# Get a list of serial_numbers from inline-index
 inline_index_serial_number_list ()
 {
 	awk '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
@@ -1037,10 +1040,7 @@ inline_index_check_inline_hash ()
 	case "$find_hash" in
 	0)
 		# HASH check failed
-		insert_msg="HASH incorrect for: $inline_file"
-		insert_msg="Inline index HASH : $inline_hash"
-		insert_msg="Inline file HASH : $real_hash"
-		help_note="$insert_msg"
+		help_note="HASH incorrect for: $inline_file"
 	;;
 	1)
 		# This is the correct HASH so set it
@@ -1614,6 +1614,9 @@ inline_tls_auth ()
 		if [ ! $no_key_direction ]
 		then
 			printf "%s\n" "key-direction $key_direction"
+			printf "%s\n" ""
+		else
+			printf "%s\n" "# key-direction Server=0 Client=1"
 			printf "%s\n" ""
 		fi
 
