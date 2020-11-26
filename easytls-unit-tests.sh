@@ -146,7 +146,7 @@ do
 		"save-id" \
 		"build-tls-crypt-v2-server s01" \
 		"build-tls-crypt-v2-client s01 c01" \
-		"build-tls-crypt-v2-client s01 c02 TLS crypt v2 meta data c01" \
+		"build-tls-crypt-v2-client s01 c02" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
@@ -239,7 +239,7 @@ do
 	print "Build a Windblows tls-crypt-v2 client key with metadata"
 	"$EASYTLS_CMD" $EASYTLS_OPTS \
 		--hw-addr=08-00-27-10-B8-D0 --hw-addr=08:00:27:10:B8:D0 \
-		build-tls-crypt-v2-client s01 cw01 tincantech || \
+		--custom-group=tincantech build-tls-crypt-v2-client s01 cw01 || \
 		fail "Unit test error 62: build-tls-crypt-v2-client s01 cw01"
 
 	print "============================================================"

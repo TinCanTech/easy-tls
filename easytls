@@ -1901,6 +1901,16 @@ Missing cli file: $cli_cert"
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
 
+	# Capture HW addresses
+	while [ -n "$1" ]; do
+		# Needs to allow multiples. EG: eth & wifi
+		EASYTLS_TLSCV2_HWADDR="$1"
+		# Verify this is a 12 digit hex only value
+		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
+			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
+		shift
+	done
+
 	# Confirm metadata Custom-Group
 	[ $EASYTLS_TLSCV2_CG ] && {
 		confirm "Is the Custom-Group field correct ? " "yes" \
@@ -1908,7 +1918,7 @@ Missing cli file: $cli_cert"
 		}
 
 	# Confirm metadata Hardware-Address(es)
-	[ $EASYTLS_TLSCV2_HWADDR ] && {
+	[ $EASYTLS_TLSCV2_HWLIST ] && {
 		notice "All Hardware-Addresses are valid length hexidecimal values."
 		confirm "Is the Hardware-Address field correct ? " "yes" \
 		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
