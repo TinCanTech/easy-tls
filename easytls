@@ -24,8 +24,8 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
 # Easy-TLS requirements:
-# + Easy-RSA Version 3.X
-# + OpenVPN Version 2.X
+# + Easy-RSA Version 3.0.5
+# + OpenVPN Version 2.5
 #
 
 
