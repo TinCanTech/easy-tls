@@ -2424,16 +2424,7 @@ while :; do
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
-		# This is deliberately undocumented
-		# Need to decide between --cmd-opt or cmd-word
 		export EASYTLS_TLSCV2_CG="$val" ;;
-	--hw-addr)
-		# Needs to allow multiples. EG: eth & wifi
-		EASYTLS_TLSCV2_HWADDR="$val"
-		# Verify this is a 12 digit hex only value
-		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
-			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
-		;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
 	--no-auto-check)
