@@ -544,6 +544,11 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 		fail "Unit test error 69: help"
 
 	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS help build-tls-crypt-v2-client"
+	"$EASYTLS_CMD" $EASYTLS_OPTS help build-tls-crypt-v2-client || \
+		fail "Unit test error 70: help"
+
+	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS help import-key"
 	"$EASYTLS_CMD" $EASYTLS_OPTS help import-key || \
 		fail "Unit test error 70: help"
