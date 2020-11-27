@@ -71,7 +71,7 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   ./easytls inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   ```
   Your `filename` could be called `client-09` for example. (As above) <br>
-  `[ cmd-opts ]` here consist of `nokey` (When you do not have the private key for this node)<br>
+  `[ cmd-opts ]` here consist of `nokey` (When you do not have the x509 private key for this node)<br>
   and `add-dh` (For server files only) <br>
   <br>
 * Status:
@@ -87,7 +87,7 @@ Use `help` now.<br>
   ```
   tls-crypt-v2-verify './easytls-cryptv2-verify.sh -c=./pki1 -v -g=tincantech --verify-via-index -x=24 --cache-id -t=/tmp --pid-file=/tmp/easytls-srv.pid'
 
-  writepid /tmp/easytls-srv.pid'
+  writepid /tmp/easytls-srv.pid
   ```
   Change `tincantech` to your own Custom-Group.<br>
   <br>
