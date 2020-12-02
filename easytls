@@ -506,7 +506,7 @@ and initialize a fresh TLS PKI here."
 	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir (permissions?)"
 
 	# Create tls dir index file
-	head_text="# EastTLS inline-index - Created: $(date)"
+	head_text="# EasyTLS inline-index - Created: $(date)"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create inline-index"
 
