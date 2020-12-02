@@ -566,7 +566,7 @@ status ()
 	[ $auto_check ] || auto_check_disabled=1
 	subsection="$1"
 
-	verify_ca_init
+	#verify_ca_init
 
 	ersa_valid_cn_list=""
 	ersa_valid_serial_list=""
@@ -585,13 +585,13 @@ status ()
 		rev|revoked)
 				status_easyrsa_revoked ;;
 		inl|inline)
-				verify_tls_init
+				#verify_tls_init
 				status_easytls_inline ;;
 		inv|invalid)
 				silent_status=1
 				status_easyrsa_valid
 				status_easyrsa_revoked
-				verify_tls_init
+				#verify_tls_init
 				status_easytls_inline
 				unset silent_status
 				status_easytls_invalid
@@ -600,7 +600,7 @@ status ()
 				silent_status=1
 				status_easyrsa_valid
 				status_easyrsa_revoked
-				verify_tls_init
+				#verify_tls_init
 				status_easytls_inline
 				unset silent_status
 				status_easyrsa_renewed
@@ -611,25 +611,46 @@ status ()
 		return
 	fi
 
-	print "Easy-RSA: Valid certificates:"
+	print "Easy-RSA: Valid X509 certificates:"
 	status_easyrsa_valid
+	[ -z "$ersa_valid_serial_list" ] && \
+		print "  No Valid X509 certificates found"
 
-	print "Easy-RSA: Revoked certificates:"
+	print "Easy-RSA: Revoked X509 certificates:"
 	status_easyrsa_revoked
+	[ -z "$ersa_revoked_serial_list" ] && \
+		print "  No Revoked X509 certificates found"
 
-	verify_tls_init
+	#verify_tls_init
 
 	print "Easy-TLS: Known inline files:"
 	status_easytls_inline
+	[ -z "$etls_valid_serial_list" ] && \
+		print "  No inline files found"
 
 	#print "Easy-TLS: Revoked inline files:"
 	#status_easytls_revoked
 
 	print "Easy-TLS: Invalid inline files:"
 	status_easytls_invalid
+	if [ $revoked_mismatch_count -gt 0 ]
+	then
+		print "  Invalid inline files are caused by revoked X509 Certificates"
+		print "  To solve this use: ./easytls inline-remove <filename-base>"
+	else
+		print "  No invalid inline files found"
+	fi
 
-	print "Easy-RSA: Renewed certificates:"
+	print "Easy-TLS: .inline serial number mismatches:"
 	status_easyrsa_renewed
+	if [ $renewed_mismatch_count -gt 0 ]
+	then
+		print "  Mismatches are caused by X509 Certificates"
+		print "  which have not been completely renewed by EasyRSA"
+		print "  To solve this use: caution.."
+	else
+		print "  No mismatches found"
+	fi
 
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
@@ -679,6 +700,7 @@ status_invalid_inline_list ()
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
+	[ -f "$EASYRSA_INDEX" ] || return 0
 	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|awk '{print $3}')"
 	for i in $ersa_valid_serial_list
 	do
@@ -691,6 +713,7 @@ status_easyrsa_valid ()
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
 {
+	[ -f "$EASYRSA_INDEX" ] || return 0
 	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX"|awk '{print $4}')"
 	for i in $ersa_revoked_serial_list
 	do
@@ -703,6 +726,7 @@ status_easyrsa_revoked ()
 # Print known inline files from Easy-TLS
 status_easytls_inline ()
 {
+	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
 	etls_valid_name_list="$(inline_index_common_name_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	[ $silent_status ] || sed /^#/d "$EASYTLS_INLINE_INDEX" | status_output
@@ -965,6 +989,7 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_index_hash ()
 {
+	[ -f "$EASYTLS_IL_INDEX_HASH" ] || return 0
 	# Read the saved hash
 	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
 	# Generate the current hash
@@ -2184,6 +2209,7 @@ disabled_list_update_and_hash ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
+	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
 	# Read the saved hash
 	disabled_list_saved_hash="$(cat "$EASYTLS_DISABLED_HASH")"
 	# Generate the current hash
