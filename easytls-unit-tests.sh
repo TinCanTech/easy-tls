@@ -187,7 +187,7 @@ do
 		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $i"
 
 		# EasyOut
-		[ "$i" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
+		#[ "$i" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
 		[ "$i" = "Planned break" ] && echo "Planned break" && continue
 
 		if [ "$i" = "status" ]

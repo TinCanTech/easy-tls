@@ -1101,8 +1101,10 @@ inline_index_common_name_to_serial ()
 # Get Common name from inline index file using serial number as key
 inline_index_serial_to_common_name ()
 {
-	grep "^.*[[:blank:]]${inline_serial}[[:blank:]].*$" \
-		"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
+	#grep -ev '^#[[:blank:]]' -e "^.*[[:blank:]]${inline_serial}[[:blank:]].*$" \
+	#	"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
+	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
+	awk "$script" "$EASYTLS_INLINE_INDEX"
 }
 
 # Search for hash
@@ -1935,7 +1937,7 @@ Missing cli file: $cli_cert"
 		}
 
 	# Confirm metadata Hardware-Address(es)
-	[ $EASYTLS_TLSCV2_HWLIST ] && {
+	[ -n "$EASYTLS_TLSCV2_HWLIST" ] && {
 		notice "All Hardware-Addresses are valid length hexidecimal values."
 		confirm "Is the Hardware-Address field correct ? " "yes" \
 		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
@@ -2030,9 +2032,9 @@ b64_enc_metadata ()
 		MD_HW_LIST=''
 		for i in $EASYTLS_TLSCV2_HWLIST
 		do
-			MD_HW_LIST="${MD_HW_LIST}-${i}"
+			MD_HW_LIST="${MD_HW_LIST}+${i}"
 		done
-		metadata="$metadata ${MD_HW_LIST}-"
+		metadata="$metadata ${MD_HW_LIST}+"
 	else
 		metadata="$metadata 000000000000"
 	fi
