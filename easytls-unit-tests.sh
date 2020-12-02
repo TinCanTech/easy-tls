@@ -158,7 +158,7 @@ do
 		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
-		"--custom-group=tincantech inline-tls-auth c01 1" "Planned break" "status" \
+		"--custom-group=tincantech inline-tls-auth c01 1" "status" \
 		"--custom-group=tincantech inline-renew c01" "status" \
 		"inline-remove c01" "status" \
 		"--custom-group=tincantech inline-tls-crypt s01 add-dh" "status" \
@@ -188,7 +188,7 @@ do
 
 		# EasyOut
 		#[ "$i" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
-		[ "$i" = "Planned break" ] && echo "Planned break" && continue
+		#[ "$i" = "Planned break" ] && echo "Planned break" && continue
 
 		if [ "$i" = "status" ]
 		then

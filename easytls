@@ -743,7 +743,6 @@ status_easytls_revoked ()
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
-echo "etls_valid_serial_list: $etls_valid_serial_list"
 	revoked_mismatch_count=0
 	for i in $etls_valid_serial_list
 	do
