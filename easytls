@@ -1018,7 +1018,7 @@ inline_index_save_index_hash ()
 # Generate SHA1 file hash
 generate_file_hash ()
 {
-	[ -r "$1" ] || die "Cannot read: $1"
+	[ -f "$1" ] || die "Cannot find: $1"
 	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")" || return 1
 	generated_hash="${openssl_hash%% *}"
 }
