@@ -1088,8 +1088,14 @@ inline_index_common_name_to_serial ()
 	# This function is defunct but keep it for the EasyRSA early warning
 	# Other functions could be effected
 	# https://github.com/TinCanTech/easy-tls/issues/48
-	grep "^${name}[[:blank:]].*$" \
-		"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
+	# Maybe close this as "EasyRSA leaves an indeterminate grace period for
+	# partially renewed certs to be completely renewed by revoking the old cert"
+	# EasyTLS can work with that
+	#grep "^${name}[[:blank:]].*$" \
+	#	"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
+	script="{if(\$1 ~ /^${name}\$/) print \$2}"
+	awk "$script" "$EASYTLS_INLINE_INDEX"
+	unset script
 }
 
 # Get Common name from inline index file using serial number as key
@@ -1099,6 +1105,7 @@ inline_index_serial_to_common_name ()
 	#	"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
 	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
 	awk "$script" "$EASYTLS_INLINE_INDEX"
+	unset script
 }
 
 # Search for hash
