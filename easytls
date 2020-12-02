@@ -531,13 +531,11 @@ Your newly created TLS dir is: $EASYTLS_PKI
 # Run on exit to avoid "chicken and egg" with init-tls
 inline_auto_check ()
 {
-echo "auto-check size"
 	[ $auto_check_disabled ] && return 0
 	index_size="$(grep -c '^.*$' "$EASYTLS_INLINE_INDEX")"
 	[ $index_size -gt 50 ] && \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
-echo "auto-check status invalid"
 	auto_check=1
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
@@ -545,18 +543,15 @@ echo "auto-check status invalid"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
-echo "auto-check status renewed"
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
 	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
-echo "auto-check inline-index hash"
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
 
-echo "auto-check disabled-list hash"
 	# Check disabled-list hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
