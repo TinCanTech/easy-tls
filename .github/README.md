@@ -39,7 +39,7 @@ See: https://github.com/OpenVPN/easy-rsa <br>
 This is intended to facilitate maximum compatibility with Easy-RSA while extending functionality <br>
 to include direct support for OpenVPN specific TLS keys and Inline credentials. <br>
 
-`easytls-cryptv2-verify.sh` is inspired by **syzzer** <br>
+Easy-TLS is inspired by **syzzer** <br>
 See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
 
 
