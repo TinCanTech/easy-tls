@@ -86,6 +86,8 @@ build_vars ()
 	} > vars
 } # => build_vars ()
 
+# hmm ..
+
 build_easyrsa
 
 export EASYTLS_TRAVIS_CI=1
