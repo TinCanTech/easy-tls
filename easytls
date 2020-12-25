@@ -1741,19 +1741,18 @@ inline_tls_crypt_v2 ()
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
 	if [ -f "$metadata_file" ]
 	then
-		# Get metadata and remove unwanted fields: easytls and CA-Identity
+		# Get metadata and remove unwanted fields:
+		# easytls, CA-Identity and hw-ad
 		metadata_string="$(cat "$metadata_file")"
 		metadata_string="${metadata_string#* }"
 		metadata_string="${metadata_string#* }"
-		metadata_string="# Key metadata: $metadata_string"
-		mds1="${metadata_string% * *}"
-		mds2="#               ${metadata_string#* * * * * * }"
+		# Remove HW-AD: This should be configurable
+		metadata_string="${metadata_string% *}"
 
 		# Get the CA serial number
 		ca_cert="$EASYRSA_PKI/ca.crt"
 		ca_serial="$(fn_ca_serial)"
 		ca_serial="${ca_serial#*=}"
-		ca_serial_string="# CA serial: $ca_serial"
 	else
 		no_metadata=1
 	fi
@@ -1765,9 +1764,9 @@ inline_tls_crypt_v2 ()
 	{	printf "%s\n" "# TLS crypt v2"
 		printf "%s\n" ""
 		[ $no_metadata ] || {
-			printf '%s\n' "$ca_serial_string"
-			printf '%s\n' "$mds1"
-			printf '%s\n' "$mds2"
+			printf '%s\n' "# CA serial: $ca_serial"
+			printf '%s\n' "# Key metadata:"
+			printf '%s\n' "# $metadata_string"
 			printf "%s\n" ""
 			}
 		printf "%s\n" "<tls-crypt-v2>"
