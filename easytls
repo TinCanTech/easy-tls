@@ -172,7 +172,8 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option
-        no-md   - Do not add public metadata details to inline file" ;;
+        no-md   - Do not add public metadata details to inline file
+        add-hw  - Include hardware address in metadata details" ;;
 		inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
@@ -1728,6 +1729,7 @@ inline_tls_crypt_v2 ()
 			add-dh) cmd_opts="$cmd_opts add-dh" ;;
 			nokey) cmd_opts="$cmd_opts nokey" ;;
 			no-md) no_metadata=1 ;;
+			add-hw) add_hardware=1 ;;
 			*) warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
@@ -1746,8 +1748,7 @@ inline_tls_crypt_v2 ()
 		metadata_string="$(cat "$metadata_file")"
 		metadata_string="${metadata_string#* }"
 		metadata_string="${metadata_string#* }"
-		# Remove HW-AD: This should be configurable
-		metadata_string="${metadata_string% *}"
+		[ $add_hardware ] || metadata_string="${metadata_string% *}"
 
 		# Get the CA serial number
 		ca_cert="$EASYRSA_PKI/ca.crt"

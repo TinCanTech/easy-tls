@@ -179,7 +179,7 @@ do
 		"enable c05" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c06" "status" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c08" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c09" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
