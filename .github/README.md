@@ -24,8 +24,8 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
 
 ## Requirements
-+ Easy-RSA Version 3.0.5+ (Or https://github.com/TinCanTech/easyrsa-plus)
-+ OpenVPN Version 2.5.0+ (Full support), 2.4.8 (Partial support)
++ Easy-RSA Version 3.0.5+
++ OpenVPN Version 2.5.0+
 
 ## Support
 Please use the issues section here on github. <br>
