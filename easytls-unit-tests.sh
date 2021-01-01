@@ -520,8 +520,8 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
-	rm "$WORK_DIR/pki3/easytls/easytls-inline-index.txt.backup"
-	rm "$WORK_DIR/pki3/easytls/easytls-inline-index.hash.backup"
+	rm "$WORK_DIR/pki3/easytls/data/easytls-inline-index.txt.backup"
+	rm "$WORK_DIR/pki3/easytls/data/easytls-inline-index.hash.backup"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \

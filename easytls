@@ -1418,7 +1418,7 @@ inline_index_rebuild ()
 		if [ "$i" = "$inline_common_name" ]
 		then
 			unset sub_name
-			unset EASYTLS_TLSCV2_SCN
+			unset EASYTLS_TLSCV2_SUBKNAME
 		else
 			sub_name="${i##"${inline_common_name}-"}"
 			EASYTLS_TLSCV2_SUBKNAME="$sub_name"
@@ -1621,7 +1621,7 @@ inline_base ()
 	ca_file="$EASYRSA_PKI/ca.crt"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
-	inline_file="$EASYTLS_PKI/$name.inline"
+	[ -z "$inline_file" ] && inline_file="$EASYTLS_PKI/$name.inline"
 	help_note="Run 'easytls status' to verify certificate revokation."
 
 	[ -f "$crt_file" ] || die "\
@@ -1850,6 +1850,13 @@ inline_tls_crypt_v2 ()
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
+	sub_name="$name-$EASYTLS_TLSCV2_SUBKNAME"
+	[ $EASYTLS_TLSCV2_SUBKNAME ] && {
+		tls_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
+		metadata_file="$EASYTLS_MD_DIR/$sub_name-tls-crypt-v2.metadata"
+		inline_file="$EASYTLS_PKI/$sub_name.inline"
+		}
+
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
 	if [ -f "$metadata_file" ]
@@ -2032,6 +2039,12 @@ Missing cli file: $cli_cert"
 
 	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
+	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
+
+	[ $EASYTLS_TLSCV2_SUBKNAME ] && {
+		key_file="$EASYTLS_PKI/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
+		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.metadata"
+	}
 
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
@@ -2220,7 +2233,6 @@ fn_ca_identity ()
 # Save metadata
 save_metadata ()
 {
-	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
 	printf "%s\n" "$metadata" > "$metadata_debug"
 }
 
