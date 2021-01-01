@@ -688,7 +688,7 @@ status_output ()
 {
 	awk '{
 		if (NF == 4)
-		print "  Common-Name " $1 "\t  Serial-number " $2 "\t  Sub-cert-key " $4
+		print "  Common-Name " $1 "\t  Serial-number " $2 "\t  Sub-key " $4
 		else
 		print "  Common-Name " $1 "\t  Serial-number " $2
 		}'
@@ -921,7 +921,7 @@ inline_index_ilhash_number_list ()
 	awk '{if ($1 ~ /[^#]/) print $3 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
-# Get a list of Common_name + Sub-cert-key name from inline-index
+# Get a list of Common_name + Sub-key name from inline-index
 inline_index_common_name_sub_name_list ()
 {
 	awk '{if($1 ~ /[^#]/)
@@ -1218,7 +1218,7 @@ inline_index_ilhash_to_serial ()
 # Search for hash
 inline_index_search_inline_hash ()
 {
-	# Do not need to search for --sub-cert-name
+	# Do not need to search for --sub-key-name
 	# because inline file HASH ${real_hash} is unique
 	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}" \
 		"$EASYTLS_INLINE_INDEX"
@@ -1420,6 +1420,7 @@ inline_index_rebuild ()
 			unset sub_name
 			unset EASYTLS_TLSCV2_SUBKNAME
 		else
+			# This is ugly and needs to be re-thought
 			sub_name="${i##"${inline_common_name}-"}"
 			EASYTLS_TLSCV2_SUBKNAME="$sub_name"
 		fi
@@ -2125,7 +2126,7 @@ b64_enc_metadata ()
 	# 6.  Custom Group string
 	#     Default: EASYTLS
 	#
-	# 7.  Sub-cert-key Name
+	# 7.  Sub-key Name
 	#     Default: NOSUBKEY
 	#
 	# 8.  Option - TBD
@@ -2160,7 +2161,7 @@ b64_enc_metadata ()
 		metadata="$metadata EASYTLS"
 	fi
 
-	# Append --sub-cert-key name
+	# Append --sub-key-name
 	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
 	then
 		metadata="$metadata $EASYTLS_TLSCV2_SUBKNAME"
