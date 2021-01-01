@@ -547,21 +547,28 @@ inline_auto_check ()
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
+	easytls_verbose ""
+	easytls_verbose "* AUTO-CHECK"
+
+	easytls_verbose "* status invalid"
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
 	status invalid || die "inline_auto_check: status invalid error"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
+	easytls_verbose "* status renewed"
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
 	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
+	easytls_verbose "* Verify inline index hash"
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
 
+	easytls_verbose "* Verify disabled list hash"
 	# Check disabled-list hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
@@ -591,34 +598,39 @@ status ()
 	then
 		case "$subsection" in
 		val|valid)
-				status_easyrsa_valid ;;
+				status_easyrsa_valid || return 1
+				;;
 		rev|revoked)
-				status_easyrsa_revoked ;;
+				status_easyrsa_revoked || return 1
+				;;
 		inl|inline)
 				#verify_tls_init
-				status_easytls_inline ;;
+				status_easytls_inline || return 1
+				;;
 		inv|invalid)
 				silent_status=1
-				status_easyrsa_valid
-				status_easyrsa_revoked
+				status_easyrsa_valid || return 1
+				status_easyrsa_revoked || return 1
 				#verify_tls_init
-				status_easytls_inline
+				status_easytls_inline || return 1
 				unset silent_status
-				status_easytls_invalid
+				status_easytls_invalid || return 1
 				;;
 		ren|renewed)
 				silent_status=1
-				status_easyrsa_valid
-				status_easyrsa_revoked
+				status_easyrsa_valid || return 1
+				status_easyrsa_revoked || return 1
 				#verify_tls_init
-				status_easytls_inline
+				status_easytls_inline || return 1
 				unset silent_status
-				status_easyrsa_renewed
+				status_easyrsa_renewed || return 1
 				;;
 		*)
-				print "Unknown status option" ;;
+				print "Unknown status option"
+				return 1
+				;;
 		esac
-		return
+		return 0
 	fi
 
 	print "Easy-RSA: Valid X509 certificates:"
@@ -668,12 +680,18 @@ status ()
 	# Verify disabled list Hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
+	easytls_verbose "* Status complete."
 } #=> status ()
 
 # Format status output
 status_output ()
 {
-	awk '{print "  Common-Name " $1 "\t    Serial-number " $2}'
+	awk '{
+		if (NF == 4)
+		print "  Common-Name " $1 "\t  Serial-number " $2 "\t  Sub-cert-key " $4
+		else
+		print "  Common-Name " $1 "\t  Serial-number " $2
+		}'
 }
 
 # Format status CN
@@ -697,13 +715,14 @@ status_revoked_extract_cn ()
 # Search ersa revoked serial list for etls valid serial
 status_search_revoked_serial_list()
 {
-	printf '%s\n' "$ersa_revoked_serial_list" | grep -c "^${i}$"
+	printf '%s\n' "$ersa_revoked_serial_list" | grep -c "^${inline_serial}$"
 }
 
 # List the invalid inline file record by serial number
+# Do not terminate regex with $ because we need to allow for subs
 status_invalid_inline_list ()
 {
-	grep "^${name}[[:blank:]]${i}[[:blank:]]${inline_hash}$" \
+	grep "^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}" \
 		"$EASYTLS_INLINE_INDEX" | status_output
 }
 
@@ -739,6 +758,7 @@ status_easytls_inline ()
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
 	etls_valid_name_list="$(inline_index_common_name_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
+	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 	[ $silent_status ] || sed /^#/d "$EASYTLS_INLINE_INDEX" | status_output
 } # => status_easytls_valid ()
 
@@ -753,12 +773,30 @@ status_easytls_revoked ()
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
+	[ $index_rebuild ] && [ -z "$etls_valid_il_hash_list" ] && \
+		die "empty etls_valid_il_hash_list"
+
 	revoked_mismatch_count=0
-	for i in $etls_valid_serial_list
+	for i in $etls_valid_il_hash_list
 	do
-		inline_serial=$i
-		name="$(inline_index_serial_to_common_name)"
-		inline_file="$EASYTLS_PKI/$name.inline"
+		known_inline_hash="$i"
+		[ -z "$known_inline_hash" ] && die "status invalid: known_inline_hash ?"
+
+		# This needs to handle duplicate-ish names.
+		name="$(inline_index_ilhash_to_common_name)"
+		sub_name="$(inline_index_ilhash_to_sub_name)"
+
+		if [ -z "$sub_name" ]
+		then
+			# No sub name present
+			inline_file="$EASYTLS_PKI/$name.inline"
+		else
+			# Append '-$sub_name' to inline file name
+			inline_file="$EASYTLS_PKI/$name-$sub_name.inline"
+		fi
+		[ -f "$inline_file" ] || die "Missing inline_file: $inline_file ?"
+
+		inline_serial="$(inline_index_ilhash_to_serial)"
 
 		# Clear inline_hash from previous loop
 		unset inline_hash
@@ -877,6 +915,20 @@ inline_index_serial_number_list ()
 	awk '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
+# Get a list of inline hashes from inline-index
+inline_index_ilhash_number_list ()
+{
+	awk '{if ($1 ~ /[^#]/) print $3 " "}' "$EASYTLS_INLINE_INDEX"
+}
+
+# Get a list of Common_name + Sub-cert-key name from inline-index
+inline_index_common_name_sub_name_list ()
+{
+	awk '{if($1 ~ /[^#]/)
+		 {if(NF == 4) {print $1 "-" $4 " ";} else {print $1 " ";}}
+		 }' "$EASYTLS_INLINE_INDEX"
+}
+
 # Get x509 certificate expiry date
 cert_expire ()
 {
@@ -964,28 +1016,36 @@ inline_index_update ()
 		generate_file_hash "$inline_file" || \
 			die "inline_index_update add: Failed to hash: $inline_file"
 		inline_hash="$generated_hash"
-		easytls_verbose "  ADD: $name $inline_serial $inline_hash"
 
 		# Create new record
-		printf "%s\n" "$name $inline_serial $inline_hash" >> \
+		new_record="$name $inline_serial $inline_hash"
+		[ $EASYTLS_TLSCV2_SCN ] && new_record="$new_record $EASYTLS_TLSCV2_SCN"
+		printf "%s\n" "$new_record" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
+
+		easytls_verbose "  ADD: $new_record"
 	;;
 	del)
-		easytls_verbose "  DEL: $name $inline_serial $inline_hash"
 
-		# Find old record
-		grep \
-		"^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}$" \
-			"$EASYTLS_INLINE_INDEX" 1>/dev/null || {
-			help_note="Failed: inline_index_update del"
-			die "Missing record: $name $inline_serial $inline_hash"
+		# Identify old record
+		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}'
+		[ $EASYTLS_TLSCV2_SCN ] && \
+		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}[[:blank:]]$EASYTLS_TLSCV2_SCN'
+		eval old_record=${old_record}
+
+		# Verify old record
+		grep "^${old_record}$" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
+			help_note="Missing record: $old_record"
+			die "inline_index_update del: Failed verify"
 			}
 
 		# Remove old record
-		sed -i -e \
-		"/^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}$/d" \
-			"$EASYTLS_INLINE_INDEX"
+		easytls_verbose "  DEL: $old_record"
+		sed -i -e "/^${old_record}$/d" "$EASYTLS_INLINE_INDEX" || {
+			help_note="Missing record: $old_record"
+			die "inline_index_update del: Failed write"
+			}
 	;;
 	*)
 		die "Unknown index action: $update_index_action"
@@ -994,17 +1054,19 @@ inline_index_update ()
 
 	# Keep a hash of the inline-index
 	inline_index_save_index_hash || Die "Failed to update inline-index hash"
+
+	easytls_verbose "Inline Index Update complete!"
 } # => inline_index_update ()
 
 # Verify current inline-index hash
 inline_index_verify_index_hash ()
 {
-	[ -f "$EASYTLS_IL_INDEX_HASH" ] || return 0
+	[ -f "$EASYTLS_IL_INDEX_HASH" ] || return 1
 	# Read the saved hash
 	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || \
-		die "inline_index_update add: Failed to hash: $EASYTLS_INLINE_INDEX"
+		die "generate_file_hash: Failed to hash: $EASYTLS_INLINE_INDEX"
 	inline_index_current_hash="$generated_hash"
 	# Verify hash match
 	[ "$inline_index_saved_hash" = "$inline_index_current_hash" ] || \
@@ -1046,6 +1108,7 @@ inline_index_check_inline_hash ()
 
 	[ -z "$name" ] && \
 		die "inline_index_check_inline_hash: Missing value: name"
+	#easytls_verbose "name: $name"
 
 	# May not require this
 	#[ -z "$crt_serial" ] && \
@@ -1054,25 +1117,30 @@ inline_index_check_inline_hash ()
 	# Must have inline_serial
 	[ -z "$inline_serial" ] && \
 		die "inline_index_check_inline_hash: Missing value: inline_serial"
+	#easytls_verbose "inline_serial: $inline_serial"
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
-	die "inline_index_check_inline_hash: Found value: inline_hash $inline_hash"
-
-	[ -z "$inline_file" ] && \
-		die "inline_index_check_inline_hash: Missing value: inline_file"
+		die "inline_index_check_inline_hash: Found value: inline_hash $inline_hash"
+	#easytls_verbose "inline_hash: $inline_hash"
 
 	# Already have inline_serial so this file MUST exist so remove test
-	#[ -f "$inline_file" ] || \
-	#	die "inline_index_check_inline_hash: Missing file: $inline_file"
+	# Not so during an index rebuild
+	[ -z "$inline_file" ] && \
+		die "inline_index_check_inline_hash: Missing value: inline_file"
+	[ -f "$inline_file" ] || \
+		die "inline_index_check_inline_hash: Missing file: $inline_file"
+	#easytls_verbose "inline_file: $inline_file"
 
 	# generate current file HASH
 	generate_file_hash "$inline_file" || \
-		die "inline_index_update add: Failed to hash: $inline_file"
+		die "inline_index_check_inline_hash: Failed to hash: $inline_file"
 	real_hash="$generated_hash"
+	#easytls_verbose "real_hash: $generated_hash"
 
 	# Search for current HASH
+	#easytls_verbose "name=${name}  inline_serial=${inline_serial}  real_hash=${real_hash}"
 	find_hash="$(inline_index_search_inline_hash)"
 
 	case "$find_hash" in
@@ -1087,8 +1155,10 @@ inline_index_check_inline_hash ()
 		inline_hash="$real_hash"
 
 		# HASH is correct
-		return ;;
-	*) help_note="HASH check unknown error: $find_hash" ;;
+		return 0
+	;;
+	*) help_note="HASH check unknown error: $find_hash"
+	;;
 	esac
 
 	# There is only one way out of this..
@@ -1115,9 +1185,32 @@ inline_index_common_name_to_serial ()
 # Get Common name from inline index file using serial number as key
 inline_index_serial_to_common_name ()
 {
-	#grep -ev '^#[[:blank:]]' -e "^.*[[:blank:]]${inline_serial}[[:blank:]].*$" \
-	#	"$EASYTLS_INLINE_INDEX" | awk '{print $1}'
+	Target_File="${1:-"$EASYTLS_INLINE_INDEX"}"
 	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
+	awk -P "$script" "$Target_File"
+	unset script
+}
+
+# Get Common name from inline index file using inline hash as key
+inline_index_ilhash_to_common_name ()
+{
+	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$1}"
+	awk "$script" "$EASYTLS_INLINE_INDEX"
+	unset script
+}
+
+# Get sub name from inline index file using inline hash as key
+inline_index_ilhash_to_sub_name ()
+{
+	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$4}"
+	awk "$script" "$EASYTLS_INLINE_INDEX"
+	unset script
+}
+
+# Get cert serial number from inline index file using inline hash as key
+inline_index_ilhash_to_serial ()
+{
+	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$2}"
 	awk "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
@@ -1125,7 +1218,9 @@ inline_index_serial_to_common_name ()
 # Search for hash
 inline_index_search_inline_hash ()
 {
-	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}$" \
+	# Do not need to search for --sub-cert-name
+	# because inline file HASH ${real_hash} is unique
+	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
