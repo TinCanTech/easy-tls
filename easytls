@@ -1238,6 +1238,13 @@ inline_index_openssl_valid_cn_list ()
 		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
 }
 
+# Get common_name from inline file
+inline_crt_common_name ()
+{
+	inline_common_name="$(grep '^# EasyTLS - File name base: .*$' "$inline_file")"
+	inline_common_name="${inline_common_name##*base: }"
+}
+
 # Get serial number from inline file
 inline_crt_serial ()
 {
