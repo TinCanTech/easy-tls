@@ -1019,7 +1019,7 @@ inline_index_update ()
 
 		# Create new record
 		new_record="$name $inline_serial $inline_hash"
-		[ $EASYTLS_TLSCV2_SCN ] && new_record="$new_record $EASYTLS_TLSCV2_SCN"
+		[ $EASYTLS_TLSCV2_SUBKNAME ] && new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
 		printf "%s\n" "$new_record" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
@@ -1030,8 +1030,8 @@ inline_index_update ()
 
 		# Identify old record
 		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}'
-		[ $EASYTLS_TLSCV2_SCN ] && \
-		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}[[:blank:]]$EASYTLS_TLSCV2_SCN'
+		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
+		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}[[:blank:]]$EASYTLS_TLSCV2_SUBKNAME'
 		eval old_record=${old_record}
 
 		# Verify old record
@@ -1300,12 +1300,14 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
+	[ $EASYTLS_TLSCV2_SUBKNAME ] && \
+		inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
 
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
-	# Get serial number from inline file
+	# Get cert serial number from inline file
 	inline_serial=""
 	inline_crt_serial
 
