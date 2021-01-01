@@ -399,7 +399,7 @@ WARNINGS
        in a CA. It was not supposed to be used as a full blown CA itself:
        nevertheless some people are using it for this purpose.
 
-       The ca command is effectively a single user command: no locking is 
+       The ca command is effectively a single user command: no locking is
        done on the various files and attempts to run more than one ca command
        on the same database can have unpredictable results.
 MAN_OPENSSL_CA
