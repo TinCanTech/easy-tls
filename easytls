@@ -289,7 +289,7 @@ General options:
       The <CUSTOM-GROUP> can also be matched against in easytls-cryptv2-verify.sh
       by using the command line switch --c|custom-group=XYZ
 
---sub-cert-key=name
+--sub-key-name=Name
 
       This allows for one single X509 client certificate to have multiple
       TLS Crypt V2 client keys associated with it.  For example, the same
@@ -1341,37 +1341,48 @@ inline_index_rebuild ()
 	# TODO WARNING, inline_index_rebuild is a work in progress
 	# TODO
 
+	verify_tls_init
+
+	# Do not over write current easytls-inline-index.txt.backup
+	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
+		die "Backup file already exists: $EASYTLS_INLINE_INDEX.backup"
+
+	# Do not over write current easytls-inline-index.hash.backup
+	[ -f "$EASYTLS_IL_INDEX_HASH.backup" ] && \
+		die "Backup file already exists: $EASYTLS_IL_INDEX_HASH.backup"
+
 	# Warn!
 	confirm "Rebuild inline index file ? " "yes" \
 		"WARNING: You are about to rebuild easytls-index.txt"
 
-	verify_tls_init
+	# Backup current easytls-inline-index.txt
+	cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup" || \
+		die "Failed to backup: $EASYTLS_INLINE_INDEX"
 
-	# Do not over write current easytls-index.txt.backup
-	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
-		die "Backup file already exists: $EASYTLS_INLINE_INDEX.backup"
-
-	# Backup current easytls-index.txt
-	[ -f "$EASYTLS_INLINE_INDEX" ] && \
-		cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup"
+	# Backup current easytls-inline-index.hash.backup
+	cp "$EASYTLS_IL_INDEX_HASH" "$EASYTLS_IL_INDEX_HASH.backup" || \
+		die "Failed to backup: $EASYTLS_IL_INDEX_HASH"
 
 	# Check openssl index.txt
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
 
-	# This is where the duplicate names creep in
-	# Get list of certs from openssl index.txt
-	ersa_valid_cert_list="$(inline_index_openssl_valid_cn_list)"
+	# Flag for functions which need to know the index is being rebuilt
+	index_rebuild=1
+
+	# Get list of inline file names by extracting CN and sub from index
+	etls_inline_CNsub_name_list="$(inline_index_common_name_sub_name_list)"
 
 	# Create tls dir index file
 	head_text="# EastTLS inline-index - Created: $(date)"
-	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
-		|| die "Failed to create inline-index"
+	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" || \
+		inline_index_rebuild_reset "Failed to create inline-index"
 
 	# Create inline-index hash file
-	inline_index_save_index_hash || die "Failed to create inline-index Hash."
+	inline_index_save_index_hash || \
+		inline_index_rebuild_reset "Failed to create inline-index Hash."
 
-	# Create records from openssl Valid names list
-	for i in $ersa_valid_cert_list
+	# Create records from EasyTLS index names
+	for i in $etls_inline_CNsub_name_list
 	do
 		# Reset flag
 		unset add_inline_record
@@ -1379,24 +1390,49 @@ inline_index_rebuild ()
 		# Clear the previous HASH
 		unset inline_hash
 
+		# THIS CAN GO
 		# If the name is not a single word then the certificate
 		# has been renewed in EasyRSA, which means:
 		# There are two Valid record in openssl index.txt
 		# with the same CommonName
 		# Mitigate this disaster here
-		name="$(printf "%s" "$i" | awk 1 ORS=' ')"
-		name="${name%% *}"
+		#name="$(printf "%s" "$i" | awk 1 ORS=' ')"
+		#name="${name%% *}"
 
-		crt_serial=""
-		inline_file="$EASYTLS_PKI/$name.inline"
+		inline_file="$EASYTLS_PKI/$i.inline"
+		[ -f "$inline_file" ] || \
+			inline_index_rebuild_reset "Missing Inline file: $inline_file"
+
+		inline_serial=""
+		inline_crt_serial
+		easytls_verbose "inline_serial: ^$inline_serial^"
+		[ -z "$inline_serial" ] && \
+			inline_index_rebuild_reset "inline_index_rebuild: No inline_serial"
+
+		inline_common_name=""
+		inline_crt_common_name
+		easytls_verbose "inline_common_name: ^$inline_common_name^"
+		[ -z "$inline_common_name" ] && \
+			inline_index_rebuild_reset "inline_index_rebuild: No inline_common_name"
+
+		if [ "$i" = "$inline_common_name" ]
+		then
+			unset sub_name
+			unset EASYTLS_TLSCV2_SCN
+		else
+			sub_name="${i##"${inline_common_name}-"}"
+			EASYTLS_TLSCV2_SUBKNAME="$sub_name"
+		fi
+
+		name="$inline_common_name"
+		[ -z "$name" ] && inline_index_rebuild_reset "No name"
+		easytls_verbose "name: ^$name^"
+
+		# If the x509 cert is missing the inline file still has a copy.
+		# The cert may have been revoked and this will create an invalid
+		# record which can be removed with `inline-remove`
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
-
-		# If the list contains this name but there is no cert
-		# then cannot recreate easytls-index
-		# The EasyRSA PKI has been tainted
-		help_note="EasyRSA has a record of $name but no certificate."
-		[ -f "$crt_file" ] || die "Missing crt_file: $crt_file"
-		unset help_note
+		[ -f "$crt_file" ] || warn "Missing crt_file: $crt_file"
 
 		# If there is an inline file for this name
 		# then recreate the inline easytls-index record
@@ -1407,65 +1443,27 @@ inline_index_rebuild ()
 			etls_inline_record_list="$etls_inline_record_list $name "
 			}
 
-		# If there is an inline-index record for this name
-		# then do NOT add another
-		if grep -q "^${name}[[:blank:]]" "$EASYTLS_INLINE_INDEX"
-		then
-			unset add_inline_record
-		fi
-
-		# Verify the openssl cert CN
-		openssl_cert_cn="$(openssl_crt_cn)"
-		[ "$name" = "$openssl_cert_cn" ] || \
-			die "CommonName mismatch for :$name: :$openssl_cert_cn:"
-
-		# This always returns the first crt_serial
-		# Get the openssl crt_serial
-		openssl_crt_serial
-
+		# Add the record
 		[ $add_inline_record ] && inline_index_update add
+		:
 	done
-
-	OFS="$IFS"
-	IFS='
-'
-	# Create records from easytls current inline files list
-	for full_file_name in "$EASYTLS_PKI"/*.inline
-	do
-		# Reset flag
-		unset add_inline_record
-
-		# Clear the previous HASH
-		unset inline_hash
-
-		# Get name only from full file name
-		inline_file="$full_file_name"
-		part_file_name="${full_file_name%*.inline}"
-		name="${part_file_name##*/}"
-		[ -f "$inline_file" ] || die "Missing: $inline_file"
-
-		# Inline serial
-		inline_serial=""
-		inline_crt_serial
-
-		# If found an un-indexed inline file then index it
-		inline_file_found_indexed="$(inline_index_search_valid_cn_list)"
-		[ $inline_file_found_indexed -eq 0 ] && add_inline_record=1
-
-		[ $add_inline_record ] && inline_index_update add
-	done
-
-	IFS="$OFS"
-	unset OFS
 
 	# Inform
 	notice "Inline index file successfully rebuilt: $EASYTLS_INLINE_INDEX"
+	notice "Use 'easytls status' to confirm."
 	print
-
-	# Verify
-	status
-
 } # => inline_index_rebuild ()
+
+inline_index_rebuild_reset ()
+{
+	cp -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
+	rm -f "$EASYTLS_INLINE_INDEX.backup"
+
+	cp -f "$EASYTLS_IL_INDEX_HASH.backup" "$EASYTLS_IL_INDEX_HASH"
+	rm -f "$EASYTLS_IL_INDEX_HASH.backup"
+
+	die "Inline index rebuild failed."
+}
 
 
 ############################################################################

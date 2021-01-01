@@ -154,6 +154,8 @@ do
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
 		"--custom-group=tincantech \
 			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
+		"--custom-group=tincantech --sub-key-name=bob \
+			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
 		"--custom-group=tincantech inline-base s01 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
@@ -180,6 +182,7 @@ do
 		"--custom-group=tincantech inline-tls-crypt-v2 c06" "status" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c08" "status" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw" "status" \
+		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw" "status" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
@@ -517,11 +520,12 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
-	#rm "$WORK_DIR/pki2/easytls/easytls-inline-index.txt.backup"
-	#print "============================================================"
-	#print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
-	#"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
-	#	fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
+	rm "$WORK_DIR/pki3/easytls/easytls-inline-index.txt.backup"
+	rm "$WORK_DIR/pki3/easytls/easytls-inline-index.hash.backup"
+	print "============================================================"
+	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
+		fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS cert-expire (also test auto-check)"
