@@ -1988,8 +1988,7 @@ b64_enc_metadata ()
 	#     easytls-cryptv2-verify.sh only uses the 'easytls' part
 	#
 	# 2   CA Identity
-	#     `openssl output`; Drop decription, change space to underscore
-	#                       and remove colons ':' (Hex only field)
+	#     `openssl output`; Drop decription and remove colons ':' (Hex only field)
 	#
 	# 3.  Client certificate serial
 	#     `openssl output`; Drop the 'serial=' (Hex only field)
@@ -1999,10 +1998,16 @@ b64_enc_metadata ()
 	# 5.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
-	# 6.  Custom Group string:
-	#     Default: EASYTLS (This is a simple place holder only)
+	# 6.  Custom Group string
+	#     Default: EASYTLS
 	#
-	# 7.  Hardware Address string:
+	# 7.  Sub-cert-key Name
+	#     Default: NOSUBKEY
+	#
+	# 8.  Option - TBD
+	#     Default: OPT
+	#
+	# 9.  Hardware Address string:
 	#     Default: 000000000000 (This is a simple place holder only)
 	#
 
@@ -2029,6 +2034,22 @@ b64_enc_metadata ()
 		metadata="$metadata $EASYTLS_TLSCV2_CG"
 	else
 		metadata="$metadata EASYTLS"
+	fi
+
+	# Append --sub-cert-key name
+	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
+	then
+		metadata="$metadata $EASYTLS_TLSCV2_SUBKNAME"
+	else
+		metadata="$metadata NOSUBKEY"
+	fi
+
+	# Append opt field (Usage is to be decided)
+	if [ -n "$EASYTLS_TLSCV2_OPT" ]
+	then
+		metadata="$metadata $EASYTLS_TLSCV2_OPT"
+	else
+		metadata="$metadata OPT"
 	fi
 
 	# Append --hw-addr
@@ -2456,6 +2477,8 @@ while :; do
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
 		export EASYTLS_TLSCV2_CG="$val" ;;
+	--sub-key-name)
+		export EASYTLS_TLSCV2_SUBKNAME="$val" ;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
 	--no-auto-check)

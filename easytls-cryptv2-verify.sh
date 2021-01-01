@@ -197,7 +197,9 @@ metadata_string_to_vars ()
 	md_name="$4"
 	md_date="$5"
 	md_custom_g="$6"
-	md_hwadds="$7"
+	md_subkey="$7"
+	md_opt="$8"
+	md_hwadds="$9"
 }
 
 # Convert metadata file to metadata_string
