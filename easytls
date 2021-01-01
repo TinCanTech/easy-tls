@@ -2066,6 +2066,12 @@ Missing cli file: $cli_cert"
 		"Custom-Group field for metadata: $EASYTLS_TLSCV2_CG"
 		}
 
+	# Confirm --sub-key-name)
+	[ -n "$EASYTLS_TLSCV2_SUBKNAME" ] && {
+		confirm "Is the Sub-key-name correct ? " "yes" \
+		"Sub-key-name field for metadata: $EASYTLS_TLSCV2_SUBKNAME"
+		}
+
 	# Confirm metadata Hardware-Address(es)
 	[ -n "$EASYTLS_TLSCV2_HWLIST" ] && {
 		notice "All Hardware-Addresses are valid length hexidecimal values."
