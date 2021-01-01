@@ -294,7 +294,7 @@ General options:
       This allows for one single X509 client certificate to have multiple
       TLS Crypt V2 client keys associated with it.  For example, the same
       X509 certificate can be used from different locations with unique
-      TLS crypt V2 keys. (This could also be useful to defeat DPI)
+      TLS crypt V2 keys.
 "
 } # => opt_usage()
 
