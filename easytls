@@ -2296,11 +2296,19 @@ disabled_list_manager ()
 	# Verify disabled-list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
 
+	# Append --sub-key-name
+	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
+	then
+		name="$name $EASYTLS_TLSCV2_SUBKNAME"
+	else
+		name="$name NOSUBKEY"
+	fi
+
 	# Check disabled-list for duplicates
 	disabled_list_serial_status="$(disabled_list_serial_search)"
 	[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
 
-	# 'disable' or 'enable' serial number
+	# 'disable' or 'enable' 'serial + name + --sub-key-name'
 	case $action in
 	disable) # Add serial number to the disabled-list
 		if [ $disabled_list_serial_status -eq 0 ]

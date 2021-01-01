@@ -261,7 +261,7 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^${md_serial}[[:blank:]]${md_name}$" \
+	grep -c "^${md_serial}[[:blank:]]${md_name}[[:blank:]]${md_subkey}$" \
 		"$disabled_list"
 }
 
