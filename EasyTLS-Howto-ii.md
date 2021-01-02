@@ -74,11 +74,28 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   `[ cmd-opts ]` here consist of `nokey` (When you do not have the x509 private key for this node)<br>
   and `add-dh` (For server files only) <br>
   <br>
-* Status:
+* Create another TLS-Crypt-V2 Client key for the same client:
+  ```
+  ./easytls --sub-key-name=TEST --custom-group=<CUSTOM-GROUP> build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+  ```
+  Your `--sub-key-name` could be `HOME` or `Key02` for example.<br>
+  Your `client` could be called `client-09` for example.<br>
+  Your `<CUSTOM-GROUP>` is limited to a single contiguous word. eg: `tincantech`<br>
+  <br>
+* Create another `.inline` file for the same client using the secondary key:
+  ```
+  ./easytls --sub-key-name=TEST inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
+  ```
+  Your `--sub-key-name` could be `HOME` or `Key02` for example.<br>
+  Your `filename` could be called `client-09` for example. (As above) <br>
+  `[ cmd-opts ]` here consist of `nokey` (When you do not have the x509 private key for this node)<br>
+  and `add-dh` (For server files only) <br>
+  <br>
+  * Status:
   ```
   ./easytls status
   ```
-Use `help` now.<br>
+  Use `help` now.<br>
   <br>
 
 ### Use easytls-cryptv2-verify.sh
