@@ -756,7 +756,7 @@ status_easyrsa_revoked ()
 status_easytls_inline ()
 {
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
-	etls_valid_name_list="$(inline_index_common_name_list)"
+	etls_valid_name_list="$(inline_index_common_name_sub_name_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 	[ $silent_status ] || sed /^#/d "$EASYTLS_INLINE_INDEX" | status_output
