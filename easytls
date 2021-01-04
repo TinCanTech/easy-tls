@@ -979,7 +979,7 @@ inline_expire ()
 		print " Certificate: $name.inline   Expire-date: $inline_expire"
 	else
 	# Get a list of Valid names from easytls-inline-index
-	etls_valid_name_list="$(inline_index_common_name_list)"
+	etls_valid_name_list="$(inline_index_common_name_sub_name_list)"
 		for name in $etls_valid_name_list
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
