@@ -45,6 +45,9 @@ command, run:
 For a listing of options that can be supplied before the command, use:
   ./easytls help options
 
+For a list of abbreviated command names, use:
+  ./easytls help abb
+
 Here is the list of commands available with a short syntax reminder.
 Use the 'help' command above to get full usage details.
 
@@ -99,16 +102,16 @@ cmd_help()
 		init-tls) text="
   init-tls
       Removes & re-initializes the TLS key dir" ;;
-		build-tls-auth) text="
+		bta|build-tls-auth) text="
   build-tls-auth
       Create an OpenVPN TLS auth PSK (tls-auth.key)" ;;
-		build-tls-crypt) text="
+		btc|build-tls-crypt) text="
   build-tls-crypt
       Create an OpenVPN TLS crypt PSK (tls-crypt.key)" ;;
-		build-tls-crypt-v2-server) text="
+		btc2s|btcv2s|build-tls-crypt-v2-server) text="
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
-		build-tls-crypt-v2-client) text="
+		btv2c|btcv2c|build-tls-crypt-v2-client) text="
   build-tls-crypt-v2-client
         <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
 
@@ -117,7 +120,7 @@ cmd_help()
       The metadata can also be used to specify Hardware Addresses which this key
       is allowed to be used from.  Use easytls-cryptv2-client-connect.sh to verify
       the HW-ADDR (Note: Both scripts are required to successfully verify Hardware)" ;;
-		save-id) text="
+		sid|save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
       CA-Identity is the Hex ONLY value of the CA finger print.
@@ -126,7 +129,7 @@ cmd_help()
       Combining this with 'easytls-cryptv2-verify.sh --verify-via-index',
       openssl binary never needs to be loaded by easytls-cryptv2-verify.sh
       See EasyTLS Howto for an example." ;;
-		status) text="
+		s|status) text="
   status [ cmd-opts ]
       Compare Easy-RSA certificate(s) to Easy-TLS inline(s) status"
 			opts="
@@ -144,7 +147,7 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		inline-tls-auth) text="
+		ita|inline-tls-auth) text="
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS auth file
@@ -154,7 +157,7 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		inline-tls-crypt) text="
+		itc|inline-tls-crypt) text="
   inline-tls-crypt <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt file"
@@ -163,7 +166,7 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		inline-tls-crypt-v2) text="
+		itv2|itcv2|inline-tls-crypt-v2) text="
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
@@ -174,10 +177,10 @@ cmd_help()
                   To specify an alternative file use the --dh option
         no-md   - Do not add public metadata details to inline file
         add-hw  - Include hardware address in metadata details" ;;
-		inline-remove) text="
+		irm|irv|inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
-		inline-renew) text="
+		irn|irw|inline-renew) text="
   inline-renew <filename_base> [ cmd-opts ]
       Renew <filename_base>.inline when Easy-RSA certificate is renewed"
 			opts="
@@ -185,7 +188,7 @@ cmd_help()
         add-dh  - inline Diffy Hellman parameters file
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		inline-show) text="
+		is|inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
 		inline-index-rebuild) text="
@@ -193,22 +196,22 @@ cmd_help()
       Rebuild easytls-index.txt
       If you need to do this then you may have found a bug, please
       raise an issue https://github.com/TinCanTech/easy-tls/issues" ;;
-		inline-expire) text="
+		ix|inline-expire) text="
   inline-expire <filename_base>
       Display inline expiry date for <filename_base>"
 			opts="
         If no <filename_base> is given then list all inline expiry dates" ;;
-		cert-expire) text="
+		cx|cert-expire) text="
   cert-expire <filename_base> | <ca>
       Display certificate expiry date for <filename_base>"
 			opts="
         If <filename_base> is 'ca' then show ca.crt expiry
         If no <filename_base> is given then list all certificate expiry dates" ;;
-		disable) text="
+		d|disable) text="
   d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
       for immediate use by the easytls-cryptv2-verify.sh script" ;;
-		enable) text="
+		e|enable) text="
   e|enable <filename_base>
       Remove serial number for <filename_base> from the disabled list
       for immediate use by the easytls-cryptv2-verify.sh script" ;;
@@ -245,6 +248,8 @@ cmd_help()
 
 		options)
 			opt_usage ;;
+		abb)
+			opt_abbreviations ;;
 		"")
 			usage ;;
 		*) text="
@@ -297,6 +302,36 @@ General options:
       TLS crypt V2 keys.
 "
 } # => opt_usage()
+
+# Option abbreviations
+opt_abbreviations ()
+{
+	print "
+Easy-TLS abbreviations:
+
+  init-tls                      - No abbreviation
+  build-tls-auth                - bta
+  build-tls-crypt               - btc
+  build-tls-crypt-v2-server     - btv2s | btcv2s
+  build-tls-crypt-v2-client     - btv2c | btcv2c
+  save-id                       - sid
+  status                        - s
+  inline-base                   - No abbreviation
+  inline-tls-auth               - ita
+  inline-tls-crypt              - itc
+  inline-tls-crypt-v2           - itv2 | itcv2
+  inline-remove                 - irm | irv
+  inline-renew                  - irn | irw
+  inline-show                   - is
+  inline-index-rebuild          - No abbreviation
+  inline-expire                 - ix
+  cert-expire                   - cx
+  disable                       - d
+  enable                        - e
+  disabled-list-rehash          - No abbreviation
+  import-key                    - No abbreviation
+"
+}
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
 print() { printf "%s\n" "$*"; }
@@ -447,6 +482,20 @@ easytls_verbose ()
 {
 	[ $EASYTLS_VERBOSE ] || return 0
 	print "$@"
+}
+
+# Configurable options
+easytls_config ()
+{
+	unset opt val
+	case "$1" in
+		cg|custom-group)
+			opt="custom.group"
+			val=$3
+		;;
+	esac
+
+
 }
 
 # Verify Openvpn is available
@@ -2605,7 +2654,7 @@ while :; do
 		export EASYRSA_PKI="$val" ;;
 	--vars)
 		export EASYRSA_VARS_FILE="$val" ;;
-	--verbose)
+	-v|--verbose)
 		empty_ok=1
 		export EASYTLS_VERBOSE=1 ;;
 	--silent)
@@ -2655,55 +2704,55 @@ case "$cmd" in
 		init_tls "$@" || \
 			die "Error: init_tls"
 		;;
-	b-ta|build-tls-auth)
+	bta|build-tls-auth)
 		build_tls_auth "$@" || \
 			die "Error: build_tls_auth"
 		;;
-	b-tc|build-tls-crypt)
+	btc|build-tls-crypt)
 		build_tls_crypt_v1 "$@" || \
 			die "Error: build_tls_crypt_v1"
 		;;
-	build-tls-crypt-v2-server)
+	btv2s|b-tcv2s|build-tls-crypt-v2-server)
 		build_tls_crypt_v2_server "$@" || \
 			die "Error: build_tls_crypt_v2_server"
 		;;
-	build-tls-crypt-v2-client)
+	btv2c|b-tcv2c|build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@" || \
 			die "Error: build_tls_crypt_v2_client"
 		;;
-	save-id)
+	sid|save-id)
 		save_id || \
 			die "Error: save_id"
 		;;
-	status)
+	s|status)
 		status "$@" || \
 			die "Error: status"
 		;;
-	inline-base)
+	ib|inline-base)
 		inline_base "$@" || \
 			die "Error: inline_base"
 		;;
-	i-ta|inline-tls-auth)
+	ita|inline-tls-auth)
 		inline_tls_auth "$@" || \
 			die "Error: inline_tls_auth"
 		;;
-	i-tc|inline-tls-crypt)
+	itc|inline-tls-crypt)
 		inline_tls_crypt_v1 "$@" || \
 			die "Error: inline_tls_crypt_v1"
 		;;
-	inline-tls-crypt-v2)
+	itv2|itcv2|inline-tls-crypt-v2)
 		inline_tls_crypt_v2 "$@" || \
 			die "Error: inline_tls_crypt_v2"
 		;;
-	inline-remove)
+	irm|irv|inline-remove)
 		inline_remove "$@" || \
 			die "Error: inline_remove"
 		;;
-	inline-renew)
+	irn|irw|inline-renew)
 		inline_renew "$@" || \
 			die "Error: inline_renew"
 		;;
-	inline-show)
+	is|inline-show)
 		inline_show "$@" || \
 			die "Error: inline_show"
 		;;
@@ -2711,11 +2760,11 @@ case "$cmd" in
 		inline_index_rebuild "$@" || \
 			die "Error: inline_index_rebuild"
 		;;
-	inline-expire)
+	ix|inline-expire)
 		inline_expire "$@" || \
 			die "Error: inline_expire"
 		;;
-	cert-expire)
+	cx|cert-expire)
 		cert_expire "$@" || \
 			die "Error: cert_expire"
 		;;
@@ -2735,7 +2784,11 @@ case "$cmd" in
 		import_key "$@" || \
 			die "Error: import_key"
 		;;
-	version|-v|--version)
+	cfg|config)
+		easytls_config "$@" || \
+			die "Error: easytls_config"
+		;;
+	v|version)
 		easytls_version || \
 			die "Error: easytls_version"
 		exit 0
