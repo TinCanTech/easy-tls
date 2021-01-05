@@ -558,15 +558,15 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 		fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS version"
-	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
-		fail "Unit test error 71: version"
-
-	print "------------------------------------------------------------"
 	TEST_CMD="disabled-list-rehash"
 	print "$EASYTLS_CMD $EASYTLS_OPTS $TEST_CMD"
 	"$EASYTLS_CMD" $EASYTLS_OPTS $TEST_CMD || \
 		fail "Unit test error 72: $TEST_CMD"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
+		fail "Unit test error 71: version"
 
 echo "============================================================"
 echo "total_expected_errors=$total_expected_errors (Expected 241 Verified)"
