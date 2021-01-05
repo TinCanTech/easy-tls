@@ -2655,11 +2655,11 @@ case "$cmd" in
 		init_tls "$@" || \
 			die "Error: init_tls"
 		;;
-	build-tls-auth)
+	b-ta|build-tls-auth)
 		build_tls_auth "$@" || \
 			die "Error: build_tls_auth"
 		;;
-	build-tls-crypt)
+	b-tc|build-tls-crypt)
 		build_tls_crypt_v1 "$@" || \
 			die "Error: build_tls_crypt_v1"
 		;;
@@ -2683,11 +2683,11 @@ case "$cmd" in
 		inline_base "$@" || \
 			die "Error: inline_base"
 		;;
-	inline-tls-auth)
+	i-ta|inline-tls-auth)
 		inline_tls_auth "$@" || \
 			die "Error: inline_tls_auth"
 		;;
-	inline-tls-crypt)
+	i-tc|inline-tls-crypt)
 		inline_tls_crypt_v1 "$@" || \
 			die "Error: inline_tls_crypt_v1"
 		;;
