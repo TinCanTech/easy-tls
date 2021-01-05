@@ -48,5 +48,4 @@ fi
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
 
-	export auto_check_disabled=1
 	time sh easytls-unit-tests.sh
