@@ -533,6 +533,10 @@ easytls_config ()
 			opt="custom.group"
 			val=$2
 		;;
+		id|ca.id)
+			opt="ca.id"
+			val=$2
+		;;
 		co|custom.openvpn)
 			opt="custom.openvpn"
 			val=$2
@@ -576,6 +580,10 @@ easytls_config ()
 				# Test for file
 				[ -f "$val" ] || die "Missing: $val"
 			fi
+		;;
+		ca.id)
+			[ -n "$EASYTLS_MASTER_ID" ] && \
+				die "The CA-ID cannot be changed"
 		;;
 		*)
 			die "config oops!"
@@ -625,6 +633,9 @@ easytls_config_use ()
 			custom.openvpn)
 				set_var EASYTLS_OPENVPN "$val"
 				;;
+			ca.id)
+				# This is set explicitly here to protect config
+				EASYTLS_MASTER_ID="$val"
 		esac
 
 		# Just for shellcheck
@@ -739,10 +750,11 @@ and initialize a fresh TLS PKI here."
 	# Create config file
 	{
 		#printf '%s\n' "batch.mode = off"
+		printf '%s\n' "ca.id = "
+		printf '%s\n' "custom.group = "
 		printf '%s\n' "auto.check = on"
-		printf '%s\n' "custom.group = EASYTLS"
-		printf '%s\n' "custom.openvpn = "
 		printf '%s\n' "inline.metadata = on"
+		printf '%s\n' "custom.openvpn = "
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
 	# Create config file hash
@@ -2484,6 +2496,8 @@ save_id ()
 
 	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
 		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
+
+	easytls_config id "$ca_identity"
 
 	notice "Saved CA Identify: $EASYTLS_CA_IDENTITY"
 }
