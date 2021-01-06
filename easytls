@@ -568,8 +568,11 @@ easytls_config ()
 			[ "$val" = "$test_val" ] || die "Unsupported value for $opt: $val"
 		;;
 		custom.openvpn)
-			# Test for file
-			[ -f "$val" ] || die "Missing: $val"
+			if [ -n "$val" ]
+			then
+				# Test for file
+				[ -f "$val" ] || die "Missing: $val"
+			fi
 		;;
 		*)
 			die "config oops!"
@@ -735,6 +738,7 @@ and initialize a fresh TLS PKI here."
 		#printf '%s\n' "batch.mode = off"
 		printf '%s\n' "auto.check = on"
 		printf '%s\n' "custom.group = EASYTLS"
+		printf '%s\n' "custom.openvpn = "
 		printf '%s\n' "inline.metadata = on"
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
