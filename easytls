@@ -48,9 +48,13 @@ For a listing of options that can be supplied before the command, use:
 For a list of abbreviated command names, use:
   ./easytls help abb
 
+For a list of configurable options, use:
+  ./easytls help config
+
 Here is the list of commands available with a short syntax reminder.
 Use the 'help' command above to get full usage details.
 
+  config
   init-tls
   build-tls-auth
   build-tls-crypt
@@ -250,6 +254,8 @@ cmd_help()
 			opt_usage ;;
 		abb)
 			opt_abbreviations ;;
+		cf|cfg|config)
+			opt_config ;;
 		"")
 			usage ;;
 		*) text="
@@ -333,6 +339,33 @@ Easy-TLS abbreviations:
 "
 }
 
+# Option abbreviations
+opt_config ()
+{
+	print '
+Easy-TLS configurable options:
+
+  ac|auto.check on|off
+     Toggle auto.check on|off.
+
+  cg|custom.group NAME
+     Save the Custom Group NAME - NAME must be a single contiguous word.
+     Once set and used to build any TLS-Crypt-V2 Client keys, this NAME
+     cannot be changed.
+
+     When using easytls-crypt-v2-verify.sh in your openvpn server, if you
+     change it then your current keys will no longer be able to connect.
+
+  co|custom.openvpn "/full/path/to/openvpn(.exe)"
+     Save your custom openvpn binary location.
+     EG: /usr/local/bin/openvpn (Qutotes are not required)
+         "C:/Program Files/OpenVPN/mybin/openvpn.exe"
+         (Quotes are required for spaces and "\" must be "/")
+
+  im|inline.metadata on|off
+     Toggle inline-file metadata on|off.
+'
+}
 # Wrapper around printf - clobber print since it's not POSIX anyway
 print() { printf "%s\n" "$*"; }
 
@@ -489,13 +522,138 @@ easytls_config ()
 {
 	unset opt val
 	case "$1" in
-		cg|custom-group)
+		ac|auto.check)
+			opt="auto.check"
+			val=$2
+		;;
+		cg|custom.group)
 			opt="custom.group"
-			val=$3
+			val=$2
+		;;
+		co|custom.openvpn)
+			opt="custom.openvpn"
+			val=$2
+		;;
+		im|inline.metadata)
+			opt="inline.metadata"
+			val=$2
+		;;
+		'')
+			# Show config
+			cat "$EASYTLS_CONFIG_FILE"
+			return 0
+		;;
+		*)
+			print "Unknown option: $1"
+			return 1
 		;;
 	esac
 
+	case "$opt" in
+		auto.check|inline.metadata)
+			case "$val" in
+				on|off)
+					:
+				;;
+				*)
+					die "Unsupported value for $opt: $val"
+				;;
+			esac
+		;;
+		custom.group)
+			# Cannot be empty
+			[ -z "$val" ] && die "Unsupported value for $opt: $val"
+			# spaces ?
+			test_val="${val%% *}"
+			[ "$val" = "$test_val" ] || die "Unsupported value for $opt: $val"
+		;;
+		custom.openvpn)
+			# Test for file
+			[ -f "$val" ] || die "Missing: $val"
+		;;
+		*)
+			die "config oops!"
+		;;
+	esac
 
+	# Write config
+	easytls_config_update || die "Error updating config."
+	config_file_save_hash || die "Error hashing config."
+}
+
+# Update config
+easytls_config_update ()
+{
+	sed -i -e "s\`^${opt}[[:blank:]]=[[:blank:]].*$\`${opt} = ${val}\`g" \
+		"$EASYTLS_CONFIG_FILE" || return 1
+}
+
+# Use config
+easytls_config_use ()
+{
+	verify_config_hash || die "Failed config file hash"
+	easytls_verbose "* Load Config"
+
+	config_error=0
+	while IFS=' ' read -r opt equ val
+	do
+		# These settings no not change command line
+		case "$opt" in
+			auto.check)
+				case "$val" in
+					off)	set_var auto_check_disabled 1 ;;
+					on)		: ;;
+					*)		config_error=1 ;;
+				esac
+				;;
+			inline.metadata)
+				case "$val" in
+					off)	set_var no_metadata 1 ;;
+					on)		: ;;
+					*)		config_error=1 ;;
+				esac
+				;;
+			custom.group)
+				set_var EASYTLS_TLSCV2_CG "$val"
+				;;
+			custom.openvpn)
+				set_var EASYTLS_OPENVPN "$val"
+				;;
+		esac
+
+		# Just for shellcheck
+		[ "$equ" = "=" ] || config_error=1
+
+	done < "$EASYTLS_CONFIG_FILE"
+	return "$config_error"
+}
+
+# Verify the config file hash
+verify_config_hash ()
+{
+	# The config file may not exist
+	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+	# If the config file exists then the hash must exist
+	[ -f "$EASYTLS_CONFIG_HASH" ] || return 1
+	# Read the saved hash
+	config_saved_hash="$(cat "$EASYTLS_CONFIG_HASH")"
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_CONFIG_FILE" || return 1
+	config_current_hash="$generated_hash"
+	# Verify hash match
+	[ "$config_saved_hash" = "$config_current_hash" ] || return 1
+	[ $EASYTLS_SILENT ] || easytls_verbose "Config file hash check OK"
+}
+
+# Hash config-file
+config_file_save_hash ()
+{
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_CONFIG_FILE" || \
+		die "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
+	config_current_hash="$generated_hash"
+	# Save the current hash
+	printf '%s\n' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || return 1
 }
 
 # Verify Openvpn is available
@@ -572,6 +730,17 @@ and initialize a fresh TLS PKI here."
 	# Create inline-index hash file
 	inline_index_save_index_hash || die "Failed to create inline-index Hash."
 
+	# Create config file
+	{
+		#printf '%s\n' "batch.mode = off"
+		printf '%s\n' "auto.check = on"
+		printf '%s\n' "custom.group = EASYTLS"
+		printf '%s\n' "inline.metadata = on"
+	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
+
+	# Create config file hash
+	config_file_save_hash || die "Failed to create config-file Hash."
+
 	# Create disabled list
 	head_text="# EastTLS disabled-list - Created: $(date)"
 	printf '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" \
@@ -584,6 +753,8 @@ and initialize a fresh TLS PKI here."
 init-tls complete; you may now create TLS keys and .inline files.
 Your newly created TLS dir is: $EASYTLS_PKI
 "
+	notice "To configure your custom group now, use:
+	 'easytls config custom.group YOUR_GROUP"
 } # => init_tls ()
 
 # Auto-check for invalid inline files
@@ -599,27 +770,26 @@ inline_auto_check ()
 	easytls_verbose ""
 	easytls_verbose "* AUTO-CHECK"
 
-	easytls_verbose "* status invalid"
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
 	status invalid || die "inline_auto_check: status invalid error"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
-	easytls_verbose "* status renewed"
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
 	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
-	easytls_verbose "* Verify inline index hash"
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
 
-	easytls_verbose "* Verify disabled list hash"
 	# Check disabled-list hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
+
+	# Check config-file hash
+	verify_config_hash || warn "Config file is corrupt."
 
 	unset auto_check
 } # => inline_auto_check ()
@@ -725,6 +895,9 @@ status ()
 
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
+
+	# Check inline-index hash
+	verify_config_hash || warn "config-file is corrupt"
 
 	# Verify disabled list Hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
@@ -2578,6 +2751,8 @@ vars_setup()
 
 	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
 	set_var EASYTLS_DATA_DIR	"$EASYTLS_PKI/data"
+	set_var EASYTLS_CONFIG_FILE	"$EASYTLS_DATA_DIR/easytls-config.txt"
+	set_var EASYTLS_CONFIG_HASH	"$EASYTLS_DATA_DIR/easytls-config.hash"
 	set_var EASYTLS_MD_DIR	"$EASYTLS_PKI/metadata"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_DATA_DIR/easytls-inline-index.txt"
 	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_DATA_DIR/easytls-inline-index.hash"
@@ -2686,6 +2861,9 @@ done
 # Intelligent env-var detection and auto-loading:
 vars_setup
 
+# Load config options - Does not change command line options
+easytls_config_use || die "Config error"
+
 # Register cleanup on EXIT
 trap "cleanup" EXIT
 # When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
@@ -2784,7 +2962,7 @@ case "$cmd" in
 		import_key "$@" || \
 			die "Error: import_key"
 		;;
-	cfg|config)
+	cf|cfg|config)
 		easytls_config "$@" || \
 			die "Error: easytls_config"
 		;;
