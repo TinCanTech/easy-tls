@@ -563,6 +563,16 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 		fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS help config"
+	"$EASYTLS_CMD" $EASYTLS_OPTS help config || \
+		fail "Unit test error 70: help"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS config"
+	"$EASYTLS_CMD" $EASYTLS_OPTS config || \
+		fail "Unit test error 70: help"
+
+	print "------------------------------------------------------------"
 	TEST_CMD="disabled-list-rehash"
 	print "$EASYTLS_CMD $EASYTLS_OPTS $TEST_CMD"
 	"$EASYTLS_CMD" $EASYTLS_OPTS $TEST_CMD || \
