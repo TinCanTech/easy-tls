@@ -22,8 +22,13 @@ First, you must have your EasyRSA-3 PKI fully setup, which includes CA, Server a
 
 **EasyTLS command examples**
 
-Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls help options`
-
+Please use the help:<br>
+  `./easytls help` - General help.<br>
+  `./easytls help <command>` - Command help.<br>
+  `./easytls help options` - Command --options.<br>
+  `./easytls help abb` - Command abbreviations.<br>
+  `./easytls help config` - Configuration help.<br>
+  <br>
 * Initialise:
   ```
   ./easytls init-tls
@@ -42,6 +47,14 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   (This is your formatted CA fingerprint)<br>
   <br>
   If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
+  <br>
+* Check your configuration:
+  ```
+  ./easytls config
+  ```
+  This is a good time to set your `custom.group`.<br>
+  You can use the `custom.group` option to save your Custom group, or<br>
+  Use `--custom-group=XYZ` on the command line for all the commands which need it.<br>
   <br>
 * Create a TLS-Crypt-V2 Server key:
   ```
@@ -91,7 +104,14 @@ Please use the help: `./easytls help` | `./easytls help <command>` | `./easytls 
   `[ cmd-opts ]` here consist of `nokey` (When you do not have the x509 private key for this node)<br>
   and `add-dh` (For server files only) <br>
   <br>
-  * Status:
+* Create a TLS-Crypt-V2 Server or Client key and Inline file in one pass:
+  ```
+  ./easytls --inline build-tls-crypt-v2-client <server_filename_base> <client_filename_base>
+  ```
+  The `--inline` option only works for generating TLS-Crypt-V2 server and client keys and only excepts<br>
+  default values for `inline-tls-crypt-v2`. You cannot specify `nokey`, `add-dh`, `no-md` or `add-hw`.<br>
+  <br>
+* Status:
   ```
   ./easytls status
   ```
