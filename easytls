@@ -1331,6 +1331,8 @@ inline_index_save_index_hash ()
 # Generate SHA1 file hash
 generate_file_hash ()
 {
+	# Trust ..
+	[ -f "$1" ] || return 1
 	# What ever openssl says ..
 	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")"
 	# Assume it is a valid HASH
