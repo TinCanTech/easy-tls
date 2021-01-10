@@ -125,6 +125,7 @@ do
 	# Setup EasyRSA
 	for i in "init-pki" "build-ca nopass" \
 		"build-server-full s01 nopass" \
+		"build-server-full s02 nopass" \
 		"build-client-full c01 nopass" \
 		"build-client-full c02 nopass" \
 		"build-client-full c03 nopass" "revoke c03" \
@@ -133,6 +134,7 @@ do
 		"build-client-full c07 nopass" \
 		"build-client-full c08 nopass" \
 		"build-client-full c09 nopass" \
+		"build-client-full c10 nopass" \
 		"build-client-full cw01 nopass" \
 		"--keysize=64 gen-dh" \
 		## EOL
@@ -144,9 +146,11 @@ do
 	#rm "$PKI_DIR/private/ca.key" || Die "fk"
 
 	# Test EasyTLS
-	for i in "init-tls" "build-tls-auth" "build-tls-crypt" \
+	for i in "init-tls" \
+		"build-tls-auth" "build-tls-crypt" \
 		"save-id" \
 		"build-tls-crypt-v2-server s01" \
+		"--inline --custom-group=tincantech build-tls-crypt-v2-server s02" \
 		"build-tls-crypt-v2-client s01 c01" \
 		"build-tls-crypt-v2-client s01 c02" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
@@ -156,6 +160,8 @@ do
 			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
 		"--custom-group=tincantech --sub-key-name=bob \
 			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
+		"--inline --custom-group=tincantech --sub-key-name=office \
+			build-tls-crypt-v2-client s01 c10 abcdefabcdef 123456543210" \
 		"--custom-group=tincantech inline-base s01 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \

@@ -294,6 +294,9 @@ General options:
 --pki-dir=DIR      : Declare the EasyRSA PKI directory.
 --vars=FILE        : Define a specific 'vars' file to use for Easy-RSA config.
 --dh=FILE          : Define an alternate Diffy Hellman parameters file.
+--inline           : When building a TLS Crypt V2 key, also build the Inline file.
+                     This only accepts default options for inline-tls-crypt-v2.
+
 --custom-group=XYZ
 
       <CUSTOM-GROUP> is an optional single word which will be used
@@ -605,6 +608,9 @@ easytls_config_update ()
 # Use config
 easytls_config_use ()
 {
+	# If the config file does not exist then Do not error
+	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+
 	verify_config_hash || die "Failed config file hash"
 	easytls_verbose "* Load Config"
 
@@ -2239,6 +2245,14 @@ Missing file: $srv_cert"
 		die "Failed to create tls-crypt-v2-server key: $key_file"
 
 	notice "TLS crypt v2 server key created: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "$srv_name" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -2331,6 +2345,14 @@ Missing cli file: $cli_cert"
 		die "Failed to create tls-crypt-v2-client key: $key_file"
 
 	notice "TLS crypt v2 client key created: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "$cli_name" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
 } # => build_tls_crypt_v2_client ()
 
 # Verify the input is a 12 digit hex value and export it to the HW list
@@ -2858,6 +2880,9 @@ while :; do
 	--silent)
 		empty_ok=1
 		export EASYTLS_SILENT=1 ;;
+	--inline)
+		empty_ok=1
+		export EASYTLS_BINLINE=1 ;;
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
