@@ -106,7 +106,17 @@ WORK_DIR="$(pwd)"
 
 
 export EASYTLS_OPENVPN=./openvpn
-export EASYRSA_CERT_RENEW=10000
+
+
+if [ "$OS" = "Windows_NT" ]
+then
+	export OPENVPN_CMD="C:/PROGRA~1/OpenVPN/bin/openvpn.exe"
+else
+	export OPENVPN_CMD=./openvpn
+fi
+
+
+export EASYRSA_CERT_RENEW=1000
 
 total_expected_errors=0
 

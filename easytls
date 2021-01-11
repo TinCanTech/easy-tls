@@ -526,27 +526,26 @@ easytls_verbose ()
 # Configurable options
 easytls_config ()
 {
-	unset opt val
 	case "$1" in
 		ac|auto.check)
-			opt="auto.check"
-			val=$2
+			cfg_opt="auto.check"
+			cfg_val=$2
 		;;
 		cg|custom.group)
-			opt="custom.group"
-			val=$2
+			cfg_opt="custom.group"
+			cfg_val=$2
 		;;
 		id|ca.id)
-			opt="ca.id"
-			val=$2
+			cfg_opt="ca.id"
+			cfg_val=$2
 		;;
 		co|custom.openvpn)
-			opt="custom.openvpn"
-			val=$2
+			cfg_opt="custom.openvpn"
+			cfg_val=$2
 		;;
 		im|inline.metadata)
-			opt="inline.metadata"
-			val=$2
+			cfg_opt="inline.metadata"
+			cfg_val=$2
 		;;
 		'')
 			# Show config
@@ -559,9 +558,9 @@ easytls_config ()
 		;;
 	esac
 
-	case "$opt" in
+	case "$cfg_opt" in
 		auto.check|inline.metadata)
-			case "$val" in
+			case "$cfg_val" in
 				on|off)
 					:
 				;;
@@ -572,16 +571,17 @@ easytls_config ()
 		;;
 		custom.group)
 			# Cannot be empty
-			[ -z "$val" ] && die "Unsupported value for $opt: $val"
+			[ -z "$cfg_val" ] && die "Unsupported value for $cfg_opt: $cfg_val"
 			# spaces ?
-			test_val="${val%% *}"
-			[ "$val" = "$test_val" ] || die "Unsupported value for $opt: $val"
+			test_val="${cfg_val%% *}"
+			[ "$cfg_val" = "$test_val" ] || \
+				die "Unsupported value for $cfg_opt: $cfg_val"
 		;;
 		custom.openvpn)
-			if [ -n "$val" ]
+			if [ -n "$cfg_val" ]
 			then
 				# Test for file
-				[ -f "$val" ] || die "Missing: $val"
+				[ -f "$cfg_val" ] || die "Missing: $cfg_val"
 			fi
 		;;
 		ca.id)
@@ -601,7 +601,8 @@ easytls_config ()
 # Update config
 easytls_config_update ()
 {
-	sed -i -e "s\`^${opt}[[:blank:]]=[[:blank:]].*$\`${opt} = ${val}\`g" \
+	sed -i \
+		-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 		"$EASYTLS_CONFIG_FILE" || return 1
 }
 
@@ -615,37 +616,40 @@ easytls_config_use ()
 	easytls_verbose "* Load Config"
 
 	config_error=0
-	while IFS=' ' read -r opt equ val
+	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
+	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
+	# Any writes to config and Windows/sed converts all CRLF to NL anyway
+	while read -r cfg_opt cfg_equ cfg_val
 	do
 		# These settings no not change command line
-		case "$opt" in
+		case "$cfg_opt" in
 			auto.check)
-				case "$val" in
+				case "$cfg_val" in
 					off)	set_var auto_check_disabled 1 ;;
 					on)		: ;;
 					*)		config_error=1 ;;
 				esac
 				;;
 			inline.metadata)
-				case "$val" in
+				case "$cfg_val" in
 					off)	set_var no_metadata 1 ;;
 					on)		: ;;
-					*)		config_error=1 ;;
+					*)		config_error=2 ;;
 				esac
 				;;
 			custom.group)
-				set_var EASYTLS_TLSCV2_CG "$val"
+				set_var EASYTLS_TLSCV2_CG "$cfg_val"
 				;;
 			custom.openvpn)
-				set_var EASYTLS_OPENVPN "$val"
+				set_var EASYTLS_OPENVPN "$cfg_val"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
-				EASYTLS_MASTER_ID="$val"
+				export EASYTLS_MASTER_ID="$cfg_val"
 		esac
 
 		# Just for shellcheck
-		[ "$equ" = "=" ] || config_error=1
+		[ "$cfg_equ" = "=" ] || config_error=3
 
 	done < "$EASYTLS_CONFIG_FILE"
 	return "$config_error"
