@@ -689,11 +689,6 @@ verify_openvpn ()
 	# Find openvpn or openvpn.exe
 	help_note="See ./easytls help options - Option: --openvpn"
 
-	# I know this is crude .. working with the tools available
-	if [ -f 'C:/Program Files/OpenVPN/bin/openvpn.exe' ]; then
-		EASYTLS_OPENVPN='C:/Program Files/OpenVPN/bin/openvpn.exe'
-	fi
-
 	ovpn_ver="$("$EASYTLS_OPENVPN" --version)"
 	case "${ovpn_ver%% *}" in
 		OpenVPN) : ;;
