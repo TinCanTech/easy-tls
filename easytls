@@ -689,14 +689,13 @@ verify_openvpn ()
 	# Find openvpn or openvpn.exe
 	help_note="See ./easytls help options - Option: --openvpn"
 
-	ovpn_ver="$("$EASYTLS_OPENVPN" --version)"
-	case "${ovpn_ver%% *}" in
+	# extract openvpn version
+	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
+	case "${openvpn_version%% *}" in
 		OpenVPN) : ;;
 		*) die "Missing or invalid OpenVPN" ;;
 	esac
 
-	# extract openvpn version
-	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
 	openvpn_version="${openvpn_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
 	openvpn_version="${openvpn_version%_*}"
