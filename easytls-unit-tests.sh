@@ -383,6 +383,32 @@ do
 
 		echo
 	done
+
+		print "============================================================"
+		  echo metadata_file="$DBUG_DIR/c09-bob-tls-crypt-v2.metadata"
+		export metadata_file="$DBUG_DIR/c09-bob-tls-crypt-v2.metadata"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+
+		print "------------------------------------------------------------"
+		echo "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
+		     "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+
+		print "------------------------------------------------------------"
+		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
+		exit_code=$?
+		[ $exit_code -eq 0 ] || total_expected_errors=$((total_expected_errors + 1))
+		echo "exit: $exit_code"
+
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
 	"$EASYTLS_CMD" $EASYTLS_OPTS status || \
@@ -600,9 +626,9 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 		fail "Unit test error 71: version"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 241 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 244 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
-[ $total_expected_errors -eq 241 ] || exit 9
+[ $total_expected_errors -eq 244 ] || exit 9
 exit 0

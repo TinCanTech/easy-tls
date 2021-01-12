@@ -79,6 +79,9 @@ fail_and_exit ()
 			"* ==> name         remote: $md_name"
 
 		printf "%s\n" \
+			"* ==> sub-key      remote: $md_subkey"
+
+		printf "%s\n" \
 			"* ==> date         remote: $md_date"
 
 		[ $2 -eq 1 ] && printf "%s\n" \
