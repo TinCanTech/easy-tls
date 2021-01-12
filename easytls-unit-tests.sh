@@ -427,7 +427,11 @@ done # => loops
 printf '\n\n\n'
 print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
-DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
+
+
+###  NOTE: Hard coded directory
+
+DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	# Test tls-crypt-v2-verify.sh
 	for c in "c01" "c05" "c06" "c07" "c09"
