@@ -688,13 +688,17 @@ verify_openvpn ()
 {
 	# Find openvpn or openvpn.exe
 	help_note="See ./easytls help options - Option: --openvpn"
-	if [ -f "$EASYTLS_OPENVPN" ]; then
-		: # OK
-	elif [ -f 'C:/Program Files/OpenVPN/bin/openvpn.exe' ]; then
+
+	# I know this is crude .. working with the tools available
+	if [ -f 'C:/Program Files/OpenVPN/bin/openvpn.exe' ]; then
 		EASYTLS_OPENVPN='C:/Program Files/OpenVPN/bin/openvpn.exe'
-	else
-		die "OpenVPN not found: $EASYTLS_OPENVPN"
 	fi
+
+	ovpn_ver="$("$EASYTLS_OPENVPN" --version)"
+	case "${ovpn_ver%% *}" in
+		OpenVPN) : ;;
+		*) die "Missing or invalid OpenVPN" ;;
+	esac
 
 	# extract openvpn version
 	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
