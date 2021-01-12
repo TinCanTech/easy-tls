@@ -123,9 +123,9 @@ total_expected_errors=0
 for loops in 1 2 3
 do
 
-	PKI_DIR="${WORK_DIR}/pki${loops}"
-	ETLS_DIR="$WORK_DIR/pki${loops}/easytls"
-	DBUG_DIR="$WORK_DIR/pki${loops}/easytls/metadata"
+	PKI_DIR="${WORK_DIR}/et-tdir${loops}"
+	ETLS_DIR="${PKI_DIR}/easytls"
+	DBUG_DIR="${ETLS_DIR}/metadata"
 	export EASYRSA_PKI="$PKI_DIR"
 
 	# Build vars, used by all remaining loops
@@ -562,8 +562,8 @@ DBUG_DIR="$WORK_DIR/pki1/easytls/metadata"
 	print "============================================================"
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
-	rm "$WORK_DIR/pki3/easytls/data/easytls-inline-index.txt.backup"
-	rm "$WORK_DIR/pki3/easytls/data/easytls-inline-index.hash.backup"
+	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.txt.backup"
+	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.hash.backup"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
