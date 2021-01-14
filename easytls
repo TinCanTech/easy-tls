@@ -66,7 +66,6 @@ Use the 'help' command above to get full usage details.
         <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
   save-id
   status [ cmd-opts ]
-  inline-base <filename_base> [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
@@ -145,15 +144,6 @@ cmd_help()
 	inl|inline  - List only Easy-TLS inline files
 	inv|invalid - List only Easy-TLS invalid inline files
 	ren|renewed - List only Easy-RSA renewed certificates" ;;
-		inline-base) text="
-  inline-base <filename_base> [ cmd-opts ]
-      Create a complete OpenVPN node package from Easy-RSA files only
-      for VPN node <filename_base>"
-			opts="
-        nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file
-                  Default file is easyrsa3/pki/dh.pem
-                  To specify an alternative file use the --dh option" ;;
 		ita|inline-tls-auth) text="
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
@@ -328,7 +318,6 @@ Easy-TLS abbreviations:
   build-tls-crypt-v2-client     - btv2c | btcv2c
   save-id                       - sid
   status                        - s
-  inline-base                   - No abbreviation
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itv2 | itcv2
