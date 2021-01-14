@@ -2945,10 +2945,6 @@ case "$cmd" in
 		status "$@" || \
 			die "Error: status"
 		;;
-	ib|inline-base)
-		inline_base "$@" || \
-			die "Error: inline_base"
-		;;
 	ita|inline-tls-auth)
 		inline_tls_auth "$@" || \
 			die "Error: inline_tls_auth"

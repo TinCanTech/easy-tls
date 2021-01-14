@@ -172,9 +172,6 @@ do
 			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
 		"--inline --custom-group=tincantech --sub-key-name=office \
 			build-tls-crypt-v2-client s01 c10 abcdefabcdef 123456543210" \
-		"--custom-group=tincantech inline-base s01 add-dh" "status" \
-		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
-		"inline-remove s01" "status" \
 		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" "status" \
 		"--custom-group=tincantech inline-renew s01 add-dh" "status" \
 		"inline-remove s01" "status" \
