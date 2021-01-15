@@ -158,7 +158,6 @@ do
 	# Test EasyTLS
 	for i in "init-tls" \
 		"build-tls-auth" "build-tls-crypt" \
-		"save-id" \
 		"build-tls-crypt-v2-server s01" \
 		"--inline --custom-group=tincantech build-tls-crypt-v2-server s02" \
 		"build-tls-crypt-v2-client s01 c01" \

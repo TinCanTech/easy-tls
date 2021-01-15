@@ -610,7 +610,7 @@ easytls_config_use ()
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
 	while read -r cfg_opt cfg_equ cfg_val
 	do
-		# These settings no not change command line
+		# These settings do not change command line
 		case "$cfg_opt" in
 			auto.check)
 				case "$cfg_val" in
@@ -756,6 +756,7 @@ and initialize a fresh TLS PKI here."
 
 	# Create config file hash
 	config_file_save_hash || die "Failed to create config-file Hash."
+	save_id || die "Failed to Save ID."
 
 	# Create disabled list
 	head_text="# EastTLS disabled-list - Created: $(date)"
