@@ -1040,7 +1040,7 @@ status_easytls_invalid ()
 		# Clear inline_hash from previous loop
 		unset inline_hash
 		# Check the .inline HASH
-		inline_index_check_inline_hash || die "Failed HASH: $inline_file"
+		verify_inline_hash || die "Failed HASH: $inline_file"
 
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
@@ -1341,42 +1341,42 @@ generate_file_hash ()
 }
 
 # Check inline-file hash
-inline_index_check_inline_hash ()
+verify_inline_hash ()
 {
 	# This is a check so check everything here
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
 
 	[ -z "$name" ] && \
-		die "inline_index_check_inline_hash: Missing value: name"
+		die "verify_inline_hash: Missing value: name"
 	#easytls_verbose "name: $name"
 
 	# May not require this
 	#[ -z "$crt_serial" ] && \
-	#	die "inline_index_check_inline_hash: Missing value: crt_serial"
+	#	die "verify_inline_hash: Missing value: crt_serial"
 
 	# Must have inline_serial
 	[ -z "$inline_serial" ] && \
-		die "inline_index_check_inline_hash: Missing value: inline_serial"
+		die "verify_inline_hash: Missing value: inline_serial"
 	#easytls_verbose "inline_serial: $inline_serial"
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
-		die "inline_index_check_inline_hash: Found value: inline_hash $inline_hash"
+		die "verify_inline_hash: Found value: inline_hash $inline_hash"
 	#easytls_verbose "inline_hash: $inline_hash"
 
 	# Already have inline_serial so this file MUST exist so remove test
 	# Not so during an index rebuild
 	[ -z "$inline_file" ] && \
-		die "inline_index_check_inline_hash: Missing value: inline_file"
+		die "verify_inline_hash: Missing value: inline_file"
 	[ -f "$inline_file" ] || \
-		die "inline_index_check_inline_hash: Missing file: $inline_file"
+		die "verify_inline_hash: Missing file: $inline_file"
 	#easytls_verbose "inline_file: $inline_file"
 
 	# generate current file HASH
 	generate_file_hash "$inline_file" || \
-		die "inline_index_check_inline_hash: Failed to hash: $inline_file"
+		die "verify_inline_hash: Failed to hash: $inline_file"
 	real_hash="$generated_hash"
 	#easytls_verbose "real_hash: $generated_hash"
 
@@ -1404,7 +1404,7 @@ inline_index_check_inline_hash ()
 
 	# There is only one way out of this..
 	return 1
-} # => inline_index_check_inline_hash ()
+} # => verify_inline_hash ()
 
 # Get serial number from inline index file using Common name as key
 inline_index_common_name_to_serial ()
@@ -1528,7 +1528,7 @@ inline_show ()
 	inline_crt_serial
 
 	#Check inline hash
-	inline_index_check_inline_hash || die "Failed HASH: $inline_file"
+	verify_inline_hash || die "Failed HASH: $inline_file"
 
 	# Copy inline to stdout
 	cat "$inline_file" || die "Failed to open: $inline_file"
@@ -1557,7 +1557,7 @@ inline_remove ()
 		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
 	# Check .inline HASH prior to removal
-	inline_index_check_inline_hash || die "inline_remove Failed HASH: $inline_file"
+	verify_inline_hash || die "inline_remove Failed HASH: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
 
