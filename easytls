@@ -123,9 +123,11 @@ cmd_help()
 
       Create an OpenVPN TLS crypt V2 Client key
 
-      The metadata can also be used to specify Hardware Addresses which this key
-      is allowed to be used from.  Use easytls-cryptv2-client-connect.sh to verify
-      the HW-ADDR (Note: Both scripts are required to successfully verify Hardware)" ;;
+      The metadata can also be used to specify Hardware Addresses which this
+      key is allowed to be used from.  Use easytls-cryptv2-client-connect.sh
+      to verify the HW-ADDR.
+
+      Note: Both scripts are required to successfully verify Hardware." ;;
 		sid|save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
@@ -1258,7 +1260,8 @@ inline_index_update ()
 
 		# Create new record
 		new_record="$name $inline_serial $inline_hash"
-		[ $EASYTLS_TLSCV2_SUBKNAME ] && new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
+		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
+			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
 		printf "%s\n" "$new_record" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
