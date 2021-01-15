@@ -593,8 +593,8 @@ easytls_config ()
 easytls_config_update ()
 {
 	sed -i \
-		-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
-		"$EASYTLS_CONFIG_FILE" || return 1
+	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
+	"$EASYTLS_CONFIG_FILE" || return 1
 }
 
 # Use config
@@ -1384,7 +1384,6 @@ verify_inline_hash ()
 	#easytls_verbose "real_hash: $generated_hash"
 
 	# Search for current HASH
-	#easytls_verbose "name=${name}  inline_serial=${inline_serial}  real_hash=${real_hash}"
 	find_hash="$(inline_index_search_inline_hash)"
 
 	case "$find_hash" in
@@ -1657,7 +1656,8 @@ inline_index_rebuild ()
 		inline_crt_common_name
 		easytls_verbose "inline_common_name: ^$inline_common_name^"
 		[ -z "$inline_common_name" ] && \
-			inline_index_rebuild_reset "inline_index_rebuild: No inline_common_name"
+			inline_index_rebuild_reset \
+				"inline_index_rebuild: No inline_common_name"
 
 		if [ "$i" = "$inline_common_name" ]
 		then
