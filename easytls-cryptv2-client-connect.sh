@@ -130,7 +130,7 @@ verify_client_hwaddr ()
 # Verify the pushed hwaddr is in the key list
 verify_allowed_hwaddr ()
 {
-	grep -q "$client_hwaddr" "$client_hwaddr_file"
+	grep -q "+${client_hwaddr}+" "$client_hwaddr_file"
 }
 
 # Allow connection
@@ -193,7 +193,12 @@ do
 	;;
 	*)
 		empty_ok=1
-		print "Ignoring unknown option: $1"
+		if [ -f "$1" ]
+		then
+			print "Ignoring temp file: $1"
+		else
+			print "Ignoring unknown option: $1"
+		fi
 	;;
 	esac
 
@@ -217,30 +222,28 @@ client_hwaddr="$(get_client_hwaddr)"
 # Does the hardware-address-list file exist
 if [ -f "$client_hwaddr_file" ]
 then
-	# Client pushed IV_HWADDR - Required for this client
-	verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
-
-	# Search hardware list file for client pushed hardware address
-	failure_msg="Hardware address $client_hwaddr not allowed"
-	verify_allowed_hwaddr && {
-		unset failure_msg
-		success_msg="Hardware address correct: $common_name $client_hwaddr"
+	# Check that hardware-address is 000000000000
+	if grep -q '^000000000000$' "$client_hwaddr_file"
+	then
+		# This cert serial number is not bound by hardware address
+		success_msg="Hardware address not required: $common_name"
 		connection_allowed
-		}
-else
-	# If the file does not exist then this client is not bound to hardware
-	# Decide on how strict you want your server to be
-
-	success_msg="Hardware list file not found: $client_hwaddr_file"
-
-	[ $EASYTLS_hwaddr_required ] && {
+	else
 		# Client pushed IV_HWADDR - Required for this client
 		verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
-		}
 
-	connection_allowed
+		# Search hardware list file for client pushed hardware address
+		failure_msg="Hardware address $client_hwaddr not allowed"
+		verify_allowed_hwaddr && {
+			unset failure_msg
+			success_msg="Hardware address correct: $common_name $client_hwaddr"
+			connection_allowed
+			}
+	fi
+else
+	# If the file does not exist then metadata vs certificate serial do not match
+	failure_msg="Client serial number mismatch"
 fi
-
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9
