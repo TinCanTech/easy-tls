@@ -313,7 +313,7 @@ opt_abbreviations ()
 	print "
 Easy-TLS abbreviations:
 
-  init-tls                      - No abbreviation
+  init-tls                      - init
   build-tls-auth                - bta
   build-tls-crypt               - btc
   build-tls-crypt-v2-server     - btv2s | btcv2s
@@ -2919,7 +2919,7 @@ trap "exit 14" 15
 cmd="$1"
 [ -n "$1" ] && shift # scrape off command
 case "$cmd" in
-	init-tls)
+	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
 		;;
