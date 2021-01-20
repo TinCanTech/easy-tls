@@ -1269,22 +1269,19 @@ inline_index_update ()
 		easytls_verbose "  ADD: $new_record"
 	;;
 	del)
-
+		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
-		old_record='${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}'
-		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
-			old_record='${old_record}[[:blank:]]$EASYTLS_TLSCV2_SUBKNAME'
-		eval old_record=${old_record}
+		old_record="${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}"
 
-		# Verify old record
-		grep "^${old_record}$" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
+		# Find old record
+		grep "^${old_record}" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
 			help_note="Missing record: $old_record"
-			die "inline_index_update del: Failed verify"
+			die "inline_index_update del: Failed to find old record"
 			}
 
 		# Remove old record
 		easytls_verbose "  DEL: $old_record"
-		sed -i -e "/^${old_record}$/d" "$EASYTLS_INLINE_INDEX" || {
+		sed -i -e "/^${old_record}.*$/d" "$EASYTLS_INLINE_INDEX" || {
 			help_note="Missing record: $old_record"
 			die "inline_index_update del: Failed write"
 			}
@@ -1561,9 +1558,10 @@ inline_remove ()
 	# Check .inline HASH prior to removal
 	verify_inline_hash || die "inline_remove Failed HASH: $inline_file"
 
-	rm "$inline_file" || die "Failed to remove: $inline_file"
-
+	# Update the index first
 	inline_index_update del
+
+	rm "$inline_file" || die "Failed to remove: $inline_file"
 
 	# Inline file and record deleted - Forget the HASH
 	# Otherwise 'inline_renew add' still has the HASH
