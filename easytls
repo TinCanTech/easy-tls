@@ -1118,6 +1118,12 @@ status_easyrsa_renewed ()
 
 } # => status_easyrsa_renewed ()
 
+# Verify certificate purpose
+cert_purpose ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose | grep -q "$2"
+} # => cert_purpose ()
+
 # Cut to only certificate enddate
 crt_expire_date_only ()
 {
@@ -2232,6 +2238,9 @@ build_tls_crypt_v2_server ()
 		die "Easy-TLS requires that the x509 certificate has been built.
 Missing file: $srv_cert"
 
+	cert_purpose "$srv_cert" 'SSL server : Yes' || \
+		die "Certificate must be a Server: $srv_cert"
+
 	[ -f "$key_file" ] && die "Server file already exists: $key_file"
 
 	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
@@ -2287,6 +2296,9 @@ Missing srv file: $srv_cert"
 	[ -f "$cli_cert" ] || \
 		die "Easy-TLS requires that the x509 certificate has been built.
 Missing cli file: $cli_cert"
+
+	cert_purpose "$cli_cert" 'SSL client : Yes' || \
+		die "Certificate must be a Client: $cli_cert"
 
 	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
