@@ -56,6 +56,14 @@ Please use the help:<br>
   You can use the `custom.group` option to save your Custom group, or<br>
   Use `--custom-group=XYZ` on the command line for all the commands which need it.<br>
   <br>
+* Use interactive menus: `build` & `inline`
+  ```
+  ./easytls build
+  ./easytls inline
+  ```
+  These interactive menus will take you through all the options for building TLS keys<br>
+  and inlining all the required files for a credentials only OpenVPN inline configuration file.<br>
+  <br>
 * Create a TLS-Crypt-V2 Server key:
   ```
   ./easytls build-tls-crypt-v2-server <server_filename_base>
