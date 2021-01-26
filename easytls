@@ -519,7 +519,9 @@ $help_note"
 easytls_verbose ()
 {
 	[ $EASYTLS_VERBOSE ] || return 0
-	print "$@"
+	verbose_message="$*"
+	[ -z "$verbose_message" ] && print "" && return 0
+	print "* $verbose_message"
 }
 
 # Configurable options
@@ -612,7 +614,7 @@ easytls_config_use ()
 	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
 
 	verify_config_hash || die "Failed config file hash"
-	easytls_verbose "* Load Config"
+	easytls_verbose "Load Config"
 
 	config_error=0
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
@@ -795,7 +797,7 @@ inline_auto_check ()
 
 	auto_check=1
 	easytls_verbose ""
-	easytls_verbose "* AUTO-CHECK"
+	easytls_verbose "auto-check"
 
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
@@ -819,6 +821,7 @@ inline_auto_check ()
 	verify_config_hash || warn "Config file is corrupt."
 
 	unset auto_check
+	easytls_verbose "auto-check complete."
 } # => inline_auto_check ()
 
 # Show Easy-TLS inlines and Easy-RSA certificates
@@ -929,7 +932,7 @@ status ()
 	# Verify disabled list Hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
-	easytls_verbose "* Status complete."
+	easytls_verbose "Status complete"
 } #=> status ()
 
 # Format status output
