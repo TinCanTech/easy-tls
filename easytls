@@ -382,6 +382,12 @@ $1" 1>&2
 	exit "${2:-1}"
 } # => die()
 
+# Specific error messages from sub-functions which do not use die()
+error_msg ()
+{
+	print "ERROR: $1"
+}
+
 # remove temp files and do terminal cleanups
 cleanup()
 {
