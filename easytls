@@ -1331,13 +1331,19 @@ inline_index_verify_index_hash ()
 inline_index_save_index_hash ()
 {
 	# Generate the current hash
-	generate_file_hash "$EASYTLS_INLINE_INDEX" || \
-		die "inline_index_update add: Failed to hash: $inline_file"
+	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
+		error_msg "inline_index_save_index_hash - Generate the current hash"
+		return 1
+		}
+
 	inline_index_current_hash="$generated_hash"
 	# Save the current hash
-	printf '%s\n' "$inline_index_current_hash" > \
-		"$EASYTLS_IL_INDEX_HASH" || \
+	printf '%s\n' "$inline_index_current_hash" > "$EASYTLS_IL_INDEX_HASH" || {
+		error_msg "inline_index_save_index_hash - Save the current hash"
 		return 1
+		}
+
+	easytls_verbose "Inline-index hash saved OK"
 }
 
 # Generate SHA1 file hash
