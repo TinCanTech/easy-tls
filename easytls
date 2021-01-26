@@ -847,9 +847,6 @@ inline_auto_check ()
 	# Check disabled-list hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
-	# Check config-file hash
-	config_verify_hash || warn "Config file hash failed."
-
 	unset auto_check
 	easytls_verbose "auto-check complete."
 } # => inline_auto_check ()
