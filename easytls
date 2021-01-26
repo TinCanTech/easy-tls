@@ -2600,7 +2600,7 @@ disabled_list_manager ()
 	case $action in
 	rehash)
 		# This needs more work to recreate the date stamps.
-		disabled_list_update_and_hash
+		disabled_list_update_and_hash || die "Failed to rehash disabled-list."
 		notice "disabled-list rehash successful."
 		return 0
 	;;
@@ -2614,13 +2614,13 @@ disabled_list_manager ()
 	#verify_pki_init
 	verify_tls_init
 
+	# Verify disabled-list Hash
+	disabled_list_verify_hash || die "Disabled list is corrupt."
+
 	# get the serial number of the certificate from openssl
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
 	openssl_crt_serial
-
-	# Verify disabled-list Hash
-	disabled_list_verify_hash || die "Disabled list is corrupt."
 
 	# Append --sub-key-name
 	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
@@ -2695,28 +2695,47 @@ disabled_list_update_and_hash ()
 {
 	# Update time-stamp
 	update_text="# Updated: $(date) -- $action: $name"
-	sed -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || \
-		die "disabled list update failed"
-	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST" || \
-		die "disabled list update failed"
+	sed -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || {
+		error_msg "disabled_list_update_and_hash - Failed sed"
+		return 1
+		}
+
+	printf '%s\n' "$update_text" >> "$EASYTLS_DISABLED_LIST" || {
+		error_msg "disabled_list_update_and_hash - Failed printf"
+		return 1
+		}
 
 	# Save new disabled-list Hash
-	disabled_list_save_hash || die "Failed to save disabled-list Hash"
+	disabled_list_save_hash || {
+		error_msg "Failed to save disabled-list Hash"
+		return 1
+		}
 }
 
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
+	# Missing disabled-list is ok
 	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
+
 	# Read the saved hash
 	disabled_list_saved_hash="$(cat "$EASYTLS_DISABLED_HASH")"
+
 	# Generate the current hash
-	generate_file_hash "$EASYTLS_DISABLED_LIST" || \
-		die "disabled_list_verify_hash: Failed to hash: $inline_file"
-	disabled_list_current_hash="$generated_hash"
-	# Verify hash match
-	[ "$disabled_list_current_hash" = "$disabled_list_saved_hash" ] || \
+	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
+		error_msg "disabled_list_verify_hash: Hash failed: $EASYTLS_DISABLED_LIST"
 		return 1
+		}
+
+	# Set current hash
+	disabled_list_current_hash="$generated_hash"
+
+	# Verify hash match
+	[ "$disabled_list_current_hash" = "$disabled_list_saved_hash" ] || {
+		error_msg "disabled_list_verify_hash: Verify hash match failed"
+		return 1
+		}
+
 	easytls_verbose "Disabled-list hash check OK"
 }
 
@@ -2724,13 +2743,19 @@ disabled_list_verify_hash ()
 disabled_list_save_hash ()
 {
 	# Generate the current hash
-	generate_file_hash "$EASYTLS_DISABLED_LIST" || \
-		die "disabled_list_save_hash: Failed to hash: $inline_file"
-	disabled_list_current_hash="$generated_hash"
-	# Save the current hash
-	printf '%s\n' "$disabled_list_current_hash" > \
-		"$EASYTLS_DISABLED_HASH" || \
+	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
+		error_msg "disabled_list_save_hash: Hash failed: $EASYTLS_DISABLED_LIST"
 		return 1
+		}
+
+	# Set current hash
+	disabled_list_current_hash="$generated_hash"
+
+	# Save the current hash
+	printf '%s\n' "$disabled_list_current_hash" > "$EASYTLS_DISABLED_HASH" || {
+		error_msg "disabled_list_save_hash: Write failed: $EASYTLS_DISABLED_HASH"
+		return 1
+		}
 }
 
 
