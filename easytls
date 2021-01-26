@@ -528,6 +528,9 @@ easytls_verbose ()
 # Configurable options
 easytls_config ()
 {
+	# Missing config file is not fatal
+	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+
 	case "$1" in
 		ac|auto.check)
 			cfg_opt="auto.check"
@@ -614,7 +617,11 @@ easytls_config_use ()
 	# If the config file does not exist then Do not error
 	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
 
-	verify_config_hash || die "Failed config file hash"
+	config_verify_hash || {
+		error_msg "Config file hash failed."
+		return 1
+		}
+
 	easytls_verbose "Load Config"
 
 	config_error=0
@@ -629,14 +636,14 @@ easytls_config_use ()
 				case "$cfg_val" in
 					off)	set_var auto_check_disabled 1 ;;
 					on)		: ;;
-					*)		config_error=1 ;;
+					*)		config_error=2 ;;
 				esac
 				;;
 			inline.metadata)
 				case "$cfg_val" in
 					off)	set_var no_metadata 1 ;;
 					on)		: ;;
-					*)		config_error=2 ;;
+					*)		config_error=3 ;;
 				esac
 				;;
 			custom.group)
@@ -651,38 +658,60 @@ easytls_config_use ()
 		esac
 
 		# Just for shellcheck
-		[ "$cfg_equ" = "=" ] || config_error=3
+		[ "$cfg_equ" = "=" ] || config_error=4
 
 	done < "$EASYTLS_CONFIG_FILE"
 	return "$config_error"
 }
 
 # Verify the config file hash
-verify_config_hash ()
+config_verify_hash ()
 {
 	# The config file may not exist
 	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+
 	# If the config file exists then the hash must exist
-	[ -f "$EASYTLS_CONFIG_HASH" ] || return 1
+	[ -f "$EASYTLS_CONFIG_HASH" ] || {
+		error_msg "config_verify_hash - Missing Config Hash: $EASYTLS_CONFIG_HASH"
+		return 1
+		}
+
 	# Read the saved hash
 	config_saved_hash="$(cat "$EASYTLS_CONFIG_HASH")"
+
 	# Generate the current hash
-	generate_file_hash "$EASYTLS_CONFIG_FILE" || return 1
+	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
+		error_msg "config_verify_hash - Config file failed to generate hash."
+		return 1
+		}
+
 	config_current_hash="$generated_hash"
 	# Verify hash match
-	[ "$config_saved_hash" = "$config_current_hash" ] || return 1
-	[ $EASYTLS_SILENT ] || easytls_verbose "Config file hash check OK"
+	[ "$config_saved_hash" = "$config_current_hash" ] || {
+		error_msg "config_verify_hash - Verify hash match failed."
+		return 1
+		}
+
+	easytls_verbose "Config file hash check OK"
 }
 
 # Hash config-file
 config_file_save_hash ()
 {
 	# Generate the current hash
-	generate_file_hash "$EASYTLS_CONFIG_FILE" || \
-		die "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
+	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
+		error_msg "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
+		return 1
+		}
+
 	config_current_hash="$generated_hash"
 	# Save the current hash
-	printf '%s\n' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || return 1
+	printf '%s\n' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || {
+		error_msg "config_file_save_hash - Save the current hash failed."
+		return 1
+		}
+
+	easytls_verbose "Config file hash saved OK"
 }
 
 # Verify Openvpn is available
@@ -819,7 +848,7 @@ inline_auto_check ()
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
 	# Check config-file hash
-	verify_config_hash || warn "Config file is corrupt."
+	config_verify_hash || warn "Config file hash failed."
 
 	unset auto_check
 	easytls_verbose "auto-check complete."
@@ -928,7 +957,7 @@ status ()
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
 
 	# Check inline-index hash
-	verify_config_hash || warn "config-file is corrupt"
+	config_verify_hash || warn "Config file hash failed."
 
 	# Verify disabled list Hash
 	disabled_list_verify_hash || warn "Disabled list is corrupt."
