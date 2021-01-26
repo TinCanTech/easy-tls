@@ -1168,28 +1168,16 @@ cert_purpose ()
 # Cut to only certificate enddate
 crt_expire_date_only ()
 {
-	crt_expire="$(crt_expire_date)"
+	crt_expire="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate)"
 	crt_expire="${crt_expire##*=}"
 } # => crt_expire_date_only ()
 
-# Cut to only inline not after
+# Extract enddate from .inline certificate
 inline_expire_date_only ()
 {
-	inline_expire="$(inline_expire_date)"
+	inline_expire="$(grep '^[[:blank:]]\+Not After : ' "$inline_file")"
 	inline_expire="${inline_expire##*: }"
 } # => inline_expire_date_only ()
-
-# Extract enddate from certificate
-crt_expire_date ()
-{
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate
-} # => crt_expire_date ()
-
-# Extract enddate from .inline certificate
-inline_expire_date ()
-{
-	grep '^[[:blank:]]\+Not After : ' "$inline_file"
-} # => inline_expire_date ()
 
 # Get a list of commonNames from inline-index
 inline_index_common_name_list ()
