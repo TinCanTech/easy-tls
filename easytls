@@ -70,7 +70,6 @@ Use the "help" command above to get full usage details.
   inline-tls-crypt <filename_base> [ cmd-opts ]
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   inline-remove <filename_base>
-  inline-renew <filename_base> [ cmd-opts ]
   inline-show <filename_base>
   inline-index-rebuild
   inline-expire <filename_base>
@@ -179,14 +178,6 @@ cmd_help()
 		irm|irv|inline-remove) text="
   inline-remove <filename_base>
       Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
-		irn|irw|inline-renew) text="
-  inline-renew <filename_base> [ cmd-opts ]
-      Renew <filename_base>.inline when Easy-RSA certificate is renewed"
-			opts="
-        nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file
-                  Default file is easyrsa3/pki/dh.pem
-                  To specify an alternative file use the --dh option" ;;
 		is|inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
@@ -313,6 +304,7 @@ opt_abbreviations ()
 	print '
 Easy-TLS abbreviations:
 
+  config_file                   - cf | cfg
   init-tls                      - init
   build                         - No abbreviation
   build-tls-auth                - bta
@@ -326,7 +318,6 @@ Easy-TLS abbreviations:
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itv2 | itcv2
   inline-remove                 - irm | irv
-  inline-renew                  - irn | irw
   inline-show                   - is
   inline-index-rebuild          - No abbreviation
   inline-expire                 - ix
