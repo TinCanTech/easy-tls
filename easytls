@@ -519,8 +519,8 @@ easytls_verbose ()
 # Configurable options
 easytls_config ()
 {
-	# Missing config file is not fatal
-	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+	# Missing config file is fatal
+	[ -f "$EASYTLS_CONFIG_FILE" ] || die "Missing config file"
 
 	case "$1" in
 		ac|auto.check)
