@@ -118,7 +118,7 @@ cmd_help()
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		btv2c|btcv2c|build-tls-crypt-v2-client) text="
   build-tls-crypt-v2-client
-        <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
+      <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
 
       Create an OpenVPN TLS crypt V2 Client key
 
@@ -304,8 +304,8 @@ opt_abbreviations ()
 	print '
 Easy-TLS abbreviations:
 
-  config_file                   - cf | cfg
   init-tls                      - init
+  config_file                   - cf | cfg
   build                         - No abbreviation
   build-tls-auth                - bta
   build-tls-crypt               - btc
@@ -511,6 +511,7 @@ $help_note"
 easytls_verbose ()
 {
 	[ $EASYTLS_VERBOSE ] || return 0
+	[ $EASYTLS_SILENT ] && return 0
 	verbose_message="$*"
 	[ -z "$verbose_message" ] && print "" && return 0
 	print "* $verbose_message"
@@ -520,7 +521,7 @@ easytls_verbose ()
 easytls_config ()
 {
 	# Missing config file is fatal
-	[ -f "$EASYTLS_CONFIG_FILE" ] || die "Missing config file"
+	[ -f "$EASYTLS_CONFIG_FILE" ] || die "Missing config-file"
 
 	case "$1" in
 		ac|auto.check)
@@ -770,24 +771,25 @@ and initialize a fresh TLS PKI here."
 		|| die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
-	# Create tls dir in Easyrsa PKI dir
-	mkdir -p "$EASYTLS_PKI" || die "Failed to create TLS dir (permissions?)"
+	# Create easytls dir in EasyRSA-PKI dir
+	mkdir -p "$EASYTLS_PKI" || die "Failed to create easytls dir"
 
 	# Create data dir in easytls dir
-	mkdir -p "$EASYTLS_DATA_DIR" || die "Failed to create data dir (permissions?)"
+	mkdir -p "$EASYTLS_DATA_DIR" || die "Failed to create data dir"
 
 	# Create metadata dir in easytls dir
-	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir (permissions?)"
+	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir"
 
-	# Create tls dir index file
+	# Create inline-index file
 	head_text="# EasyTLS inline-index - Created: $(date)"
+	head_text="$head_text - cert_serial|inline-hash|CN|sub-key"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create inline-index"
 
-	# Create inline-index hash file
-	inline_index_save_index_hash || die "Failed to create inline-index Hash."
+	# Save inline-index hash
+	inline_index_save_hash || die "Failed to hash inline-index"
 
-	# Create config file
+	# Create config-file
 	{
 		#printf '%s\n' "batch.mode = off"
 		printf '%s\n' "ca.id = "
@@ -797,11 +799,13 @@ and initialize a fresh TLS PKI here."
 		printf '%s\n' "custom.openvpn = "
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
-	# Create config file hash
-	config_file_save_hash || die "Failed to create config-file Hash."
+	# Save config-file hash
+	config_file_save_hash || die "Failed to hash config-file"
+
+	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	save_id || warn "Failed to Save ID."
 
-	# Create disabled list
+	# Create disabled-list
 	head_text="# EastTLS disabled-list - Created: $(date)"
 	printf '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" \
 		|| die "Failed to create disabled-list"
@@ -2342,8 +2346,8 @@ build_tls_crypt_v2_client ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
-	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
 	ca_cert="$EASYRSA_PKI/ca.crt"
