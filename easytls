@@ -1786,6 +1786,12 @@ inline_index_rebuild_reset ()
 # Renew .inline file
 inline_renew ()
 {
+	# Easy-RSA certificate renewal is broken, do not use it.
+	error_msg "Easy-TLS does not support inline-renew."
+	error_msg "Use: 'easytls inline-remove' to delete the old inline file"
+	error_msg "and then create a new inline file for the new certificate."
+	return 1
+
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
 	verify_tls_init
