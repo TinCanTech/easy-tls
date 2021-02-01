@@ -613,8 +613,6 @@ easytls_config_use ()
 		return 1
 		}
 
-	easytls_verbose "Load Config"
-
 	config_error=0
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
@@ -652,10 +650,11 @@ easytls_config_use ()
 		[ "$cfg_equ" = "=" ] || config_error=4
 
 	done < "$EASYTLS_CONFIG_FILE"
+
 	return "$config_error"
 }
 
-# Verify the config file hash
+# Verify the config-file hash
 config_verify_hash ()
 {
 	# The config file may not exist
@@ -683,7 +682,7 @@ config_verify_hash ()
 		return 1
 		}
 
-	easytls_verbose "Config file hash check OK"
+	easytls_verbose "config-file hash check OK"
 }
 
 # Hash config-file
@@ -702,7 +701,7 @@ config_file_save_hash ()
 		return 1
 		}
 
-	easytls_verbose "Config file hash saved OK"
+	easytls_verbose "config-file hash saved OK"
 }
 
 # Verify Openvpn is available
@@ -3425,6 +3424,7 @@ vars_setup
 
 # Load config options - Does not change command line options
 easytls_config_use || die "Config error"
+easytls_verbose "config-file loaded OK"
 
 # Register cleanup on EXIT
 trap "cleanup" EXIT
