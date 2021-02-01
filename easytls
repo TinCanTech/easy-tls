@@ -597,6 +597,13 @@ easytls_config ()
 # Update config
 easytls_config_update ()
 {
+	# Find the pattern
+	grep -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" "$EASYTLS_CONFIG_FILE" || {
+		error_msg "easytls_config_update - input error"
+		return 1
+		}
+
+	# Replace the pattern
 	sed -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 	"$EASYTLS_CONFIG_FILE" || return 1
@@ -675,7 +682,9 @@ config_verify_hash ()
 		return 1
 		}
 
+	# Set the current hash
 	config_current_hash="$generated_hash"
+
 	# Verify hash match
 	[ "$config_saved_hash" = "$config_current_hash" ] || {
 		error_msg "config_verify_hash - Verify hash match failed."
@@ -694,7 +703,9 @@ config_file_save_hash ()
 		return 1
 		}
 
+	# Set the current hash
 	config_current_hash="$generated_hash"
+
 	# Save the current hash
 	printf '%s\n' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || {
 		error_msg "config_file_save_hash - Save the current hash failed."
