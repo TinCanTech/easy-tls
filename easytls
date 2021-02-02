@@ -794,7 +794,7 @@ and initialize a fresh TLS PKI here."
 
 	# Create tlskey-index file
 	head_text="# EasyTLS tlskey-index - Created: $(date)"
-	head_text="$head_text - cert-serial|tlskey-serial|CN|sub-key"
+	head_text="$head_text - tlskey-serial|cert-serial|CN|sub-key"
 	printf '%s\n' "$head_text" > "$EASYTLS_KEY_INDEX" \
 		|| die "Failed to create tlskey-index"
 
@@ -1852,7 +1852,7 @@ tlskey_index_update ()
 			}
 
 		# Create new record
-		new_record="$crt_serial $tlskey_serial $cli_name $EASYTLS_TLSCV2_SUBKNAME"
+		new_record="$tlskey_serial $crt_serial $cli_name $EASYTLS_TLSCV2_SUBKNAME"
 
 		# Write new record
 		printf '%s\n' "$new_record" >> "$EASYTLS_KEY_INDEX" || {
@@ -1871,7 +1871,7 @@ tlskey_index_update ()
 
 		# Note: tlskey_serial is unique, regardless of --sub-key-name
 		# Identify old record
-		old_record=".*[[:blank:]]${tlskey_serial}[[:blank:]]${name}[[:blank:]]"
+		old_record="${tlskey_serial}[[:blank:]].*[[:blank:]]${name}[[:blank:]]"
 
 		# Find old record
 		grep -q "^${old_record}$" "$EASYTLS_KEY_INDEX" || {
