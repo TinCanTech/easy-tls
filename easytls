@@ -938,6 +938,7 @@ status ()
 	#status_easytls_revoked
 
 	print "Easy-TLS: Invalid inline files:"
+	revoked_mismatch_count=0
 	status_easytls_invalid
 	if [ $revoked_mismatch_count -gt 0 ]
 	then
@@ -948,6 +949,7 @@ status ()
 	fi
 
 	print "Easy-TLS: .inline serial number mismatches:"
+	renewed_mismatch_count=0
 	status_easyrsa_renewed
 	if [ $renewed_mismatch_count -gt 0 ]
 	then
@@ -1060,6 +1062,9 @@ status_easytls_revoked ()
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
+	# Temporarily disable
+	return 0
+
 	[ $index_rebuild ] && [ -z "$etls_valid_il_hash_list" ] && \
 		die "empty etls_valid_il_hash_list"
 
@@ -1112,6 +1117,9 @@ status_easytls_invalid ()
 # Print Renewed certs from Easy-RSA if they are inlined
 status_easyrsa_renewed ()
 {
+	# Temporarily disable
+	return 0
+
 	renewed_mismatch_count=0
 	# REMEMBER: If there is no inline file for a cert
 	# then EasyTLS does not care if the cert is renewed
@@ -1254,6 +1262,9 @@ cert_expire ()
 # Get inline certificate expiry date
 inline_expire ()
 {
+	# Temporarily disable
+	return 0
+
 	name="$1"
 
 	verify_tls_init
@@ -1302,10 +1313,10 @@ inline_index_update ()
 		# Create new HASH
 		generate_file_hash "$inline_file" || \
 			die "inline_index_update add: Failed to hash: $inline_file"
-		inline_hash="$generated_hash"
+		current_inline_hash="$generated_hash"
 
 		# Create new record
-		new_record="$name $inline_serial $inline_hash"
+		new_record="$inline_serial $current_inline_hash $name"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
 		printf "%s\n" "$new_record" >> \
@@ -1317,7 +1328,7 @@ inline_index_update ()
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
-		old_record="${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}"
+		old_record="${inline_serial}[[:blank:]]${verified_inline_hash}[[:blank:]]${name}"
 
 		# Find old record
 		grep "^${old_record}" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
@@ -1455,25 +1466,32 @@ verify_inline_hash ()
 	#easytls_verbose "real_hash: $generated_hash"
 
 	# Search for current HASH
-	find_hash="$(inline_index_search_inline_hash)"
+	#find_hash="$(inline_index_search_inline_hash)"
 
-	case "$find_hash" in
-	0)
-		# HASH check failed
-		help_note="HASH incorrect for: $inline_file"
-	;;
-	1)
-		# This is the correct HASH so set it
-		# If this does not work in another function
-		# then control it from that function
-		inline_hash="$real_hash"
-
-		# HASH is correct
+	if inline_index_search_inline_hash
+	then
+		# hash OK
+		verified_inline_hash="$real_hash"
 		return 0
-	;;
-	*) help_note="HASH check unknown error: $find_hash"
-	;;
-	esac
+	fi
+
+#	case "$find_hash" in
+#	0)
+#		# HASH check failed
+#		help_note="HASH incorrect for: $inline_file"
+#	;;
+#	1)
+#		# This is the correct HASH so set it
+#		# If this does not work in another function
+#		# then control it from that function
+#		inline_hash="$real_hash"
+#
+#		# HASH is correct
+#		return 0
+#	;;
+#	*) help_note="HASH check unknown error: $find_hash"
+#	;;
+#	esac
 
 	# There is only one way out of this..
 	return 1
@@ -1534,7 +1552,7 @@ inline_index_search_inline_hash ()
 {
 	# Do not need to search for --sub-key-name
 	# because inline file HASH ${real_hash} is unique
-	grep -c "^${name}[[:blank:]]${inline_serial}[[:blank:]]${real_hash}" \
+	grep -q "^${inline_serial}[[:blank:]]${real_hash}[[:blank:]]${name}" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
@@ -1625,17 +1643,16 @@ inline_remove ()
 	inline_serial=""
 	inline_crt_serial
 
-	# Confirm remove
-	[ ! $silent_remove ] && \
-		confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
-
 	# Check .inline HASH prior to removal
 	verify_inline_hash || die "inline_remove Failed HASH: $inline_file"
 
-	# Update the index first
-	inline_index_update del
+	# Confirm remove
+	confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
 	rm "$inline_file" || die "Failed to remove: $inline_file"
+
+	# Update the index first
+	inline_index_update del
 
 	# Inline file and record deleted - Forget the HASH
 	# Otherwise 'inline_renew add' still has the HASH
@@ -1652,6 +1669,9 @@ inline_remove ()
 # Rebuild inline index
 inline_index_rebuild ()
 {
+	# Temporarily disable
+	return 0
+
 	# TODO
 	# TODO WARNING, inline_index_rebuild is a work in progress
 	# TODO
