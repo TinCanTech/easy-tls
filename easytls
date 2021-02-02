@@ -1338,7 +1338,7 @@ inline_index_update ()
 	esac
 
 	# Keep a hash of the inline-index
-	inline_index_save_index_hash || Die "Failed to update inline-index hash"
+	inline_index_save_hash || Die "Failed to update inline-index hash"
 
 	easytls_verbose "Inline Index Update complete!"
 } # => inline_index_update ()
@@ -1371,18 +1371,18 @@ inline_index_verify_index_hash ()
 }
 
 # Save new inline-index hash
-inline_index_save_index_hash ()
+inline_index_save_hash ()
 {
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
-		error_msg "inline_index_save_index_hash - Generate the current hash"
+		error_msg "inline_index_save_hash - Generate the current hash"
 		return 1
 		}
 
 	inline_index_current_hash="$generated_hash"
 	# Save the current hash
 	printf '%s\n' "$inline_index_current_hash" > "$EASYTLS_IL_INDEX_HASH" || {
-		error_msg "inline_index_save_index_hash - Save the current hash"
+		error_msg "inline_index_save_hash - Save the current hash"
 		return 1
 		}
 
@@ -1693,7 +1693,7 @@ inline_index_rebuild ()
 		inline_index_rebuild_reset "Failed to create inline-index"
 
 	# Create inline-index hash file
-	inline_index_save_index_hash || \
+	inline_index_save_hash || \
 		inline_index_rebuild_reset "Failed to create inline-index Hash."
 
 	# Create records from EasyTLS index names
