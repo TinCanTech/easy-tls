@@ -782,12 +782,27 @@ and initialize a fresh TLS PKI here."
 
 	# Create inline-index file
 	head_text="# EasyTLS inline-index - Created: $(date)"
-	head_text="$head_text - cert_serial|inline-hash|CN|sub-key"
+	head_text="$head_text - cert-serial|inline-hash|CN|sub-key"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create inline-index"
 
 	# Save inline-index hash
 	inline_index_save_hash || die "Failed to hash inline-index"
+
+	# Verify inline-index hash
+	inline_index_verify_index_hash || die "Failed to verify inline-index Hash."
+
+	# Create tlskey-index file
+	head_text="# EasyTLS tlskey-index - Created: $(date)"
+	head_text="$head_text - cert-serial|tlskey-serial|CN|sub-key"
+	printf '%s\n' "$head_text" > "$EASYTLS_KEY_INDEX" \
+		|| die "Failed to create tlskey-index"
+
+	# Create tlskey-index hash
+	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
+
+	# Verify tlskey-index hash
+	tlskey_index_verify_hash || die "Failed to verify tlskey-index Hash."
 
 	# Create config-file
 	{
@@ -851,10 +866,13 @@ inline_auto_check ()
 	#	warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	inline_index_verify_index_hash || warn "inline-index is corrupt"
+	inline_index_verify_index_hash || warn "inline-index hash failed."
+
+	# Verify tlskey hash
+	tlskey_index_verify_hash || warn "tlskey-index hash failed."
 
 	# Check disabled-list hash
-	disabled_list_verify_hash || warn "Disabled list is corrupt."
+	disabled_list_verify_hash || warn "disabled-list hash failed."
 
 	unset auto_check
 	easytls_verbose "auto-check complete."
@@ -1814,6 +1832,153 @@ inline_index_rebuild_reset ()
 
 ############################################################################
 #
+# EASYTLS TLS-Crypt-V2 Key management Section
+#
+
+# Update tlskey-index
+tlskey_index_update ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <update_index_action>"
+	update_index_action="$1"
+
+	verify_tls_init
+
+	case "$update_index_action" in
+	add)
+		# Verify tlskey-index Hash
+		tlskey_index_verify_hash || {
+			error_msg "tlskey-index is corrupt"
+			return 1
+			}
+
+		# Create new record
+		new_record="$crt_serial $tlskey_serial $cli_name $EASYTLS_TLSCV2_SUBKNAME"
+
+		# Write new record
+		printf '%s\n' "$new_record" >> "$EASYTLS_KEY_INDEX" || {
+			error_msg "Failed to update tlskey-index"
+			return 1
+			}
+
+		easytls_verbose "  ADD: $new_record"
+	;;
+	del)
+		# Verify tlskey-index Hash
+		tlskey_index_verify_hash || {
+			error_msg "tlskey-index is corrupt"
+			return 1
+			}
+
+		# Note: tlskey_serial is unique, regardless of --sub-key-name
+		# Identify old record
+		old_record=".*[[:blank:]]${tlskey_serial}[[:blank:]]${name}[[:blank:]]"
+
+		# Find old record
+		grep -q "^${old_record}$" "$EASYTLS_KEY_INDEX" || {
+			error_msg "tlskey_index_update del: Failed to find old record"
+			return 1
+			}
+
+		# Remove old record
+		sed -i -e "/^${old_record}.*$/d" "$EASYTLS_KEY_INDEX" || {
+			error_msg "tlskey_index_update del: Failed write"
+			return 1
+			}
+
+		easytls_verbose "  DEL: $old_record"
+	;;
+	rehash)
+		# Fall through to save hash
+		:
+	;;
+	*)
+		die "Unknown index action: $update_index_action"
+	;;
+	esac
+
+	# Keep a hash of the tlskey-index
+	tlskey_index_save_hash || {
+		error_msg "Failed to update tlskey-index hash"
+		return 1
+		}
+
+	easytls_verbose "tlskey-index Update complete!"
+} # => tlskey_index_update ()
+
+# Verify current tlskey-index hash
+tlskey_index_verify_hash ()
+{
+	[ -f "$EASYTLS_KEY_HASH" ] || {
+		error_msg "tlskey_index_verify_index_hash - Missing index file."
+		return 1
+		}
+
+	# Read the saved hash
+	tlskey_index_saved_hash="$(cat "$EASYTLS_KEY_HASH")"
+
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_KEY_INDEX" || {
+		error_msg "tlskey_index_verify_hash - generate_file_hash"
+		return 1
+		}
+
+	# Set the current hash
+	tlskey_index_current_hash="$generated_hash"
+
+	# Verify hash match
+	[ "$tlskey_index_saved_hash" = "$tlskey_index_current_hash" ] || {
+		error_msg "tlskey_index_verify_hash - Verify hash match"
+		return 1
+		}
+
+	easytls_verbose "tlskey-index hash check OK"
+} # => tlskey_index_verify_hash ()
+
+# Save tlskey-index hash
+tlskey_index_save_hash ()
+{
+	# Generate the current hash
+	generate_file_hash "$EASYTLS_KEY_INDEX" || {
+		error_msg "tlskey_index_save_hash - Generate the current hash"
+		return 1
+		}
+
+	# Set the current hash
+	tlskey_index_current_hash="$generated_hash"
+
+	# Save the current hash
+	printf '%s\n' "$tlskey_index_current_hash" > "$EASYTLS_KEY_HASH" || {
+		error_msg "tlskey_index_save_hash - Save the current hash"
+		return 1
+		}
+
+	easytls_verbose "tlskey-index hash save OK"
+} # => tlskey_index_save_hash ()
+
+#Insert a serial number
+tls_crypt_v2_serial_number ()
+{
+	# What ever openssl says ..
+	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
+
+	# Assume it is a valid HASH
+	generated_hash="${temp_hash%% *}"
+
+	# Test it
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
+		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
+		return 1
+		}
+
+	# Set this valid hash as tlskey_serial
+	tlskey_serial="${generated_hash}"
+	metadata="${tlskey_serial}-${metadata}"
+}
+
+
+
+############################################################################
+#
 # EASYTLS INLINE Section
 #
 
@@ -2450,9 +2615,13 @@ Missing cli file: $cli_cert"
 	b64_metadata=""
 	b64_enc_metadata || die "Failed to base64 encode metadata"
 
+	# Build key
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
 		$build_string "$key_file" "$b64_metadata" || \
 		die "Failed to create tls-crypt-v2-client key: $key_file"
+
+	# Save serial number to key-index
+	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS crypt v2 client key created: $key_file"
 
@@ -2628,23 +2797,6 @@ fn_ca_identity ()
 	printf '%s' "$ca_fingerprint" | sed -e 's/^.*=//g' -e 's/://g'
 }
 
-#Insert a serial number
-tls_crypt_v2_serial_number ()
-{
-	# What ever openssl says ..
-	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
-
-	# Assume it is a valid HASH
-	generated_hash="${temp_hash%% *}"
-
-	# Test it
-	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
-		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
-		return 1
-		}
-
-	metadata="${generated_hash}-${metadata}"
-}
 # Save metadata
 save_metadata ()
 {
