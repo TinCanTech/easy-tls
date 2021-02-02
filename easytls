@@ -782,7 +782,7 @@ and initialize a fresh TLS PKI here."
 
 	# Create inline-index file
 	head_text="# EasyTLS inline-index - Created: $(date)"
-	head_text="$head_text - cert-serial|inline-hash|CN|sub-key"
+	head_text="$head_text - inline-hash|inline-serial|CN|sub-key"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create inline-index"
 
@@ -1338,7 +1338,7 @@ inline_index_update ()
 		current_inline_hash="$generated_hash"
 
 		# Create new record
-		new_record="$inline_serial $current_inline_hash $name"
+		new_record="$current_inline_hash $inline_serial $name"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
 		printf "%s\n" "$new_record" >> \
@@ -1350,7 +1350,7 @@ inline_index_update ()
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
-		old_record="${inline_serial}[[:blank:]]${verified_inline_hash}[[:blank:]]${name}"
+		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]${name}"
 
 		# Find old record
 		grep "^${old_record}" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
@@ -1574,7 +1574,7 @@ inline_index_search_inline_hash ()
 {
 	# Do not need to search for --sub-key-name
 	# because inline file HASH ${real_hash} is unique
-	grep -q "^${inline_serial}[[:blank:]]${real_hash}[[:blank:]]${name}" \
+	grep -q "^${real_hash}[[:blank:]]${inline_serial}[[:blank:]]${name}" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
