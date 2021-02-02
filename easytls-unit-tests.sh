@@ -171,23 +171,23 @@ do
 			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
 		"--inline --custom-group=tincantech --sub-key-name=office \
 			build-tls-crypt-v2-client s01 c10 abcdefabcdef 123456543210" \
-		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" "status" \
-		"inline-remove s01" "status" \
-		"--custom-group=tincantech inline-tls-auth c01 1" "status" \
-		"inline-remove c01" "status" \
-		"--custom-group=tincantech inline-tls-crypt s01 add-dh" "status" \
-		"inline-remove s01" "status" \
-		"--custom-group=tincantech inline-tls-crypt c01" "status" \
-		"inline-remove c01" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c01" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c05" "status" "disable c05" \
+		"--custom-group=tincantech inline-tls-auth s01 0 add-dh"  \
+		"inline-remove s01"  \
+		"--custom-group=tincantech inline-tls-auth c01 1"  \
+		"inline-remove c01"  \
+		"--custom-group=tincantech inline-tls-crypt s01 add-dh"  \
+		"inline-remove s01"  \
+		"--custom-group=tincantech inline-tls-crypt c01"  \
+		"inline-remove c01"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 c01"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 c05"  "disable c05" \
 		"enable c05" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c06" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c08" "status" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw" "status" \
-		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw" "status" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c06"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 c08"  \
+		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw"  \
+		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw"  \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \

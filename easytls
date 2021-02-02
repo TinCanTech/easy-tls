@@ -834,17 +834,21 @@ inline_auto_check ()
 	easytls_verbose ""
 	easytls_verbose "auto-check"
 
+	# ALL status failures MUST be FATAL in future
+
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
-	status invalid || die "inline_auto_check: status invalid error"
-	[ $revoked_mismatch_count -eq 0 ] || \
-		warn "EasyTLS: Invalid .inline files found: Revoked certs."
+	# Temporarily disable
+	#status invalid || die "inline_auto_check: status invalid error"
+	#[ $revoked_mismatch_count -eq 0 ] || \
+	#	warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
-	status renewed || die "inline_auto_check: status renewed error"
-	[ $renewed_mismatch_count -eq 0 ] || \
-		warn "EasyTLS: Invalid .inline files found: Renewed certs."
+	# Temporarily disable
+	#status renewed || die "inline_auto_check: status renewed error"
+	#[ $renewed_mismatch_count -eq 0 ] || \
+	#	warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
 	inline_index_verify_index_hash || warn "inline-index is corrupt"
@@ -1632,8 +1636,13 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
-	[ $EASYTLS_TLSCV2_SUBKNAME ] && \
+	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
+		}
+
+	# standardize this
+	#[ $EASYTLS_TLSCV2_SUBKNAME ] && \
+	#	inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
 
 	verify_tls_init
 
@@ -2194,7 +2203,7 @@ inline_tls_crypt_v2 ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	sub_name="$name-$EASYTLS_TLSCV2_SUBKNAME"
-	[ $EASYTLS_TLSCV2_SUBKNAME ] && {
+	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		tls_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
 		metadata_file="$EASYTLS_MD_DIR/$sub_name-tls-crypt-v2.metadata"
 		inline_file="$EASYTLS_PKI/$sub_name.inline"
@@ -2398,7 +2407,7 @@ Missing cli file: $cli_cert"
 	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
 	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
 
-	[ $EASYTLS_TLSCV2_SUBKNAME ] && {
+	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		key_file="$EASYTLS_PKI/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
 		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.metadata"
 	}
@@ -2439,7 +2448,7 @@ Missing cli file: $cli_cert"
 
 	metadata=""
 	b64_metadata=""
-	b64_enc_metadata
+	b64_enc_metadata || die "Failed to base64 encode metadata"
 
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
 		$build_string "$key_file" "$b64_metadata" || \
@@ -2523,23 +2532,29 @@ b64_enc_metadata ()
 	key_date="$(date +%s)"
 
 	# Build metadata
-	metadata="$metadata_version $ca_identity $crt_serial $cli_name $key_date"
+	metadata="$metadata_version $ca_identity $crt_serial $key_date"
 
 	# Append --custom-group
-	if [ -n "$EASYTLS_TLSCV2_CG" ]
-	then
-		metadata="$metadata $EASYTLS_TLSCV2_CG"
-	else
-		metadata="$metadata EASYTLS"
-	fi
+	# TODO: something better than this
+	metadata="$metadata ${EASYTLS_TLSCV2_CG:-EASYTLS}"
+	#if [ -n "$EASYTLS_TLSCV2_CG" ]
+	#then
+	#	metadata="$metadata $EASYTLS_TLSCV2_CG"
+	#else
+	#	metadata="$metadata EASYTLS"
+	#fi
+
+	# Append common_name
+	metadata="$metadata $cli_name"
 
 	# Append --sub-key-name
-	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
-	then
-		metadata="$metadata $EASYTLS_TLSCV2_SUBKNAME"
-	else
-		metadata="$metadata NOSUBKEY"
-	fi
+	metadata="$metadata ${EASYTLS_TLSCV2_SUBKNAME:-'NOSUBKEY'}"
+	#if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
+	#then
+	#	metadata="$metadata $EASYTLS_TLSCV2_SUBKNAME"
+	#else
+	#	metadata="$metadata NOSUBKEY"
+	#fi
 
 	# Append opt field (Usage is to be decided)
 	if [ -n "$EASYTLS_TLSCV2_OPT" ]
@@ -2561,6 +2576,12 @@ b64_enc_metadata ()
 	else
 		metadata="$metadata 000000000000"
 	fi
+
+	# TLS Crypt v2 client key serial number
+	tls_crypt_v2_serial_number || {
+		error_msg "Failed to create serial number"
+		return 1
+		}
 
 	# Save metadata in plain text
 	save_metadata
@@ -2603,6 +2624,23 @@ fn_ca_identity ()
 	printf '%s' "$ca_fingerprint" | sed -e 's/^.*=//g' -e 's/://g'
 }
 
+#Insert a serial number
+tls_crypt_v2_serial_number ()
+{
+	# What ever openssl says ..
+	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
+
+	# Assume it is a valid HASH
+	generated_hash="${temp_hash%% *}"
+
+	# Test it
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
+		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
+		return 1
+		}
+
+	metadata="${generated_hash}-${metadata}"
+}
 # Save metadata
 save_metadata ()
 {
@@ -3353,6 +3391,7 @@ vars_setup()
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
+	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
