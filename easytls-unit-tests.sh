@@ -130,6 +130,7 @@ do
 
 	# Build vars, used by all remaining loops
 	[ $loops -eq 2 ] && build_vars
+	[ $loops -eq 3 ] && export EASYRSA_RAND_SN="yes"
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
