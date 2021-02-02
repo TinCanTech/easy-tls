@@ -199,9 +199,9 @@ metadata_string_to_vars ()
 		tls_key_serial="${1%%-*}"
 		md_easytls="${1#*-}"
 		md_version="${md_easytls%-*.*}"
-		md_name="$6"
 		md_date="$4"
 		md_custom_g="$5"
+		md_name="$6"
 	else
 		md_version="${1%%-*.*}"
 		md_name="$4"

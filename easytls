@@ -2273,9 +2273,9 @@ build_tls_auth ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5|2.6) build_string="--genkey tls-auth" ;;
-	2.4) build_string="--genkey --secret" ;;
-	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		2.5|2.6) build_string="--genkey tls-auth" ;;
+		2.4) build_string="--genkey --secret" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
 	key_file="$EASYTLS_PKI/tls-auth.key"
@@ -2299,9 +2299,9 @@ build_tls_crypt_v1 ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5|2.6) build_string="--genkey tls-crypt" ;;
-	2.4) build_string="--genkey --secret" ;;
-	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		2.5|2.6) build_string="--genkey tls-crypt" ;;
+		2.4) build_string="--genkey --secret" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
 	key_file="$EASYTLS_PKI/tls-crypt.key"
@@ -2329,8 +2329,8 @@ build_tls_crypt_v2_server ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
-	2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
-	*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
 	srv_name="$1"
@@ -2490,7 +2490,7 @@ b64_enc_metadata ()
 	#
 	# All fields are single contiguous words
 	#
-	# 1.  "easytls-$EASYTLS_VERSION"
+	# 1.  "TLS_Key_Serial_Number"-easytls-"$EASYTLS_VERSION"
 	#     easytls-cryptv2-verify.sh only uses the 'easytls' part
 	#
 	# 2   CA Identity
@@ -2545,6 +2545,10 @@ b64_enc_metadata ()
 	#fi
 
 	# Append common_name
+	[ -z "$cli_name" ] && {
+		error_msg "no client name"
+		return 1
+		}
 	metadata="$metadata $cli_name"
 
 	# Append --sub-key-name
@@ -2599,11 +2603,11 @@ generate_ca_identity ()
 
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
-	easytls_verbose "CA fingerprint: $ca_fingerprint"
+	#easytls_verbose "CA fingerprint: $ca_fingerprint"
 
 	# CA Identity
 	ca_identity="$(fn_ca_identity)"
-	easytls_verbose "CA Identity: $ca_identity"
+	#easytls_verbose "CA Identity: $ca_identity"
 } # => generate_ca_identity ()
 
 # Collect CA serial number
