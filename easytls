@@ -1978,6 +1978,12 @@ tls_crypt_v2_serial_number ()
 		return 1
 		}
 
+	# Check for duplicate
+	grep -q "^${generated_hash}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
+		error_msg "SHA1 duplicate found! -- Please report this."
+		return 1
+		}
+
 	# Set this valid hash as tlskey_serial
 	tlskey_serial="${generated_hash}"
 	metadata="${tlskey_serial}-${metadata}"
