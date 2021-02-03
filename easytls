@@ -1339,6 +1339,10 @@ inline_index_update ()
 
 		# Create new record
 		new_record="$current_inline_hash $inline_serial $name"
+
+		# Append TLS-Crypt-V2 key details
+		# TODO: This works but could be better
+		tlskey_serial="${tlskey_serial:-"n/a"}"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
 		printf "%s\n" "$new_record" >> \
@@ -1654,6 +1658,10 @@ inline_remove ()
 
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
+
+	# This does not over-write a previous setting
+	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+
 	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
 		}
@@ -2367,6 +2375,9 @@ inline_tls_crypt_v2 ()
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
+	# This does not over-write a previous setting
+	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+
 	sub_name="$name-$EASYTLS_TLSCV2_SUBKNAME"
 	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		tls_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
@@ -2573,6 +2584,9 @@ Missing cli file: $cli_cert"
 	in_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 	key_file="$EASYTLS_PKI/$cli_name-tls-crypt-v2.key"
 	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
+
+	# This does not over-write a previous setting
+	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
 
 	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		key_file="$EASYTLS_PKI/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
@@ -3555,7 +3569,6 @@ vars_setup()
 	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
 	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
-	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
