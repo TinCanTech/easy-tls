@@ -294,8 +294,7 @@ General options:
       This allows for one single X509 client certificate to have multiple
       TLS Crypt V2 client keys associated with it.  For example, the same
       X509 certificate can be used from different locations with unique
-      TLS crypt V2 keys.
-'
+      TLS crypt V2 keys.'
 } # => opt_usage()
 
 # Option abbreviations
@@ -325,8 +324,7 @@ Easy-TLS abbreviations:
   disable                       - d
   enable                        - e
   disabled-list-rehash          - No abbreviation
-  import-key                    - No abbreviation
-'
+  import-key                    - No abbreviation'
 }
 
 # Option abbreviations
@@ -353,8 +351,7 @@ Easy-TLS configurable options:
          (Quotes are required for spaces and "\" must be "/")
 
   im|inline.metadata on|off
-     Toggle inline-file metadata on|off.
-'
+     Toggle inline-file metadata on|off.'
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -1342,11 +1339,10 @@ inline_index_update ()
 
 		# Append TLS-Crypt-V2 key details
 		# TODO: This works but could be better
-		tlskey_serial="${tlskey_serial:-"n/a"}"
+		tlskey_serial="${tlskey_serial:-'n/a'}"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
-		printf "%s\n" "$new_record" >> \
-			"$EASYTLS_INLINE_INDEX" || \
+		printf "%s\n" "$new_record" >> "$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
 
 		easytls_verbose "  ADD: $new_record"
@@ -1357,7 +1353,7 @@ inline_index_update ()
 		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]${name}"
 
 		# Find old record
-		grep "^${old_record}" "$EASYTLS_INLINE_INDEX" 1>/dev/null || {
+		grep -q "^${old_record}" "$EASYTLS_INLINE_INDEX" || {
 			help_note="Missing record: $old_record"
 			die "inline_index_update del: Failed to find old record"
 			}
