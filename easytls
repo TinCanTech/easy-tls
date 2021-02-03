@@ -3131,7 +3131,9 @@ Build TLS-Crypt-V2 key for Server'
 	4)	# Build TLS Crypt v2 Client
 		print '
 Build TLS-Crypt-V2 key for Client'
+
 		# Set Server name
+		opt_server_name=""
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
 		EASYTLS_QHELP='
 * This field only requires the certificate commonName,
@@ -3143,6 +3145,7 @@ Build TLS-Crypt-V2 key for Client'
 		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
+		opt_client_name=""
 		EASYTLS_QHELP='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
@@ -3153,6 +3156,7 @@ Build TLS-Crypt-V2 key for Client'
 		cmd_line="${cmd_line} $opt_client_name"
 
 		# Set custom.group name
+		opt_customg=""
 		EASYTLS_QHELP='
 * All TLS-Crypt-V2 Client keys which are created by the same Server key
   MUST use the same Custom-Group.
@@ -3178,9 +3182,11 @@ Build TLS-Crypt-V2 key for Client'
 			}
 
 		# Set Sub-key name
+		sub_key_name=""
 		EASYTLS_QHELP='
 * Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
-  these keys are referred to as Sub-keys.
+  these keys are referred to as Sub-keys.  Each Sub-key is used in
+  a separate inline file with the same X509 Client certificate.
 
   If you do not require a Sub-key then leave this field blank.'
 		EASYTLS_QTEXT='
@@ -3193,6 +3199,7 @@ Build TLS-Crypt-V2 key for Client'
 			}
 
 		# Set hardware addresses
+		opt_hardware=""
 		EASYTLS_QHELP='
 * You can lock this key to specific MAC hardware addresses.
 
