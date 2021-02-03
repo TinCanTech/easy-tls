@@ -570,6 +570,14 @@ easytls_config ()
 			test_val="${cfg_val%% *}"
 			[ "$cfg_val" = "$test_val" ] || \
 				die "Unsupported value for $cfg_opt: $cfg_val"
+			confirm "Change your Custom-Group: " "yes" \
+"WARNING:
+
+* Each TLS-Crypt-V2 Server key can only support one Custom-Group.
+  If you have already created Client keys for your Server and you
+  change the Custom-Group then not all of your clients will be
+  allowed to connect, unless you disable the Custom-Group check
+  for the easytls-crypt-v2-verify.sh script."
 		;;
 		custom.openvpn)
 			if [ -n "$cfg_val" ]
@@ -605,6 +613,8 @@ easytls_config_update ()
 	sed -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 	"$EASYTLS_CONFIG_FILE" || return 1
+
+	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 }
 
 # Use config
