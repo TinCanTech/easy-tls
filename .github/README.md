@@ -31,6 +31,7 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 Please use the issues section here on github. <br>
 For live support you can use IRC channel: **Freenode/#easytls**<br>
 Wiki: https://github.com/TinCanTech/easy-tls/wiki<br>
+Howto: https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md<br>
 
 # Acknowledgements
 Easy-TLS is *written in the style of* and *borrows heavily from* Easy-RSA <br>
