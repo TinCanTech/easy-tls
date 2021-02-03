@@ -142,7 +142,7 @@ do
 		"build-client-full c03 nopass" "revoke c03" \
 		"build-client-full c05 nopass" \
 		"build-client-full c06 nopass" \
-		"build-client-full c07 nopass" \
+		"build-client-full c07-nomd nopass" \
 		"build-client-full c08 nopass" \
 		"build-client-full c09 nopass" \
 		"build-client-full c10 nopass" \
@@ -233,15 +233,15 @@ do
 	print "============================================================"
 	print "Build a default openvpn tls-crypt-v2 client key with no metadata"
 	"$OPENVPN_CMD" --tls-crypt-v2 "$ETLS_DIR/s01-tls-crypt-v2.key" \
-		--genkey tls-crypt-v2-client "$ETLS_DIR/c07-tls-crypt-v2.key" || \
+		--genkey tls-crypt-v2-client "$ETLS_DIR/c07-nomd-tls-crypt-v2.key" || \
 		fail "Unit test error 61: Probably the wrong directory.."
 
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	# TODO: get in the right place
-	printf "%s" "" > "$DBUG_DIR/c07-tls-crypt-v2.metadata"
+	printf "%s" "" > "$DBUG_DIR/c07-nomd-tls-crypt-v2.metadata"
 	# Inline c07
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07 || \
-		fail "Unit test error 62: inline-tls-crypt-v2 c07"
+	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07-nomd || \
+		fail "Unit test error 62: inline-tls-crypt-v2 c07-nomd"
 
 	# Build a node for Windblows test
 	print "============================================================"
@@ -258,7 +258,7 @@ do
 		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
 	# Test tls-crypt-v2-verify.sh
-	for c in "c01" "c05" "c06" "c07" "c09"
+	for c in "c01" "c05" "c06" "c07-nomd" "c09"
 	do
 		print "============================================================"
 		  echo metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
@@ -424,7 +424,7 @@ printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	# Test tls-crypt-v2-verify.sh
-	for c in "c01" "c05" "c06" "c07" "c09"
+	for c in "c01" "c05" "c06" "c07-nomd" "c09"
 	do
 		print "============================================================"
 		  echo metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
