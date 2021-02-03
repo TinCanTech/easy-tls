@@ -842,6 +842,9 @@ Your newly created TLS dir is: $EASYTLS_PKI
 inline_auto_check ()
 {
 	[ $auto_check_disabled ] && return 0
+
+	# If inline-index does not exist then do not auto-check
+	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
 	index_size="$(grep -c '^.*$' "$EASYTLS_INLINE_INDEX")"
 	[ $index_size -gt 50 ] && \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
@@ -2577,12 +2580,12 @@ build_tls_crypt_v2_client ()
 		die "Server name cannot be the same as the client name."
 
 	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the x509 certificate has been built.
-Missing srv file: $srv_cert"
+		die "Easy-TLS requires that the X509 Server certificate has been built.
+* Missing Server certificate: $srv_cert"
 
 	[ -f "$cli_cert" ] || \
-		die "Easy-TLS requires that the x509 certificate has been built.
-Missing cli file: $cli_cert"
+		die "Easy-TLS requires that the X509 Client certificate has been built.
+* Missing Client certificate: $cli_cert"
 
 	cert_purpose "$cli_cert" 'SSL client : Yes' || \
 		die "Certificate must be a Client: $cli_cert"
@@ -3024,89 +3027,139 @@ disabled_list_save_hash ()
 
 interactive_question ()
 {
+	print ""
+	print "===================="
 	unset EASYTLS_ANSWER
-	print "$EASYTLS_QTEXT"
+	print "$EASYTLS_QHELP"
+	printf '%s ' "$EASYTLS_QTEXT"
 	read input
 	EASYTLS_ANSWER="$input"
 }
 
 interactive_build ()
 {
-	EASYTLS_QTITLE="Easy-TLS Interactive TLS key builder:"
-	print "$EASYTLS_QTITLE"
+	print '
+* Easy-TLS Interactive TLS key builder:'
+
+	if [ -n "$EASYTLS_PKI" ] && [ ! -d "$EASYTLS_PKI" ]
+	then
+		# Cannot find easytls pki
+		print "Cannot find your EasyRSA-PKI, expected to be: "
+		print ""
+		print "  $EASYRSA_PKI"
+		print ""
+		print "Make sure you have run: ./easytls init-tls"
+		print ""
+		print "Please re-run this command and specify your PKI like so:"
+		print ""
+		print "  ./easytls  --pki-dir=Your-PKI  build"
+		print ""
+		print "Example for Your-PKI could be: test-pki"
+		print ""
+		print "Quit!"
+		return 0
+	fi
+
 	cmd_head='
 * Easy-TLS command:'
 	cmd_line='build'
 
 	# Choose Key
+	EASYTLS_QHELP='
+To cancel this interactive build at any time, press Control-C
+
+Available key types:'
 	EASYTLS_QTEXT='
-Available key types:
-[1] TLS Auth key
-[2] TLS Crypt V1 key
-[3] TLS Crypt V2 key for Server
-[4] TLS Crypt V2 key for Client
+[1] TLS-Auth key                - Legacy HMAC key
+[2] TLS-Crypt-V1 key            - Basic TLS-crypt pre-shared key
+[3] TLS-Crypt-V2 key for Server - Advanced TLS-Crypt-v2 Server key
+[4] TLS-Crypt-V2 key for Client - Advanced TLS-Crypt-v2 Client key
 
 Select the type of key to build:'
 	interactive_question
 
 	case $EASYTLS_ANSWER in
 	1)	# Build TLS Auth
+		print '
+Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
 		# Build key
 		build_tls_auth
 	;;
 	2)	# Build TLS Crypt v1
+		print '
+Build TLS-Crypt-V1 key'
 		cmd_line="${cmd_line}-tls-crypt"
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
 		# Build key
 		build_tls_crypt_v1
 	;;
 	3)	# Build TLS Crypt v2 Server
+		print '
+Build TLS-Crypt-V2 key for Server'
 		# Set Server name
 		cmd_line="${cmd_line}-tls-crypt-v2-server"
+		EASYTLS_QHELP='
+* This field only requires the certificate commonName,
+  it does not require the complete file name.'
 		EASYTLS_QTEXT='
-Enter the commonName of your Server certificate:'
+  Enter the commonName of your Server certificate:'
 		interactive_question
 		opt_server_name="$EASYTLS_ANSWER"
 		cmd_line="${cmd_line} $opt_server_name"
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
 		# Build key
 		build_tls_crypt_v2_server "$opt_server_name"
 	;;
 	4)	# Build TLS Crypt v2 Client
-
+		print '
+Build TLS-Crypt-V2 key for Client'
 		# Set Server name
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
+		EASYTLS_QHELP='
+* This field only requires the certificate commonName,
+  it does not require the complete file name.'
 		EASYTLS_QTEXT='
-Enter the commonName of your *Server* certificate:'
+  Enter the commonName of your *Server* certificate:'
 		interactive_question
 		opt_server_name="$EASYTLS_ANSWER"
 		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
+		EASYTLS_QHELP='
+* This field only requires the certificate commonName,
+  it does not require the complete file name.'
 		EASYTLS_QTEXT='
-Enter the commonName of your *Client* certificate:'
+  Enter the commonName of your *Client* certificate:'
 		interactive_question
 		opt_client_name="$EASYTLS_ANSWER"
 		cmd_line="${cmd_line} $opt_client_name"
 
 		# Set custom.group name
-		EASYTLS_QTEXT="
-All client TLS-Crypt-V2 keys must use the same Custom Group.
+		EASYTLS_QHELP='
+* All TLS-Crypt-V2 Client keys which are created by the same Server key
+  MUST use the same Custom-Group.
 
-You should configure your Custom Group like so:
-  ./easytls config custom.group NAME
+  You can configure a single Custom-Group like so:
 
-If you have configured your Custom Group or do not require a Custom Group
-then leave this field blank.
+    $ ./easytls config custom.group NAME
 
-Your current custom group is: ${EASYTLS_TLSCV2_CG}
+  If you have configured your Custom-Group or do not require a Custom-Group
+  then leave this field blank.
 
-Enter your Custom Group name:"
+  Your current Custom-Group is:'
+		[ "$EASYTLS_TLSCV2_CG" = "EASYTLS" ] || \
+			EASYTLS_QHELP="$EASYTLS_QHELP $EASYTLS_TLSCV2_CG"
+		EASYTLS_QTEXT='
+  Enter your Custom-Group NAME
+  or leave blank to accept the current Custom-Group:'
 		interactive_question
 		opt_customg="$EASYTLS_ANSWER"
 		[ -n "$opt_customg" ] && {
@@ -3115,13 +3168,13 @@ Enter your Custom Group name:"
 			}
 
 		# Set Sub-key name
+		EASYTLS_QHELP='
+* Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
+  these keys are referred to as Sub-keys.
+
+  If you do not require a Sub-key then leave this field blank.'
 		EASYTLS_QTEXT='
-Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
-these keys are referred to as Sub-keys.
-
-If you do not require a Sub-key then leave this field blank.
-
-Enter your Sub-key name:'
+  Enter your Sub-key name:'
 		interactive_question
 		sub_key_name="$EASYTLS_ANSWER"
 		[ -n "$sub_key_name" ] && {
@@ -3130,15 +3183,18 @@ Enter your Sub-key name:'
 			}
 
 		# Set hardware addresses
-		print '
-You can lock this key to specific MAC hardware addresses.
+		EASYTLS_QHELP='
+* You can lock this key to specific MAC hardware addresses.
 
-Hardware addresses can be in the form of:
-* 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
+  Hardware addresses can be in the form of:
 
-Leave this field blank to continue.
-'
-		EASYTLS_QTEXT='Enter a single MAC hardware address:'
+    * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
+
+  If you do not require hardware address lock-down
+  then leave this field blank.'
+		EASYTLS_QTEXT='
+  Enter a single MAC hardware address
+  or leave blank to continue:'
 		while :
 		do
 			interactive_question
@@ -3147,14 +3203,17 @@ Leave this field blank to continue.
 		done
 
 		cmd_line="${cmd_line} ${opt_hardware}"
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
 
 		# Build key
 		build_tls_crypt_v2_client \
 			"$opt_server_name" "$opt_client_name" ${opt_hardware}
 	;;
-	*) die "Aborted." ;;
+	*)	# Other value -> Quit
+		print "Quit!"
+	;;
 	esac
 }
 
