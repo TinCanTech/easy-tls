@@ -3424,6 +3424,10 @@ Do you want to include the hardware addresses in the client metadata ?
 # Import pre-existing TLS keys
 import_key ()
 {
+	# Temporarily disabled
+	error_msg "'import-key' has been disabled until further notice."
+	return 1
+
 	[ $# -ge 2 ] || \
 	die "Required option(s): <file-type> <file-name>"
 	key_type="$1"
