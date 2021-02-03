@@ -782,7 +782,7 @@ and initialize a fresh TLS PKI here."
 
 	# Create inline-index file
 	head_text="# EasyTLS inline-index - Created: $(date)"
-	head_text="$head_text - inline-hash|inline-serial|CN|sub-key"
+	head_text="$head_text - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
 		|| die "Failed to create inline-index"
 
@@ -1340,7 +1340,7 @@ inline_index_update ()
 		# Create new record
 		new_record="$current_inline_hash $inline_serial $name"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
-			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME"
+			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
 		printf "%s\n" "$new_record" >> \
 			"$EASYTLS_INLINE_INDEX" || \
 			die "Failed to update $EASYTLS_INLINE_INDEX"
@@ -2381,6 +2381,7 @@ inline_tls_crypt_v2 ()
 		# Get metadata and remove unwanted fields:
 		# easytls, CA-Identity and hw-ad
 		metadata_string="$(cat "$metadata_file")"
+		tlskey_serial="${metadata_string%%-*}"
 		metadata_string="${metadata_string#* }"
 		metadata_string="${metadata_string#* }"
 		[ $add_hardware ] || metadata_string="${metadata_string% *}"
@@ -2401,6 +2402,7 @@ inline_tls_crypt_v2 ()
 		printf "%s\n" ""
 		[ $no_metadata ] || {
 			printf '%s\n' "# CA serial: $ca_serial"
+			printf '%s\n' "# tlskey-serial: $tlskey_serial"
 			printf '%s\n' "# Key metadata:"
 			printf '%s\n' "# $metadata_string"
 			printf "%s\n" ""
