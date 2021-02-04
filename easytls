@@ -152,7 +152,7 @@ cmd_help()
       <key_direction> '0' or '1' (key-direction is mandatory)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file
+        add-dh  - inline Diffy Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
 		itc|inline-tls-crypt) text="
@@ -161,7 +161,7 @@ cmd_help()
       for VPN node <filename_base> using the Easy-TLS TLS crypt file"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file
+        add-dh  - inline Diffy Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
 		itv2|itcv2|inline-tls-crypt-v2) text="
@@ -170,14 +170,15 @@ cmd_help()
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file
+        add-dh  - inline Diffy Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option
         no-md   - Do not add public metadata details to inline file
         add-hw  - Include hardware address in metadata details" ;;
 		irm|irv|inline-remove) text="
   inline-remove <filename_base>
-      Delete <filename_base>.inline when Easy-RSA certificate is revoked" ;;
+      Delete <filename_base>.inline and update the inline-index
+      When an Easy-RSA certificate is revoked then the inline file is invalid" ;;
 		is|inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
@@ -200,11 +201,13 @@ cmd_help()
 		d|disable) text="
   d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
-      for immediate use by the easytls-cryptv2-verify.sh script" ;;
+      for immediate use by the easytls-cryptv2-verify.sh script.
+      This also supports --sub-key-name for clients with multiple keys" ;;
 		e|enable) text="
   e|enable <filename_base>
       Remove serial number for <filename_base> from the disabled list
-      for immediate use by the easytls-cryptv2-verify.sh script" ;;
+      for immediate use by the easytls-cryptv2-verify.sh script.
+      This also supports --sub-key-name for clients with multiple keys" ;;
 		disabled-list-rehash) text="
   disabled-list-rehash
        Rehash the disabled-list if the current hash is corrupted.
