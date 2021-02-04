@@ -3035,22 +3035,9 @@ disabled_list_save_hash ()
 # Interactive Section
 #
 
-interactive_question ()
+# Verify PKI
+interactive_verify_pki ()
 {
-	print ""
-	print "===================="
-	unset EASYTLS_ANSWER
-	print "$EASYTLS_QHELP"
-	printf '%s ' "$EASYTLS_QTEXT"
-	read input
-	EASYTLS_ANSWER="$input"
-}
-
-interactive_build ()
-{
-	print '
-* Easy-TLS Interactive TLS key builder:'
-
 	if [ -n "$EASYTLS_PKI" ] && [ ! -d "$EASYTLS_PKI" ]
 	then
 		# Cannot find easytls pki
@@ -3067,31 +3054,57 @@ interactive_build ()
 		print "Example for Your-PKI could be: test-pki"
 		print ""
 		print "Quit!"
+		return 1
+	else
 		return 0
 	fi
+}
 
+# Ask a question
+interactive_question ()
+{
+	print ""
+	print "===================="
+	unset EASYTLS_ANSWER
+	print "$EASYTLS_QHELP"
+	printf '%s ' "$EASYTLS_QTEXT"
+	read input
+	EASYTLS_ANSWER="$input"
+}
+
+# Inter-active build menu
+interactive_build ()
+{
+	print '
+Easy-TLS Inter-active TLS-key builder.'
+
+	# Verify PKI
+	interactive_verify_pki || die "Please specify your PKI directory."
+
+	# Capture the command line to build
 	cmd_head='
 * Easy-TLS command:'
 	cmd_line='build'
 
 	# Choose Key
 	EASYTLS_QHELP='
-To cancel this interactive build at any time, press Control-C
+To cancel this inter-active menu at any time, press Control-C
 
-Available key types:'
+* Available TLS-key types:'
 	EASYTLS_QTEXT='
-[1] TLS-Auth key                - Legacy HMAC key
-[2] TLS-Crypt-V1 key            - Basic TLS-crypt pre-shared key
-[3] TLS-Crypt-V2 key for Server - Advanced TLS-Crypt-v2 Server key
-[4] TLS-Crypt-V2 key for Client - Advanced TLS-Crypt-v2 Client key
+  [1] TLS-Auth key                   - Legacy HMAC pre-shared key
+  [2] TLS-Crypt-V1 key               - Basic TLS-crypt-v1 pre-shared key
+  [3] TLS-Crypt-V2 key for Server    - Advanced TLS-Crypt-v2 Server key
+  [4] TLS-Crypt-V2 key for Client    - Advanced TLS-Crypt-v2 Client key
+  [5] Remove TLS-Crypt-V2 Client key
 
-Select the type of key to build:'
+  Select the type of TLS-key to build:'
 	interactive_question
 
 	case $EASYTLS_ANSWER in
 	1)	# Build TLS Auth
 		print '
-Build TLS-Auth key'
+** Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
 		print ""
 		print "  $cmd_head"
@@ -3101,7 +3114,7 @@ Build TLS-Auth key'
 	;;
 	2)	# Build TLS Crypt v1
 		print '
-Build TLS-Crypt-V1 key'
+** Build TLS-Crypt-V1 key'
 		cmd_line="${cmd_line}-tls-crypt"
 		print ""
 		print "  $cmd_head"
@@ -3111,7 +3124,7 @@ Build TLS-Crypt-V1 key'
 	;;
 	3)	# Build TLS Crypt v2 Server
 		print '
-Build TLS-Crypt-V2 key for Server'
+** Build TLS-Crypt-V2 key for Server'
 		# Set Server name
 		cmd_line="${cmd_line}-tls-crypt-v2-server"
 		EASYTLS_QHELP='
@@ -3130,7 +3143,7 @@ Build TLS-Crypt-V2 key for Server'
 	;;
 	4)	# Build TLS Crypt v2 Client
 		print '
-Build TLS-Crypt-V2 key for Client'
+** Build TLS-Crypt-V2 key for Client'
 
 		# Set Server name
 		opt_server_name=""
@@ -3228,6 +3241,11 @@ Build TLS-Crypt-V2 key for Client'
 		build_tls_crypt_v2_client \
 			"$opt_server_name" "$opt_client_name" ${opt_hardware}
 	;;
+	5)	# Remove client key
+		print "Coming soon .."
+		# Only TLS-Crypt-V2 client keys can be removed.
+		# Removing any other key invalidates all client inline files.
+	;;
 	*)	# Other value -> Quit
 		print "Quit!"
 	;;
@@ -3236,26 +3254,35 @@ Build TLS-Crypt-V2 key for Client'
 
 interactive_inline ()
 {
-	EASYTLS_QTITLE="Easy-TLS Interactive Inline builder:"
-	print "$EASYTLS_QTITLE"
+	print '
+Easy-TLS Inter-active Inline-file builder.'
+
+	# Verify PKI
+	interactive_verify_pki || die "Please specify your PKI directory."
+
+	# Capture the command line to inline
 	cmd_head='
 * Easy-TLS command:'
 	cmd_line='inline'
 
 	# Choose Key
+	EASYTLS_QHELP='
+To cancel this inter-active menu at any time, press Control-C
+
+* Available Inline-file types:'
 	EASYTLS_QTEXT='
-[1] Inline with TLS Auth key
-[2] Inline with TLS Crypt v1 key
-[3] Inline with TLS Crypt v2 key
-[4] Inline renewal
-[5] Inline removal
+  [1] Inline with TLS Auth key
+  [2] Inline with TLS Crypt v1 key
+  [3] Inline with TLS Crypt v2 key
+  [4] Inline removal
 
-Select the type of key to inline:'
-
+  Select the type of Inline-file to build:'
 	interactive_question
 
 	case $EASYTLS_ANSWER in
 	1)	# Inline TLS Auth
+		print '
+** Build TLS-Auth inline-file'
 		cmd_line="${cmd_line}-tls-auth"
 
 		# Set commonName
@@ -3281,6 +3308,8 @@ Select the type of key to inline:'
 			${common_name} ${key_direction} ${opt_nokey} ${opt_add_dh}
 	;;
 	2)	# Inline TLS Crypt v1
+		print '
+** Build TLS-Crypt-v1 inline-file'
 		cmd_line="${cmd_line}-tls-crypt"
 
 		# Set commonName
@@ -3303,6 +3332,8 @@ Select the type of key to inline:'
 			${common_name} ${opt_nokey} ${opt_add_dh}
 	;;
 	3)	# Inline TLS Crypt v2
+		print '
+** Build TLS-Crypt-v2 inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 
 		# Set commonName
@@ -3333,13 +3364,13 @@ Select the type of key to inline:'
 		inline_tls_crypt_v2 \
 			${common_name} ${opt_nokey} ${opt_add_dh} ${opt_no_md} ${opt_add_hw}
 	;;
-	4)	# Inline renew
+	4)	# Inline remove
 		print "Coming soon .."
+		# Only TLS-Crypt-V2 client inline files can be removed.
+		# Removing any other inline file invalidates all client inline files.
 	;;
-	5)	# Inline remove
-		print "Coming soon .."
-	;;
-	*) die "Aborted." ;;
+	*)	# Other value -> Quit
+		print "Quit!"
 	esac
 }
 
@@ -3347,8 +3378,11 @@ Select the type of key to inline:'
 interactive_common_name ()
 {
 	unset common_name
+	EASYTLS_QHELP='
+* This field only requires the certificate commonName,
+  it does not require the complete file name.'
 	EASYTLS_QTEXT='
-Enter the commonName of your certificate:'
+  Enter the commonName of your certificate:'
 	interactive_question
 	common_name="$EASYTLS_ANSWER"
 	cmd_line="${cmd_line} $common_name"
@@ -3358,10 +3392,12 @@ Enter the commonName of your certificate:'
 interactive_sub_key_name ()
 {
 	unset sub_key_name
-	EASYTLS_QTEXT='
-Do not set Sub-key for a Server file, Only Clients can use Sub-keys
+	EASYTLS_QHELP='
+* Do not set Sub-key for a Server file, Only Clients can use Sub-keys.
 
-Enter the Sub-key Name for your key:'
+  Leave blank to continue.'
+	EASYTLS_QTEXT='
+  Enter the Sub-key Name for your key:'
 	interactive_question
 	[ -n "$EASYTLS_ANSWER" ] && {
 		sub_key_name="$EASYTLS_ANSWER"
@@ -3374,20 +3410,17 @@ Enter the Sub-key Name for your key:'
 interactive_key_direction ()
 {
 	unset key_direction
-	print '
-Enter Key direction [Server=0 or Client=1]
-'
+	print 
+	EASYTLS_QHELP='
+* Enter Key direction [Server=0 or Client=1]'
+	EASYTLS_QTEXT='
+  Enter 0 or 1:'
 	while :
 	do
-		EASYTLS_QTEXT='Enter 0 or 1:'
 		interactive_question
 		case "$EASYTLS_ANSWER" in
-			0)
-				key_direction=0
-				break
-			;;
-			1)
-				key_direction=1
+			0|1)
+				key_direction="$EASYTLS_ANSWER"
 				break
 			;;
 		esac
@@ -3399,18 +3432,18 @@ Enter Key direction [Server=0 or Client=1]
 interactive_opt_nokey ()
 {
 	unset opt_nokey
-	print "
-Do you have the private key for certificate: $common_name ?
-"
+	EASYTLS_QHELP='
+* Do you have the private key for this X509 certificate ?'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
 	while :
 	do
-		EASYTLS_QTEXT='Enter (y)es or (n)o:'
 		interactive_question
 		case "$EASYTLS_ANSWER" in
-			Y|y|Yes|yes)
+			Y|y|Yes|yes|YES)
 				break
 			;;
-			N|n|No|no)
+			N|n|No|no|NO)
 				opt_nokey='nokey'
 				cmd_line="${cmd_line} nokey"
 				break
@@ -3423,20 +3456,25 @@ Do you have the private key for certificate: $common_name ?
 interactive_opt_add_dh ()
 {
 	print '
-Do you want to inline the Diffy-Hellman parameter file ?
+
 '
 	unset opt_add_dh
+	EASYTLS_QHELP='
+* Do you want to inline the Diffy-Hellman parameter file ?
+
+  Only Servers can use Diffy-Hellman parameter file.'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
 	while :
 	do
-		EASYTLS_QTEXT='Enter (y)es or (n)o:'
 		interactive_question
 		case "$EASYTLS_ANSWER" in
-			Y|y|Yes|yes)
+			Y|y|Yes|yes|YES)
 				opt_add_dh='add-dh'
 				cmd_line="${cmd_line} add-dh"
 				break
 			;;
-			N|n|No|no)
+			N|n|No|no|NO)
 				break
 			;;
 		esac
@@ -3448,13 +3486,13 @@ interactive_custom_dh ()
 {
 	[ -z "$opt_add_dh" ] && return 0
 	unset opt_custom_dh
+	EASYTLS_QHELP='
+* If you need to use a custom Diffy-Hellman parameters file then
+  enter the file location and name.
+
+  Leave this blank to use the default Easy-TLS DH file.'
 	EASYTLS_QTEXT='
-If you need to use a custom Diffy-Hellman parameters file then
-enter the file location and name.
-
-Leave this blank to use the default Easy-TLS DH file.
-
-Enter the DH file name:'
+  Enter the DH file name:'
 	interactive_question
 	[ -n "$EASYTLS_ANSWER" ] && {
 		opt_custom_dh="$EASYTLS_ANSWER"
@@ -3467,13 +3505,17 @@ Enter the DH file name:'
 interactive_opt_no_md ()
 {
 	unset opt_no_md
-	print "
-Do you want to include the client metadata for certificate: $common_name ?
-(For Server inline files, this is ignored)
-"
+	EASYTLS_QHELP='
+* Do you want to include the client metadata in the inline file ?
+
+  The metadata does not contain any security sensitive data but
+  you may prefer to omit it.
+
+  (For Server inline files, this is ignored)'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
 	while :
 	do
-		EASYTLS_QTEXT='Enter (y)es or (n)o:'
 		interactive_question
 		case "$EASYTLS_ANSWER" in
 			Y|y|Yes|yes)
@@ -3493,12 +3535,12 @@ interactive_opt_add_hw ()
 {
 	[ -n "$opt_no_md" ] && return 0
 	unset opt_add_hw
-	print '
-Do you want to include the hardware addresses in the client metadata ?
-'
+	EASYTLS_QHELP='
+* Do you want to include the hardware addresses in the client metadata ?'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
 	while :
 	do
-		EASYTLS_QTEXT='Enter (y)es or (n)o:'
 		interactive_question
 		case "$EASYTLS_ANSWER" in
 			Y|y|Yes|yes)
