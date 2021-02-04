@@ -2147,7 +2147,10 @@ inline_renew_key_direction ()
 # Create inline credentials file from Easy-RSA PKI
 inline_base ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ $# -ge 1 ] || {
+		error_msg "Required option(s): <filename_base>"
+		return 1
+		}
 
 	verify_tls_init
 
@@ -2167,11 +2170,11 @@ inline_base ()
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
 	[ -z "$inline_file" ] && inline_file="$EASYTLS_PKI/$name.inline"
-	help_note="Run 'easytls status' to verify certificate revokation."
 
-	[ -f "$crt_file" ] || die "\
-Certificate file missing or revoked: $crt_file
-$help_note"
+	[ -f "$crt_file" ] || {
+		error_msg "Certificate file missing or revoked: $crt_file"
+		return 1
+		}
 
 	if [ "$no_x509_key" ]
 	then
@@ -2179,9 +2182,10 @@ $help_note"
 		:
 	else
 		# Key file is required
-		[ -f "$key_file" ] || die "\
-Key file missing or revoked: $key_file
-$help_note"
+		[ -f "$key_file" ] || {
+			error_msg "Key file missing or revoked: $key_file"
+			return 1
+			}
 	fi
 
 	if [ "$inline_dh_file" ]
@@ -2190,9 +2194,10 @@ $help_note"
 		help_note="Use --dh=<file_name> to specify an alternate dh file."
 		default_dh_file="$EASYRSA_PKI/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"$default_dh_file"}"
-		[ -f "$EASYRSA_DH_FILE" ] || die "\
-Diffy Hellman parameters file missing: $EASYRSA_DH_FILE
-$help_note"
+		[ -f "$EASYRSA_DH_FILE" ] || {
+			"Diffy Hellman parameters file missing: $EASYRSA_DH_FILE"
+			return 1
+			}
 	fi
 	unset help_note
 
@@ -2205,7 +2210,10 @@ $help_note"
 	then
 		rm -f "$inline_file"
 	else
-		[ -f "$inline_file" ] && die "Inline file exists: $inline_file"
+		[ -f "$inline_file" ] && {
+			error_msg "Inline file exists: $inline_file"
+			return 1
+			}
 	fi
 
 	# Build .inline file
@@ -2245,7 +2253,10 @@ $help_note"
 			printf "%s\n" ""
 		fi
 
-	} > "$inline_file" || die "Failed to create inline file: $inline_file"
+	} > "$inline_file" || {
+		error_msg "Failed to write inline file: $inline_file"
+		return 1
+		}
 
 	# Update INLINE index
 	# Only if this is the root caller
