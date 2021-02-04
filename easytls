@@ -2248,9 +2248,10 @@ $help_note"
 
 	# Update INLINE index
 	# Only if this is the root caller
-	[ ! $silent_base ] && inline_index_update add
+	# inline-base is never the rools caller
+	#[ ! $silent_base ] && inline_index_update add
 
-	[ ! $silent_base ] && notice "Inline base file created: $inline_file"
+	easytls_verbose "Inline base file created: $inline_file"
 
 	# explicitly return success for callers
 	return 0
