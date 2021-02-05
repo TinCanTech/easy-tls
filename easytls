@@ -368,7 +368,7 @@ die()
 	print "
 Easy-TLS error:
 
-$help_note
+${help_note:-No extra help is configured}
 
 $1" 1>&2
 	exit "${2:-1}"
@@ -419,7 +419,7 @@ confirm()
 $msg
 
 Type the word '$value' to continue, or any other input to abort."
-	printf %s "  $prompt"
+	printf '\n%s' "  $prompt"
 	read input
 	[ "$input" = "$value" ] && return
 	notice "Aborting without confirmation."
@@ -573,6 +573,7 @@ easytls_config ()
 			test_val="${cfg_val%% *}"
 			[ "$cfg_val" = "$test_val" ] || \
 				die "Unsupported value for $cfg_opt: $cfg_val"
+
 			confirm "Change your Custom-Group: " "yes" \
 "WARNING:
 
@@ -590,8 +591,12 @@ easytls_config ()
 			fi
 		;;
 		ca.id)
+			help_note="To change your CA-ID you must create a new Easy-RSA CA"
 			[ -n "$EASYTLS_MASTER_ID" ] && \
 				die "The CA-ID cannot be changed"
+			# Do not allow user access to 'easytls config ca.id foo'
+			[ $save_id_authorized ] || \
+				die "Please use 'easytls save-id' to configure your CA-ID"
 		;;
 		*)
 			die "config oops!"
@@ -723,7 +728,7 @@ config_file_save_hash ()
 		return 1
 		}
 
-	easytls_verbose "config-file hash saved OK"
+	easytls_verbose "config-file hash save OK"
 }
 
 # Verify Openvpn is available
@@ -772,6 +777,7 @@ init_tls ()
 {
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
 	verify_pki_init
+
 	# If EASYTLS_PKI exists, confirm before we rm -rf
 	# skipped with EASYTLS_BATCH
 	if [ -d "$EASYTLS_PKI" ]; then
@@ -804,7 +810,7 @@ and initialize a fresh TLS PKI here."
 	inline_index_save_hash || die "Failed to hash inline-index"
 
 	# Verify inline-index hash
-	inline_index_verify_index_hash || die "Failed to verify inline-index Hash."
+	#inline_index_verify_index_hash || die "Failed to verify inline-index Hash."
 
 	# Create tlskey-index file
 	head_text="# EasyTLS tlskey-index - Created: $(date)"
@@ -816,7 +822,7 @@ and initialize a fresh TLS PKI here."
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
 
 	# Verify tlskey-index hash
-	tlskey_index_verify_hash || die "Failed to verify tlskey-index Hash."
+	#tlskey_index_verify_hash || die "Failed to verify tlskey-index Hash."
 
 	# Create config-file
 	{
@@ -832,7 +838,9 @@ and initialize a fresh TLS PKI here."
 	config_file_save_hash || die "Failed to hash config-file"
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
-	save_id || warn "Failed to Save ID."
+	EASYTLS_INIT=1
+	save_id || printf '%s\n\n' "      Failed to Save CA-ID."
+	unset EASYTLS_INIT
 
 	# Create disabled-list
 	head_text="# EastTLS disabled-list - Created: $(date)"
@@ -842,12 +850,14 @@ and initialize a fresh TLS PKI here."
 	# Create disabled list hash file
 	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
-	notice "\
-init-tls complete; you may now create TLS keys and .inline files.
-Your newly created TLS dir is: $EASYTLS_PKI
-"
-	notice "To configure your custom group now, use:
-	 'easytls config custom.group YOUR_GROUP"
+	notice "init-tls complete; you may now create TLS keys and .inline files.
+  Your newly created TLS dir is:
+
+    $EASYTLS_PKI"
+
+	notice "To configure your Easy-TLS custom group now, use:
+
+    'easytls config custom.group YOUR_GROUP'"
 } # => init_tls ()
 
 # Auto-check for invalid inline files
@@ -1439,7 +1449,7 @@ inline_index_save_hash ()
 		return 1
 		}
 
-	easytls_verbose "Inline-index hash saved OK"
+	easytls_verbose "Inline-index hash save OK"
 }
 
 # Generate SHA1 file hash
@@ -2818,9 +2828,6 @@ b64_enc_metadata ()
 # Generate CA Identity from CA fingerprint
 generate_ca_identity ()
 {
-	# Set the CA
-	ca_cert="$EASYRSA_PKI/ca.crt"
-
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
 	#easytls_verbose "CA fingerprint: $ca_fingerprint"
@@ -2858,18 +2865,36 @@ save_metadata ()
 save_id ()
 {
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	# Need the CA
-	verify_ca_init
+	ca_cert="$EASYRSA_PKI/ca.crt"
+	if [ $EASYTLS_INIT ]
+	then
+		# NOT fatal
+		[ -f "$ca_cert" ] || {
+			warn "
+      Easy-TLS cannot create TLS-Crypt-V2 keys until you create your CA
+      and Server/Client certificates."
+			return 1
+			}
+		# Clear the Old Master ID
+		unset EASYTLS_MASTER_ID
+	else
+		# Fatal
+		verify_ca_init
+	fi
 
 	# Generate CA Identity from CA fingerprint
 	generate_ca_identity
 
-	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
-		die "Failed to create CA Identify: $EASYTLS_CA_IDENTITY"
-
+	# Add CA-ID to config
+	save_id_authorized=1
 	easytls_config id "$ca_identity"
+	unset save_id_authorized
 
-	notice "Saved CA Identify: $EASYTLS_CA_IDENTITY"
+	# Create CA-ID file - Legacy
+	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
+		die "Failed to create CA Identify file: $EASYTLS_CA_IDENTITY"
+
+	notice "Saved CA Identity: $EASYTLS_CA_IDENTITY"
 }
 
 
@@ -3043,6 +3068,8 @@ disabled_list_save_hash ()
 		error_msg "disabled_list_save_hash: Write failed: $EASYTLS_DISABLED_HASH"
 		return 1
 		}
+
+	easytls_verbose "Disabled-list hash save OK"
 }
 
 
