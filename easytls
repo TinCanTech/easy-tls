@@ -623,6 +623,7 @@ easytls_config_update ()
 	"$EASYTLS_CONFIG_FILE" || return 1
 
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
+	return 0
 }
 
 # Use config
@@ -708,6 +709,7 @@ config_verify_hash ()
 		}
 
 	easytls_verbose "config-file hash check OK"
+	return 0
 }
 
 # Hash config-file
@@ -729,6 +731,7 @@ config_file_save_hash ()
 		}
 
 	easytls_verbose "config-file hash save OK"
+	return 0
 }
 
 # Verify Openvpn is available
@@ -809,9 +812,6 @@ and initialize a fresh TLS PKI here."
 	# Save inline-index hash
 	inline_index_save_hash || die "Failed to hash inline-index"
 
-	# Verify inline-index hash
-	#inline_index_verify_index_hash || die "Failed to verify inline-index Hash."
-
 	# Create tlskey-index file
 	head_text="# EasyTLS tlskey-index - Created: $(date)"
 	head_text="$head_text - tlskey-serial|cert-serial|CN|sub-key"
@@ -820,9 +820,6 @@ and initialize a fresh TLS PKI here."
 
 	# Create tlskey-index hash
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
-
-	# Verify tlskey-index hash
-	#tlskey_index_verify_hash || die "Failed to verify tlskey-index Hash."
 
 	# Create config-file
 	{
@@ -893,7 +890,7 @@ inline_auto_check ()
 	#	warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	inline_index_verify_index_hash || warn "inline-index hash failed."
+	inline_index_verify_hash || warn "inline-index hash failed."
 
 	# Verify tlskey hash
 	tlskey_index_verify_hash || warn "tlskey-index hash failed."
@@ -1010,7 +1007,7 @@ status ()
 	fi
 
 	# Check inline-index hash
-	inline_index_verify_index_hash || warn "inline-index is corrupt"
+	inline_index_verify_hash || warn "inline-index is corrupt"
 
 	# Check inline-index hash
 	config_verify_hash || warn "Config file hash failed."
@@ -1345,7 +1342,7 @@ inline_index_update ()
 	verify_tls_init
 
 	# Verify inline-index Hash
-	inline_index_verify_index_hash || {
+	inline_index_verify_hash || {
 		error_msg "inline-index is corrupt"
 		return 1
 		}
@@ -1426,10 +1423,10 @@ inline_index_update ()
 } # => inline_index_update ()
 
 # Verify current inline-index hash
-inline_index_verify_index_hash ()
+inline_index_verify_hash ()
 {
 	[ -f "$EASYTLS_IL_INDEX_HASH" ] || {
-		error_msg "inline_index_verify_index_hash - Missing index file."
+		error_msg "inline_index_verify_hash - Missing index file."
 		return 1
 		}
 
@@ -1438,14 +1435,14 @@ inline_index_verify_index_hash ()
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
-		error_msg "inline_index_verify_index_hash - generate_file_hash"
+		error_msg "inline_index_verify_hash - generate_file_hash"
 		return 1
 		}
 
 	inline_index_current_hash="$generated_hash"
 	# Verify hash match
 	[ "$inline_index_saved_hash" = "$inline_index_current_hash" ] || {
-		error_msg "inline_index_verify_index_hash - Verify hash match"
+		error_msg "inline_index_verify_hash - Verify hash match"
 		return 1
 		}
 
