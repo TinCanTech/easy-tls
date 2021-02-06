@@ -1872,7 +1872,6 @@ inline_index_rebuild_reset ()
 # Update tlskey-index
 tlskey_index_update ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <update_index_action>"
 	update_index_action="$1"
 
 	verify_tls_init
@@ -1926,7 +1925,8 @@ tlskey_index_update ()
 		:
 	;;
 	*)
-		die "Unknown index action: $update_index_action"
+		error_msg "Unknown index action: $update_index_action"
+		return 1
 	;;
 	esac
 
