@@ -1358,9 +1358,9 @@ inline_index_update ()
 		inline_crt_serial
 
 		# If this HASH is set then another function is responsible for it
-		# TODO: Is this necessary?
-		[ "$inline_hash" ] && \
-			die "Do not allow a HASH here: inline_index_update add"
+		# TODO: Is this necessary, maybe for rebuilding inline-index ?
+		#[ "$inline_hash" ] && \
+		#	die "Do not allow a HASH here: inline_index_update add"
 
 		# Create new inline file HASH
 		generate_file_hash "$inline_file" || {
