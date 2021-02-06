@@ -2020,6 +2020,11 @@ tls_crypt_v2_serial_number ()
 	# It is trillions of times easier to steal the server key.
 	# If you want to get really picky then please open an issue.
 
+	# Prepend random padding to metadata
+	"$EASYRSA_OPENSSL" rand -hex -out "$EASYTLS_DATA_DIR/temp.hex" 4
+	metadata_padding="$(cat "$EASYTLS_DATA_DIR/temp.hex")"
+	metadata="${metadata_padding}--${metadata}"
+
 	# What ever openssl says ..
 	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
 

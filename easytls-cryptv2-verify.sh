@@ -197,7 +197,7 @@ metadata_string_to_vars ()
 	if [ ${#1} -gt 40 ]
 	then
 		tls_key_serial="${1%%-*}"
-		md_easytls="${1#*-}"
+		md_easytls="${1#*--}"
 		md_version="${md_easytls%-*.*}"
 		md_date="$4"
 		md_custom_g="$5"
