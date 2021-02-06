@@ -2009,7 +2009,7 @@ tls_crypt_v2_serial_number ()
 	# 1. An attacker will have to decrypt their client key.
 	#    Otherwise, they only have access to the metadata.
 	# 2. An attacker will have to calculate a SHA1 collision.
-	#    Based on: Constant $actual_client_key + Variable $metadata
+	#    Collision must still conform to correctly formatted metadata.
 	# 3. An attacker will have to build a new client key.
 	#    Using the real server key, still not exposed ..
 	# 4. The new client key will have to expliot the server, somehow ?
