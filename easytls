@@ -1380,13 +1380,13 @@ inline_index_update ()
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
 
+		easytls_verbose "  ADD: $new_record"
+
 		# Write new record
 		printf "%s\n" "$new_record" >> "$EASYTLS_INLINE_INDEX" || {
 			error_msg "Failed to update $EASYTLS_INLINE_INDEX"
 			return 1
 			}
-
-		easytls_verbose "  ADD: $new_record"
 	;;
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
@@ -1399,8 +1399,9 @@ inline_index_update ()
 			return 1
 			}
 
-		# Remove old record
 		easytls_verbose "  DEL: $old_record"
+
+		# Remove old record
 		sed -i -e "/^${old_record}.*$/d" "$EASYTLS_INLINE_INDEX" || {
 			error_msg "inline_index_update del: Failed write"
 			return 1
@@ -1449,6 +1450,7 @@ inline_index_verify_index_hash ()
 		}
 
 	easytls_verbose "Inline-index hash check OK"
+	return 0
 }
 
 # Save new inline-index hash
@@ -1468,6 +1470,7 @@ inline_index_save_hash ()
 		}
 
 	easytls_verbose "Inline-index hash save OK"
+	return 0
 }
 
 # Generate SHA1 file hash
