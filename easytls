@@ -2005,6 +2005,21 @@ tlskey_index_save_hash ()
 #Insert a serial number
 tls_crypt_v2_serial_number ()
 {
+	# Why SHA1 ?
+	# 1. An attacker will have to decrypt their client key.
+	#    Otherwise, they only have access to the metadata.
+	# 2. An attacker will have to calculate a SHA1 collision.
+	#    Based on: Constant $actual_client_key + Variable $metadata
+	# 3. An attacker will have to build a new client key.
+	#    Using the real server key, still not exposed ..
+	# 4. The new client key will have to expliot the server, somehow ?
+	#    The server is still protected by real X509.
+	# 5. Even with current technology, SHA1 is still 2^61
+	# Considering the risk this key exposes, it seems a bit far fetched
+	# that breaking this key will have any value for anybody.
+	# It is trillions of times easier to steal the server key.
+	# If you want to get really picky then please open an issue.
+
 	# What ever openssl says ..
 	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
 
