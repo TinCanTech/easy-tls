@@ -605,7 +605,7 @@ easytls_config ()
 
 	# Write config
 	easytls_config_update || die "Error updating config."
-	config_file_save_hash || die "Error hashing config."
+	config_save_hash || die "Error hashing config."
 }
 
 # Update config
@@ -713,7 +713,7 @@ config_verify_hash ()
 }
 
 # Hash config-file
-config_file_save_hash ()
+config_save_hash ()
 {
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
@@ -832,7 +832,7 @@ and initialize a fresh TLS PKI here."
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
 	# Save config-file hash
-	config_file_save_hash || die "Failed to hash config-file"
+	config_save_hash || die "Failed to hash config-file"
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	EASYTLS_INIT=1
