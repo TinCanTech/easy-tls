@@ -902,6 +902,41 @@ easytls_auto_check ()
 	easytls_verbose "auto-check complete."
 } # => easytls_auto_check ()
 
+# Generate SHA1 file hash
+generate_file_hash ()
+{
+	# Test for file
+	[ -f "$1" ] || {
+		error_msg "generate_file_hash - Missing file: $1"
+		return 1
+		}
+
+	# SHA1 has been broken: shattered.io
+	# That is unlikely to effect Easy-TLS
+	# If/when it does, Easy-TLS has measures to detect collisions
+
+	# What ever openssl says ..
+	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")"
+
+	# Assume it is a valid HASH
+	generated_hash="${openssl_hash%% *}"
+
+	# Test it
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
+		error_msg "generate_file_hash - Invalid hash: $generated_hash"
+		return 1
+		}
+
+	# Hash OK
+	return 0
+}
+
+
+############################################################################
+#
+# EASYTLS STATUS Section
+#
+
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
 # Report duplicate CNs in EasyRSA due to certificate renewal
@@ -1467,31 +1502,6 @@ inline_index_save_hash ()
 		}
 
 	easytls_verbose "Inline-index hash save OK"
-	return 0
-}
-
-# Generate SHA1 file hash
-generate_file_hash ()
-{
-	# Test for file
-	[ -f "$1" ] || {
-		error_msg "generate_file_hash - Missing file: $1"
-		return 1
-		}
-
-	# What ever openssl says ..
-	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")"
-
-	# Assume it is a valid HASH
-	generated_hash="${openssl_hash%% *}"
-
-	# Test it
-	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
-		error_msg "generate_file_hash - Invalid hash: $generated_hash"
-		return 1
-		}
-
-	# Hash OK
 	return 0
 }
 
