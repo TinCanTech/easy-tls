@@ -604,16 +604,16 @@ easytls_config ()
 	esac
 
 	# Write config
-	easytls_config_update || die "Error updating config."
+	config_update || die "Error updating config."
 	config_save_hash || die "Error hashing config."
 }
 
 # Update config
-easytls_config_update ()
+config_update ()
 {
 	# Find the pattern
 	grep -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" "$EASYTLS_CONFIG_FILE" || {
-		error_msg "easytls_config_update - input error"
+		error_msg "config_update - input error"
 		return 1
 		}
 
@@ -627,7 +627,7 @@ easytls_config_update ()
 }
 
 # Use config
-easytls_config_use ()
+config_use ()
 {
 	# If the config file does not exist then Do not error
 	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
@@ -3869,7 +3869,7 @@ done
 vars_setup
 
 # Load config options - Does not change command line options
-easytls_config_use || die "Config error"
+config_use || die "Config error"
 easytls_verbose "config-file loaded OK"
 
 # Register cleanup on EXIT
