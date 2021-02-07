@@ -859,7 +859,7 @@ and initialize a fresh TLS PKI here."
 
 # Auto-check for invalid inline files
 # Run on exit to avoid "chicken and egg" with init-tls
-inline_auto_check ()
+easytls_auto_check ()
 {
 	[ $auto_check_disabled ] && return 0
 
@@ -900,7 +900,7 @@ inline_auto_check ()
 
 	unset auto_check
 	easytls_verbose "auto-check complete."
-} # => inline_auto_check ()
+} # => easytls_auto_check ()
 
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
@@ -3994,6 +3994,6 @@ case "$cmd" in
 esac
 
 # EasyTLS auto-check
-inline_auto_check || die "Error: inline_auto_check"
+easytls_auto_check || die "Error: easytls_auto_check"
 
 # vim: ft=sh nu ai sw=8 ts=8 noet
