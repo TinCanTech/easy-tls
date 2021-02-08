@@ -555,6 +555,8 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 65: status"
 	print "============================================================"
 
+
+
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
 	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.txt.backup"
 	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.hash.backup"
@@ -572,6 +574,16 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-expire (also test auto-check)"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
 		fail "Unit test error 67: inline-expire"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office inline-remove c10"
+	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office inline-remove c10 || \
+		fail "Unit test error 68: inline-remove"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office tlskey-remove c10"
+	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office tlskey-remove c10 || \
+		fail "Unit test error 68: tlskey-remove"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS help"

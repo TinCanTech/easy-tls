@@ -64,6 +64,7 @@ Use the "help" command above to get full usage details.
   build-tls-crypt-v2-server <server_filename_base>
   build-tls-crypt-v2-client
         <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
+  tlskey-remove <client_filename_base>
   save-id
   status [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
@@ -127,6 +128,9 @@ cmd_help()
       to verify the HW-ADDR.
 
       Note: Both scripts are required to successfully verify Hardware." ;;
+		remove-tlskey) text="
+  tlskey-remove <client_filename_base>
+      Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
 		sid|save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
@@ -1916,21 +1920,23 @@ tlskey_index_update ()
 		# Create new record
 		new_record="$tlskey_serial $crt_serial $cli_name $EASYTLS_TLSCV2_SUBKNAME"
 
+		easytls_verbose "  ADD: $new_record"
+
 		# Write new record
 		printf '%s\n' "$new_record" >> "$EASYTLS_KEY_INDEX" || {
 			error_msg "Failed to update tlskey-index"
 			return 1
 			}
-
-		easytls_verbose "  ADD: $new_record"
 	;;
 	del)
 		# Note: tlskey_serial is unique, regardless of --sub-key-name
 		# Identify old record
 		old_record="${tlskey_serial}[[:blank:]].*[[:blank:]]${name}[[:blank:]]"
 
-		# Find old record
-		grep -q "^${old_record}$" "$EASYTLS_KEY_INDEX" || {
+		easytls_verbose "  DEL: $old_record"
+
+		# Find old record - Do not $ terminate regex
+		grep -q "^${old_record}" "$EASYTLS_KEY_INDEX" || {
 			error_msg "tlskey_index_update del: Failed to find old record"
 			return 1
 			}
@@ -1940,8 +1946,6 @@ tlskey_index_update ()
 			error_msg "tlskey_index_update del: Failed write"
 			return 1
 			}
-
-		easytls_verbose "  DEL: $old_record"
 	;;
 	rehash)
 		# Fall through to save hash
@@ -2056,8 +2060,72 @@ tls_crypt_v2_serial_number ()
 	# Set this valid hash as tlskey_serial
 	tlskey_serial="${generated_hash}"
 	metadata="${tlskey_serial}-${metadata}"
+} # => tls_crypt_v2_serial_number ()
+
+# tlskey name subkeyname to serial
+tlskey_index_full_name_to_serial ()
+{
+	script="{if(\$3 ~ /${name}/ && \$4 ~ /${EASYTLS_TLSCV2_SUBKNAME}/) print \$1}"
+	awk "$script" "$EASYTLS_KEY_INDEX"
+	unset script
 }
 
+# tlskey verify serial number is valid
+tlskey_verify_serial ()
+{
+	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\{40\}$' || {
+		help_note="tlskey_serial must be 40 hexidecimal digits!"
+		return 1
+		}
+}
+
+# # Verify that this key is no longer in use
+tlskey_verify_in_use ()
+{
+	grep -q "^.*[[:blank:]]${tlskey_serial}$" "$EASYTLS_INLINE_INDEX"
+}
+
+# Remove a TLS-Crypt-V2 Client key and update the tlskey-index
+tlskey_remove ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+
+	name="$1"
+	tlskey_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
+
+	# This does not over-write a previous setting
+	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+
+	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
+		tlskey_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
+		}
+
+	verify_tls_init
+
+	[ -f "$tlskey_file" ] || die "Missing: $tlskey_file"
+
+	# Get tlskey serial number from tlskey-index
+	tlskey_serial="$(tlskey_index_full_name_to_serial)"
+
+	# Verify this tlskey-serial
+	tlskey_verify_serial || die "tlskey_verify_serial: failed"
+
+	# Check this tlskey is not in use by an .inline file
+	tlskey_verify_in_use && die "This key is still in use"
+
+	# Confirm remove
+	confirm  "Remove tlskey file ? " "yes" "Remove: $tlskey_file"
+
+	# Update the index
+	tlskey_index_update del || die "Failed to update inline-index"
+
+	rm "$tlskey_file" || die "Failed to remove: $tlskey_file"
+
+	[ ! $silent_remove ] && notice "TLS-Crypt-V2 Client key removed: $tlskey_file"
+
+	# explicitly return success for callers
+	return 0
+} # => tlskey_remove ()
 
 
 ############################################################################
@@ -3923,6 +3991,10 @@ case "$cmd" in
 	btv2c|b-tcv2c|build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@" || \
 			die "Error: build_tls_crypt_v2_client"
+		;;
+	tlskey-remove)
+		tlskey_remove "$@" || \
+			die "Error: tlskey_remove"
 		;;
 	sid|save-id)
 		save_id || \
