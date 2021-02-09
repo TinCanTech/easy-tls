@@ -3294,28 +3294,20 @@ To cancel this inter-active menu at any time, press Control-C
 	4)	# Build TLS Crypt v2 Client
 		print '
 ** Build TLS-Crypt-V2 key for Client'
+		cmd_line="${cmd_line}-tls-crypt-v2-client"
 
 		# Set Server name
 		opt_server_name=""
-		cmd_line="${cmd_line}-tls-crypt-v2-client"
-		EASYTLS_QHELP='
-* This field only requires the certificate commonName,
-  it does not require the complete file name.'
-		EASYTLS_QTEXT='
-  Enter the commonName of your *Server* certificate:'
-		interactive_question
-		opt_server_name="$EASYTLS_ANSWER"
+		cert_type='*Server*'
+		interactive_common_name
+		opt_server_name="$common_name"
 		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
 		opt_client_name=""
-		EASYTLS_QHELP='
-* This field only requires the certificate commonName,
-  it does not require the complete file name.'
-		EASYTLS_QTEXT='
-  Enter the commonName of your *Client* certificate:'
-		interactive_question
-		opt_client_name="$EASYTLS_ANSWER"
+		cert_type='*Client*'
+		interactive_common_name
+		opt_client_name="$common_name"
 		cmd_line="${cmd_line} $opt_client_name"
 
 		# Set custom.group name
@@ -3327,6 +3319,8 @@ To cancel this inter-active menu at any time, press Control-C
   You can configure a single Custom-Group like so:
 
     $ ./easytls config custom.group NAME
+
+  If you want to configure a Custom-Group then use CTRL-C now.
 
   If you have configured your Custom-Group or do not require a Custom-Group
   then leave this field blank.
@@ -3519,8 +3513,8 @@ interactive_common_name ()
 	EASYTLS_QHELP='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
-	EASYTLS_QTEXT='
-  Enter the commonName of your certificate:'
+	EASYTLS_QTEXT="
+  Enter the commonName of your ${cert_type} certificate:"
 	interactive_question
 	common_name="$EASYTLS_ANSWER"
 	cmd_line="${cmd_line} $common_name"
