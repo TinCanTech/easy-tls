@@ -3348,30 +3348,7 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_sub_key_name
 
 		# Set hardware addresses
-		opt_hardware=""
-		EASYTLS_QHELP='
-* You can lock this key to specific MAC hardware addresses.
-
-  Hardware addresses can be in the form of:
-
-    * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
-
-  If you do not require hardware address lock-down
-  then leave this field blank.'
-		EASYTLS_QTEXT='
-  Enter a single MAC hardware address
-  or leave blank to continue:'
-		while :
-		do
-			interactive_question
-			[ -z "$EASYTLS_ANSWER" ] && break
-			opt_hardware="$opt_hardware $EASYTLS_ANSWER"
-		done
-
-		cmd_line="${cmd_line} ${opt_hardware}"
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_hwaddr
 
 		# Invoke inline
 		if [ -z "$EASYTLS_BINLINE" ]
@@ -3720,6 +3697,34 @@ interactive_opt_add_hw ()
 	done
 }
 
+# Set hardware addresses
+interactive_hwaddr ()
+{
+	opt_hardware=""
+	EASYTLS_QHELP='
+* You can lock this key to specific MAC hardware addresses.
+
+  Hardware addresses can be in the form of:
+
+    * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
+
+  If you do not require hardware address lock-down
+  then leave this field blank.'
+	EASYTLS_QTEXT='
+  Enter a single MAC hardware address
+  or leave blank to continue:'
+	while :
+	do
+		interactive_question
+		[ -z "$EASYTLS_ANSWER" ] && break
+		opt_hardware="$opt_hardware $EASYTLS_ANSWER"
+	done
+
+	cmd_line="${cmd_line} ${opt_hardware}"
+	print ""
+	print "  $cmd_head"
+	print "    ./easytls $cmd_line"
+}
 
 ############################################################################
 #
