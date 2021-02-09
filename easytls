@@ -3344,22 +3344,8 @@ To cancel this inter-active menu at any time, press Control-C
 			export EASYTLS_TLSCV2_CG="${opt_customg}"
 			}
 
-		# Set Sub-key name
-		sub_key_name=""
-		EASYTLS_QHELP='
-* Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
-  these keys are referred to as Sub-keys.  Each Sub-key is used in
-  a separate inline file with the same X509 Client certificate.
-
-  If you do not require a Sub-key then leave this field blank.'
-		EASYTLS_QTEXT='
-  Enter your Sub-key name:'
-		interactive_question
-		sub_key_name="$EASYTLS_ANSWER"
-		[ -n "$sub_key_name" ] && {
-			cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
-			export EASYTLS_TLSCV2_SUBKNAME="${sub_key_name}"
-			}
+		# Set option --sub-key-name
+		interactive_sub_key_name
 
 		# Set hardware addresses
 		opt_hardware=""
@@ -3568,7 +3554,11 @@ interactive_sub_key_name ()
 {
 	unset sub_key_name
 	EASYTLS_QHELP='
-* Do not set Sub-key for a Server file, Only Clients can use Sub-keys.
+* Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
+  these keys are referred to as Sub-keys.  Each Sub-key is used in
+  a separate inline file with the same X509 Client certificate.
+
+  Do not set Sub-key for a Server file, only Clients can use Sub-keys.
 
   Leave blank to continue.'
 	EASYTLS_QTEXT='
