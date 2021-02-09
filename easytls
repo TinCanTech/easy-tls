@@ -1412,7 +1412,7 @@ inline_index_update ()
 
 		# Append TLS-Crypt-V2 key details
 		# TODO: This works but could be better
-		tlskey_serial="${tlskey_serial:-'n/a'}"
+		tlskey_serial="${tlskey_serial:-n/a}"
 		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
 			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
 
@@ -2760,13 +2760,13 @@ build_tls_crypt_v2_client ()
 	done
 
 	# Confirm metadata Custom-Group
-	[ $EASYTLS_TLSCV2_CG ] && {
+	[ "$EASYTLS_TLSCV2_CG" = "EASYTLS" ] || {
 		confirm "Is the Custom-Group field correct ? " "yes" \
 		"Custom-Group field for metadata: $EASYTLS_TLSCV2_CG"
 		}
 
 	# Confirm --sub-key-name)
-	[ -n "$EASYTLS_TLSCV2_SUBKNAME" ] && {
+	[ "$EASYTLS_TLSCV2_SUBKNAME" = "NOSUBKEY" ] || {
 		confirm "Is the Sub-key-name correct ? " "yes" \
 		"Sub-key-name field for metadata: $EASYTLS_TLSCV2_SUBKNAME"
 		}
@@ -3387,6 +3387,8 @@ To cancel this inter-active menu at any time, press Control-C
 		print "    ./easytls $cmd_line"
 
 		# Build key
+		print ""
+		print "===================="
 		build_tls_crypt_v2_client \
 			"$opt_server_name" "$opt_client_name" ${opt_hardware}
 	;;
@@ -3559,7 +3561,7 @@ interactive_sub_key_name ()
 interactive_key_direction ()
 {
 	unset key_direction
-	print 
+	print
 	EASYTLS_QHELP='
 * Enter Key direction [Server=0 or Client=1]'
 	EASYTLS_QTEXT='
@@ -3837,11 +3839,14 @@ vars_setup()
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_DATA_DIR/easytls-inline-index.txt"
 	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_DATA_DIR/easytls-inline-index.hash"
 	set_var EASYTLS_OPENVPN		"openvpn"
-	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_PKI/easytls-disabled-list.txt"
+	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
-	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_PKI/easytls-ca-identity.txt"
+	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
 	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
+
+	set_var EASYTLS_TLSCV2_CG	"EASYTLS"
+	set_var EASYTLS_TLSCV2_SUBKNAME	"NOSUBKEY"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing

@@ -493,11 +493,11 @@ deps ()
 
 	# CA required files
 	ca_cert="$CA_DIR/ca.crt"
-	ca_identity_file="$CA_DIR/easytls/easytls-ca-identity.txt"
+	ca_identity_file="$CA_DIR/easytls/data/easytls-ca-identity.txt"
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
-	disabled_list="$CA_DIR/easytls/easytls-disabled-list.txt"
+	disabled_list="$CA_DIR/easytls/data/easytls-disabled-list.txt"
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
@@ -673,11 +673,11 @@ deps
 
 # Metadata custom_group
 
-	# This test must be enabled by option: --custom-group
-	# Otherwise it is not checked.
+	# This test must be configured by option: --custom-group
 	# md_custom_g Must equal TLS_CRYPT_V2_VERIFY_CG
 	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
 	then
+		# Custom group is in use
 		if [ "$md_custom_g" = "$TLS_CRYPT_V2_VERIFY_CG" ]
 		then
 			insert_msg="custom_group $md_custom_g OK ==>"

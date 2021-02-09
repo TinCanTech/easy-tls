@@ -307,7 +307,7 @@ do
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		exit_code=$?
@@ -364,7 +364,7 @@ do
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		exit_code=$?
@@ -473,7 +473,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		exit_code=$?
@@ -530,7 +530,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		exit_code=$?
@@ -538,7 +538,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		plcid="$(cat "$PKI_DIR/easytls/easytls-ca-identity.txt")"
+		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid"
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid"
 		exit_code=$?
