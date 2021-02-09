@@ -2382,6 +2382,7 @@ inline_base ()
 		return 1
 		}
 
+	easytls_verbose
 	easytls_verbose "Inline base file created: $inline_file"
 
 	# explicitly return success for callers
@@ -3385,6 +3386,29 @@ To cancel this inter-active menu at any time, press Control-C
 		print ""
 		print "  $cmd_head"
 		print "    ./easytls $cmd_line"
+
+		# Invoke inline
+		if [ -z "$EASYTLS_BINLINE" ]
+		then
+			EASYTLS_QHELP='
+* Do you want to build a corresponding inline file ?'
+			EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+			while :
+			do
+				interactive_question
+				case "$EASYTLS_ANSWER" in
+					Y|y|Yes|yes|YES)
+						EASYTLS_BINLINE=1
+						cmd_line="--inline ${cmd_line}"
+						break
+					;;
+					N|n|No|no|NO)
+						break
+					;;
+				esac
+			done
+		fi
 
 		# Build key
 		print ""
