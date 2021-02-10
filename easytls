@@ -2061,6 +2061,7 @@ tls_crypt_v2_serial_number ()
 	"$EASYRSA_OPENSSL" rand -hex -out "$EASYTLS_DATA_DIR/temp.hex" 4
 	metadata_padding="$(cat "$EASYTLS_DATA_DIR/temp.hex")"
 	metadata="${metadata_padding}--${metadata}"
+	rm -f "$EASYTLS_DATA_DIR/temp.hex"
 
 	# What ever openssl says ..
 	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
