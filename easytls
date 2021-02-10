@@ -548,6 +548,10 @@ easytls_config ()
 			cfg_opt="inline.metadata"
 			cfg_val=$2
 		;;
+		ih|inline.hardware)
+			cfg_opt="inline.hardware"
+			cfg_val=$2
+		;;
 		'')
 			# Show config
 			cat "$EASYTLS_CONFIG_FILE"
@@ -560,7 +564,7 @@ easytls_config ()
 	esac
 
 	case "$cfg_opt" in
-		auto.check|inline.metadata)
+		auto.check|inline.metadata|inline.hardware)
 			case "$cfg_val" in
 				on|off)
 					:
@@ -634,7 +638,10 @@ config_update ()
 config_use ()
 {
 	# If the config file does not exist then Do not error
-	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
+	[ -f "$EASYTLS_CONFIG_FILE" ] || {
+		error_msg "Missing Config: Initialize Easy-TLS."
+		return 0
+		}
 
 	config_verify_hash || {
 		error_msg "Config file hash failed."
@@ -663,21 +670,36 @@ config_use ()
 					*)		config_error=3 ;;
 				esac
 				;;
+			inline.hardware)
+				case "$cfg_val" in
+					off)	: ;;
+					on)		set_var add_hardware 1 ;;
+					*)		config_error=3 ;;
+				esac
+				;;
 			custom.group)
-				set_var EASYTLS_TLSCV2_CG "$cfg_val"
+				[ -n "$cfg_val" ] && set_var EASYTLS_TLSCV2_CG "$cfg_val"
 				;;
 			custom.openvpn)
-				set_var EASYTLS_OPENVPN "$cfg_val"
+				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
 				export EASYTLS_MASTER_ID="$cfg_val"
+				;;
+			*)
+				die "config error"
+				;;
 		esac
 
 		# Just for shellcheck
 		[ "$cfg_equ" = "=" ] || config_error=4
 
 	done < "$EASYTLS_CONFIG_FILE"
+
+	# Set final defaults
+	set_var EASYTLS_TLSCV2_CG "EASYTLS"
+	set_var EASYTLS_OPENVPN "openvpn"
 
 	return "$config_error"
 }
@@ -832,6 +854,7 @@ and initialize a fresh TLS PKI here."
 		printf '%s\n' "custom.group = "
 		printf '%s\n' "auto.check = on"
 		printf '%s\n' "inline.metadata = on"
+		printf '%s\n' "inline.hardware = off"
 		printf '%s\n' "custom.openvpn = "
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
@@ -3301,14 +3324,12 @@ To cancel this inter-active menu at any time, press Control-C
 		cert_type='*Server*'
 		interactive_common_name
 		opt_server_name="$common_name"
-		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
 		opt_client_name=""
 		cert_type='*Client*'
 		interactive_common_name
 		opt_client_name="$common_name"
-		cmd_line="${cmd_line} $opt_client_name"
 
 		# Set custom.group name
 		opt_customg=""
@@ -3330,7 +3351,7 @@ To cancel this inter-active menu at any time, press Control-C
 			EASYTLS_QHELP="$EASYTLS_QHELP $EASYTLS_TLSCV2_CG"
 		EASYTLS_QTEXT='
   Enter your Custom-Group NAME
-  or leave blank to accept the current Custom-Group:'
+  or leave this blank to accept the current Custom-Group:'
 		interactive_question
 		opt_customg="$EASYTLS_ANSWER"
 		[ -n "$opt_customg" ] && {
@@ -3344,34 +3365,66 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set hardware addresses
 		interactive_hwaddr
 
-		# Invoke inline
-		if [ -z "$EASYTLS_BINLINE" ]
-		then
-			EASYTLS_QHELP='
-* Do you want to build a corresponding inline file ?'
-			EASYTLS_QTEXT='
-  Enter (y)es or (n)o:'
-			while :
-			do
-				interactive_question
-				case "$EASYTLS_ANSWER" in
-					Y|y|Yes|yes|YES)
-						EASYTLS_BINLINE=1
-						cmd_line="--inline ${cmd_line}"
-						break
-					;;
-					N|n|No|no|NO)
-						break
-					;;
-				esac
-			done
-		fi
+		# Print command
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
 
 		# Build key
 		print ""
 		print "===================="
 		build_tls_crypt_v2_client \
-			"$opt_server_name" "$opt_client_name" ${opt_hardware}
+			"$opt_server_name" "$opt_client_name" ${opt_hardware} || {
+				error_msg "Build key failed"
+				return 1
+				}
+
+		# Invoke inline
+		cmd_line="inline-tls-crypt-v2 $opt_client_name"
+		EASYTLS_QHELP='
+* Do you want to build a corresponding inline file ?'
+		EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+		while :
+		do
+			interactive_question
+			case "$EASYTLS_ANSWER" in
+				Y|y|Yes|yes|YES)
+					build_and_inline=1
+					break
+				;;
+				N|n|No|no|NO)
+					break
+				;;
+			esac
+		done
+
+		# Configure inline metadata
+		if [ -n "$build_and_inline" ]
+		then
+			# Set opt_no_md
+			interactive_opt_no_md
+
+			# Set opt_add_hw
+			interactive_opt_add_hw
+		fi
+
+		# Inline now
+		if [ $build_and_inline ]
+		then
+			# Print command
+			print ""
+			print "  $cmd_head"
+			print "    ./easytls $cmd_line"
+
+			# Create inline
+			inline_tls_crypt_v2 "$opt_client_name" ${opt_no_md} ${opt_add_hw} || {
+				error_msg "Inline file failed"
+				return 1
+				}
+		fi
+
+		return 0
 	;;
 	5)	# Remove client key
 		print "Coming soon .."
@@ -3537,7 +3590,7 @@ interactive_sub_key_name ()
 	interactive_question
 	[ -n "$EASYTLS_ANSWER" ] && {
 		sub_key_name="$EASYTLS_ANSWER"
-		cmd_line="--dh=${sub_key_name} ${cmd_line}"
+		cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
 		export EASYTLS_TLSCV2_SUBKNAME="${sub_key_name}"
 		}
 }
@@ -3838,27 +3891,24 @@ vars_setup()
 
 	# Set defaults, preferring existing env-vars if present
 	set_var
-	set_var EASYRSA			"$prog_dir"
-	set_var EASYRSA_OPENSSL		"openssl"
-	set_var EASYRSA_PKI		"$PWD/pki"
-	set_var EASYRSA_TEMP_DIR	"$EASYRSA_PKI"
-	set_var EASYRSA_INDEX		"$EASYRSA_PKI/index.txt"
+	set_var EASYRSA					"$prog_dir"
+	set_var EASYRSA_OPENSSL			"openssl"
+	set_var EASYRSA_PKI				"$PWD/pki"
+	set_var EASYRSA_TEMP_DIR		"$EASYRSA_PKI"
+	set_var EASYRSA_INDEX			"$EASYRSA_PKI/index.txt"
 
-	set_var EASYTLS_PKI		"$EASYRSA_PKI/easytls"
-	set_var EASYTLS_DATA_DIR	"$EASYTLS_PKI/data"
-	set_var EASYTLS_CONFIG_FILE	"$EASYTLS_DATA_DIR/easytls-config.txt"
-	set_var EASYTLS_CONFIG_HASH	"$EASYTLS_DATA_DIR/easytls-config.hash"
-	set_var EASYTLS_MD_DIR	"$EASYTLS_PKI/metadata"
+	set_var EASYTLS_PKI				"$EASYRSA_PKI/easytls"
+	set_var EASYTLS_DATA_DIR		"$EASYTLS_PKI/data"
+	set_var EASYTLS_CONFIG_FILE		"$EASYTLS_DATA_DIR/easytls-config.txt"
+	set_var EASYTLS_CONFIG_HASH		"$EASYTLS_DATA_DIR/easytls-config.hash"
+	set_var EASYTLS_MD_DIR			"$EASYTLS_PKI/metadata"
 	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_DATA_DIR/easytls-inline-index.txt"
 	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_DATA_DIR/easytls-inline-index.hash"
-	set_var EASYTLS_OPENVPN		"openvpn"
 	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
-	set_var EASYTLS_CA_IDENTITY	"$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
-	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
-	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
-
-	set_var EASYTLS_TLSCV2_CG	"EASYTLS"
+	set_var EASYTLS_CA_IDENTITY		"$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
+	set_var EASYTLS_KEY_INDEX		"$EASYTLS_DATA_DIR/easytls-key-index.txt"
+	set_var EASYTLS_KEY_HASH		"$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var EASYTLS_TLSCV2_SUBKNAME	"NOSUBKEY"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
@@ -3964,10 +4014,6 @@ done
 # Intelligent env-var detection and auto-loading:
 vars_setup
 
-# Load config options - Does not change command line options
-config_use || die "Config error"
-easytls_verbose "config-file loaded OK"
-
 # Register cleanup on EXIT
 trap "cleanup" EXIT
 # When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
@@ -3977,6 +4023,10 @@ trap "exit 2" 2
 trap "exit 3" 3
 trap "exit 6" 6
 trap "exit 14" 15
+
+# Load config options - Does not change command line options
+config_use || die "Config error"
+easytls_verbose "config-file loaded OK"
 
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
