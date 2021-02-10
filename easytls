@@ -614,7 +614,7 @@ easytls_config ()
 	# Write config
 	config_update || die "Error updating config."
 	config_save_hash || die "Error hashing config."
-}
+} # => easytls_config ()
 
 # Update config
 config_update ()
@@ -632,7 +632,7 @@ config_update ()
 
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 	return 0
-}
+} # => config_update ()
 
 # Use config
 config_use ()
@@ -654,6 +654,9 @@ config_use ()
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
 	while read -r cfg_opt cfg_equ cfg_val
 	do
+		# shellcheck - may as well check it
+		[ "$cfg_equ" = "=" ] || config_error=4
+
 		# These settings do not change command line
 		case "$cfg_opt" in
 			auto.check)
@@ -692,9 +695,6 @@ config_use ()
 				;;
 		esac
 
-		# Just for shellcheck
-		[ "$cfg_equ" = "=" ] || config_error=4
-
 	done < "$EASYTLS_CONFIG_FILE"
 
 	# Set final defaults
@@ -702,7 +702,7 @@ config_use ()
 	set_var EASYTLS_OPENVPN "openvpn"
 
 	return "$config_error"
-}
+} # => config_use ()
 
 # Verify the config-file hash
 config_verify_hash ()
@@ -736,7 +736,7 @@ config_verify_hash ()
 
 	easytls_verbose "config-file hash check OK"
 	return 0
-}
+} # => config_verify_hash ()
 
 # Hash config-file
 config_save_hash ()
@@ -758,7 +758,7 @@ config_save_hash ()
 
 	easytls_verbose "config-file hash save OK"
 	return 0
-}
+} # => config_save_hash ()
 
 # Verify Openvpn is available
 verify_openvpn ()
@@ -956,7 +956,7 @@ generate_file_hash ()
 
 	# Hash OK
 	return 0
-}
+} # => generate_file_hash ()
 
 
 ############################################################################
