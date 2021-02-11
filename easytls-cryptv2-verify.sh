@@ -116,32 +116,33 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
-  -x|--max-tls-age    TLS Crypt V2 Key allowable age in days (default=1825).
-                      To disable age check use --tls-age=0
-  --via-ca            Verify client serial number status via `openssl ca`
-                      NOT RECOMMENDED
-  --via-index         Verify client serial number status via openssl index.txt
-                      PREFERRED - This method does not require the script to
-                      load openssl binary.
-                      The default method is to verify client serial number
-                      status is via the Certificate Revokation List.
   -g|--custom-group=<GROUP>
                       Verify the client metadata against a custom group.
                       The custom group can be appended when EasyTLS generates
                       the tls-crypt-v2 client key by using:
-                      easytls --custom-group=XYZ build-tls-crypt-v2-client
+                      `easytls --custom-group=XYZ build-tls-crypt-v2-client`
                       XYZ MUST be a single alphanumerical word with NO spaces.
-  --cache-id          Use the saved CA-Identity from EasyTLS.
-  --preload-id=CA-Identity
-                      Preload the CA-Identity when calling the script.
-                      See EasyTLS command save-id for details of the CA-Identity.
-                      See EasyTLS-Howto.txt for an example.
-  --hex-check         Enable serial number is Hex only check. (Not required)
-  --disable-list      Disable the temporary disabled-list check.
-  --pid-file=<file>   The PID file for the openvpn server instance.
+  -n|--no-hash        Do not verify metadata hash (TLS-key serial number).
+  -x|--max-tls-age    TLS Crypt V2 Key allowable age in days (default=1825).
+                      To disable age check use --tls-age=0
+  -d|--disable-list   Disable the temporary disabled-list check.
+  -s|--pid-file=<file>
+                      The PID file for the openvpn server instance.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
   -t|--tmp-dir        Temp directory where the hardware address list is written.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
+  --v1|--via-crl      Do X509 certificate checks via test_method 1, CRL check.
+  --v2|--via-ca       Do X509 certificate checks via test_method 2,
+                      Use `openssl ca` commands.  NOT RECOMMENDED
+  --v3|--via-index    Do X509 certificate checks via test_method 3,
+                      Search openssl index.txt  PREFERRED
+                      This method does not require loading the openssl binary.
+  -a|--cache-id       Use the saved CA-Identity from EasyTLS.
+  -p|--preload-id=CA-Identity
+                      Preload the CA-Identity when calling the script.
+                      See EasyTLS command save-id for details of the CA-Identity.
+                      See EasyTLS-Howto.txt for an example.
+  --hex|--hex-check    Enable serial number is Hex only check. (Not required)
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -606,7 +607,7 @@ do
 	-g|--custom-group)
 		local_custom_g="$val"
 	;;
-	-h|--no-hash)
+	-n|--no-hash)
 		empty_ok=1
 		unset VERIFY_hash
 	;;
@@ -617,37 +618,35 @@ do
 		empty_ok=1
 		unset use_disable_list
 	;;
-	-s|--spf|--pid-file)
+	-s|--pid-file)
 		server_pid_file="$val"
 	;;
 	-t|--tmp-dir)
 		EASYTLS_TMP_DIR="$val"
 	;;
-	--x509)
+	--v1|--via-crl)
 		empty_ok=1
+		tls_crypt_v2_verify_msg="* Easy-TLS (crl) ==>"
 		use_x509=1
 		test_method=1
 	;;
-	-v1|--via-crl)
-		empty_ok=1
-		tls_crypt_v2_verify_msg="* Easy-TLS (crl) ==>"
-		test_method=1
-	;;
-	-v2|--via-ca)
+	--v2|--via-ca)
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* Easy-TLS (ca) ==>"
+		use_x509=1
 		test_method=2
 	;;
-	-v3|--via-index)
+	--v3|--via-index)
 		empty_ok=1
 		tls_crypt_v2_verify_msg="* Easy-TLS (index) ==>"
+		use_x509=1
 		test_method=3
 	;;
-	--cache|--cache-id)
+	-a|--cache-id)
 		empty_ok=1
 		use_cache_id=1
 	;;
-	-p|--pre|--preload-id)
+	-p|--preload-id)
 		preload_cache_id="$val"
 	;;
 	--hex|--hex-check)
