@@ -674,7 +674,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 71: version"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 244 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 88 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
