@@ -522,7 +522,7 @@ deps ()
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
 	disabled_list="$TLS_dir/easytls-disabled-list.txt"
-	tlskey_serial_list="$TLS_dir/easytls-key-index.txt"
+	tlskey_serial_index="$TLS_dir/easytls-key-index.txt"
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
@@ -742,7 +742,7 @@ deps
 	fi
 
 	# Verify tlskey-serial is in index
-	grep -q "$tlskey_serial" "$tlskey_serial_list" || \
+	grep -q "$tlskey_serial" "$tlskey_serial_index" || \
 		fail_and_exit "TLSKEY SERIAL" 9
 
 # TLS Key expired
