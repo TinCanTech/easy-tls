@@ -289,13 +289,6 @@ do
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		exit_code=$?
-		[ $exit_code -eq 0 ] || expected_errors
-		echo "exit: $exit_code"
-
-		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		exit_code=$?
@@ -348,13 +341,6 @@ do
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		[ $exit_code -eq 0 ] && expected_errors
-		echo "exit: $exit_code"
-
-		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
 		exit_code=$?
 		[ $exit_code -eq 0 ] && expected_errors
 		echo "exit: $exit_code"
@@ -473,13 +459,6 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		echo "exit: $exit_code"
 
 		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		exit_code=$?
-		[ $exit_code -eq 0 ] && expected_errors
-		echo "exit: $exit_code"
-
-		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		exit_code=$?
@@ -532,13 +511,6 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		[ $exit_code -eq 0 ] && expected_errors
-		echo "exit: $exit_code"
-
-		print "------------------------------------------------------------"
-		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --hex-check
 		exit_code=$?
 		[ $exit_code -eq 0 ] && expected_errors
 		echo "exit: $exit_code"
@@ -674,9 +646,9 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 71: version"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 88 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 79 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
-[ $total_expected_errors -eq 88 ] || exit 9
+[ $total_expected_errors -eq 79 ] || exit 9
 exit 0

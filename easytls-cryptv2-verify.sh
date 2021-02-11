@@ -138,7 +138,6 @@ help_text ()
                       Preload the CA-Identity when calling the script.
                       See EasyTLS command save-id for details of the CA-Identity.
                       See EasyTLS-Howto.txt for an example.
-  --hex|--hex-check   Enable serial number is Hex only check. (Not required)
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -240,12 +239,6 @@ verify_tls_key_age ()
 	# Success message
 	insert_msg="Key age $key_age_day days OK ==>"
 	success_msg="$success_msg $insert_msg"
-}
-
-# verify serial number is hex only
-allow_hex_only ()
-{
-	printf '%s' "$md_serial" | grep -q '^[[:xdigit:]]\+$'
 }
 
 # Check metadata client certificate serial number against disabled list
@@ -383,7 +376,7 @@ serial_status_via_ca ()
 		client_passed_x509_tests_connection_allowed
 	;;
 	Revoked)
-		client_passed_all_tests_certificate_revoked
+		client_passed_x509_tests_certificate_revoked
 	;;
 	*)
 		die "Serial status via CA has broken" 9
@@ -447,7 +440,7 @@ serial_status_via_pki_index ()
 			fail_and_exit "SERIAL NUMBER UNKNOWN" 121
 		fi
 	else
-		client_passed_all_tests_certificate_revoked
+		client_passed_x509_tests_certificate_revoked
 	fi
 }
 
@@ -641,10 +634,6 @@ do
 	-p|--preload-id)
 		preload_cache_id="$val"
 	;;
-	--hex|--hex-check)
-		empty_ok=1
-		enable_serial_Hex_check=1
-	;;
 	-v|--verbose)
 		empty_ok=1
 		status_verbose=1
@@ -770,20 +759,6 @@ then
 	# No X509 required
 	client_passed_tls_tests_connection_allowed
 else
-
-
-# Client certificate serial number
-
-	# Non-empty, Hex only string accepted
-	if [ $enable_serial_Hex_check ]
-	then
-		# Load binary: printf +1
-		# Load binary: grep +1
-		allow_hex_only || {
-			failure_msg="Invalid: Client serial number"
-			fail_and_exit "SERIAL NUMBER INVALID" 11
-		}
-	fi
 
 
 # CA identity
