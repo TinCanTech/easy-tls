@@ -626,6 +626,7 @@ do
 	--x509)
 		empty_ok=1
 		use_x509=1
+		test_method=1
 	;;
 	-v1|--via-crl)
 		empty_ok=1
