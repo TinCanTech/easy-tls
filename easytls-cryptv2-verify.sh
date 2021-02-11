@@ -60,10 +60,10 @@ fail_and_exit ()
 		printf "%s\n" \
 			"* ==> version      remote: $md_version"
 
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
-			"* ==> custom_group  local: $TLS_CRYPT_V2_VERIFY_CG"
+		printf "%s\n" \
+			"* ==> custom_group  local: $local_custom_g"
 
-		[ $TLS_CRYPT_V2_VERIFY_CG ] && printf "%s\n" \
+		printf "%s\n" \
 			"* ==> custom_group remote: $md_custom_g"
 
 		printf "%s\n" \
@@ -73,10 +73,13 @@ fail_and_exit ()
 			"* ==> identity     remote: $md_identity"
 
 		printf "%s\n" \
-			"* ==> serial       remote: $md_serial"
+			"* ==> X509 serial  remote: $md_serial"
 
 		printf "%s\n" \
 			"* ==> name         remote: $md_name"
+
+		printf "%s\n" \
+			"* ==> TLSK serial  remote: $tlskey_serial"
 
 		printf "%s\n" \
 			"* ==> sub-key      remote: $md_subkey"
@@ -196,7 +199,9 @@ metadata_string_to_vars ()
 {
 	if [ ${#1} -gt 40 ]
 	then
-		tls_key_serial="${1%%-*}"
+		tlskey_serial="${1%%-*}"
+		md_seed="${metadata_string#*-}"
+		#md_padding="${md_seed%%--*}"
 		md_easytls="${1#*--}"
 		md_version="${md_easytls%-*.*}"
 		md_date="$4"
@@ -318,7 +323,7 @@ serial_status_via_crl ()
 		fail_and_exit "SERIAL_NUMBER_UNKNOWN" 121
 		;;
 		1)
-		client_passed_all_tests_connection_allowed
+		client_passed_x509_tests_connection_allowed
 		;;
 		*)
 		die "Duplicate serial numbers: $md_serial" 127
@@ -336,8 +341,17 @@ serial_status_via_crl ()
 	esac
 }
 
-# This is the only way to connect
-client_passed_all_tests_connection_allowed ()
+# This is the best way to connect
+client_passed_tls_tests_connection_allowed ()
+{
+	insert_msg="TLS key is recognised and Valid:"
+	success_msg="$success_msg $insert_msg $tlskey_serial"
+	success_msg="$success_msg $md_name"
+	absolute_fail=0
+}
+
+# This is the long way to connect
+client_passed_x509_tests_connection_allowed ()
 {
 	insert_msg="Client certificate is recognised and Valid:"
 	success_msg="$success_msg $insert_msg $md_serial"
@@ -370,7 +384,7 @@ serial_status_via_ca ()
 	# Considering what has to be done, I don't like this
 	case "$client_cert_serno_status" in
 	Valid)
-		client_passed_all_tests_connection_allowed
+		client_passed_x509_tests_connection_allowed
 	;;
 	Revoked)
 		client_passed_all_tests_certificate_revoked
@@ -429,7 +443,7 @@ serial_status_via_pki_index ()
 	then
 		if [ $is_valid -eq 1 ]
 		then
-			client_passed_all_tests_connection_allowed
+			client_passed_x509_tests_connection_allowed
 		else
 			# Cert is not known
 			insert_msg="Serial number is not in the CA database:"
@@ -464,7 +478,9 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_version="easytls"
+	local_version='easytls'
+	local_custom_g='EASYTLS'
+	VERIFY_hash=1
 
 	# Default temp dir
 	EASYTLS_TMP_DIR="/tmp"
@@ -476,10 +492,16 @@ init ()
 	openvpn_metadata_file="$metadata_file"
 
 	# Log message
-	tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (crl) ==>"
+	tls_crypt_v2_verify_msg="* Easy-TLS ==>"
 
-	# Test certificate Valid/Revoked by CRL not CA
-	test_method=1
+	# X509 is disabled by default
+	# To enable use: --x509
+	# X509 Test method
+	# 0 - No X509
+	# 1 - client serial revokation via CRL grep (Default)
+	# 2 - client serial revokation via openssl ca command (Broken)
+	# 3 - client serial revokation via index.txt grep (Preferred)
+	test_method=0
 
 	# Enable disable list by default
 	use_disable_list=1
@@ -490,14 +512,16 @@ deps ()
 {
 	# CA_DIR MUST be set with option: -c|--ca
 	[ -d "$CA_DIR" ] || die "Path to CA directory is required, see help" 22
+	TLS_dir="$CA_DIR/easytls/data"
 
 	# CA required files
 	ca_cert="$CA_DIR/ca.crt"
-	ca_identity_file="$CA_DIR/easytls/data/easytls-ca-identity.txt"
+	ca_identity_file="$TLS_dir/easytls-ca-identity.txt"
 	crl_pem="$CA_DIR/crl.pem"
 	index_txt="$CA_DIR/index.txt"
 	openssl_cnf="$CA_DIR/safessl-easyrsa.cnf"
-	disabled_list="$CA_DIR/easytls/data/easytls-disabled-list.txt"
+	disabled_list="$TLS_dir/easytls-disabled-list.txt"
+	tlskey_serial_list="$TLS_dir/easytls-key-index.txt"
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
@@ -576,53 +600,66 @@ do
 	empty_ok="" # Empty values are not allowed unless expected
 
 	case "$opt" in
-	help|-h|-help|--help)
+	-c|--ca)
+		CA_DIR="$val"
+	;;
+	-g|--custom-group)
+		local_custom_g="$val"
+	;;
+	-h|--no-hash)
 		empty_ok=1
-		help_text
+		unset VERIFY_hash
+	;;
+	-x|--max-tls-age)
+		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
+	;;
+	-d|--disable-list)
+		empty_ok=1
+		unset use_disable_list
+	;;
+	-s|--spf|--pid-file)
+		server_pid_file="$val"
+	;;
+	-t|--tmp-dir)
+		EASYTLS_TMP_DIR="$val"
+	;;
+	--x509)
+		empty_ok=1
+		use_x509=1
+	;;
+	-v1|--via-crl)
+		empty_ok=1
+		tls_crypt_v2_verify_msg="* Easy-TLS (crl) ==>"
+		test_method=1
+	;;
+	-v2|--via-ca)
+		empty_ok=1
+		tls_crypt_v2_verify_msg="* Easy-TLS (ca) ==>"
+		test_method=2
+	;;
+	-v3|--via-index)
+		empty_ok=1
+		tls_crypt_v2_verify_msg="* Easy-TLS (index) ==>"
+		test_method=3
+	;;
+	--cache|--cache-id)
+		empty_ok=1
+		use_cache_id=1
+	;;
+	-p|--pre|--preload-id)
+		preload_cache_id="$val"
+	;;
+	--hex|--hex-check)
+		empty_ok=1
+		enable_serial_Hex_check=1
 	;;
 	-v|--verbose)
 		empty_ok=1
 		TLS_CRYPT_V2_VERIFY_VERBOSE=1
 	;;
-	-c|--ca)
-		CA_DIR="$val"
-	;;
-	-t|--tmp-dir)
-		EASYTLS_TMP_DIR="$val"
-	;;
-	-x|--max-tls-age)
-		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
-	;;
-	--via-ca)
+	help|-h|-help|--help)
 		empty_ok=1
-		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (ca) ==>"
-		test_method=2
-	;;
-	--via-index)
-		empty_ok=1
-		tls_crypt_v2_verify_msg="* TLS-crypt-v2-verify (index) ==>"
-		test_method=3
-	;;
-	-g|--custom-group)
-		TLS_CRYPT_V2_VERIFY_CG="$val"
-	;;
-	--cache-id)
-		empty_ok=1
-		use_cache_id=1
-	;;
-	--preload-id)
-		preload_cache_id="$val"
-	;;
-	--hex-check)
-		empty_ok=1
-		enable_serial_Hex_check=1
-	;;
-	--disable-list)
-		empty_ok=1
-		unset use_disable_list
-	;;
-	--pid-file)
-		server_pid_file="$val"
+		help_text
 	;;
 	*)
 		die "Unknown option: $1" 253
@@ -674,11 +711,11 @@ deps
 # Metadata custom_group
 
 	# This test must be configured by option: --custom-group
-	# md_custom_g Must equal TLS_CRYPT_V2_VERIFY_CG
-	if [ -n "$TLS_CRYPT_V2_VERIFY_CG" ]
+	# md_custom_g Must equal local_custom_g
+	if [ -n "$local_custom_g" ]
 	then
 		# Custom group is in use
-		if [ "$md_custom_g" = "$TLS_CRYPT_V2_VERIFY_CG" ]
+		if [ "$md_custom_g" = "$local_custom_g" ]
 		then
 			insert_msg="custom_group $md_custom_g OK ==>"
 			success_msg="$success_msg $insert_msg"
@@ -692,6 +729,21 @@ deps
 		fi
 	fi
 
+
+# tlskey-serial checks
+
+	# HASH metadata sring without the tlskey-serial
+	if [ $VERIFY_hash ]
+	then
+		md_hash="$(printf '%s' "$md_seed" | openssl sha1 -r)"
+		md_hash="${md_hash%% *}"
+		[ "$md_hash" = "$tlskey_serial" ] || \
+			fail_and_exit "METADATA HASH" 9
+	fi
+
+	# Verify tlskey-serial is in index
+	grep -q "$tlskey_serial" "$tlskey_serial_list" || \
+		fail_and_exit "TLSKEY SERIAL" 9
 
 # TLS Key expired
 
@@ -717,6 +769,31 @@ deps
 # cat x1
 
 
+# Disabled list
+
+	# Check serial number is not disabled
+	# Use --disable-list to disable this check
+	if [ $use_disable_list ]
+	then
+		# Append --sub-key-name first
+		full_name="$md_name $md_subkey"
+
+		# Load binary: grep +1
+		verify_serial_number_not_disabled || {
+			failure_msg="Client is disabled"
+			fail_and_exit "CLIENT_DISABLED" 2
+			}
+		insert_msg="Enabled OK ==>"
+		success_msg="$success_msg $insert_msg"
+	fi
+
+
+# Start opptional X509 checks
+if [ ! $use_x509 ]
+then
+	# No X509 required
+	client_passed_tls_tests_connection_allowed
+else
 # Client certificate serial number
 
 	# Non-empty, Hex only string accepted
@@ -785,24 +862,6 @@ deps
 # cat x1 (Use --cache-id +1) (Use --preload-cache-id +0)
 
 
-# Disabled list
-
-	# Check serial number is not disabled
-	# Use --disable-list to disable this check
-	if [ $use_disable_list ]
-	then
-		# Append --sub-key-name first
-		full_name="$md_name $md_subkey"
-
-		# Load binary: grep +1
-		verify_serial_number_not_disabled || {
-			failure_msg="Client is disabled"
-			fail_and_exit "CLIENT_DISABLED" 2
-			}
-		insert_msg="Enabled OK ==>"
-		success_msg="$success_msg $insert_msg"
-	fi
-
 # External binaries loaded so far:
 # openssl x2 (Use --cache-id/--preload-cache-id -2)
 # grep x1 (Use --hex-check +1) (Use --disable-list -1)
@@ -813,9 +872,12 @@ deps
 
 
 # Verify serial status
-test_method=${test_method:-1}
 
 	case $test_method in
+	0)
+		# Do not do X509 for TLS verification
+		:
+	;;
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
@@ -921,6 +983,8 @@ else
 	# In this case, assume hardware address verification is not required
 	:
 fi
+
+fi # => use_x509 ()
 
 # Any failure_msg means fail_and_exit
 [ "$failure_msg" ] && fail_and_exit "NEIN" 9

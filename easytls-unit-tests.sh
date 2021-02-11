@@ -678,5 +678,5 @@ echo "total_expected_errors=$total_expected_errors (Expected 244 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
-[ $total_expected_errors -eq 244 ] || exit 9
+[ $total_expected_errors -eq 88 ] || exit 9
 exit 0
