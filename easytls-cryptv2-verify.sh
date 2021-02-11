@@ -239,7 +239,7 @@ verify_tls_key_age ()
 	key_age_day=$(( key_age_sec / (60*60*24) ))
 
 	# Check key_age is less than --tls-age
-	[ $key_age_sec -lt $tls_key_expire_age_seconds ] || return 1
+	[ $key_age_sec -lt $tlskey_expire_age_seconds ] || return 1
 
 	# Success message
 	insert_msg="Key age $key_age_day days OK ==>"
@@ -487,7 +487,7 @@ init ()
 	EASYTLS_TMP_DIR="/tmp"
 
 	# TLS expiry age (days) Default 5 years
-	TLS_CRYPT_V2_VERIFY_TLS_AGE=$((365*5))
+	tlskey_max_age=$((365*5))
 
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
@@ -563,14 +563,14 @@ deps ()
 
 	# Ensure that TLS expiry age is numeric
 	# https://stackoverflow.com/a/3951175
-	case $TLS_CRYPT_V2_VERIFY_TLS_AGE in
+	case $tlskey_max_age in
 	''|*[!0-9]*)
 	# Exit script with error code 29 and disallow the connection
-	die "Invalid value for --tls-age: $TLS_CRYPT_V2_VERIFY_TLS_AGE" 29
+	die "Invalid value for --tls-age: $tlskey_max_age" 29
 	;;
 	*)
 	# maximum age in seconds
-	tls_key_expire_age_seconds=$((TLS_CRYPT_V2_VERIFY_TLS_AGE*60*60*24))
+	tlskey_expire_age_seconds=$((tlskey_max_age*60*60*24))
 	;;
 	esac
 
@@ -612,7 +612,7 @@ do
 		unset VERIFY_hash
 	;;
 	-x|--max-tls-age)
-		TLS_CRYPT_V2_VERIFY_TLS_AGE="$val"
+		tlskey_max_age="$val"
 	;;
 	-d|--disable-list)
 		empty_ok=1
@@ -749,11 +749,11 @@ deps
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
-	if [ $tls_key_expire_age_seconds -gt 0 ]
+	if [ $tlskey_expire_age_seconds -gt 0 ]
 	then
 		# Load binary: date +1
 		verify_tls_key_age || {
-			max_age_msg="Max age: $TLS_CRYPT_V2_VERIFY_TLS_AGE days"
+			max_age_msg="Max age: $tlskey_max_age days"
 			key_age_msg="Key age: $key_age_day days"
 			failure_msg="Key expired: $max_age_msg $key_age_msg ==>"
 			fail_and_exit "TLS_KEY_EXPIRED" 6
