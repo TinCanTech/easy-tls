@@ -2135,7 +2135,9 @@ tlskey_remove ()
 	tlskey_verify_serial || die "tlskey_verify_serial: failed"
 
 	# Check this tlskey is not in use by an .inline file
+	help_note="Remove the inline file which uses this key."
 	tlskey_verify_in_use && die "This key is still in use"
+	unset help_note
 
 	# Confirm remove
 	confirm  "Remove tlskey file ? " "yes" "Remove: $tlskey_file"
@@ -3253,7 +3255,7 @@ interactive_build ()
 Easy-TLS Inter-active TLS-key builder.'
 
 	# Verify PKI
-	interactive_verify_pki || die "Please specify your PKI directory."
+	interactive_verify_pki || die 'Please specify your PKI directory.'
 
 	# Capture the command line to build
 	cmd_head='
@@ -3438,13 +3440,14 @@ To cancel this inter-active menu at any time, press Control-C
 	esac
 }
 
+# Inter-active inline menu
 interactive_inline ()
 {
 	print '
 Easy-TLS Inter-active Inline-file builder.'
 
 	# Verify PKI
-	interactive_verify_pki || die "Please specify your PKI directory."
+	interactive_verify_pki || die 'Please specify your PKI directory.'
 
 	# Capture the command line to inline
 	cmd_head='
@@ -3460,7 +3463,7 @@ To cancel this inter-active menu at any time, press Control-C
   [1] Inline with TLS Auth key
   [2] Inline with TLS Crypt v1 key
   [3] Inline with TLS Crypt v2 key
-  [4] Inline removal
+  [4] Remove Inline-file
 
   Select the type of Inline-file to build:'
 	interactive_question
@@ -3769,9 +3772,6 @@ interactive_hwaddr ()
 	done
 
 	cmd_line="${cmd_line} ${opt_hardware}"
-	print ""
-	print "  $cmd_head"
-	print "    ./easytls $cmd_line"
 }
 
 ############################################################################
