@@ -808,10 +808,6 @@ else
 # Verify serial status
 
 	case $test_method in
-	0)
-		# Do not do X509 for TLS verification
-		:
-	;;
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
