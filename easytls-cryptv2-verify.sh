@@ -127,10 +127,10 @@ help_text ()
                       (Required only if easytls-cryptv2-client-connect.sh is used)
   -t|--tmp-dir        Temp directory where the hardware address list is written.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
-  --v1|--via-crl      Do X509 certificate checks via test_method 1, CRL check.
-  --v2|--via-ca       Do X509 certificate checks via test_method 2,
+  --v1|--via-crl      Do X509 certificate checks via x509_method 1, CRL check.
+  --v2|--via-ca       Do X509 certificate checks via x509_method 2,
                       Use `openssl ca` commands.  NOT RECOMMENDED
-  --v3|--via-index    Do X509 certificate checks via test_method 3,
+  --v3|--via-index    Do X509 certificate checks via x509_method 3,
                       Search openssl index.txt  PREFERRED
                       This method does not require loading the openssl binary.
   -a|--cache-id       Use the saved CA-Identity from EasyTLS.
@@ -493,7 +493,7 @@ init ()
 	# --v1|--via-crl   - client serial revokation via CRL grep (Default)
 	# --v2|--via-ca    - client serial revokation via openssl ca command (Broken)
 	# --v3|--via-index - client serial revokation via index.txt grep (Preferred)
-	test_method=0
+	x509_method=0
 
 	# Enable disable list by default
 	use_disable_list=1
@@ -623,19 +623,19 @@ do
 		empty_ok=1
 		status_msg="* Easy-TLS (crl) ==>"
 		use_x509=1
-		test_method=1
+		x509_method=1
 	;;
 	--v2|--via-ca)
 		empty_ok=1
 		status_msg="* Easy-TLS (ca) ==>"
 		use_x509=1
-		test_method=2
+		x509_method=2
 	;;
 	--v3|--via-index)
 		empty_ok=1
 		status_msg="* Easy-TLS (index) ==>"
 		use_x509=1
-		test_method=3
+		x509_method=3
 	;;
 	-a|--cache-id)
 		empty_ok=1
@@ -807,7 +807,7 @@ else
 
 # Verify serial status
 
-	case $test_method in
+	case $x509_method in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
@@ -839,7 +839,7 @@ else
 		serial_status_via_pki_index
 	;;
 	*)
-		die "Unknown method for verify: $test_method" 9
+		die "Unknown method for verify: $x509_method" 9
 	;;
 	esac
 
