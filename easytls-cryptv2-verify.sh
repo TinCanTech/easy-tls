@@ -469,7 +469,12 @@ init ()
 	# metadata version
 	local_version='easytls'
 	local_custom_g='EASYTLS'
+
+	# Verify tlskey-serial number by hash of metadata
 	VERIFY_hash=1
+
+	# Do not accept external settings
+	unset use_x509
 
 	# Default temp dir
 	EASYTLS_tmp_dir="/tmp"
@@ -516,19 +521,24 @@ deps ()
 
 	if [ $use_cache_id ]
 	then
+	# This can soon be deprecated
 	help_note="This script requires an EasyTLS generated CA identity."
 		[ -f "$ca_identity_file" ] || \
 			die "Missing CA identity: $ca_identity_file" 33
 	fi
 
-	help_note="This script requires an EasyRSA generated CRL."
-	[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
+	if [ $use_x509 ]
+	then
+		# Only check these files if using x509
+		help_note="This script requires an EasyRSA generated CRL."
+		[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
 
-	help_note="This script requires an EasyRSA generated DB."
-	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
+		help_note="This script requires an EasyRSA generated DB."
+		[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
 
-	help_note="This script requires an EasyRSA generated PKI."
-	[ -f "$openssl_cnf" ] || die "Missing openssl config: $openssl_cnf" 26
+		help_note="This script requires an EasyRSA generated PKI."
+		[ -f "$openssl_cnf" ] || die "Missing openssl config: $openssl_cnf" 26
+	fi
 
 	help_note="This script requires an EasyTLS generated disabled_list."
 	[ -f "$disabled_list" ] || \
