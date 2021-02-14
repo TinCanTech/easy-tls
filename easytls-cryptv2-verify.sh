@@ -193,25 +193,17 @@ fn_local_identity ()
 # Break metadata_string into variables
 metadata_string_to_vars ()
 {
-	if [ ${#1} -gt 40 ]
-	then
-		tlskey_serial="${1%%-*}"
-		md_seed="${metadata_string#*-}"
-		#md_padding="${md_seed%%--*}"
-		md_easytls="${1#*--}"
-		md_version="${md_easytls%-*.*}"
-		md_date="$4"
-		md_custom_g="$5"
-		md_name="$6"
-	else
-		md_version="${1%%-*.*}"
-		md_name="$4"
-		md_date="$5"
-		md_custom_g="$6"
-	fi
+	tlskey_serial="${1%%-*}"
+	md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	md_easytls="${1#*--}"
+	md_version="${md_easytls%-*.*}"
 
 	md_identity="$2"
 	md_serial="$3"
+	md_date="$4"
+	md_custom_g="$5"
+	md_name="$6"
 	md_subkey="$7"
 	md_opt="$8"
 	md_hwadds="$9"
