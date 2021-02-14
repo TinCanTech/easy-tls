@@ -654,7 +654,7 @@ config_use ()
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
 	while read -r cfg_opt cfg_equ cfg_val
 	do
-		# shellcheck - may as well check it
+		# May as well check it for shellcheck
 		[ "$cfg_equ" = "=" ] || config_error=4
 
 		# These settings do not change command line
@@ -3051,10 +3051,6 @@ disabled_list_manager ()
 	;;
 	esac
 
-	name="$2"
-	crt_file="$EASYRSA_PKI/issued/$name.crt"
-	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
-
 	# TODO: should this be PKI init ?
 	#verify_pki_init
 	verify_tls_init
@@ -3062,56 +3058,96 @@ disabled_list_manager ()
 	# Verify disabled-list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
 
+	name="$2"
+	crt_file="$EASYRSA_PKI/issued/$name.crt"
+	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+
 	# get the serial number of the certificate from openssl
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
 	openssl_crt_serial
 
-	# Append --sub-key-name
-	if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
-	then
-		name="$name $EASYTLS_TLSCV2_SUBKNAME"
-	else
-		name="$name NOSUBKEY"
-	fi
+	# check --sub-key-name
+	#if [ -z "$EASYTLS_TLSCV2_SUBKNAME" ]
+	#then
+	#	die "No --sub-key-name"
+	#else
+	#	name="$name NOSUBKEY"
+	#fi
 
-	# Check disabled-list for duplicates
-	disabled_list_serial_status="$(disabled_list_serial_search)"
-	[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
+	# Check unique record from tlskey-index
+	grep -q \
+		"${crt_serial}[[:blank:]]${name}[[:blank:]]${EASYTLS_TLSCV2_SUBKNAME}" \
+		"$EASYTLS_KEY_INDEX" || die "There is no tlskey for this certificate"
 
-	# 'disable' or 'enable' 'serial + name + --sub-key-name'
+	# Get tlskey-serial number from tlskey-index
+	tlskey_serial="$(tlskey_index_full_name_to_serial)"
+	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\{40\}$' || \
+		die "tlskey-serial is invalid: $tlskey_serial"
+
+	# Check disabled-list for this tlskey-serial
+	count_tlskey="$(grep -c "^${tlskey_serial}[[:blank:]]" \
+		"$EASYTLS_DISABLED_LIST")"
+	case $count_tlskey in
+		0)
+			# Not found
+			:
+		;;
+		1) is_disabled=1
+		;;
+		*) die "* Bogus dude! Please report this bug."
+		;;
+	esac
+
+	#disabled_list_serial_status="$(disabled_list_serial_search)"
+	#[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
+
+	# 'disable' or 'enable' 'tlskey-serial cert-serial name --sub-key-name'
 	case $action in
 	disable) # Add serial number to the disabled-list
-		if [ $disabled_list_serial_status -eq 0 ]
+		if [ $is_disabled ]
 		then
-			printf '%s\n' "$crt_serial $name" >> \
+			# serial is already disabled
+			:
+		else
+			printf '%s\n' "$tlskey_serial $crt_serial $name $EASYTLS_TLSCV2_SUBKNAME" >> \
 				"$EASYTLS_DISABLED_LIST" || \
 				die "Failed to update disabled-list."
 
 			# Verify serial was added
-			disabled_list_serial_status="$(disabled_list_serial_search)"
-			[ $disabled_list_serial_status -eq 1 ] || \
-				die "disabled-list error add"
+			grep -q "^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
+				"$EASYTLS_DISABLED_LIST" || \
+				die "disabled-list error disable"
+
+			#disabled_list_serial_status="$(disabled_list_serial_search)"
+			#[ $disabled_list_serial_status -eq 1 ] || \
+			#	die "disabled-list error add"
+
 			disabled_list_updated=1
-		else
-			# serial is already disabled
-			:
 		fi
 	;;
 	enable) # Remove serial number from the disabled-list
-		if [ $disabled_list_serial_status -eq 1 ]
+		if [ $is_disabled ]
 		then
-			sed -i "/^${crt_serial}[[:blank:]]${name}$/d" \
-				"$EASYTLS_DISABLED_LIST" || \
-				die "Failed to update disabled-list."
+			sed -i "/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
+				"$EASYTLS_DISABLED_LIST" || {
+					error_msg "Failed to update disabled-list"
+					exit 99
+					}
 
 			# Verify serial was removed
-			disabled_list_serial_status="$(disabled_list_serial_search)"
-			[ $disabled_list_serial_status -eq 0 ] || \
-				die "disabled-list error del"
+			grep -q "^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
+				"$EASYTLS_DISABLED_LIST" && {
+					error_msg "Failed to update disabled-list"
+					exit 99
+					}
+
+			#disabled_list_serial_status="$(disabled_list_serial_search)"
+			#[ $disabled_list_serial_status -eq 0 ] || \
+			#	die "disabled-list error enable"
 			disabled_list_updated=1
 		else
-			# serial is already enabled
+			# serial is not disabled
 			:
 		fi
 	;;
