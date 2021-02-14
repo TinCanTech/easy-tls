@@ -269,7 +269,7 @@ verify_serial_number_not_disabled ()
 # Search disabled list for client serial number
 fn_search_disabled_list ()
 {
-	grep -c "^${md_serial}[[:blank:]]${full_name}$" \
+	grep -c "^${tlskey_serial}[[:blank:]]${md_serial}[[:blank:]]" \
 		"$disabled_list"
 }
 
