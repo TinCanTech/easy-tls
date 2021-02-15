@@ -3292,6 +3292,19 @@ interactive_question ()
 	EASYTLS_ANSWER="$input"
 }
 
+# Show the command to run
+interactive_show_cmd ()
+{
+	print ""
+	print "===================="
+	print ""
+	print "$cmd_head"
+	print ""
+	print "    ./easytls $cmd_line"
+	print ""
+	print "===================="
+}
+
 # Inter-active build menu
 interactive_build ()
 {
@@ -3302,8 +3315,7 @@ Easy-TLS Inter-active TLS-key builder.'
 	interactive_verify_pki || die 'Please specify your PKI directory.'
 
 	# Capture the command line to build
-	cmd_head='
-* Easy-TLS command:'
+	cmd_head='* Easy-TLS command:'
 	cmd_line='build'
 
 	# Choose Key
@@ -3325,9 +3337,7 @@ To cancel this inter-active menu at any time, press Control-C
 		print '
 ** Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_show_cmd
 		# Build key
 		build_tls_auth
 	;;
@@ -3335,9 +3345,7 @@ To cancel this inter-active menu at any time, press Control-C
 		print '
 ** Build TLS-Crypt-V1 key'
 		cmd_line="${cmd_line}-tls-crypt"
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_show_cmd
 		# Build key
 		build_tls_crypt_v1
 	;;
@@ -3354,9 +3362,7 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_question
 		opt_server_name="$EASYTLS_ANSWER"
 		cmd_line="${cmd_line} $opt_server_name"
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_show_cmd
 		# Build key
 		build_tls_crypt_v2_server "$opt_server_name"
 	;;
@@ -3412,13 +3418,9 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_hwaddr
 
 		# Print command
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_show_cmd
 
 		# Build key
-		print ""
-		print "===================="
 		build_tls_crypt_v2_client \
 			"$opt_server_name" "$opt_client_name" ${opt_hardware} || {
 				error_msg "Build key failed"
@@ -3459,9 +3461,7 @@ To cancel this inter-active menu at any time, press Control-C
 		if [ $build_and_inline ]
 		then
 			# Print command
-			print ""
-			print "  $cmd_head"
-			print "    ./easytls $cmd_line"
+			interactive_show_cmd
 
 			# Create inline
 			inline_tls_crypt_v2 "$opt_client_name" ${opt_no_md} ${opt_add_hw} || {
@@ -3488,8 +3488,7 @@ Easy-TLS Inter-active Inline-file builder.'
 	interactive_verify_pki || die 'Please specify your PKI directory.'
 
 	# Capture the command line to inline
-	cmd_head='
-* Easy-TLS command:'
+	cmd_head='* Easy-TLS command:'
 	cmd_line='inline'
 
 	# Choose Key
@@ -3527,8 +3526,8 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set option --dh
 		interactive_custom_dh
 
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		# Print command
+		interactive_show_cmd
 
 		# Build .inline
 		inline_tls_auth \
@@ -3551,8 +3550,8 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set option --dh
 		interactive_custom_dh
 
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		# Print command
+		interactive_show_cmd
 
 		# Build .inline
 		inline_tls_crypt_v1 \
@@ -3584,8 +3583,8 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set opt_add_hw
 		interactive_opt_add_hw
 
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		# Print command
+		interactive_show_cmd
 
 		# Build .inline
 		inline_tls_crypt_v2 \
@@ -3606,8 +3605,7 @@ Easy-TLS Inter-active Remove menu.'
 	interactive_verify_pki || die 'Please specify your PKI directory.'
 
 	# Capture the command line to inline
-	cmd_head='
-* Easy-TLS command:'
+	cmd_head='* Easy-TLS command:'
 	cmd_line='remove'
 
 	# Choose Key
@@ -3639,8 +3637,8 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set option --sub-key-name
 		interactive_sub_key_name
 
-		print "$cmd_head"
-		print "  ./easytls $cmd_line"
+		# Print command
+		interactive_show_cmd
 
 		# Remove .inline
 		remove_inline ${common_name} || {
@@ -3649,7 +3647,7 @@ To cancel this inter-active menu at any time, press Control-C
 				}
 
 		# Invoke remove_tlskey
-		cmd_line="inline-tls-crypt-v2 $opt_client_name"
+		cmd_line="remove-tlskey $common_name"
 		EASYTLS_QHELP='
 * Do you want to remove the corresponding TLS key ?'
 		EASYTLS_QTEXT='
@@ -3672,11 +3670,9 @@ To cancel this inter-active menu at any time, press Control-C
 		if [ $remove_inline_and_tlskey ]
 		then
 			# Print command
-			print ""
-			print "  $cmd_head"
-			print "    ./easytls $cmd_line"
+			interactive_show_cmd
 
-			# Create inline
+			# Remove TLS key
 			remove_tlskey "$common_name" || {
 				error_msg "Remove TLS key failed"
 				return 1
@@ -3700,13 +3696,9 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_sub_key_name
 
 		# Print command
-		print ""
-		print "  $cmd_head"
-		print "    ./easytls $cmd_line"
+		interactive_show_cmd
 
 		# Remove key
-		print ""
-		print "===================="
 		remove_tlskey "$opt_client_name" || {
 				error_msg "Remove key failed"
 				return 1
