@@ -184,13 +184,13 @@ do
 		"--inline --custom-group=tincantech --sub-key-name=office \
 			build-tls-crypt-v2-client s01 c10 abcdefabcdef 123456543210" \
 		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" \
-		"inline-remove s01" \
+		"remove-inline s01" \
 		"--custom-group=tincantech inline-tls-auth c01 1" \
-		"inline-remove c01" \
+		"remove-inline c01" \
 		"--custom-group=tincantech inline-tls-crypt s01 add-dh" \
-		"inline-remove s01" \
+		"remove-inline s01" \
 		"--custom-group=tincantech inline-tls-crypt c01" \
-		"inline-remove c01" \
+		"remove-inline c01" \
 		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c01" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey" \
@@ -592,14 +592,14 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 67: inline-expire"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office inline-remove c10"
-	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office inline-remove c10 || \
-		fail "Unit test error 68: inline-remove"
+	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office remove-inline c10"
+	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-inline c10 || \
+		fail "Unit test error 68: remove-inline"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office tlskey-remove c10"
-	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office tlskey-remove c10 || \
-		fail "Unit test error 68: tlskey-remove"
+	print "$EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office remove-tlskey c10"
+	"$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-tlskey c10 || \
+		fail "Unit test error 68: remove-tlskey"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS help"

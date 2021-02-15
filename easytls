@@ -59,18 +59,21 @@ Use the "help" command above to get full usage details.
 
   config
   init-tls
+  build     :Inter-active menu to build TLS keys
+  inline    :Inter-active menu to build Inline files
+  remove    :Inter-active menu to remove TLS keys and Inline files
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <server_filename_base>
   build-tls-crypt-v2-client
         <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
-  tlskey-remove <client_filename_base>
+  remove-tlskey <client_filename_base>
   save-id
   status [ cmd-opts ]
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   inline-tls-crypt <filename_base> [ cmd-opts ]
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
-  inline-remove <filename_base>
+  remove-inline <filename_base>
   inline-show <filename_base>
   inline-index-rebuild
   inline-expire <filename_base>
@@ -129,7 +132,7 @@ cmd_help()
 
       Note: Both scripts are required to successfully verify Hardware." ;;
 		remove-tlskey) text="
-  tlskey-remove <client_filename_base>
+  remove-tlskey <client_filename_base>
       Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
 		sid|save-id) text="
   save-id [ no options ]
@@ -180,7 +183,7 @@ cmd_help()
         no-md   - Do not add public metadata details to inline file
         add-hw  - Include hardware address in metadata details" ;;
 		irm|irv|inline-remove) text="
-  inline-remove <filename_base>
+  remove-inline <filename_base>
       Delete <filename_base>.inline and update the inline-index
       When an Easy-RSA certificate is revoked then the inline file is invalid" ;;
 		is|inline-show) text="
@@ -317,13 +320,14 @@ Easy-TLS abbreviations:
   build-tls-crypt               - btc
   build-tls-crypt-v2-server     - btv2s | btcv2s
   build-tls-crypt-v2-client     - btv2c | btcv2c
+  remove-tlskey                 - No abbreviation
   save-id                       - sid
   status                        - s
   inline                        - No abbreviation
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itv2 | itcv2
-  inline-remove                 - irm | irv
+  remove-inline                 - No abbreviation
   inline-show                   - is
   inline-index-rebuild          - No abbreviation
   inline-expire                 - ix
@@ -1733,7 +1737,7 @@ inline_show ()
 } # => inline_show ()
 
 # Remove .inline file
-inline_remove ()
+remove_inline ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
@@ -2110,23 +2114,26 @@ tlskey_verify_in_use ()
 }
 
 # Remove a TLS-Crypt-V2 Client key and update the tlskey-index
-tlskey_remove ()
+remove_tlskey ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
+	verify_tls_init
+
 	name="$1"
 	tlskey_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
+	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 
 	# This does not over-write a previous setting
 	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
 
 	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
 		tlskey_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
+		metadata_file="$EASYTLS_MD_DIR/$name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.metadata"
 		}
 
-	verify_tls_init
-
 	[ -f "$tlskey_file" ] || die "Missing: $tlskey_file"
+	[ -f "$metadata_file" ] || die "Missing: $metadata_file"
 
 	# Get tlskey serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_full_name_to_serial)"
@@ -2146,6 +2153,7 @@ tlskey_remove ()
 	tlskey_index_update del || die "Failed to update inline-index"
 
 	rm "$tlskey_file" || die "Failed to remove: $tlskey_file"
+	rm "$metadata_file" || die "Failed to remove: $metadata_file"
 
 	[ ! $silent_remove ] && notice "TLS-Crypt-V2 Client key removed: $tlskey_file"
 
@@ -3308,7 +3316,6 @@ To cancel this inter-active menu at any time, press Control-C
   [2] TLS-Crypt-V1 key               - Basic TLS-crypt-v1 pre-shared key
   [3] TLS-Crypt-V2 key for Server    - Advanced TLS-Crypt-v2 Server key
   [4] TLS-Crypt-V2 key for Client    - Advanced TLS-Crypt-v2 Client key
-  [5] Remove TLS-Crypt-V2 Client key
 
   Select the type of TLS-key to build:'
 	interactive_question
@@ -3439,7 +3446,7 @@ To cancel this inter-active menu at any time, press Control-C
 		done
 
 		# Configure inline metadata
-		if [ -n "$build_and_inline" ]
+		if [ $build_and_inline ]
 		then
 			# Set opt_no_md
 			interactive_opt_no_md
@@ -3464,11 +3471,6 @@ To cancel this inter-active menu at any time, press Control-C
 		fi
 
 		return 0
-	;;
-	5)	# Remove client key
-		print "Coming soon .."
-		# Only TLS-Crypt-V2 client keys can be removed.
-		# Removing any other key invalidates all client inline files.
 	;;
 	*)	# Other value -> Quit
 		print "Quit!"
@@ -3589,13 +3591,130 @@ To cancel this inter-active menu at any time, press Control-C
 		inline_tls_crypt_v2 \
 			${common_name} ${opt_nokey} ${opt_add_dh} ${opt_no_md} ${opt_add_hw}
 	;;
-	4)	# Inline remove
-		print "Coming soon .."
+	*)	# Other value -> Quit
+		print "Quit!"
+	esac
+}
+
+# Inter-active Remove menu
+interactive_remove ()
+{
+	print '
+Easy-TLS Inter-active Remove menu.'
+
+	# Verify PKI
+	interactive_verify_pki || die 'Please specify your PKI directory.'
+
+	# Capture the command line to inline
+	cmd_head='
+* Easy-TLS command:'
+	cmd_line='remove'
+
+	# Choose Key
+	EASYTLS_QHELP='
+To cancel this inter-active menu at any time, press Control-C
+
+* Available file types:'
+	EASYTLS_QTEXT='
+  [1] TLS Crypt v2 Client Inline file
+  [2] TLS Crypt v2 Client key
+
+  Select the type of file to remove:'
+	interactive_question
+
+	case $EASYTLS_ANSWER in
+	1)	# Inline remove
 		# Only TLS-Crypt-V2 client inline files can be removed.
 		# Removing any other inline file invalidates all client inline files.
+
+		# Remove Inline TLS Crypt v2
+		print '
+** Remove TLS-Crypt-v2 inline-file'
+		cmd_line="remove-inline"
+
+		# Set commonName
+		cert_type='*Client*'
+		interactive_common_name
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		print "$cmd_head"
+		print "  ./easytls $cmd_line"
+
+		# Remove .inline
+		remove_inline ${common_name} || {
+				error_msg "Remove inline failed"
+				return 1
+				}
+
+		# Invoke remove_tlskey
+		cmd_line="inline-tls-crypt-v2 $opt_client_name"
+		EASYTLS_QHELP='
+* Do you want to remove the corresponding TLS key ?'
+		EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+		while :
+		do
+			interactive_question
+			case "$EASYTLS_ANSWER" in
+				Y|y|Yes|yes|YES)
+					remove_inline_and_tlskey=1
+					break
+				;;
+				N|n|No|no|NO)
+					break
+				;;
+			esac
+		done
+
+		# Remove key now
+		if [ $remove_inline_and_tlskey ]
+		then
+			# Print command
+			print ""
+			print "  $cmd_head"
+			print "    ./easytls $cmd_line"
+
+			# Create inline
+			remove_tlskey "$common_name" || {
+				error_msg "Remove TLS key failed"
+				return 1
+				}
+		fi
+	;;
+	2)	# Remove client key
+		# Only TLS-Crypt-V2 client keys can be removed.
+		# Removing any other key invalidates all client inline files.
+		print '
+** Remove TLS-Crypt-V2 key for Client'
+		cmd_line="remove-tlskey"
+
+		# Set Client name
+		opt_client_name=""
+		cert_type='*Client*'
+		interactive_common_name
+		opt_client_name="$common_name"
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		# Print command
+		print ""
+		print "  $cmd_head"
+		print "    ./easytls $cmd_line"
+
+		# Remove key
+		print ""
+		print "===================="
+		remove_tlskey "$opt_client_name" || {
+				error_msg "Remove key failed"
+				return 1
+				}
 	;;
 	*)	# Other value -> Quit
 		print "Quit!"
+	;;
 	esac
 }
 
@@ -4075,11 +4194,15 @@ case "$cmd" in
 		;;
 	build)
 		interactive_build || \
-			die "Error: build"
+			die "Error: interactive_build"
 		;;
 	inline)
 		interactive_inline || \
-			die "Error: inline"
+			die "Error: interactive_inline"
+		;;
+	remove)
+		interactive_remove || \
+			die "Error: interactive_remove"
 		;;
 	bta|build-tls-auth)
 		build_tls_auth "$@" || \
@@ -4097,9 +4220,9 @@ case "$cmd" in
 		build_tls_crypt_v2_client "$@" || \
 			die "Error: build_tls_crypt_v2_client"
 		;;
-	tlskey-remove)
-		tlskey_remove "$@" || \
-			die "Error: tlskey_remove"
+	remove-tlskey)
+		remove_tlskey "$@" || \
+			die "Error: remove_tlskey"
 		;;
 	sid|save-id)
 		save_id || \
@@ -4121,9 +4244,9 @@ case "$cmd" in
 		inline_tls_crypt_v2 "$@" || \
 			die "Error: inline_tls_crypt_v2"
 		;;
-	irm|irv|inline-remove)
-		inline_remove "$@" || \
-			die "Error: inline_remove"
+	remove-inline)
+		remove_inline "$@" || \
+			die "Error: remove_inline"
 		;;
 	irn|irw|inline-renew)
 		inline_renew "$@" || \
