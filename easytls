@@ -685,7 +685,7 @@ config_use ()
 				esac
 				;;
 			custom.group)
-				[ -n "$cfg_val" ] && set_var EASYTLS_TLSCV2_CG "$cfg_val"
+				[ -n "$cfg_val" ] && set_var TLSKEY_CUSTOM_GRP "$cfg_val"
 				;;
 			custom.openvpn)
 				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
@@ -702,7 +702,7 @@ config_use ()
 	done < "$EASYTLS_CONFIG_FILE"
 
 	# Set final defaults
-	set_var EASYTLS_TLSCV2_CG "EASYTLS"
+	set_var TLSKEY_CUSTOM_GRP "EASYTLS"
 	set_var EASYTLS_OPENVPN "openvpn"
 
 	return "$config_error"
@@ -1440,8 +1440,8 @@ inline_index_update ()
 		# Append TLS-Crypt-V2 key details
 		# TODO: This works but could be better
 		tlskey_serial="${tlskey_serial:-n/a}"
-		[ $EASYTLS_TLSCV2_SUBKNAME ] && \
-			new_record="$new_record $EASYTLS_TLSCV2_SUBKNAME $tlskey_serial"
+		[ $TLSKEY_SUBNAME ] && \
+			new_record="$new_record $TLSKEY_SUBNAME $tlskey_serial"
 
 		easytls_verbose "  ADD: $new_record"
 
@@ -1454,7 +1454,7 @@ inline_index_update ()
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
-		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]${name}"
+		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]"
 
 		# Find old record
 		grep -q "^${old_record}" "$EASYTLS_INLINE_INDEX" || {
@@ -1745,15 +1745,15 @@ remove_inline ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	# This does not over-write a previous setting
-	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+	set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
-	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
-		inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 		}
 
 	# standardize this
-	#[ $EASYTLS_TLSCV2_SUBKNAME ] && \
-	#	inline_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME.inline"
+	#[ $TLSKEY_SUBNAME ] && \
+	#	inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 
 	verify_tls_init
 
@@ -1874,11 +1874,11 @@ inline_index_rebuild ()
 		if [ "$i" = "$inline_common_name" ]
 		then
 			unset sub_name
-			unset EASYTLS_TLSCV2_SUBKNAME
+			unset TLSKEY_SUBNAME
 		else
 			# This is ugly and needs to be re-thought
 			sub_name="${i##"${inline_common_name}-"}"
-			EASYTLS_TLSCV2_SUBKNAME="$sub_name"
+			TLSKEY_SUBNAME="$sub_name"
 		fi
 
 		name="$inline_common_name"
@@ -1945,7 +1945,7 @@ tlskey_index_update ()
 	case "$update_index_action" in
 	add)
 		# Create new record
-		new_record="$tlskey_serial $crt_serial $cli_name $EASYTLS_TLSCV2_SUBKNAME"
+		new_record="$tlskey_serial $crt_serial $cli_name $TLSKEY_SUBNAME"
 
 		easytls_verbose "  ADD: $new_record"
 
@@ -2093,7 +2093,7 @@ tls_crypt_v2_serial_number ()
 # tlskey name subkeyname to serial
 tlskey_index_full_name_to_serial ()
 {
-	script="{if(\$3 ~ /${name}/ && \$4 ~ /${EASYTLS_TLSCV2_SUBKNAME}/) print \$1}"
+	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$1}"
 	awk "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 }
@@ -2125,11 +2125,11 @@ remove_tlskey ()
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 
 	# This does not over-write a previous setting
-	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+	set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
-	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
-		tlskey_file="$EASYTLS_PKI/$name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
-		metadata_file="$EASYTLS_MD_DIR/$name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.metadata"
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		tlskey_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
+		metadata_file="$EASYTLS_MD_DIR/$name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
 		}
 
 	[ -f "$tlskey_file" ] || die "Missing: $tlskey_file"
@@ -2377,7 +2377,7 @@ inline_base ()
 	# Build .inline file
 	{
 		# Add Custom Group if defined
-		[ $EASYTLS_TLSCV2_CG ] && printf "%s\n" "# $EASYTLS_TLSCV2_CG"
+		[ $TLSKEY_CUSTOM_GRP ] && printf "%s\n" "# $TLSKEY_CUSTOM_GRP"
 
 		printf "%s\n" "# EasyTLS - File name base: $name"
 		printf "%s\n" "# Serial number: $crt_serial"
@@ -2562,10 +2562,10 @@ inline_tls_crypt_v2 ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	# This does not over-write a previous setting
-	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+	set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
-	sub_name="$name-$EASYTLS_TLSCV2_SUBKNAME"
-	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
+	sub_name="$name-$TLSKEY_SUBNAME"
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		tls_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
 		metadata_file="$EASYTLS_MD_DIR/$sub_name-tls-crypt-v2.metadata"
 		inline_file="$EASYTLS_PKI/$sub_name.inline"
@@ -2772,11 +2772,11 @@ build_tls_crypt_v2_client ()
 	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
 
 	# This does not over-write a previous setting
-	set_var EASYTLS_TLSCV2_SUBKNAME	'NOSUBKEY'
+	set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
-	[ "$EASYTLS_TLSCV2_SUBKNAME" = 'NOSUBKEY' ] || {
-		key_file="$EASYTLS_PKI/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.key"
-		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$EASYTLS_TLSCV2_SUBKNAME-tls-crypt-v2.metadata"
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		key_file="$EASYTLS_PKI/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
+		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
 	}
 
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
@@ -2795,15 +2795,15 @@ build_tls_crypt_v2_client ()
 	done
 
 	# Confirm metadata Custom-Group
-	[ "$EASYTLS_TLSCV2_CG" = "EASYTLS" ] || {
+	[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || {
 		confirm "Is the Custom-Group field correct ? " "yes" \
-		"Custom-Group field for metadata: $EASYTLS_TLSCV2_CG"
+		"Custom-Group field for metadata: $TLSKEY_CUSTOM_GRP"
 		}
 
 	# Confirm --sub-key-name)
-	[ "$EASYTLS_TLSCV2_SUBKNAME" = "NOSUBKEY" ] || {
+	[ "$TLSKEY_SUBNAME" = "NOSUBKEY" ] || {
 		confirm "Is the Sub-key-name correct ? " "yes" \
-		"Sub-key-name field for metadata: $EASYTLS_TLSCV2_SUBKNAME"
+		"Sub-key-name field for metadata: $TLSKEY_SUBNAME"
 		}
 
 	# Confirm metadata Hardware-Address(es)
@@ -2907,10 +2907,10 @@ b64_enc_metadata ()
 
 	# Append --custom-group
 	# TODO: something better than this
-	metadata="$metadata ${EASYTLS_TLSCV2_CG:-EASYTLS}"
-	#if [ -n "$EASYTLS_TLSCV2_CG" ]
+	metadata="$metadata ${TLSKEY_CUSTOM_GRP:-EASYTLS}"
+	#if [ -n "$TLSKEY_CUSTOM_GRP" ]
 	#then
-	#	metadata="$metadata $EASYTLS_TLSCV2_CG"
+	#	metadata="$metadata $TLSKEY_CUSTOM_GRP"
 	#else
 	#	metadata="$metadata EASYTLS"
 	#fi
@@ -2923,10 +2923,10 @@ b64_enc_metadata ()
 	metadata="$metadata $cli_name"
 
 	# Append --sub-key-name
-	metadata="$metadata ${EASYTLS_TLSCV2_SUBKNAME:-'NOSUBKEY'}"
-	#if [ -n "$EASYTLS_TLSCV2_SUBKNAME" ]
+	metadata="$metadata ${TLSKEY_SUBNAME:-'NOSUBKEY'}"
+	#if [ -n "$TLSKEY_SUBNAME" ]
 	#then
-	#	metadata="$metadata $EASYTLS_TLSCV2_SUBKNAME"
+	#	metadata="$metadata $TLSKEY_SUBNAME"
 	#else
 	#	metadata="$metadata NOSUBKEY"
 	#fi
@@ -3076,7 +3076,7 @@ disabled_list_manager ()
 	openssl_crt_serial
 
 	# check --sub-key-name
-	#if [ -z "$EASYTLS_TLSCV2_SUBKNAME" ]
+	#if [ -z "$TLSKEY_SUBNAME" ]
 	#then
 	#	die "No --sub-key-name"
 	#else
@@ -3085,7 +3085,7 @@ disabled_list_manager ()
 
 	# Check unique record from tlskey-index
 	grep -q \
-		"${crt_serial}[[:blank:]]${name}[[:blank:]]${EASYTLS_TLSCV2_SUBKNAME}" \
+		"${crt_serial}[[:blank:]]${name}[[:blank:]]${TLSKEY_SUBNAME}" \
 		"$EASYTLS_KEY_INDEX" || die "There is no tlskey for this certificate"
 
 	# Get tlskey-serial number from tlskey-index
@@ -3118,7 +3118,7 @@ disabled_list_manager ()
 			# serial is already disabled
 			:
 		else
-			printf '%s\n' "$tlskey_serial $crt_serial $name $EASYTLS_TLSCV2_SUBKNAME" >> \
+			printf '%s\n' "$tlskey_serial $crt_serial $name $TLSKEY_SUBNAME" >> \
 				"$EASYTLS_DISABLED_LIST" || \
 				die "Failed to update disabled-list."
 
@@ -3399,8 +3399,8 @@ To cancel this inter-active menu at any time, press Control-C
   then leave this field blank.
 
   Your current Custom-Group is:'
-		[ "$EASYTLS_TLSCV2_CG" = "EASYTLS" ] || \
-			EASYTLS_QHELP="$EASYTLS_QHELP $EASYTLS_TLSCV2_CG"
+		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
+			EASYTLS_QHELP="$EASYTLS_QHELP $TLSKEY_CUSTOM_GRP"
 		EASYTLS_QTEXT='
   Enter your Custom-Group NAME
   or leave this blank to accept the current Custom-Group:'
@@ -3408,7 +3408,7 @@ To cancel this inter-active menu at any time, press Control-C
 		opt_customg="$EASYTLS_ANSWER"
 		[ -n "$opt_customg" ] && {
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
-			export EASYTLS_TLSCV2_CG="${opt_customg}"
+			export TLSKEY_CUSTOM_GRP="${opt_customg}"
 			}
 
 		# Set option --sub-key-name
@@ -3742,7 +3742,7 @@ interactive_sub_key_name ()
 	[ -n "$EASYTLS_ANSWER" ] && {
 		sub_key_name="$EASYTLS_ANSWER"
 		cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
-		export EASYTLS_TLSCV2_SUBKNAME="${sub_key_name}"
+		export TLSKEY_SUBNAME="${sub_key_name}"
 		}
 }
 
@@ -4057,7 +4057,7 @@ vars_setup()
 	set_var EASYTLS_CA_IDENTITY		"$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
 	set_var EASYTLS_KEY_INDEX		"$EASYTLS_DATA_DIR/easytls-key-index.txt"
 	set_var EASYTLS_KEY_HASH		"$EASYTLS_DATA_DIR/easytls-key-index.hash"
-	set_var EASYTLS_TLSCV2_SUBKNAME	"NOSUBKEY"
+	set_var TLSKEY_SUBNAME	"NOSUBKEY"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
@@ -4139,9 +4139,9 @@ while :; do
 	--dh)
 		export EASYRSA_DH_FILE="$val" ;;
 	--custom-group)
-		export EASYTLS_TLSCV2_CG="$val" ;;
+		export TLSKEY_CUSTOM_GRP="$val" ;;
 	--sub-key-name)
-		export EASYTLS_TLSCV2_SUBKNAME="$val" ;;
+		export TLSKEY_SUBNAME="$val" ;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val" ;;
 	--no-auto-check)
