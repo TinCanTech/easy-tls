@@ -27,7 +27,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
 # Easy-TLS requirements:
-# + Easy-RSA Version 3.0.5
+# + Easy-RSA Version 3.0.8
 # + OpenVPN Version 2.5
 #
 
@@ -78,8 +78,8 @@ Use the "help" command above to get full usage details.
   inline-index-rebuild
   inline-expire <filename_base>
   cert-expire <filename_base> | <ca>
-  d|disable <filename_base>
-  e|enable <filename_base>
+  disable <filename_base>
+  enable <filename_base>
   disabled-list-rehash
   import-key <file-type> <file-name> <commonName>
 
@@ -532,6 +532,8 @@ easytls_config ()
 {
 	# Missing config file is fatal
 	[ -f "$EASYTLS_CONFIG_FILE" ] || die "Missing config-file"
+
+	# Verify config hash has already been done by config_use()
 
 	case "$1" in
 		ac|auto.check)
