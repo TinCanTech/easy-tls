@@ -835,7 +835,7 @@ and initialize a fresh TLS PKI here."
 	# Create metadata dir in easytls dir
 	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir"
 
-	# Create inline-index file
+	# Create inline-index
 	head_text="# EasyTLS inline-index - Created: $(date)"
 	head_text="$head_text - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
 	printf '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
@@ -844,13 +844,13 @@ and initialize a fresh TLS PKI here."
 	# Save inline-index hash
 	inline_index_save_hash || die "Failed to hash inline-index"
 
-	# Create tlskey-index file
+	# Create tlskey-index
 	head_text="# EasyTLS tlskey-index - Created: $(date)"
 	head_text="$head_text - tlskey-serial|cert-serial|CN|sub-key"
 	printf '%s\n' "$head_text" > "$EASYTLS_KEY_INDEX" \
 		|| die "Failed to create tlskey-index"
 
-	# Create tlskey-index hash
+	# Save tlskey-index hash
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
 
 	# Create config-file
@@ -877,7 +877,7 @@ and initialize a fresh TLS PKI here."
 	printf '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" \
 		|| die "Failed to create disabled-list"
 
-	# Create disabled list hash file
+	# Save disabled-list hash
 	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
@@ -1607,6 +1607,7 @@ verify_inline_hash ()
 #	esac
 
 	# There is only one way out of this..
+	error_msg "Inline file hash failed"
 	return 1
 } # => verify_inline_hash ()
 
@@ -1998,6 +1999,7 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
+	# This can go .. use verify_init_tls correctly
 	[ -f "$EASYTLS_KEY_HASH" ] || {
 		error_msg "tlskey_index_verify_index_hash - Missing index file."
 		return 1
@@ -2064,10 +2066,8 @@ tls_crypt_v2_serial_number ()
 	# If you want to get really picky then please open an issue.
 
 	# Prepend random padding to metadata
-	"$EASYRSA_OPENSSL" rand -hex -out "$EASYTLS_DATA_DIR/temp.hex" 4
-	metadata_padding="$(cat "$EASYTLS_DATA_DIR/temp.hex")"
+	metadata_padding="$("$EASYRSA_OPENSSL" rand -hex 4)"
 	metadata="${metadata_padding}--${metadata}"
-	rm -f "$EASYTLS_DATA_DIR/temp.hex"
 
 	# What ever openssl says ..
 	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
@@ -2481,7 +2481,7 @@ inline_tls_auth ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ ! $silent_inline ] && \
+	[ $silent_inline ] || \
 		notice "Inline TLS auth file created: $inline_file"
 
 	# explicitly return success for callers
@@ -2529,7 +2529,7 @@ inline_tls_crypt_v1 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ ! $silent_inline ] && \
+	[ $silent_inline ] || \
 		notice "Inline TLS crypt file created: $inline_file"
 
 	# explicitly return success for callers
@@ -2615,7 +2615,7 @@ inline_tls_crypt_v2 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ ! $silent_inline ] && \
+	[ $silent_inline ] || \
 		notice "Inline TLS crypt v2 file created: $inline_file"
 
 	# explicitly return success for callers
@@ -2863,8 +2863,8 @@ b64_enc_metadata ()
 	#
 	# All fields are single contiguous words
 	#
-	# 1.  "TLS_Key_Serial_Number"-easytls-"$EASYTLS_VERSION"
-	#     easytls-cryptv2-verify.sh only uses the 'easytls' part
+	# 1.  "TLS_Key_Serial_Number"-"Random padding"--'easytls'-"$EASYTLS_VERSION"
+	#     "Random padding" and "$EASYTLS_VERSION" are non-functional
 	#
 	# 2   CA Identity
 	#     `openssl output`; Drop decription and remove colons ':' (Hex only field)
@@ -2887,7 +2887,7 @@ b64_enc_metadata ()
 	#     Default: OPT
 	#
 	# 9.  Hardware Address string:
-	#     Default: 000000000000 (This is a simple place holder only)
+	#     Default: 000000000000
 	#
 
 	# metadata_version
@@ -2908,14 +2908,7 @@ b64_enc_metadata ()
 	metadata="$metadata_version $ca_identity $crt_serial $key_date"
 
 	# Append --custom-group
-	# TODO: something better than this
-	metadata="$metadata ${TLSKEY_CUSTOM_GRP:-EASYTLS}"
-	#if [ -n "$TLSKEY_CUSTOM_GRP" ]
-	#then
-	#	metadata="$metadata $TLSKEY_CUSTOM_GRP"
-	#else
-	#	metadata="$metadata EASYTLS"
-	#fi
+	metadata="$metadata $TLSKEY_CUSTOM_GRP"
 
 	# Append common_name
 	[ -z "$cli_name" ] && {
@@ -2925,13 +2918,7 @@ b64_enc_metadata ()
 	metadata="$metadata $cli_name"
 
 	# Append --sub-key-name
-	metadata="$metadata ${TLSKEY_SUBNAME:-'NOSUBKEY'}"
-	#if [ -n "$TLSKEY_SUBNAME" ]
-	#then
-	#	metadata="$metadata $TLSKEY_SUBNAME"
-	#else
-	#	metadata="$metadata NOSUBKEY"
-	#fi
+	metadata="$metadata $TLSKEY_SUBNAME"
 
 	# Append opt field (Usage is to be decided)
 	if [ -n "$EASYTLS_TLSCV2_OPT" ]
@@ -2961,7 +2948,11 @@ b64_enc_metadata ()
 		}
 
 	# Save metadata in plain text
-	save_metadata
+	#save_metadata || \....
+	printf "%s\n" "$metadata" > "$metadata_debug" || {
+		error_msg "Save metadata failed"
+		return 1
+		}
 
 	easytls_verbose "metadata: $metadata"
 	# Base64 encode metadata
@@ -3051,7 +3042,7 @@ disabled_list_manager ()
 {
 	action="$1"
 
-	# Allow the list to be rehashed
+	# Allow the list to be rehashed before verify_tls_init
 	case $action in
 	rehash)
 		# This needs more work to recreate the date stamps.
@@ -3061,8 +3052,6 @@ disabled_list_manager ()
 	;;
 	esac
 
-	# TODO: should this be PKI init ?
-	#verify_pki_init
 	verify_tls_init
 
 	# Verify disabled-list Hash
@@ -3076,14 +3065,6 @@ disabled_list_manager ()
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
 	openssl_crt_serial
-
-	# check --sub-key-name
-	#if [ -z "$TLSKEY_SUBNAME" ]
-	#then
-	#	die "No --sub-key-name"
-	#else
-	#	name="$name NOSUBKEY"
-	#fi
 
 	# Check unique record from tlskey-index
 	grep -q \
@@ -3112,7 +3093,7 @@ disabled_list_manager ()
 	#disabled_list_serial_status="$(disabled_list_serial_search)"
 	#[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
 
-	# 'disable' or 'enable' 'tlskey-serial cert-serial name --sub-key-name'
+	# Update disabled-list
 	case $action in
 	disable) # Add serial number to the disabled-list
 		if [ $is_disabled ]
@@ -3182,6 +3163,7 @@ disabled_list_serial_search ()
 }
 
 # Update disabled-list footer and hash
+# TODO: is footer necessary ?
 disabled_list_update_and_hash ()
 {
 	# Update time-stamp
@@ -3206,7 +3188,7 @@ disabled_list_update_and_hash ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
-	# Missing disabled-list is ok
+	# Missing disabled-list hash is ok for rehash ?
 	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
 
 	# Read the saved hash
@@ -4041,25 +4023,25 @@ vars_setup()
 
 	# Set defaults, preferring existing env-vars if present
 	set_var
-	set_var EASYRSA					"$prog_dir"
-	set_var EASYRSA_OPENSSL			"openssl"
-	set_var EASYRSA_PKI				"$PWD/pki"
-	set_var EASYRSA_TEMP_DIR		"$EASYRSA_PKI"
-	set_var EASYRSA_INDEX			"$EASYRSA_PKI/index.txt"
+	set_var EASYRSA                 "$prog_dir"
+	set_var EASYRSA_OPENSSL         "openssl"
+	set_var EASYRSA_PKI             "$PWD/pki"
+	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
+	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 
-	set_var EASYTLS_PKI				"$EASYRSA_PKI/easytls"
-	set_var EASYTLS_DATA_DIR		"$EASYTLS_PKI/data"
-	set_var EASYTLS_CONFIG_FILE		"$EASYTLS_DATA_DIR/easytls-config.txt"
-	set_var EASYTLS_CONFIG_HASH		"$EASYTLS_DATA_DIR/easytls-config.hash"
-	set_var EASYTLS_MD_DIR			"$EASYTLS_PKI/metadata"
-	set_var EASYTLS_INLINE_INDEX	"$EASYTLS_DATA_DIR/easytls-inline-index.txt"
-	set_var EASYTLS_IL_INDEX_HASH	"$EASYTLS_DATA_DIR/easytls-inline-index.hash"
-	set_var EASYTLS_DISABLED_LIST	"$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
-	set_var EASYTLS_DISABLED_HASH	"$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
-	set_var EASYTLS_CA_IDENTITY		"$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
-	set_var EASYTLS_KEY_INDEX		"$EASYTLS_DATA_DIR/easytls-key-index.txt"
-	set_var EASYTLS_KEY_HASH		"$EASYTLS_DATA_DIR/easytls-key-index.hash"
-	set_var TLSKEY_SUBNAME	"NOSUBKEY"
+	set_var EASYTLS_PKI             "$EASYRSA_PKI/easytls"
+	set_var EASYTLS_DATA_DIR        "$EASYTLS_PKI/data"
+	set_var EASYTLS_CONFIG_FILE     "$EASYTLS_DATA_DIR/easytls-config.txt"
+	set_var EASYTLS_CONFIG_HASH     "$EASYTLS_DATA_DIR/easytls-config.hash"
+	set_var EASYTLS_MD_DIR          "$EASYTLS_PKI/metadata"
+	set_var EASYTLS_INLINE_INDEX    "$EASYTLS_DATA_DIR/easytls-inline-index.txt"
+	set_var EASYTLS_IL_INDEX_HASH   "$EASYTLS_DATA_DIR/easytls-inline-index.hash"
+	set_var EASYTLS_DISABLED_LIST   "$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
+	set_var EASYTLS_DISABLED_HASH   "$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
+	set_var EASYTLS_CA_IDENTITY     "$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
+	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
+	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
+	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
