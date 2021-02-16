@@ -111,6 +111,8 @@ cmd_help()
 		init-tls) text="
   init-tls
       Removes & re-initializes the TLS key dir" ;;
+		build|inline|remove) text="
+  Inter-active menus to build, inline and remove various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
   build-tls-auth
       Create an OpenVPN TLS auth PSK (tls-auth.key)" ;;
