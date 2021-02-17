@@ -5,6 +5,7 @@ Easy-TLS is an Easy-RSA extension utility to help manage:
 + Verified `Inline` files for use with OpenVPN
 + Concise OpenVPN TLS-Crypt-V2 Client Key Metadata definition
 + X509 Certificate **and matched** Easy-TLS Inline-file Expiry management tools
++ Complete **Inter-active Menus**
 # Additional tools
 EasyTLS scripts to interogate EasyTLS-CryptV2 metadata:
 + `easytls-cryptv2-verify.sh` - TLS-Crypt-V2 key metadata access policy tool.
