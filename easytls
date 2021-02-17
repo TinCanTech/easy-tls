@@ -3699,8 +3699,8 @@ To cancel this inter-active menu at any time, press Control-C
 	case $EASYTLS_ANSWER in
 	1)	# easytls-cryptv2-verify.sh
 
-		print '
-  Coming soon ..'
+		[ -f "$EASYTLS_VERIFY_SH" ] || \
+			die "Required script missing: $EASYTLS_VERIFY_SH"
 
 		# -c|--ca=<path> - opt_ca_path
 		interactive_ca_path
@@ -3728,19 +3728,24 @@ To cancel this inter-active menu at any time, press Control-C
 		# Create config
 		#interactive_create_verify_config
 
-		#{
+		{	printf '%s\n' '# Add this line to your OpenVPN Server config file'
+			printf '%s' 'tls-crypt-v2-verify'
+			printf ' %s' "$EASYTLS_VERIFY_SH"
 			printf ' %s' "-c=$opt_ca_path"
-			printf ' %s' "-g=$opt_customg"
+			[ $opt_customg ] && printf ' %s' "$opt_customg"
 			[ $opt_key_age ] && printf ' %s' "$opt_key_age"
 			[ $opt_disable_list ] && printf ' %s' "$opt_disable_list"
 			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
 			[ $opt_x509_method ] && printf ' %s' "$opt_x509_method"
 			[ $opt_load_ca_id ] && printf ' %s' "$opt_load_ca_id"
 			[ $opt_preload_id ] && printf ' %s' "$opt_preload_id"
-		#} > "$EASYTLS_SH_VERIFY_CFG" || die "Failed to create config file"
+			printf '\n'
+		} > "$EASYTLS_VERIFY_CFG" || die "Failed to create config file"
 
 		# Show config
-		#cat "$EASYTLS_SH_VERIFY_CFG"
+		printf '\n'
+		cat "$EASYTLS_VERIFY_CFG"
+		printf '\n'
 
 		easytls_verbose
 		easytls_verbose "wotsa config ?"
@@ -3991,6 +3996,9 @@ interactive_ca_path ()
 	do
 		interactive_question
 		opt_ca_path="${EASYTLS_ANSWER:-$default}"
+		[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] && {
+			opt_ca_path="$EASYTLS_CA_FULLPATH/$EASYRSA_PKI"
+			}
 		[ -f "$opt_ca_path/ca.crt" ] && break
 		print '
   This path does not contain a valid CA certificate.'
@@ -4026,9 +4034,11 @@ interactive_custom_group ()
 			# This is for build
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
 			export TLSKEY_CUSTOM_GRP="${opt_customg}"
+			opt_customg="-g=${opt_customg}"
 		else
 			# This is for scripts
-			opt_customg="$TLSKEY_CUSTOM_GRP"
+			#opt_customg="$TLSKEY_CUSTOM_GRP"
+			unset opt_customg
 		fi
 	easytls_verbose "Config: $opt_customg"
 }
@@ -4346,11 +4356,12 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 
+	set_var EASYTLS                 "$prog_dir"
 	set_var EASYTLS_PKI             "$EASYRSA_PKI/easytls"
+	set_var EASYTLS_MD_DIR          "$EASYTLS_PKI/metadata"
 	set_var EASYTLS_DATA_DIR        "$EASYTLS_PKI/data"
 	set_var EASYTLS_CONFIG_FILE     "$EASYTLS_DATA_DIR/easytls-config.txt"
 	set_var EASYTLS_CONFIG_HASH     "$EASYTLS_DATA_DIR/easytls-config.hash"
-	set_var EASYTLS_MD_DIR          "$EASYTLS_PKI/metadata"
 	set_var EASYTLS_INLINE_INDEX    "$EASYTLS_DATA_DIR/easytls-inline-index.txt"
 	set_var EASYTLS_IL_INDEX_HASH   "$EASYTLS_DATA_DIR/easytls-inline-index.hash"
 	set_var EASYTLS_DISABLED_LIST   "$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
@@ -4360,8 +4371,24 @@ vars_setup()
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
-	set_var EASYTLS_SH_VERIFY_CFG   "$EASYTLS_PKI/easytls-cv2-verify.conf"
-	set_var EASYTLS_SH_CLICON_CFG   "$EASYTLS_PKI/easytls-cv2-client-connect.conf"
+	set_var EASYTLS_VERIFY_SH    "$PWD/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_CLICON_SH    "$PWD/easytls-cryptv2-client-connect.sh"
+
+	set_var EASYTLS_VERIFY_CFG   "$PWD/easytls-cryptv2-verify.conf"
+	set_var EASYTLS_CLICON_CFG   "$PWD/easytls-cryptv2-client-connect.conf"
+
+	# CA dir used for inter-active script must be fully expanded
+	if [ EASYRSA_PKI = "$PWD/pki" ]
+	then
+		set_var EASYTLS_CA_FULLPATH "$EASYRSA_PKI"
+	[ -f "$EASYTLS_CA_FULLPATH/ca.crt" ] || \
+		die "Missing: $EASYTLS_CA_FULLPATH/ca.crt"
+
+	else
+		set_var EASYTLS_CA_FULLPATH "$PWD"
+	[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] || \
+		die "Missing: $EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt"
+	fi
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
