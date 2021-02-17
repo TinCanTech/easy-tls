@@ -471,7 +471,7 @@ init ()
 	# Default temp dir
 	EASYTLS_tmp_dir="/tmp"
 
-	# TLS expiry age (days) Default 5 years
+	# TLS expiry age (days) Default 5 years, 1825 days
 	tlskey_max_age=$((365*5))
 
 	# From openvpn server

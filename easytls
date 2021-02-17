@@ -3370,32 +3370,7 @@ To cancel this inter-active menu at any time, press Control-C
 		opt_client_name="$common_name"
 
 		# Set custom.group name
-		opt_customg=""
-		EASYTLS_QHELP='
-* All TLS-Crypt-V2 Client keys which are created by the same Server key
-  MUST use the same Custom-Group.
-
-  You can configure a single Custom-Group like so:
-
-    $ ./easytls config custom.group NAME
-
-  If you want to configure a Custom-Group then use CTRL-C now.
-
-  If you have configured your Custom-Group or do not require a Custom-Group
-  then leave this field blank.
-
-  Your current Custom-Group is:'
-		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
-			EASYTLS_QHELP="$EASYTLS_QHELP $TLSKEY_CUSTOM_GRP"
-		EASYTLS_QTEXT='
-  Enter your Custom-Group NAME
-  or leave this blank to accept the current Custom-Group:'
-		interactive_question
-		opt_customg="$EASYTLS_ANSWER"
-		[ -n "$opt_customg" ] && {
-			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
-			export TLSKEY_CUSTOM_GRP="${opt_customg}"
-			}
+		interactive_custom_group
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
@@ -3462,7 +3437,7 @@ To cancel this inter-active menu at any time, press Control-C
 		print "Quit!"
 	;;
 	esac
-}
+} # => interactive_build ()
 
 # Inter-active inline menu
 interactive_inline ()
@@ -3579,7 +3554,7 @@ To cancel this inter-active menu at any time, press Control-C
 	*)	# Other value -> Quit
 		print "Quit!"
 	esac
-}
+} # => interactive_inline ()
 
 # Inter-active Remove menu
 interactive_remove ()
@@ -3694,7 +3669,99 @@ To cancel this inter-active menu at any time, press Control-C
 		print "Quit!"
 	;;
 	esac
-}
+} # => interactive_remove ()
+
+# Configure scripts
+interactive_scripts ()
+{
+	print '
+Easy-TLS Inter-active Script configuration menu.'
+
+	# Verify PKI
+	interactive_verify_pki || die 'Please specify your PKI directory.'
+
+	# Capture the command line to inline
+	cmd_head='* Easy-TLS command:'
+	cmd_line=''
+
+	# Choose Key
+	EASYTLS_QHELP='
+To cancel this inter-active menu at any time, press Control-C
+
+* Available script which can be configured:'
+	EASYTLS_QTEXT='
+  [1] TLS Crypt v2 Verify (easytls-cryptv2-verify.sh)
+  [2] TLS Crypt v2 Client Connect (easytls-cryptv2-client-connect.sh)
+
+  Select the type of script to configure:'
+	interactive_question
+
+	case $EASYTLS_ANSWER in
+	1)	# easytls-cryptv2-verify.sh
+
+		print '
+  Coming soon ..'
+
+		# -c|--ca=<path> - opt_ca_path
+		interactive_ca_path
+
+		# -g|--custom-group=<GROUP> - opt_customg
+		interactive_custom_group
+
+		# -x|--max-tls-age - opt_key_age
+		interactive_key_age
+
+		# -d|--disable-list - opt_disable_list
+		interactive_disabled_list
+
+		# -t|--tmp-dir - opt_tmp_dir
+		interactive_tmp_dir
+
+		# --v1|--via-crl
+		# --v2|--via-ca
+		# --v3|--via-index
+		# opt_x509_method
+		# opt_load_ca_id
+		# opt_preload_id
+		interactive_x509_method
+
+		# Create config
+		#interactive_create_verify_config
+
+		#{
+			printf ' %s' "-c=$opt_ca_path"
+			printf ' %s' "-g=$opt_customg"
+			[ $opt_key_age ] && printf ' %s' "$opt_key_age"
+			[ $opt_disable_list ] && printf ' %s' "$opt_disable_list"
+			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
+			[ $opt_x509_method ] && printf ' %s' "$opt_x509_method"
+			[ $opt_load_ca_id ] && printf ' %s' "$opt_load_ca_id"
+			[ $opt_preload_id ] && printf ' %s' "$opt_preload_id"
+		#} > "$EASYTLS_SH_VERIFY_CFG" || die "Failed to create config file"
+
+		# Show config
+		#cat "$EASYTLS_SH_VERIFY_CFG"
+
+		easytls_verbose
+		easytls_verbose "wotsa config ?"
+	;;
+	2)	# easytls-cryptv2-client-connect.sh
+
+		print '
+  Coming soon ..'
+
+		# -t|--tmp-dir=<path>
+		# -r|--required
+
+	;;
+	*)	# Other value -> Quit
+		print "Quit!"
+	;;
+	esac
+
+	#easytls_verbose "hiding an error ?"
+
+} # => interactive_scripts ()
 
 # Set commonName
 interactive_common_name ()
@@ -3907,6 +3974,254 @@ interactive_hwaddr ()
 	cmd_line="${cmd_line} ${opt_hardware}"
 }
 
+# Set CA path
+interactive_ca_path ()
+{
+	unset opt_ca_path
+	default="$EASYRSA_PKI"
+	EASYTLS_QHELP="
+* Enter the path to the location of your Easy-RSA PKI directory.
+
+  Leave this blank to use the default Easy-RSA PKI path.
+
+  * Default: $default"
+	EASYTLS_QTEXT='
+  Enter the path name:'
+	while :
+	do
+		interactive_question
+		opt_ca_path="${EASYTLS_ANSWER:-$default}"
+		[ -f "$opt_ca_path/ca.crt" ] && break
+		print '
+  This path does not contain a valid CA certificate.'
+	done
+}
+
+# Set Custom Group
+interactive_custom_group ()
+{		opt_customg=""
+		EASYTLS_QHELP='
+* All TLS-Crypt-V2 Client keys which are created by the same Server key
+  MUST use the same Custom-Group.
+
+  You can configure a single Custom-Group like so:
+
+    $ ./easytls config custom.group NAME
+
+  If you want to configure a Custom-Group then use CTRL-C now.
+
+  If you have configured your Custom-Group or do not require a Custom-Group
+  then leave this field blank.
+
+  Your current Custom-Group is:'
+		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
+			EASYTLS_QHELP="$EASYTLS_QHELP $TLSKEY_CUSTOM_GRP"
+		EASYTLS_QTEXT='
+  Enter your Custom-Group NAME
+  or leave this blank to accept the current Custom-Group:'
+		interactive_question
+		opt_customg="$EASYTLS_ANSWER"
+		if [ -n "$opt_customg" ]
+		then
+			# This is for build
+			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
+			export TLSKEY_CUSTOM_GRP="${opt_customg}"
+		else
+			# This is for scripts
+			opt_customg="$TLSKEY_CUSTOM_GRP"
+		fi
+	easytls_verbose "Config: $opt_customg"
+}
+
+# Set tlskey allowed age in days
+interactive_key_age ()
+{
+	unset opt_key_age
+	default="1825" # 5 Years
+	EASYTLS_QHELP="
+* Enter the maximum allowable age in days of your TLS-Crypt-V2 Client keys.
+
+  Leave this blank to use the default age. (1825 days is 5 years)
+
+  * Default: $default"
+	EASYTLS_QTEXT='
+  Enter the allowable age:'
+	interactive_question
+	key_age_days="${EASYTLS_ANSWER}"
+	[ -z "$key_age_days" ] || opt_key_age="-x=${key_age_days}"
+	easytls_verbose "Config: $opt_key_age"
+}
+
+# Set use of disabled-list
+interactive_disabled_list ()
+{
+	unset opt_disable_list
+	default='Y'
+	EASYTLS_QHELP='
+* Do you want to use the dynamic disabled-list ? (Default is Yes)'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+	while :
+	do
+		interactive_question
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
+		case "$EASYTLS_ANSWER" in
+			Y|y|Yes|yes|YES)
+				break
+			;;
+			N|n|No|no|NO)
+				opt_disable_list="-d"
+				break
+			;;
+		esac
+	done
+
+	easytls_verbose
+	easytls_verbose "Config: $opt_disable_list"
+}
+
+# Set the temp dir
+interactive_tmp_dir ()
+{
+	unset opt_tmp_dir
+	default="DISABLED"
+	EASYTLS_QHELP="
+* Enter the temporary directory path where the script can write temp files.
+
+  If this is left blank then the script will not write any temp files
+  and hardware-address verification will be disabled.
+
+  * Default: $default"
+	EASYTLS_QTEXT='
+  Enter the path name:'
+	while :
+	do
+		interactive_question
+		opt_tmp_dir="${EASYTLS_ANSWER}"
+		[ -z "$opt_tmp_dir" ] && break
+		[ -d "$opt_tmp_dir" ] && opt_tmp_dir="-t=$opt_tmp_dir" && break
+		print '
+  This path is not valid.'
+	done
+	easytls_verbose "Config: $opt_tmp_dir"
+}
+
+# Set the X509 method
+interactive_x509_method ()
+{
+	unset opt_x509_method
+	default="off"
+	EASYTLS_QHELP='
+* Select the X509 method to verify client certificates.
+
+  The default setting will not invoke any X509 code in the script
+  and only do TLS verification.  X509 is then handled by OpenVPN.'
+	EASYTLS_QTEXT='
+  [1] Verify via CRL:   Verify your cert. using openssl crl
+  [2] Verify via CA:    Verify your cert. using openssl ca (DOES NOT WORK)
+  [3] Verify via Index: Verify your cert. by searching your current CRL
+
+  Select the X509 method to use or leave blank for default:'
+
+	while :
+	do
+		interactive_question
+		case $EASYTLS_ANSWER in
+		1)	# crl
+			opt_x509_method="--v1"
+			break
+		;;
+		2)	# ca
+			opt_x509_method="--v2"
+			break
+		;;
+		3)	# index
+			opt_x509_method="--v3"
+			break
+		;;
+		'')	# default: off
+			break
+		;;
+		*)	# ERROR: Try again
+			:
+		;;
+		esac
+	done
+	easytls_verbose "Config: $opt_x509_method"
+
+	[ $opt_x509_method ] || return 0
+
+	unset opt_load_ca_id
+	unset opt_preload_id
+	default="off"
+	EASYTLS_QHELP='
+* Select how the verify script loads the CA Identity.
+
+  The default setting is to build the CA-ID in the script (SLOWEST)'
+	EASYTLS_QTEXT='
+  [1] --cache-id:   Load the CA-ID from easytls-ca-identity.txt (MEDIUM)
+  [2] --preload-id: Load the CD-ID as a string with the script (FASTEST)
+
+  Select the loading method to use or leave blank for default:'
+
+	while :
+	do
+		interactive_question
+		case $EASYTLS_ANSWER in
+		1)	# cache
+			opt_load_ca_id="-a"
+			break
+		;;
+		2)	# preload
+			opt_preload_id="-p="
+			break
+		;;
+		'')	# default: off
+			break
+		;;
+		*)	# ERROR: Try again
+			:
+		;;
+		esac
+	done
+
+	if [ $opt_preload_id ]
+	then
+		[ -f "$EASYTLS_CA_IDENTITY" ] || \
+			die "Cannot find your CA-ID file, init-tls first."
+
+		EASYTLS_QHELP='
+* Enter your CD-ID.
+
+  Leave this blank to use the default Easy-TLS CA-ID.'
+		EASYTLS_QTEXT='
+  Enter the CA-ID:'
+
+		while :
+		do
+			interactive_question
+			if [ -n "$EASYTLS_ANSWER" ]
+			then
+				opt_preload_id="$EASYTLS_ANSWER"
+				printf '%s' "$opt_preload_id" | grep -q '^[[:xdigit:]]\{40\}$' || {
+					error_msg "Invalid CA-ID"
+					continue
+					}
+				break
+			else
+				opt_preload_id="$EASYTLS_MASTER_ID"
+				break
+			fi
+		done
+		opt_preload_id="-p=${opt_preload_id}"
+	fi
+
+	[ $opt_load_ca_id ] && easytls_verbose "Config: $opt_load_ca_id"
+	[ $opt_preload_id ] && easytls_verbose "Config: $opt_preload_id"
+} # => interactive_x509_method ()
+
+
+
 ############################################################################
 #
 # IMPORT Section
@@ -4045,6 +4360,9 @@ vars_setup()
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
+	set_var EASYTLS_SH_VERIFY_CFG   "$EASYTLS_PKI/easytls-cv2-verify.conf"
+	set_var EASYTLS_SH_CLICON_CFG   "$EASYTLS_PKI/easytls-cv2-client-connect.conf"
+
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
 	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
@@ -4181,6 +4499,10 @@ case "$cmd" in
 	remove)
 		interactive_remove || \
 			die "Error: interactive_remove"
+		;;
+	script)
+		interactive_scripts || \
+			die "Error: interactive_scripts"
 		;;
 	bta|build-tls-auth)
 		build_tls_auth "$@" || \
