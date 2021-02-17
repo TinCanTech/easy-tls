@@ -1,3 +1,5 @@
+easytls-cryptv2-verify.conf
+easytls-cryptv2-client-connect.conf
 et-tdir*/*
 x509-types/*
 easyrsa
