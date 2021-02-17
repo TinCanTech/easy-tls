@@ -3680,6 +3680,18 @@ Easy-TLS Inter-active Script configuration menu.'
 	# Verify PKI
 	interactive_verify_pki || die 'Please specify your PKI directory.'
 
+	# CA dir used for inter-active script must be fully expanded
+	if [ "${EASYRSA_PKI%/*}" = "$PWD" ]
+	then
+		set_var EASYTLS_CA_FULLPATH "$EASYRSA_PKI"
+		[ -f "$EASYTLS_CA_FULLPATH/ca.crt" ] || \
+		die "Missing: $EASYTLS_CA_FULLPATH/ca.crt"
+	else
+		set_var EASYTLS_CA_FULLPATH "$PWD"
+		[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] || \
+		die "Missing full path to CA: $EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt"
+	fi
+
 	# Capture the command line to inline
 	cmd_head='* Easy-TLS command:'
 	cmd_line=''
@@ -3728,7 +3740,8 @@ To cancel this inter-active menu at any time, press Control-C
 		# Create config
 		#interactive_create_verify_config
 
-		{	printf '%s\n' '# Add this line to your OpenVPN Server config file'
+		{	printf '%s\n' '# Configure OpenVPN to use easytls-cryptv2-verify.sh'
+			printf '%s\n' '# Add this line to your OpenVPN Server config file'
 			printf '%s' 'tls-crypt-v2-verify'
 			printf ' %s' "$EASYTLS_VERIFY_SH"
 			printf ' %s' "-c=$opt_ca_path"
@@ -4376,19 +4389,6 @@ vars_setup()
 
 	set_var EASYTLS_VERIFY_CFG   "$PWD/easytls-cryptv2-verify.conf"
 	set_var EASYTLS_CLICON_CFG   "$PWD/easytls-cryptv2-client-connect.conf"
-
-	# CA dir used for inter-active script must be fully expanded
-	if [ EASYRSA_PKI = "$PWD/pki" ]
-	then
-		set_var EASYTLS_CA_FULLPATH "$EASYRSA_PKI"
-	[ -f "$EASYTLS_CA_FULLPATH/ca.crt" ] || \
-		die "Missing: $EASYTLS_CA_FULLPATH/ca.crt"
-
-	else
-		set_var EASYTLS_CA_FULLPATH "$PWD"
-	[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] || \
-		die "Missing: $EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt"
-	fi
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
