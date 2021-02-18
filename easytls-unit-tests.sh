@@ -99,25 +99,19 @@ build_vars ()
 
 build_easyrsa
 
-export EASYTLS_TRAVIS_CI=1
-
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
 EASYTLS_OPTS="--verbose --batch --no-auto-check"
-#EASYTLS_OPTS="--verbose --batch"
 
-OPENVPN_CMD="./openvpn"
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
-TLSCV2V_OPTS="--verbose"
+TLSCV2V_OPTS="-v"
+
 WORK_DIR="$(pwd)"
 
 
-export EASYTLS_OPENVPN=./openvpn
-
-
-if [ "$OS" = "Windows_NT" ]
+if [ $OS ]
 then
 	export OPENVPN_CMD="C:/PROGRA~1/OpenVPN/bin/openvpn.exe"
 else
