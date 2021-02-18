@@ -163,6 +163,7 @@ help_text ()
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
   35  - USER ERROR Disallow connection, missing openvpn server pid_file.
+  119 - BUG Disallow connection, missing dependency file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
@@ -510,6 +511,11 @@ deps ()
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
+
+	help_note="This script requires external binaries."
+	[ "openssl version" ] || die "Missing openssl" 119
+	[ "cat --version"   ] || die "Missing cat" 119
+	[ "grep -V"         ] || die "Missing grep" 119
 
 	if [ $use_cache_id ]
 	then
