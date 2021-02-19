@@ -62,6 +62,7 @@ Use the "help" command above to get full usage details.
   build     :Inter-active menu to build TLS keys
   inline    :Inter-active menu to build Inline files
   remove    :Inter-active menu to remove TLS keys and Inline files
+  script    :Inter-active menu to configure Server scripts
   build-tls-auth
   build-tls-crypt
   build-tls-crypt-v2-server <server_filename_base>
@@ -111,8 +112,8 @@ cmd_help()
 		init-tls) text="
   init-tls
       Removes & re-initializes the TLS key dir" ;;
-		build|inline|remove) text="
-  Inter-active menus to build, inline and remove various Easy-TLS files" ;;
+		build|inline|remove|script) text="
+  Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
   build-tls-auth
       Create an OpenVPN TLS auth PSK (tls-auth.key)" ;;
@@ -317,7 +318,6 @@ Easy-TLS abbreviations:
 
   init-tls                      - init
   config_file                   - cf | cfg
-  build                         - No abbreviation
   build-tls-auth                - bta
   build-tls-crypt               - btc
   build-tls-crypt-v2-server     - btv2s | btcv2s
@@ -325,7 +325,6 @@ Easy-TLS abbreviations:
   remove-tlskey                 - No abbreviation
   save-id                       - sid
   status                        - s
-  inline                        - No abbreviation
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itv2 | itcv2
@@ -3737,21 +3736,32 @@ To cancel this inter-active menu at any time, press Control-C
 		# opt_preload_id
 		interactive_x509_method
 
+		# Openvpn PID - opt_openvpn_pid
+		[ $opt_tmp_dir ] && interactive_openvpn_pid
+
 		# Create config
 		#interactive_create_verify_config
 
-		{	printf '%s\n' '# Configure OpenVPN to use easytls-cryptv2-verify.sh'
-			printf '%s\n' '# Add this line to your OpenVPN Server config file'
+		{	printf '%s\n' \
+				'# Configure OpenVPN to use easytls-cryptv2-verify.sh'
+			printf '%s\n' \
+				'# Add the following line(s) to your OpenVPN Server config file'
+			printf '%s\n' \
+				'# For use with Windows some extra steps are required:'
+			printf '%s\n\n' \
+				'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
 			printf '%s' 'tls-crypt-v2-verify'
 			printf ' %s' "$EASYTLS_VERIFY_SH"
 			printf ' %s' "-c=$opt_ca_path"
 			[ $opt_customg ] && printf ' %s' "$opt_customg"
 			[ $opt_key_age ] && printf ' %s' "$opt_key_age"
 			[ $opt_disable_list ] && printf ' %s' "$opt_disable_list"
-			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
+			[ $opt_tmp_dir ] && printf ' %s' "-t=${opt_tmp_dir}"
 			[ $opt_x509_method ] && printf ' %s' "$opt_x509_method"
 			[ $opt_load_ca_id ] && printf ' %s' "$opt_load_ca_id"
 			[ $opt_preload_id ] && printf ' %s' "$opt_preload_id"
+			[ $opt_openvpn_pid ] && printf '\n\n%s' \
+				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
 			printf '\n'
 		} > "$EASYTLS_VERIFY_CFG" || die "Failed to create config file"
 
@@ -3777,8 +3787,14 @@ To cancel this inter-active menu at any time, press Control-C
 		# Create config
 		#interactive_create_verify_config
 
-		{	printf '%s\n' '# Configure OpenVPN to use easytls-cryptv2-client-connect.sh'
-			printf '%s\n' '# Add this line to your OpenVPN Server config file'
+		{	printf '%s\n' \
+				'# Configure OpenVPN to use easytls-cryptv2-client-connect.sh'
+			printf '%s\n' \
+				'# Add the following line(s) to your OpenVPN Server config file'
+			printf '%s\n' \
+				'# For use with Windows some extra steps are required:'
+			printf '%s\n\n' \
+				'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
 			printf '%s' 'client-connect'
 			printf ' %s' "$EASYTLS_CLICON_SH"
 			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
@@ -4144,7 +4160,7 @@ interactive_tmp_dir ()
 		interactive_question
 		opt_tmp_dir="${EASYTLS_ANSWER}"
 		[ -z "$opt_tmp_dir" ] && break
-		[ -d "$opt_tmp_dir" ] && opt_tmp_dir="-t=$opt_tmp_dir" && break
+		[ -d "$opt_tmp_dir" ] && opt_tmp_dir="$opt_tmp_dir" && break
 		print '
   This path is not valid.'
 	done
@@ -4264,6 +4280,34 @@ interactive_x509_method ()
 	[ $opt_load_ca_id ] && easytls_verbose "Config: $opt_load_ca_id"
 	[ $opt_preload_id ] && easytls_verbose "Config: $opt_preload_id"
 } # => interactive_x509_method ()
+
+# Set use of Openvpn PID for client connect srcipt
+interactive_openvpn_pid ()
+{
+	unset opt_hw_required
+	default='Y'
+	EASYTLS_QHELP='
+* Do you want to use the Easy-TLS client-connect script ? (Default is Yes)'
+	EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+	while :
+	do
+		interactive_question
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
+		case "$EASYTLS_ANSWER" in
+			Y|y|Yes|yes|YES)
+				opt_openvpn_pid='writepid'
+				break
+			;;
+			N|n|No|no|NO)
+				break
+			;;
+		esac
+	done
+
+	easytls_verbose
+	easytls_verbose "Config: $opt_hw_required"
+}
 
 # Set use of hardware-address required
 interactive_hw_required ()
