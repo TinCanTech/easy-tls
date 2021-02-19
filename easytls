@@ -3742,14 +3742,11 @@ To cancel this inter-active menu at any time, press Control-C
 		# Create config
 		#interactive_create_verify_config
 
-		{	printf '%s\n' \
+		{	printf '%s\n\n' '===================='
+			printf '%s\n' \
 				'# Configure OpenVPN to use easytls-cryptv2-verify.sh'
-			printf '%s\n' \
-				'# Add the following line(s) to your OpenVPN Server config file'
-			printf '%s\n' \
-				'# For use with Windows some extra steps are required:'
 			printf '%s\n\n' \
-				'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
+				'# Add the following line(s) to your OpenVPN Server config file'
 			printf '%s' 'tls-crypt-v2-verify'
 			printf ' %s' "$EASYTLS_VERIFY_SH"
 			printf ' %s' "-c=$opt_ca_path"
@@ -3770,6 +3767,18 @@ To cancel this inter-active menu at any time, press Control-C
 		cat "$EASYTLS_VERIFY_CFG"
 		printf '\n'
 
+		# Windows instructions
+		printf '%s\n\n' \
+			'# For use with Windows, those settings are inserted into:'
+		printf '%s\n\n' \
+			'    easytls-cryptv2-verify.bat'
+		printf '%s\n\n' \
+			'# Add this to your Windows OpenVPN Server config file:'
+		printf '%s\n' \
+			'tls-crypt-v2-verify /path/to/easytls-cryptv2-verify.bat'
+		printf '\n%s\n' \
+			'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
+
 		easytls_verbose
 		easytls_verbose "wotsa config ?"
 	;;
@@ -3787,14 +3796,11 @@ To cancel this inter-active menu at any time, press Control-C
 		# Create config
 		#interactive_create_verify_config
 
-		{	printf '%s\n' \
+		{	printf '%s\n\n' '===================='
+			printf '%s\n' \
 				'# Configure OpenVPN to use easytls-cryptv2-client-connect.sh'
-			printf '%s\n' \
-				'# Add the following line(s) to your OpenVPN Server config file'
-			printf '%s\n' \
-				'# For use with Windows some extra steps are required:'
 			printf '%s\n\n' \
-				'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
+				'# Add the following line(s) to your OpenVPN Server config file'
 			printf '%s' 'client-connect'
 			printf ' %s' "$EASYTLS_CLICON_SH"
 			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
@@ -3806,6 +3812,18 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '\n'
 		cat "$EASYTLS_CLICON_CFG"
 		printf '\n'
+
+		# Windows instructions
+		printf '%s\n\n' \
+			'# For use with Windows, those settings are inserted into:'
+		printf '%s\n\n' \
+			'    easytls-cryptv2-client-connect.bat'
+		printf '%s\n\n' \
+			'# Add this to your Windows OpenVPN Server config file:'
+		printf '%s\n' \
+			'tls-crypt-v2-verify /path/to/easytls-cryptv2-client-connect.bat'
+		printf '\n%s\n' \
+			'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
 
 		easytls_verbose
 		easytls_verbose "wotsa config ?"
