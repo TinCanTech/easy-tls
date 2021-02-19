@@ -69,9 +69,10 @@ help_text ()
   -r|--required       Require client to use --push-peer-info
 
   Exit codes:
-  0   - Allow connection, Client key has passed all tests.
-  1   - Disallow connection, client key has passed all tests but is REVOKED.
-  2   - Disallow connection, serial number is disabled.
+  0   - Allow connection, Client hardware address is correct.
+  1   - Disallow connection, hardware address not allowed.
+  2   - Disallow connection, hardware address missing or invalid.
+  3   - Disallow connection, X509 certificate incorrect for this TLS-key.
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -187,7 +188,7 @@ do
 	-t|--tmp-dir)
 		EASYTLS_TMP_DIR="$val"
 	;;
-	-r|--require-pushed-hwaddr)
+	-r|--required)
 		empty_ok=1
 		EASYTLS_hwaddr_required=1
 	;;
@@ -213,7 +214,7 @@ done
 # Dependencies
 deps
 
-# File name
+# File name - daemon_pid is from Openvpn env
 client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
 
 # Get client pushed hardware address
@@ -226,23 +227,38 @@ then
 	if grep -q '^000000000000$' "$client_hwaddr_file"
 	then
 		# This cert serial number is not bound by hardware address
-		success_msg="Hardware address not required: $common_name"
+		success_msg="Hardware address not set: $common_name"
 		connection_allowed
 	else
-		# Client pushed IV_HWADDR - Required for this client
-		verify_client_hwaddr || fail_and_exit "CLIENT IV_HWADDR"
+		# Client pushed IV_HWADDR
+		verify_client_hwaddr || {
+			# Only fail if HWADDR is required
+			[ $EASYTLS_hwaddr_required ] && {
+				failure_msg="Hardware address is required"
+				fail_and_exit "NO CLIENT IV_HWADDR" 2
+				}
+			# If HWADDR is not required and client did not push HWADDR
+			HWADDR_not_pushed=1
+			}
 
 		# Search hardware list file for client pushed hardware address
-		failure_msg="Hardware address $client_hwaddr not allowed"
-		verify_allowed_hwaddr && {
-			unset failure_msg
-			success_msg="Hardware address correct: $common_name $client_hwaddr"
-			connection_allowed
+		verify_allowed_hwaddr || {
+			# Only fail if HWADDR is pushed
+			[ $HWADDR_not_pushed ] || {
+				failure_msg="Hardware address $client_hwaddr not allowed"
+				fail_and_exit "HWADDR NOT ALLOWED" 1
+				}
 			}
+		unset failure_msg
+		success_msg="Hardware address not required: $common_name"
+		[ $HWADDR_not_pushed ] || \
+			success_msg="Hardware address correct: $common_name $client_hwaddr"
+		connection_allowed
 	fi
 else
 	# If the file does not exist then metadata vs certificate serial do not match
 	failure_msg="Client serial number mismatch"
+	fail_and_exit "SERIAL NUMBER" 3
 fi
 
 # Any failure_msg means fail_and_exit
