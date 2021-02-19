@@ -143,9 +143,9 @@ help_text ()
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
   2   - Disallow connection, TLS key serial number is disabled.
-  3   - Disallow connection, local/remote Identities do not match.
+  3   - Disallow connection, invalid metadata_version field.
   4   - Disallow connection, local/remote Custom Groups do not match.
-  5   - Disallow connection, invalid metadata_version field.
+  5   - Disallow connection, local/remote Identities do not match.
   6   - Disallow connection, TLS key has expired.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
@@ -683,7 +683,7 @@ deps
 			insert_msg="metadata version is not recognised:"
 		fi
 		failure_msg="$insert_msg $md_version"
-		fail_and_exit "METADATA VERSION" 5
+		fail_and_exit "METADATA VERSION" 3
 	;;
 	esac
 
@@ -799,7 +799,7 @@ else
 		success_msg="$success_msg $insert_msg"
 	else
 		failure_msg="identity mismatch"
-		fail_and_exit "IDENTITY MISMATCH" 3
+		fail_and_exit "IDENTITY MISMATCH" 5
 	fi
 
 

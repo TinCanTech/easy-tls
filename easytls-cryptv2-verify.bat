@@ -15,9 +15,14 @@ SET >> %LOG_FILE%
 REM Run the script
 REM -c|--ca-path can be absolute or relative to WORK_DIR
 sh.exe easytls-cryptv2-verify.sh -v -c=et-tdir1 -g=tincantech >> %LOG_FILE% 2>&1
+REM X509 certificate revoked
 IF ERRORLEVEL 1 SET SH_EXIT=1
+REM Disbaled TLS key
 IF ERRORLEVEL 2 SET SH_EXIT=2
+REM Not EasyTLS key
 IF ERRORLEVEL 3 SET SH_EXIT=3
-REM etc..
+REM other error
+IF ERRORLEVEL 4 SET SH_EXIT=4
+
 ECHO SH_EXIT: %SH_EXIT% >> %LOG_FILE%
 EXIT /B %SH_EXIT%
