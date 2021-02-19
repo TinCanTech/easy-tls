@@ -10,4 +10,3 @@ openssl-easyrsa.cnf
 safessl-easyrsa.cnf
 openvpn
 test/*
-setup
