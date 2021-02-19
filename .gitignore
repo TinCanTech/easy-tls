@@ -1,6 +1,7 @@
-easytls-cryptv2-verify.log
 easytls-cryptv2-verify.conf
+easytls-cryptv2-verify.log
 easytls-cryptv2-client-connect.conf
+easytls-cryptv2-client-connect.log
 et-tdir*/*
 x509-types/*
 easyrsa
@@ -10,3 +11,4 @@ openssl-easyrsa.cnf
 safessl-easyrsa.cnf
 openvpn
 test/*
+pki/*
