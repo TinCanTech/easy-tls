@@ -2274,7 +2274,7 @@ inline_renew ()
 	# Build the new .inline file
 	case "$inline_type" in
 		tls-base)
-			silent_base=1
+			#silent_base=1
 			inline_base "$name" $cmd_opts || \
 				die "Failed to create inline base file"
 			inline_index_update add
@@ -2466,7 +2466,7 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
-	silent_base=1
+	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{	printf "%s\n" "# TLS auth"
@@ -2516,7 +2516,7 @@ inline_tls_crypt_v1 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 
 	# Inline base file
-	silent_base=1
+	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{	printf "%s\n" "# TLS crypt"
@@ -2595,7 +2595,7 @@ inline_tls_crypt_v2 ()
 	fi
 
 	# Inline base file
-	silent_base=1
+	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{	printf "%s\n" "# TLS crypt v2"
