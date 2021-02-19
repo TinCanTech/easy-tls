@@ -142,7 +142,7 @@ help_text ()
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
-  2   - Disallow connection, serial number is disabled.
+  2   - Disallow connection, TLS key serial number is disabled.
   3   - Disallow connection, local/remote Identities do not match.
   4   - Disallow connection, local/remote Custom Groups do not match.
   5   - Disallow connection, invalid metadata_version field.
