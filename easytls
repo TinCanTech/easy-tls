@@ -1058,7 +1058,7 @@ status ()
 	if [ $revoked_mismatch_count -gt 0 ]
 	then
 		print "  Invalid inline files are caused by revoked X509 Certificates"
-		print "  To solve this use: ./easytls inline-remove <filename-base>"
+		print "  To solve this use: ./easytls remove-inline <filename-base>"
 	else
 		print "  No invalid inline files found"
 	fi
