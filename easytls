@@ -1995,6 +1995,9 @@ tlskey_index_update ()
 	rehash)
 		# Fall through to save hash
 		:
+			# Disabled - currently..
+			error_msg "tlskey_index_update rehash: Failed."
+			return 1
 	;;
 	*)
 		error_msg "Unknown index action: $update_index_action"
