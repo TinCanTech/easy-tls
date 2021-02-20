@@ -3477,7 +3477,6 @@ To cancel this inter-active menu at any time, press Control-C
   [1] Inline with TLS Auth key
   [2] Inline with TLS Crypt v1 key
   [3] Inline with TLS Crypt v2 key
-  [4] Remove Inline-file
 
   Select the type of Inline-file to build:'
 	interactive_question
