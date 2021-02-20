@@ -1087,14 +1087,25 @@ status ()
 	easytls_verbose "Status complete"
 } #=> status ()
 
-# Format status output
-status_output ()
+# Format status output from Easy-RSA
+status_easyrsa_output ()
 {
 	awk '{
 		if (NF == 4)
 		print "  Common-Name " $1 "\t  Serial-number " $2 "\t  Sub-key " $4
 		else
 		print "  Common-Name " $1 "\t  Serial-number " $2
+		}'
+}
+
+# Format status output from Easy-TLS
+status_easytls_output ()
+{
+	awk '{
+		if ( $4 == "NOSUBKEY" )
+		print "  Common-Name " $3 "\t  Serial-number " $2
+		else
+		print "  Common-Name " $3 "\t  Serial-number " $2 "\t  Sub-key " $4
 		}'
 }
 
@@ -1119,15 +1130,16 @@ status_revoked_extract_cn ()
 # Search ersa revoked serial list for etls valid serial
 status_search_revoked_serial_list()
 {
-	printf '%s\n' "$ersa_revoked_serial_list" | grep -c "^${inline_serial}$"
+	printf '%s\n' "$ersa_revoked_serial_list" | \
+		grep -c "^${inline_serial}$"
 }
 
 # List the invalid inline file record by serial number
 # Do not terminate regex with $ because we need to allow for subs
 status_invalid_inline_list ()
 {
-	grep "^${name}[[:blank:]]${inline_serial}[[:blank:]]${inline_hash}" \
-		"$EASYTLS_INLINE_INDEX" | status_output
+	grep "^${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
+		"$EASYTLS_INLINE_INDEX" | status_easytls_output
 }
 
 # Print Valid certs from Easy-RSA
@@ -1139,7 +1151,7 @@ status_easyrsa_valid ()
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
 		ersa_valid_cn_list="$ersa_valid_cn_list $ersa_valid_cn"
-		[ $silent_status ] || print "$ersa_valid_cn $i" | status_output
+		[ $silent_status ] || print "$ersa_valid_cn $i" | status_easyrsa_output
 	done
 } # => status_easyrsa_valid ()
 
@@ -1147,12 +1159,12 @@ status_easyrsa_valid ()
 status_easyrsa_revoked ()
 {
 	[ -f "$EASYRSA_INDEX" ] || return 0
-	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX"|awk '{print $4}')"
+	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX" | awk '{print $4}')"
 	for i in $ersa_revoked_serial_list
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
 		ersa_revoked_cn_list="$ersa_revoked_cn_list $ersa_revoked_cn"
-		[ $silent_status ] || print "$ersa_revoked_cn $i" | status_output
+		[ $silent_status ] || print "$ersa_revoked_cn $i" | status_easyrsa_output
 	done
 } # => status_easyrsa_revoked ()
 
@@ -1163,7 +1175,8 @@ status_easytls_inline ()
 	etls_valid_name_list="$(inline_index_common_name_sub_name_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
-	[ $silent_status ] || sed /^#/d "$EASYTLS_INLINE_INDEX" | status_output
+	[ $silent_status ] || \
+		sed /^#/d "$EASYTLS_INLINE_INDEX" | status_easytls_output
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -1178,7 +1191,7 @@ status_easytls_revoked ()
 status_easytls_invalid ()
 {
 	# Temporarily disable
-	return 0
+	#return 0
 
 	[ $index_rebuild ] && [ -z "$etls_valid_il_hash_list" ] && \
 		die "empty etls_valid_il_hash_list"
@@ -1193,7 +1206,7 @@ status_easytls_invalid ()
 		name="$(inline_index_ilhash_to_common_name)"
 		sub_name="$(inline_index_ilhash_to_sub_name)"
 
-		if [ -z "$sub_name" ]
+		if [ "$sub_name" = 'NOSUBKEY' ]
 		then
 			# No sub name present
 			inline_file="$EASYTLS_PKI/$name.inline"
@@ -1209,6 +1222,7 @@ status_easytls_invalid ()
 		unset inline_hash
 		# Check the .inline HASH
 		verify_inline_hash || die "Failed HASH: $inline_file"
+		# Variable: verified_inline_hash, now exists
 
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
@@ -1233,7 +1247,7 @@ status_easytls_invalid ()
 status_easyrsa_renewed ()
 {
 	# Temporarily disable
-	return 0
+	#return 0
 
 	renewed_mismatch_count=0
 	# REMEMBER: If there is no inline file for a cert
@@ -1328,14 +1342,14 @@ inline_index_serial_number_list ()
 # Get a list of inline hashes from inline-index
 inline_index_ilhash_number_list ()
 {
-	awk '{if ($1 ~ /[^#]/) print $3 " "}' "$EASYTLS_INLINE_INDEX"
+	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
 # Get a list of Common_name + Sub-key name from inline-index
 inline_index_common_name_sub_name_list ()
 {
 	awk '{if($1 ~ /[^#]/)
-		 {if(NF == 4) {print $1 "-" $4 " ";} else {print $1 " ";}}
+		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
 		 }' "$EASYTLS_INLINE_INDEX"
 }
 
@@ -1641,7 +1655,7 @@ inline_index_serial_to_common_name ()
 # Get Common name from inline index file using inline hash as key
 inline_index_ilhash_to_common_name ()
 {
-	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$1}"
+	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$3}"
 	awk "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
@@ -1649,7 +1663,7 @@ inline_index_ilhash_to_common_name ()
 # Get sub name from inline index file using inline hash as key
 inline_index_ilhash_to_sub_name ()
 {
-	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$4}"
+	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$4}"
 	awk "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
@@ -1657,7 +1671,7 @@ inline_index_ilhash_to_sub_name ()
 # Get cert serial number from inline index file using inline hash as key
 inline_index_ilhash_to_serial ()
 {
-	script="{if(\$3 ~ /^${known_inline_hash}\$/) print \$2}"
+	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$2}"
 	awk "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
@@ -1667,7 +1681,7 @@ inline_index_search_inline_hash ()
 {
 	# Do not need to search for --sub-key-name
 	# because inline file HASH ${real_hash} is unique
-	grep -q "^${real_hash}[[:blank:]]${inline_serial}[[:blank:]]${name}" \
+	grep -q "^${real_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
 		"$EASYTLS_INLINE_INDEX"
 }
 
