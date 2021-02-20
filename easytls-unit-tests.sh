@@ -115,8 +115,14 @@ if [ $OS ]
 then
 	export OPENVPN_CMD="C:/PROGRA~1/OpenVPN/bin/openvpn.exe"
 else
-	export OPENVPN_CMD=./openvpn
+	if [ -f ./openvpn ]
+	then
+		export OPENVPN_CMD=./openvpn
+	else
+		export OPENVPN_CMD=/usr/sbin/openvpn
+	fi
 fi
+[ -f "$OPENVPN_CMD" ] || die "Cannot find: $OPENVPN_CMD"
 
 
 export EASYRSA_CERT_RENEW=1000
