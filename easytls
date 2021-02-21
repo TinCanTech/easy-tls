@@ -2797,7 +2797,7 @@ build_tls_crypt_v2_client ()
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		key_file="$EASYTLS_PKI/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
 		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
-	}
+		}
 
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
@@ -4435,6 +4435,117 @@ import_key ()
 	notice "Successfully imported $key_type key from $key_file to $dest_key"
 }
 
+
+
+############################################################################
+#
+# EASYTLS master a.k.a. wiscii hash Section
+#
+
+# wiscii hash
+generate_wiscii_hash ()
+{
+	[ ! -f "$EASYTLS_INLINE_INDEX" ] && [ ! -f "$EASYTLS_KEY_INDEX" ] && return 1
+	# all inline
+	while read -r inline_hash inline_serial CN sub_key tlskey_serial
+	do
+		# Skip comment
+		[ -z "${inline_hash%%#*}" ] && continue
+
+		# hash inline
+		inline_file="${EASYTLS_PKI}/${CN}.inline"
+		TLSKEY_SUBNAME="$sub_key"
+		[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+			inline_file="${EASYTLS_PKI}/${CN}-${TLSKEY_SUBNAME}.inline"
+			}
+		[ -f "$inline_file" ] || {
+			#warn "create_master_hash missing: $inline_file"
+			continue
+			}
+		inline_hash="$(openssl sha1 -r "$inline_file")"
+		inline_hash="${inline_hash%% *}"
+		inline_seed="${inline_seed}${inline_hash}"
+	done < "$EASYTLS_INLINE_INDEX"
+	inline_hash2="$(printf '%s' "$inline_seed" | openssl sha256 -r)"
+	inline_hash2="${inline_hash2%% *}"
+
+	# all tlskey
+	tlskey_file="$EASYTLS_PKI/tls-auth.key"
+	[ -f "$tlskey_file" ] && {
+		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="${tlskey_hash%% *}"
+		tlskey_seed="${tlskey_seed}${tlskey_hash}"
+		}
+
+	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
+	[ -f "$tlskey_file" ] && {
+		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="${tlskey_hash%% *}"
+		tlskey_seed="${tlskey_seed}${tlskey_hash}"
+		}
+
+	while read -r tlskey_serial cert_serial CN sub_key
+	do
+		# Skip comment
+		[ -z "${tlskey_serial%%#*}" ] && continue
+
+		# hash tlskey
+		tlskey_file="${EASYTLS_PKI}/${CN}-tls-crypt-v2.key"
+		TLSKEY_SUBNAME="$sub_key"
+		[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+			tlskey_file="${EASYTLS_PKI}/${CN}-${TLSKEY_SUBNAME}-tls-crypt-v2.key"
+			}
+		[ -f "$tlskey_file" ] || {
+			#warn "create_master_hash missing: $tlskey_file"
+			continue
+			}
+		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="${tlskey_hash%% *}"
+		tlskey_seed="${tlskey_seed}${tlskey_hash}"
+	done < "$EASYTLS_KEY_INDEX"
+	tlskey_hash2="$(printf '%s' "$tlskey_seed" | openssl sha256 -r)"
+	tlskey_hash2="${tlskey_hash2%% *}"
+
+	# master a.k.a. wiscii
+	wiscii_conf_h="$(cat "$EASYTLS_CONFIG_HASH")"
+	wiscii_seed2="${wiscii_conf_h}${tlskey_hash2}${inline_hash2}"
+	wiscii_hash2="$(printf '%s' "$wiscii_seed2"|openssl sha256 -r)"
+	wiscii_hash2="${wiscii_hash2%% *}"
+	printf '%s' "$wiscii_hash2"
+}
+
+# Save wiscii hash
+save_wiscii_hash ()
+{
+	if [ -f "$EASYTLS_WISCII_HASH" ]
+	then
+		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
+	else
+		bottled_wiscii=""
+	fi
+	counted_wiscii="$(generate_wiscii_hash)"
+	[ -z "$counted_wiscii" ] && return 1
+	if [ "$counted_wiscii" != "$bottled_wiscii" ]
+	then
+		printf '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || return 1
+	fi
+}
+
+# Verify wiscii hash
+verify_wiscii_hash ()
+{
+	if [ -f "$EASYTLS_WISCII_HASH" ]
+	then
+		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
+	else
+		return 1
+	fi
+	counted_wiscii="$(generate_wiscii_hash)"
+	[ "$counted_wiscii" = "$bottled_wiscii" ] || return 1
+}
+
+
+
 ############################################################################
 #
 # EASYTLS SETUP Section
@@ -4500,6 +4611,7 @@ vars_setup()
 	set_var EASYTLS_PKI             "$EASYRSA_PKI/easytls"
 	set_var EASYTLS_MD_DIR          "$EASYTLS_PKI/metadata"
 	set_var EASYTLS_DATA_DIR        "$EASYTLS_PKI/data"
+	set_var EASYTLS_WISCII_HASH     "$EASYTLS_DATA_DIR/easytls-wiscii.hash"
 	set_var EASYTLS_CONFIG_FILE     "$EASYTLS_DATA_DIR/easytls-config.txt"
 	set_var EASYTLS_CONFIG_HASH     "$EASYTLS_DATA_DIR/easytls-config.hash"
 	set_var EASYTLS_INLINE_INDEX    "$EASYTLS_DATA_DIR/easytls-inline-index.txt"
@@ -4630,6 +4742,17 @@ trap "exit 3" 3
 trap "exit 6" 6
 trap "exit 14" 15
 
+# Verify me!
+if [ -f "$EASYTLS_WISCII_HASH" ]
+then
+	verify_wiscii_hash || {
+		help_note='
+* Some files have been manually altered, restore the changes to continue..'
+		die "Master hash check failed"
+		}
+	easytls_verbose "Master hash check OK"
+fi
+
 # Load config options - Does not change command line options
 config_use || die "Config error"
 easytls_verbose "config-file loaded OK"
@@ -4759,5 +4882,9 @@ esac
 
 # EasyTLS auto-check
 easytls_auto_check || die "Error: easytls_auto_check"
+
+# save me!
+save_wiscii_hash || die "Master hash save failed"
+easytls_verbose "Master hash save OK"
 
 # vim: ft=sh nu ai sw=8 ts=8 noet
