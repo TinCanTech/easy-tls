@@ -644,7 +644,7 @@ config_update ()
 # Use config
 config_use ()
 {
-	# If the config file does not exist then Do not error
+	# If config file does not exist then this must be init-tls
 	[ -f "$EASYTLS_CONFIG_FILE" ] || {
 		error_msg "Missing Config: Initialize Easy-TLS."
 		return 0
@@ -912,16 +912,16 @@ easytls_auto_check ()
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
 	# Temporarily disable
-	#status invalid || die "inline_auto_check: status invalid error"
-	#[ $revoked_mismatch_count -eq 0 ] || \
-	#	warn "EasyTLS: Invalid .inline files found: Revoked certs."
+	status invalid || die "inline_auto_check: status invalid error"
+	[ $revoked_mismatch_count -eq 0 ] || \
+		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
 	# Temporarily disable
-	#status renewed || die "inline_auto_check: status renewed error"
-	#[ $renewed_mismatch_count -eq 0 ] || \
-	#	warn "EasyTLS: Invalid .inline files found: Renewed certs."
+	status renewed || die "inline_auto_check: status renewed error"
+	[ $renewed_mismatch_count -eq 0 ] || \
+		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
 	inline_index_verify_hash || warn "inline-index hash failed."
