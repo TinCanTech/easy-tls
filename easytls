@@ -346,6 +346,7 @@ opt_config ()
 Easy-TLS configurable options:
 
   ac|auto.check on|off
+     Always run auto-check
      Toggle auto.check on|off.
 
   cg|custom.group NAME
@@ -363,7 +364,12 @@ Easy-TLS configurable options:
          (Quotes are required for spaces and "\" must be "/")
 
   im|inline.metadata on|off
-     Toggle inline-file metadata on|off.'
+     Add metadata to inline file
+     Toggle inline-file metadata on|off.
+
+  ih|inline.hardware
+     Include metadata hardware-addresses in metadata for inline file
+     Toggle inline-file hardware-address metadata on|off.'
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -577,7 +583,8 @@ easytls_config ()
 					:
 				;;
 				*)
-					die "Unsupported value for $opt: $val"
+					help_note="Supported options:  on | off"
+					die "Unsupported value for $cfg_opt: $cfg_val"
 				;;
 			esac
 		;;
@@ -586,6 +593,7 @@ easytls_config ()
 			[ -z "$cfg_val" ] && die "Unsupported value for $cfg_opt: $cfg_val"
 			# spaces ?
 			test_val="${cfg_val%% *}"
+			help_note="custom.group does not support spaces."
 			[ "$cfg_val" = "$test_val" ] || \
 				die "Unsupported value for $cfg_opt: $cfg_val"
 
@@ -617,6 +625,7 @@ easytls_config ()
 			die "config oops!"
 		;;
 	esac
+	unset help_note
 
 	# Write config
 	config_update || die "Error updating config."
