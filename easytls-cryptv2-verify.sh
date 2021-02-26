@@ -717,14 +717,17 @@ deps
 	then
 		md_hash="$(printf '%s' "$md_seed" | openssl sha1 -r)"
 		md_hash="${md_hash%% *}"
-		[ "$md_hash" = "$tlskey_serial" ] || \
+		[ "$md_hash" = "$tlskey_serial" ] || {
+			failure_msg="TLS-key metadata hash is incorrect ==>"
 			fail_and_exit "METADATA HASH" 9
+			}
 	fi
 
 	# Verify tlskey-serial is in index
-	grep -q "$tlskey_serial" "$tlskey_serial_index" || \
+	grep -q "$tlskey_serial" "$tlskey_serial_index" || {
+		failure_msg="TL-key is not recognised ==>"
 		fail_and_exit "TLSKEY SERIAL" 9
-
+		}
 
 # TLS Key expired
 
