@@ -1338,10 +1338,10 @@ inline_expire_date_only ()
 } # => inline_expire_date_only ()
 
 # Get a list of commonNames from inline-index
-inline_index_common_name_list ()
-{
-	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
-}
+#inline_index_common_name_list ()
+#{
+#	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
+#}
 
 # Get a list of serial_numbers from inline-index
 inline_index_serial_number_list ()
@@ -1637,8 +1637,8 @@ verify_inline_hash ()
 } # => verify_inline_hash ()
 
 # Get serial number from inline index file using Common name as key
-inline_index_common_name_to_serial ()
-{
+#inline_index_common_name_to_serial ()
+#{
 	# TODO: This could be effected by duplicate names from easyrsa
 	# This function is defunct but keep it for the EasyRSA early warning
 	# Other functions could be effected
@@ -1648,19 +1648,20 @@ inline_index_common_name_to_serial ()
 	# EasyTLS can work with that
 	#grep "^${name}[[:blank:]].*$" \
 	#	"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
-	script="{if(\$1 ~ /^${name}\$/) print \$2}"
-	awk "$script" "$EASYTLS_INLINE_INDEX"
-	unset script
-}
+
+	#script="{if(\$1 ~ /^${name}\$/) print \$2}"
+	#awk "$script" "$EASYTLS_INLINE_INDEX"
+	#unset script
+#}
 
 # Get Common name from inline index file using serial number as key
-inline_index_serial_to_common_name ()
-{
-	Target_File="${1:-"$EASYTLS_INLINE_INDEX"}"
-	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
-	awk -P "$script" "$Target_File"
-	unset script
-}
+#inline_index_serial_to_common_name ()
+#{
+#	Target_File="${1:-"$EASYTLS_INLINE_INDEX"}"
+#	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
+#	awk -P "$script" "$Target_File"
+#	unset script
+#}
 
 # Get Common name from inline index file using inline hash as key
 inline_index_ilhash_to_common_name ()
@@ -1686,7 +1687,7 @@ inline_index_ilhash_to_serial ()
 	unset script
 }
 
-# Search for hash
+# Search inline-index for inline-file hash
 inline_index_search_inline_hash ()
 {
 	# Do not need to search for --sub-key-name
@@ -1696,18 +1697,18 @@ inline_index_search_inline_hash ()
 }
 
 # Does this .inline file name already have an index record
-inline_index_search_valid_cn_list ()
-{
-	printf '%s\n' "$etls_inline_record_list" | \
-		grep -c "[[:blank:]]${name}[[:blank:]]"
-}
+#inline_index_search_valid_cn_list ()
+#{
+#	printf '%s\n' "$etls_inline_record_list" | \
+#		grep -c "[[:blank:]]${name}[[:blank:]]"
+#}
 
 # Dragon be here ! - Extract CN from openssl index.txt
-inline_index_openssl_valid_cn_list ()
-{
-	grep '^V.*$' "$EASYRSA_INDEX" | \
-		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
-}
+#inline_index_openssl_valid_cn_list ()
+#{
+#	grep '^V.*$' "$EASYRSA_INDEX" | \
+#		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
+#}
 
 # Get common_name from inline file
 inline_crt_common_name ()
