@@ -2590,8 +2590,9 @@ inline_tls_crypt_v2 ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	# This does not over-write a previous setting
-	set_var TLSKEY_SUBNAME	'NOSUBKEY'
+	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
+	# Set file names
 	sub_name="$name-$TLSKEY_SUBNAME"
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		tls_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
@@ -2599,16 +2600,59 @@ inline_tls_crypt_v2 ()
 		inline_file="$EASYTLS_PKI/$sub_name.inline"
 		}
 
+	# Check for existing files
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
+
 	if [ -f "$metadata_file" ]
 	then
-		# Get metadata and remove unwanted fields:
-		# easytls, CA-Identity and hw-ad
+		# Must be a client
+		# Get metadata
 		metadata_string="$(cat "$metadata_file")"
+
+		# Extract tlskey-serial
 		tlskey_serial="${metadata_string%%-*}"
+
+		# Drop EasyTLS header and version
 		metadata_string="${metadata_string#* }"
+
+		# Drop CA fingerprint
 		metadata_string="${metadata_string#* }"
+
+		# Drop x509 cert-serial
+		metadata_string="${metadata_string#* }"
+
+		# Set creation date
+		MD_date="${metadata_string%% *}"
+		MD_date="$(date --date=@${MD_date} +%F)"
+		# Drop date
+		metadata_string="${metadata_string#* }"
+
+		# Set custom-group
+		MD_cgroup="${metadata_string%% *}"
+		# Drop custom-group
+		metadata_string="${metadata_string#* }"
+
+		# Set common-name
+		MD_cn="${metadata_string%% *}"
+		# Drop common-name
+		metadata_string="${metadata_string#* }"
+
+		# Set subkey-name
+		MD_subkey="${metadata_string%% *}"
+		# Drop subkey-name
+		metadata_string="${metadata_string#* }"
+
+		# Set OPT
+		MD_opt="${metadata_string%% *}"
+		# Drop OPT
+		metadata_string="${metadata_string#* }"
+
+		# Set hardware-address
+		MD_hw="${metadata_string%% *}"
+		# Drop hardware-address
+		metadata_string="${metadata_string#* }"
+
 		[ $add_hardware ] || metadata_string="${metadata_string% *}"
 
 		# Get the CA serial number
@@ -2616,6 +2660,7 @@ inline_tls_crypt_v2 ()
 		ca_serial="$(fn_ca_serial)"
 		ca_serial="${ca_serial#*=}"
 	else
+		# Must be a server
 		no_metadata=1
 	fi
 
@@ -2623,13 +2668,17 @@ inline_tls_crypt_v2 ()
 	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
-	{	printf "%s\n" "# TLS crypt v2"
-		printf "%s\n" ""
+	{	printf "%s\n" "# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
 		[ $no_metadata ] || {
 			printf '%s\n' "# CA serial: $ca_serial"
 			printf '%s\n' "# tlskey-serial: $tlskey_serial"
-			printf '%s\n' "# Key metadata:"
-			printf '%s\n' "# $metadata_string"
+			printf '%s\n' "# Creation date: $MD_date"
+			printf '%s\n' "# Custom-Group: $MD_cgroup"
+			printf '%s\n' "# Common Name: $MD_cn"
+			[ "$MD_subkey" = 'NOSUBKEY' ] || \
+				printf '%s\n' "# Sub-key name: $MD_subkey"
+			# Disabled until I find a use: printf '%s\n' "# Opt: $MD_opt"
+			[ $add_hardware ] && printf '%s\n' "# Hardware addresses: $MD_hw"
 			printf "%s\n" ""
 			}
 		printf "%s\n" "<tls-crypt-v2>"
