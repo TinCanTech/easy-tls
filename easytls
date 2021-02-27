@@ -3857,9 +3857,6 @@ To cancel this inter-active menu at any time, press Control-C
 	;;
 	2)	# easytls-cryptv2-client-connect.sh
 
-		print '
-  Coming soon ..'
-
 		# -t|--tmp-dir - opt_tmp_dir
 		interactive_tmp_dir
 
