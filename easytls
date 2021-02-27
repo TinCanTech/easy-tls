@@ -1102,9 +1102,9 @@ status_easyrsa_output ()
 {
 	awk '{
 		if (NF == 4)
-		print "  Common-Name " $1 "\t  Serial-number " $2 "\t  Sub-key " $4
+		print "  Common-Name " $1 "\t  X509-Serial " $2 "\t  Sub-key " $4
 		else
-		print "  Common-Name " $1 "\t  Serial-number " $2
+		print "  Common-Name " $1 "\t  X509-Serial " $2
 		}'
 }
 
@@ -1113,9 +1113,9 @@ status_easytls_output ()
 {
 	awk '{
 		if ( $4 == "NOSUBKEY" )
-		print "  Common-Name " $3 "\t  Serial-number " $2
+		print "  Common-Name " $3 "\t  X509-Serial " $2
 		else
-		print "  Common-Name " $3 "\t  Serial-number " $2 "\t  Sub-key " $4
+		print "  Common-Name " $3 "\t  X509-Serial " $2 "\t  Sub-key " $4
 		}'
 }
 
