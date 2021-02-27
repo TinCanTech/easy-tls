@@ -486,10 +486,10 @@ verify_ca_init () {
 	for i in serial index.txt index.txt.attr ca.crt private/ca.key; do
 		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
 			#[ "$1" = "test" ] && return 1
-			die "\
-Easy-TLS TLS-crypt-v2 requires that you have built your EASY-RSA PKI.
+			die "
+Easy-TLS requires that you have built your EASY-RSA CA.
 
-Easy-RSA error:
+  Easy-RSA error:
 
 Missing expected CA file: $i (perhaps you need to run build-ca?)
 $help_note"
@@ -503,10 +503,10 @@ $help_note"
 	# verify expected CA-specific dirs:
 	for i in issued certs_by_serial
 	do
-		[ -d "$EASYRSA_PKI/$i" ] || die "\
-Easy-TLS TLS-crypt-v2 requires that you have built your EASY-RSA PKI.
+		[ -d "$EASYRSA_PKI/$i" ] || die "
+Easy-TLS requires that you have built your EASY-RSA CA.
 
-Easy-RSA error:
+  Easy-RSA error:
 
 Missing expected CA dir: $i (perhaps you need to run build-ca?)
 $help_note"
@@ -655,6 +655,7 @@ config_use ()
 {
 	# If config file does not exist then this must be init-tls
 	[ -f "$EASYTLS_CONFIG_FILE" ] || {
+		help_note="Please initialize Easy-TLS"
 		error_msg "Missing Config: Initialize Easy-TLS."
 		return 0
 		}
