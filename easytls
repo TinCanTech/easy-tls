@@ -1314,7 +1314,7 @@ status_easyrsa_renewed ()
 # List disabled client keys
 status_disabled_list()
 {
-	cat "$EASYTLS_DISABLED_LIST" | status_output
+	cat "$EASYTLS_DISABLED_LIST"
 }
 
 # Verify certificate purpose
