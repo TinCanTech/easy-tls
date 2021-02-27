@@ -1710,15 +1710,15 @@ inline_index_search_inline_hash ()
 # Get common_name from inline file
 inline_crt_common_name ()
 {
-	inline_common_name="$(grep '^# EasyTLS - File name base: .*$' "$inline_file")"
-	inline_common_name="${inline_common_name##*base: }"
+	inline_common_name="$(grep '^# Common name: .*$' "$inline_file")"
+	inline_common_name="${inline_common_name##*name: }"
 }
 
 # Get serial number from inline file
 inline_crt_serial ()
 {
-	inline_serial="$(grep '^# Serial number: .*$' "$inline_file")"
-	inline_serial="${inline_serial##*number: }"
+	inline_serial="$(grep '^# X509 serial: .*$' "$inline_file")"
+	inline_serial="${inline_serial##*serial: }"
 }
 
 # Get and format openssl serial number output
@@ -2405,38 +2405,39 @@ inline_base ()
 	# Build .inline file
 	{
 		# Add Custom Group if defined
-		[ $TLSKEY_CUSTOM_GRP ] && printf "%s\n" "# $TLSKEY_CUSTOM_GRP"
+		[ $TLSKEY_CUSTOM_GRP ] && printf '%s\n' "# $TLSKEY_CUSTOM_GRP"
 
-		printf "%s\n" "# EasyTLS - File name base: $name"
-		printf "%s\n" "# Serial number: $crt_serial"
-		printf "%s\n" ""
-		printf "%s\n" "<cert>"
+		printf '%s\n' "# EasyTLS version $EASYTLS_VERSION"
+		printf '%s\n' "# Common name: $name"
+		printf '%s\n' "# X509 serial: $crt_serial"
+		printf '%s\n' ""
+		printf '%s\n' "<cert>"
 		cat "$crt_file"
-		printf "%s\n" "</cert>"
-		printf "%s\n" ""
-		printf "%s\n" "<key>"
+		printf '%s\n' "</cert>"
+		printf '%s\n' ""
+		printf '%s\n' "<key>"
 
 		if [ "$no_x509_key" ]
 		then
-			printf "%s\n" \
-			" * Replace this line with your complete x509 key file *"
+			printf '%s\n' \
+			' * Replace this line with your complete x509 key file *'
 		else
 			cat "$key_file"
 		fi
 
-		printf "%s\n" "</key>"
-		printf "%s\n" ""
-		printf "%s\n" "<ca>"
+		printf '%s\n' "</key>"
+		printf '%s\n' ""
+		printf '%s\n' "<ca>"
 		cat "$ca_file"
-		printf "%s\n" "</ca>"
-		printf "%s\n" ""
+		printf '%s\n' "</ca>"
+		printf '%s\n' ""
 
 		if [ "$inline_dh_file" ]
 		then
-			printf "%s\n" "<dh>"
+			printf '%s\n' "<dh>"
 			cat "$EASYRSA_DH_FILE"
-			printf "%s\n" "</dh>"
-			printf "%s\n" ""
+			printf '%s\n' "</dh>"
+			printf '%s\n' ""
 		fi
 
 	} > "$inline_file" || {
