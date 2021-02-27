@@ -1462,13 +1462,10 @@ inline_index_update ()
 		current_inline_hash="$generated_hash"
 
 		# Create new record
-		new_record="$current_inline_hash $inline_serial $name"
+		new_record="$current_inline_hash $inline_serial $name $TLSKEY_SUBNAME"
 
-		# Append TLS-Crypt-V2 key details
-		# TODO: This works but could be better
-		tlskey_serial="${tlskey_serial:-n/a}"
-		[ $TLSKEY_SUBNAME ] && \
-			new_record="$new_record $TLSKEY_SUBNAME $tlskey_serial"
+		# Append tlskey-serial (Clients only)
+		new_record="$new_record ${tlskey_serial:-n/a}"
 
 		easytls_verbose "  ADD: $new_record"
 
