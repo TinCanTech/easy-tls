@@ -4574,6 +4574,7 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
+	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
@@ -4591,6 +4592,7 @@ save_wiscii_hash ()
 # Verify wiscii hash
 verify_wiscii_hash ()
 {
+	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"

@@ -46,6 +46,7 @@ fi
 
 	export EASYTLS_TRAVIS_CI=1
 	export SHALLOW=1
+	export Skip_wiscii_hash=1
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
