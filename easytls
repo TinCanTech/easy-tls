@@ -2947,13 +2947,13 @@ b64_enc_metadata ()
 	# 3.  Client certificate serial
 	#     `openssl output`; Drop the 'serial=' (Hex only field)
 	#
-	# 4.  Client CommonName
-	#
-	# 5.  Creation date of this key:
+	# 4.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
-	# 6.  Custom Group string
+	# 5.  Custom Group string
 	#     Default: EASYTLS
+	#
+	# 6.  Client CommonName
 	#
 	# 7.  Sub-key Name
 	#     Default: NOSUBKEY
