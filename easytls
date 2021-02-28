@@ -3481,6 +3481,7 @@ To cancel this inter-active menu at any time, press Control-C
 					break
 				;;
 				N|n|No|no|NO)
+					notice "TLS-Crypt-V2 Key built. Inline-file not created."
 					break
 				;;
 			esac
