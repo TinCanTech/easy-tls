@@ -3416,36 +3416,41 @@ To cancel this inter-active menu at any time, press Control-C
 	3)	# Build TLS Crypt v2 Server
 		print '
 ** Build TLS-Crypt-V2 key for Server'
-		# Set Server name
+
 		cmd_line="${cmd_line}-tls-crypt-v2-server"
-		EASYTLS_QHELP='
-* This field only requires the certificate commonName,
-  it does not require the complete file name.'
-		EASYTLS_QTEXT='
-  Enter the commonName of your Server certificate:'
-		interactive_question
-		opt_server_name="$EASYTLS_ANSWER"
+
+		# Set Server name
+		opt_server_name=""
+		cert_type='Server'
+		interactive_common_name
+		opt_server_name="$common_name"
 		cmd_line="${cmd_line} $opt_server_name"
+
+		# Print command
 		interactive_show_cmd
+
 		# Build key
 		build_tls_crypt_v2_server "$opt_server_name"
 	;;
 	4)	# Build TLS Crypt v2 Client
 		print '
 ** Build TLS-Crypt-V2 key for Client'
+
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
 
 		# Set Server name
 		opt_server_name=""
-		cert_type='*Server*'
+		cert_type='Server'
 		interactive_common_name
 		opt_server_name="$common_name"
+		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
 		opt_client_name=""
-		cert_type='*Client*'
+		cert_type='Client'
 		interactive_common_name
 		opt_client_name="$common_name"
+		cmd_line="${cmd_line} $opt_client_name"
 
 		# Set custom.group name
 		interactive_custom_group
@@ -3495,11 +3500,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 			# Set opt_add_hw
 			interactive_opt_add_hw
-		fi
 
-		# Inline now
-		if [ $build_and_inline ]
-		then
 			# Print command
 			interactive_show_cmd
 
@@ -3963,20 +3964,29 @@ interactive_common_name ()
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
 	EASYTLS_QTEXT="
-  Enter the commonName of your ${cert_type} certificate:"
-	interactive_question
-	common_name="$EASYTLS_ANSWER"
-	cmd_line="${cmd_line} $common_name"
+  Enter the commonName of your * ${cert_type} * certificate:"
+
+	while :
+	do
+		interactive_question
+		common_name="$EASYTLS_ANSWER"
+		cert_file="$EASYRSA_PKI/issued/$common_name.crt"
+		interactive_verify_cert && break
+	done
 }
 
 # Verify the certificate and purpose
 interactive_verify_cert ()
 {
-	cert_file="$EASYRSA_PKI/issued/$common_name.crt"
-	[ -f "$cert_file" ] || die "Missiing certificate: $cert_file"
+	[ -f "$cert_file" ] || {
+		printf '\n%s\n' "  ERROR: Missiing certificate $cert_file"
+		return 1
+		}
 
-	grep -q "TLS Web $cert_type" "$cert_file" || \
-			die "Certificate must be a $cert_type"
+	grep -q "TLS Web $cert_type" "$cert_file" || {
+		printf '\n%s\n' "  ERROR: Certificate must be a $cert_type"
+		return 1
+		}
 }
 
 # Set option --sub-key-name
@@ -4169,10 +4179,19 @@ interactive_hwaddr ()
 	while :
 	do
 		interactive_question
-		[ -z "$EASYTLS_ANSWER" ] && break
+		# EASYTLS_TLSCV2_HWLIST is set in verify stage so unset it
+		# EASYTLS_TLSCV2_HWLIST will be recreated by the build routine
+		[ -z "$EASYTLS_ANSWER" ] && unset EASYTLS_TLSCV2_HWLIST && break
+
+		# Verify valid HWADDR
+		hw_addr_hex_check "$EASYTLS_ANSWER" || {
+			printf '\n%s\n' "  ERROR: Invalid hardware-address: $EASYTLS_ANSWER"
+			continue
+			}
+
+		# Add this HWADDR to the list
 		opt_hardware="$opt_hardware $EASYTLS_ANSWER"
 	done
-
 	cmd_line="${cmd_line} ${opt_hardware}"
 }
 
