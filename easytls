@@ -3534,7 +3534,8 @@ To cancel this inter-active menu at any time, press Control-C
 	EASYTLS_QTEXT='
   [1] Inline with TLS Auth key
   [2] Inline with TLS Crypt v1 key
-  [3] Inline with TLS Crypt v2 key
+  [3] Inline with TLS Crypt v2 Server key
+  [4] Inline with TLS Crypt v2 Client key
 
   Select the type of Inline-file to build:'
 	interactive_question
@@ -3591,16 +3592,20 @@ To cancel this inter-active menu at any time, press Control-C
 		inline_tls_crypt_v1 \
 			${common_name} ${opt_nokey} ${opt_add_dh}
 	;;
-	3)	# Inline TLS Crypt v2
+	3)	# Inline TLS Crypt v2 Server
 		print '
-** Build TLS-Crypt-v2 inline-file'
+** Build TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
+		cert_type="Server"
 
 		# Set commonName
 		interactive_common_name
 
+		# Verify purpose
+		interactive_verify_cert
+
 		# Set option --sub-key-name
-		interactive_sub_key_name
+		#interactive_sub_key_name
 
 		# Set opt_nokey
 		interactive_opt_nokey
@@ -3610,6 +3615,43 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Set option --dh
 		interactive_custom_dh
+
+		# Set opt_no_md
+		#interactive_opt_no_md
+
+		# Set opt_add_hw
+		#interactive_opt_add_hw
+
+		# Print command
+		interactive_show_cmd
+
+		# Build .inline
+		inline_tls_crypt_v2 \
+			${common_name} ${opt_nokey} ${opt_add_dh} ${opt_no_md} ${opt_add_hw}
+	;;
+	4)	# Inline TLS Crypt v2 Client
+		print '
+** Build TLS-Crypt-v2 Client inline-file'
+		cmd_line="${cmd_line}-tls-crypt-v2"
+		cert_type="Client"
+
+		# Set commonName
+		interactive_common_name
+
+		# Verify purpose
+		interactive_verify_cert
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		# Set opt_nokey
+		interactive_opt_nokey
+
+		# Set opt_add_dh
+		#interactive_opt_add_dh
+
+		# Set option --dh
+		#interactive_custom_dh
 
 		# Set opt_no_md
 		interactive_opt_no_md
@@ -3920,6 +3962,16 @@ interactive_common_name ()
 	interactive_question
 	common_name="$EASYTLS_ANSWER"
 	cmd_line="${cmd_line} $common_name"
+}
+
+# Verify the certificate and purpose
+interactive_verify_cert ()
+{
+	cert_file="$EASYRSA_PKI/issued/$common_name.crt"
+	[ -f "$cert_file" ] || die "Missiing certificate: $cert_file"
+
+	grep -q "TLS Web $cert_type" "$cert_file" || \
+			die "Certificate must be a $cert_type"
 }
 
 # Set option --sub-key-name
