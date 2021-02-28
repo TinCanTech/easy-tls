@@ -1747,6 +1747,10 @@ inline_show ()
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
+		}
+
 	verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
@@ -1771,7 +1775,7 @@ remove_inline ()
 	inline_file="$EASYTLS_PKI/$name.inline"
 
 	# This does not over-write a previous setting
-	set_var TLSKEY_SUBNAME	'NOSUBKEY'
+	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
