@@ -4641,6 +4641,7 @@ save_wiscii_hash ()
 	then
 		printf '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || return 1
 	fi
+	easytls_verbose "Master hash save OK"
 }
 
 # Verify wiscii hash
@@ -4655,6 +4656,7 @@ verify_wiscii_hash ()
 	fi
 	counted_wiscii="$(generate_wiscii_hash)"
 	[ "$counted_wiscii" = "$bottled_wiscii" ] || return 1
+	easytls_verbose "Master hash check OK"
 }
 
 
@@ -4863,7 +4865,6 @@ then
 * Some files have been manually altered, restore the changes to continue..'
 		die "Master hash check failed"
 		}
-	easytls_verbose "Master hash check OK"
 fi
 
 # Load config options - Does not change command line options
@@ -4998,6 +4999,5 @@ easytls_auto_check || die "Error: easytls_auto_check"
 
 # save me!
 save_wiscii_hash || die "Master hash save failed"
-easytls_verbose "Master hash save OK"
 
 # vim: ft=sh nu ai sw=8 ts=8 noet

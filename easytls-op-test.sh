@@ -1,9 +1,5 @@
 #!/bin/sh
 
-#export EASYTLS_UTEST_CURL_TARGET="${EASYTLS_UTEST_CURL_TARGET:-TinCanTech/easytls-unit-tests}"
-#curl -O "https://raw.githubusercontent.com/$EASYTLS_UTEST_CURL_TARGET/master/easytls-unit-tests.sh"
-
-
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
@@ -11,8 +7,6 @@ curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/Prebuilt-OpenVPN/master/src/openvpn/openvpn"
 curl -O "$CURL_TARGET" || exit 77
 echo
-
-EXIT_CODE=1
 
 Required_file="./easyrsa"
 if [ -e "$Required_file" ];
