@@ -3495,7 +3495,8 @@ To cancel this inter-active menu at any time, press Control-C
 					break
 				;;
 				N|n|No|no|NO)
-					notice "TLS-Crypt-V2 Key built. Inline-file not created."
+					printf '\n%s\n' \
+						'  * TLS-Crypt-V2 Key built. Inline-file not created.'
 					break
 				;;
 			esac
@@ -3780,6 +3781,9 @@ To cancel this inter-active menu at any time, press Control-C
 				error_msg "Remove TLS-key failed"
 				return 1
 				}
+		else
+			printf '\n%s\n' \
+				'  * Inline-file removed. TLS-Crypt-V2 Key is unchanged.'
 		fi
 	;;
 	2)	# Remove client key
@@ -4017,13 +4021,10 @@ interactive_sub_key_name ()
 	EASYTLS_QHELP='
 * Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
   these keys are referred to as Sub-keys.  Each Sub-key is used in
-  a separate inline file with the same X509 Client certificate.
-
-  Do not set Sub-key for a Server file, only Clients can use Sub-keys.
-
-  Leave blank to continue.'
+  a separate inline file with the same X509 Client certificate.'
 	EASYTLS_QTEXT='
-  Enter the Sub-key Name for your key:'
+  Enter the Sub-key Name for your key
+  or leave blank to continue:'
 	interactive_question
 	[ -n "$EASYTLS_ANSWER" ] && {
 		sub_key_name="$EASYTLS_ANSWER"
@@ -4131,18 +4132,18 @@ interactive_custom_dh ()
 interactive_opt_no_md ()
 {
 	unset opt_no_md
+	default='Y'
 	EASYTLS_QHELP='
 * Do you want to include the client metadata in the inline file ?
 
   The metadata does not contain any security sensitive data but
-  you may prefer to omit it.
-
-  (For Server inline files, this is ignored)'
+  you may prefer to omit it. (Default is Yes)'
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
 	do
 		interactive_question
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
 		case "$EASYTLS_ANSWER" in
 			Y|y|Yes|yes)
 				break
@@ -4161,13 +4162,16 @@ interactive_opt_add_hw ()
 {
 	[ -n "$opt_no_md" ] && return 0
 	unset opt_add_hw
+	default='N'
 	EASYTLS_QHELP='
-* Do you want to include the hardware addresses in the client metadata ?'
+* Do you want to include the hardware addresses in the client metadata ?
+  (Default is No)'
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
 	do
 		interactive_question
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
 		case "$EASYTLS_ANSWER" in
 			Y|y|Yes|yes)
 				opt_add_hw='add-hw'
