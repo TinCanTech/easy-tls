@@ -936,7 +936,7 @@ easytls_auto_check ()
 	# Check inline-index hash
 	inline_index_verify_hash || warn "inline-index hash failed."
 
-	# Verify tlskey hash
+	# Verify tlskey-index hash
 	tlskey_index_verify_hash || warn "tlskey-index hash failed."
 
 	# Check disabled-list hash
@@ -999,6 +999,15 @@ status ()
 	etls_valid_name_list=""
 	etls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
+
+	# Verify inline-index hash
+	inline_index_verify_hash || warn "inline-index hash failed"
+
+	# Verify config-file hash
+	#config_verify_hash || warn "Config-file hash failed"
+
+	# Verify disabled-list hash
+	disabled_list_verify_hash || warn "Disabled-list hash failed"
 
 	if [ -n "$subsection" ]
 	then
@@ -1084,15 +1093,6 @@ status ()
 	else
 		print "  No mismatches found"
 	fi
-
-	# Check inline-index hash
-	inline_index_verify_hash || warn "inline-index is corrupt"
-
-	# Check inline-index hash
-	config_verify_hash || warn "Config file hash failed."
-
-	# Verify disabled list Hash
-	disabled_list_verify_hash || warn "Disabled list is corrupt."
 
 	easytls_verbose "Status complete"
 } #=> status ()
@@ -4598,7 +4598,7 @@ import_key ()
 # EASYTLS master a.k.a. wiscii hash Section
 #
 
-# wiscii hash
+# riscii wiscii hash
 generate_wiscii_hash ()
 {
 	[ ! -f "$EASYTLS_INLINE_INDEX" ] && [ ! -f "$EASYTLS_KEY_INDEX" ] && return 1
@@ -4685,8 +4685,8 @@ save_wiscii_hash ()
 	if [ "$counted_wiscii" != "$bottled_wiscii" ]
 	then
 		printf '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || return 1
+		easytls_verbose "Master hash save OK"
 	fi
-	easytls_verbose "Master hash save OK"
 }
 
 # Verify wiscii hash
