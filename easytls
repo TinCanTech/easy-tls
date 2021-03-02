@@ -2157,7 +2157,7 @@ remove_tlskey ()
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 
 	# This does not over-write a previous setting
-	set_var TLSKEY_SUBNAME	'NOSUBKEY'
+	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		tlskey_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
@@ -2854,7 +2854,7 @@ build_tls_crypt_v2_client ()
 	metadata_debug="$EASYTLS_MD_DIR/$cli_name-tls-crypt-v2.metadata"
 
 	# This does not over-write a previous setting
-	set_var TLSKEY_SUBNAME	'NOSUBKEY'
+	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		key_file="$EASYTLS_PKI/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
