@@ -2802,8 +2802,18 @@ Missing file: $srv_cert"
 
 	[ -f "$key_file" ] && die "Server file already exists: $key_file"
 
+	# get the serial number of the certificate from openssl
+	crt_file="$srv_cert"
+	crt_serial=""
+	openssl_crt_serial
+
 	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
 		die "Failed to create tls-crypt-v2-server key: $key_file"
+
+	# Save incomplete server record to key-index
+	tlskey_serial='n/a'
+	cli_name="$srv_name" # Improve this
+	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS crypt v2 server key created: $key_file"
 
