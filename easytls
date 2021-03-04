@@ -541,10 +541,7 @@ easytls_verbose ()
 # Configurable options
 easytls_config ()
 {
-	# Missing config file is fatal
-	[ -f "$EASYTLS_CONFIG_FILE" ] || die "Missing config-file"
-
-	# Verify config hash has already been done by config_use()
+	# Verify config-file and hash has already been done by config_use()
 
 	case "$1" in
 		ac|auto.check)
@@ -661,17 +658,25 @@ config_use ()
 {
 	# If config file does not exist then this must be init-tls
 	[ -f "$EASYTLS_CONFIG_FILE" ] || {
-		help_note="Please initialize Easy-TLS"
-		error_msg "Missing Config: Initialize Easy-TLS."
+		EASYTLS_not_init=1
 		return 0
 		}
 
+	# If the config file exists then the hash must exist
+	[ -f "$EASYTLS_CONFIG_HASH" ] || {
+		error_msg "config_verify_hash - Missing Config Hash: $EASYTLS_CONFIG_HASH"
+		return 1
+		}
+
+	# Verify the Config hash
 	config_verify_hash || {
 		error_msg "Config file hash failed."
 		return 1
 		}
 
-	config_error=0
+	# Clear config errors
+	unset config_error
+
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
@@ -724,21 +729,13 @@ config_use ()
 	set_var TLSKEY_CUSTOM_GRP "EASYTLS"
 	set_var EASYTLS_OPENVPN "openvpn"
 
-	return "$config_error"
+	[ $config_error ] && return "$config_error"
+	easytls_verbose "config-file loaded OK"
 } # => config_use ()
 
 # Verify the config-file hash
 config_verify_hash ()
 {
-	# The config file may not exist
-	[ -f "$EASYTLS_CONFIG_FILE" ] || return 0
-
-	# If the config file exists then the hash must exist
-	[ -f "$EASYTLS_CONFIG_HASH" ] || {
-		error_msg "config_verify_hash - Missing Config Hash: $EASYTLS_CONFIG_HASH"
-		return 1
-		}
-
 	# Read the saved hash
 	config_saved_hash="$(cat "$EASYTLS_CONFIG_HASH")"
 
