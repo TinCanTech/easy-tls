@@ -894,6 +894,9 @@ and initialize a fresh TLS PKI here."
 	# Save disabled-list hash
 	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
+	# Create empty master hash
+	printf '%s' "" > "$EASYTLS_WISCII_HASH" || die "Create master-hash failed"
+
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
 
