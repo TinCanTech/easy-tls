@@ -341,8 +341,7 @@ Easy-TLS abbreviations:
   cert-expire                   - cx
   disable                       - d
   enable                        - e
-  disabled-list-rehash          - No abbreviation
-  import-key                    - No abbreviation'
+  disabled-list-rehash          - No abbreviation'
 }
 
 # Option abbreviations
@@ -1471,7 +1470,7 @@ inline_index_update ()
 		new_record="$current_inline_hash $inline_serial $name $TLSKEY_SUBNAME"
 
 		# Append tlskey-serial (Clients only)
-		new_record="$new_record ${tlskey_serial:-n/a}"
+		new_record="$new_record $tlskey_serial"
 
 		easytls_verbose "  ADD: $new_record"
 
@@ -2677,6 +2676,7 @@ inline_tls_crypt_v2 ()
 	else
 		# Must be a server
 		no_metadata=1
+		tlskey_serial='server'
 	fi
 
 	# Inline base file
@@ -2811,7 +2811,7 @@ Missing file: $srv_cert"
 		die "Failed to create tls-crypt-v2-server key: $key_file"
 
 	# Save incomplete server record to key-index
-	tlskey_serial='n/a'
+	tlskey_serial='server'
 	cli_name="$srv_name" # Improve this
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
