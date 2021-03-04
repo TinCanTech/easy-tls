@@ -4920,7 +4920,6 @@ fi
 
 # Load config options - Does not change command line options
 config_use || die "Config error"
-easytls_verbose "config-file loaded OK"
 
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
