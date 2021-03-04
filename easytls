@@ -940,13 +940,13 @@ easytls_auto_check ()
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	inline_index_verify_hash || warn "inline-index hash failed."
+	#inline_index_verify_hash || warn "inline-index hash failed."
 
 	# Verify tlskey-index hash
 	tlskey_index_verify_hash || warn "tlskey-index hash failed."
 
 	# Check disabled-list hash
-	disabled_list_verify_hash || warn "disabled-list hash failed."
+	#disabled_list_verify_hash || warn "disabled-list hash failed."
 
 	unset auto_check
 	easytls_verbose "auto-check complete."
