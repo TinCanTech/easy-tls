@@ -1521,6 +1521,10 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
+	# If the inline-index does not exist then TLS has not been initialised
+	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
+
+	# If the inline-index exists then the hash must exist
 	[ -f "$EASYTLS_IL_INDEX_HASH" ] || {
 		error_msg "inline_index_verify_hash - Missing index file."
 		return 1
