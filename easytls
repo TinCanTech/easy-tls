@@ -4923,14 +4923,11 @@ trap "exit 6" 6
 trap "exit 14" 15
 
 # Verify me!
-if [ -f "$EASYTLS_WISCII_HASH" ]
-then
-	verify_wiscii_hash || {
-		help_note='
-* Some files have been manually altered, restore the changes to continue..'
-		die "Master hash check failed"
-		}
-fi
+verify_wiscii_hash || {
+	help_note='
+ * Some files have been manually altered, restore the changes to continue..'
+	die "Master hash check failed"
+	}
 
 # Load config options - Does not change command line options
 config_use || die "Config error"
@@ -4938,11 +4935,33 @@ config_use || die "Config error"
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
 [ -n "$1" ] && shift # scrape off command
+
 case "$cmd" in
+	# Initialise only
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
+		#unset EASYTLS_not_init
 		;;
+	v|version)
+		easytls_version || \
+			die "Error: easytls_version"
+		exit 0
+		;;
+	''|help|-h|--help|--usage)
+		cmd_help "$1" || \
+			die "Error: cmd_help"
+		exit 0
+		;;
+
+	*)
+	# If not initialised then quit
+	help_note="Use './easytls init' to initialise TLS."
+	[ $EASYTLS_not_init ] && die 'Easy-TLS has not been initialised'
+	unset help_note
+
+	# Everything else
+	case "$cmd" in
 	build)
 		interactive_build || \
 			die "Error: interactive_build"
@@ -5043,20 +5062,13 @@ case "$cmd" in
 		easytls_config "$@" || \
 			die "Error: easytls_config"
 		;;
-	v|version)
-		easytls_version || \
-			die "Error: easytls_version"
-		exit 0
-		;;
-	""|help|-h|--help|--usage)
-		cmd_help "$1" || \
-			die "Error: cmd_help"
-		exit 0
-		;;
 	*)
 		die "Unknown command '$cmd'. Run without commands for help."
 		;;
-esac
+	esac # Everything else
+
+	;;
+esac # Initialise
 
 # EasyTLS auto-check
 easytls_auto_check || die "Error: easytls_auto_check"
