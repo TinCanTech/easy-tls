@@ -522,6 +522,8 @@ $help_note"
 
 } # => verify_ca_init()
 
+
+
 ############################################################################
 #
 # EASYTLS MANAGEMENT Section
@@ -981,6 +983,7 @@ generate_file_hash ()
 	# Hash OK
 	return 0
 } # => generate_file_hash ()
+
 
 
 ############################################################################
@@ -1965,6 +1968,7 @@ inline_index_rebuild_reset ()
 }
 
 
+
 ############################################################################
 #
 # EASYTLS TLS-Crypt-V2 Key management Section
@@ -2203,6 +2207,7 @@ remove_tlskey ()
 	# explicitly return success for callers
 	return 0
 } # => tlskey_remove ()
+
 
 
 ############################################################################
@@ -2716,6 +2721,7 @@ inline_tls_crypt_v2 ()
 } # => inline_tls_crypt_v2 ()
 
 
+
 ############################################################################
 #
 # EASYTLS BUILD Section
@@ -3134,6 +3140,7 @@ save_id ()
 }
 
 
+
 ############################################################################
 #
 # DISABLED-LIST Section
@@ -3334,6 +3341,7 @@ disabled_list_save_hash ()
 
 	easytls_verbose "Disabled-list hash save OK"
 }
+
 
 
 ############################################################################
@@ -4550,6 +4558,7 @@ interactive_hw_required ()
 }
 
 
+
 ############################################################################
 #
 # IMPORT Section
@@ -4891,6 +4900,8 @@ easytls_version ()
 {
 	notice "Easy-TLS version: $EASYTLS_VERSION"
 } # => easy_tls_version ()
+
+
 
 ############################################################################
 #
