@@ -808,15 +808,17 @@ verify_openvpn ()
 verify_tls_init ()
 {
 	help_note="Use './easytls init-tls' to initialise"
-	[ -d "$EASYTLS_PKI" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_CONFIG_FILE" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_CONFIG_HASH" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_INLINE_INDEX" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_IL_INDEX_HASH" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_KEY_INDEX" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_KEY_HASH" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_DISABLED_LIST" ] || die "EasyTLS has not been initialised"
-	[ -f "$EASYTLS_DISABLED_HASH" ] || die "EasyTLS has not been initialised"
+	{
+		[ -d "$EASYTLS_PKI" ] && \
+		[ -f "$EASYTLS_CONFIG_FILE" ] && \
+		[ -f "$EASYTLS_CONFIG_HASH" ] && \
+		[ -f "$EASYTLS_INLINE_INDEX" ] && \
+		[ -f "$EASYTLS_IL_INDEX_HASH" ] && \
+		[ -f "$EASYTLS_KEY_INDEX" ] && \
+		[ -f "$EASYTLS_KEY_HASH" ] && \
+		[ -f "$EASYTLS_DISABLED_LIST" ] && \
+		[ -f "$EASYTLS_DISABLED_HASH" ]
+	} || die "EasyTLS has not been initialised"
 	unset help_note
 } # => verify_tls_init ()
 
