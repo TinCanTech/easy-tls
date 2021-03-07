@@ -3460,16 +3460,16 @@ To cancel this inter-active menu at any time, press Control-C
 		cert_type='Server'
 		interactive_common_name
 		opt_server_name="$common_name"
-		cmd_line="${cmd_line} $opt_server_name" || {
-			error_msg "Build TLS-key failed"
-			return 1
-			}
+		cmd_line="${cmd_line} $opt_server_name"
 
 		# Print command
 		interactive_show_cmd
 
 		# Build key
-		build_tls_crypt_v2_server "$opt_server_name"
+		build_tls_crypt_v2_server "$opt_server_name" || {
+			error_msg "Build TLS-key failed"
+			return 1
+			}
 	;;
 	4)	# Build TLS Crypt v2 Client
 		print '
