@@ -2674,8 +2674,6 @@ inline_tls_crypt_v2 ()
 		# Drop hardware-address
 		metadata_string="${metadata_string#* }"
 
-		[ $add_hardware ] || metadata_string="${metadata_string% *}"
-
 		# Get the CA serial number
 		ca_cert="$EASYRSA_PKI/ca.crt"
 		ca_serial="$(fn_ca_serial)"
@@ -2690,17 +2688,29 @@ inline_tls_crypt_v2 ()
 	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
-	{	printf "%s\n" "# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
+	{
+		printf "%s\n" "# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
 		[ $no_metadata ] || {
 			printf '%s\n' "# CA serial: $ca_serial"
 			printf '%s\n' "# tlskey-serial: $tlskey_serial"
 			printf '%s\n' "# Creation date: $MD_date"
 			printf '%s\n' "# Custom-Group: $MD_cgroup"
-			printf '%s\n' "# Common Name: $MD_cn"
+			printf '%s\n' "# Client Common Name: $MD_cn"
 			[ "$MD_subkey" = 'NOSUBKEY' ] || \
 				printf '%s\n' "# Sub-key name: $MD_subkey"
-			# Disabled until I find a use: printf '%s\n' "# Opt: $MD_opt"
-			[ $add_hardware ] && printf '%s\n' "# Hardware addresses: $MD_hw"
+			[ "$MD_opt" = "OPT" ] || printf '%s\n' "# Opt: $MD_opt"
+			printf '%s' "# Hardware addresses: "
+			if [ "$MD_hw" = "000000000000" ]
+			then
+				printf '%s\n' "Not Locked"
+			else
+				if [ $add_hardware ]
+				then
+					printf '%s\n' "$MD_hw"
+				else
+					printf '%s\n' "Locked"
+				fi
+			fi
 			printf "%s\n" ""
 			}
 		printf "%s\n" "<tls-crypt-v2>"
@@ -3346,7 +3356,7 @@ disabled_list_save_hash ()
 
 ############################################################################
 #
-# Interactive Section
+# Inter-active Section - Work in progress
 #
 
 # Verify PKI
@@ -3377,10 +3387,13 @@ interactive_verify_pki ()
 # Ask a question
 interactive_question ()
 {
+	unset EASYTLS_ANSWER
 	print ""
 	print "===================="
-	unset EASYTLS_ANSWER
+	[ "$extra_help" ] && print "$extra_help"
 	print "$EASYTLS_QHELP"
+	print '
+  * Ctrl-C to Quit.'
 	printf '%s ' "$EASYTLS_QTEXT"
 	read input
 	EASYTLS_ANSWER="$input"
@@ -3460,7 +3473,6 @@ To cancel this inter-active menu at any time, press Control-C
 		cert_type='Server'
 		interactive_common_name
 		opt_server_name="$common_name"
-		cmd_line="${cmd_line} $opt_server_name"
 
 		# Print command
 		interactive_show_cmd
@@ -3480,35 +3492,44 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set Server name
 		opt_server_name=""
 		cert_type='Server'
+		extra_help='
+* To build a Client key, first you MUST enter your *Server* commonName.'
 		interactive_common_name
+		unset extra_help
 		opt_server_name="$common_name"
-		cmd_line="${cmd_line} $opt_server_name"
 
 		# Set Client name
 		opt_client_name=""
 		cert_type='Client'
+		extra_help='
+* To build a Client key, next you MUST enter your *Client* commonName.'
 		interactive_common_name
+		unset extra_help
 		opt_client_name="$common_name"
-		cmd_line="${cmd_line} $opt_client_name"
 
-		# Set custom.group name
+		# Either use default:EASYTLS or configured Custom-Group
+		# If the user selects a new Custom-Group here then this
+		# key is likely to fail to connect because Custom-Group
+		# will not match what the server expects.
 		interactive_custom_group
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
 
 		# Set hardware addresses
-		interactive_hwaddr
+		interactive_hwaddr || die "Invalid hardware-address: $EASYTLS_ANSWER"
 
 		# Print command
 		interactive_show_cmd
 
 		# Build key
 		build_tls_crypt_v2_client \
-			"$opt_server_name" "$opt_client_name" "$opt_hardware" || {
-				error_msg "Build TLS-key failed"
+			"$opt_server_name" "$opt_client_name" ${opt_hardware} || {
 				return 1
 				}
+
+		# save me! - Changes have been made
+		save_wiscii_hash || die "Master hash save failed"
 
 		# Invoke inline
 		cmd_line="inline-tls-crypt-v2 $opt_client_name"
@@ -3545,7 +3566,7 @@ To cancel this inter-active menu at any time, press Control-C
 			interactive_show_cmd
 
 			# Create inline
-			inline_tls_crypt_v2 "$opt_client_name" "$opt_no_md" "$opt_add_hw" || {
+			inline_tls_crypt_v2 "$opt_client_name" ${opt_no_md} ${opt_add_hw} || {
 				error_msg "Create inline-file failed"
 				return 1
 				}
@@ -3578,18 +3599,24 @@ To cancel this inter-active menu at any time, press Control-C
 
 * Available Inline-file types:'
 	EASYTLS_QTEXT='
-  [1] Inline-file with TLS-Auth key
-  [2] Inline-file with TLS-Crypt-V1 key
-  [3] Inline-file with TLS-Crypt-V2 Server key
-  [4] Inline-file with TLS-Crypt-V2 Client key
+  [1] Inline-file with TLS-Auth key for Server
+  [2] Inline-file with TLS-Auth key for Client
+  [3] Inline-file with TLS-Crypt-V1 key for Server
+  [4] Inline-file with TLS-Crypt-V1 key for Client
+  [5] Inline-file with TLS-Crypt-V2 Server key
+  [6] Inline-file with TLS-Crypt-V2 Client key
 
   Select the type of Inline-file to build:'
 	interactive_question
 
 	case $EASYTLS_ANSWER in
-	1)	# Inline TLS Auth
-		print '
-** Build TLS-Auth inline-file'
+	1|2)
+		# Inline TLS Auth Server|Client
+		cert_type='Client'
+		[ "$EASYTLS_ANSWER" = '1' ] && cert_type='Server'
+
+		print "
+** Create $cert_type TLS-Auth inline-file"
 		cmd_line="${cmd_line}-tls-auth"
 
 		# Set commonName
@@ -3602,10 +3629,13 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_opt_nokey
 
 		# Set opt_add_dh
-		interactive_opt_add_dh
-
-		# Set option --dh
-		interactive_custom_dh
+		current_dh_file="$EASYRSA_PKI/dh.pem"
+		if [ -f "$current_dh_file" ]
+		then
+			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
+		else
+			[ "$cert_type" = 'Server' ] && interactive_custom_dh
+		fi
 
 		# Print command
 		interactive_show_cmd
@@ -3617,9 +3647,13 @@ To cancel this inter-active menu at any time, press Control-C
 				return 1
 				}
 	;;
-	2)	# Inline TLS Crypt v1
+	3|4)
+		# Inline TLS Crypt v1 Server|Client
+		cert_type='Client'
+		[ "$EASYTLS_ANSWER" = '3' ] && cert_type='Server'
+
 		print '
-** Build TLS-Crypt-V1 inline-file'
+** Create $cert_type TLS-Crypt-V1 inline-file'
 		cmd_line="${cmd_line}-tls-crypt"
 
 		# Set commonName
@@ -3629,10 +3663,13 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_opt_nokey
 
 		# Set opt_add_dh
-		interactive_opt_add_dh
-
-		# Set option --dh
-		interactive_custom_dh
+		current_dh_file="$EASYRSA_PKI/dh.pem"
+		if [ -f "$current_dh_file" ]
+		then
+			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
+		else
+			[ "$cert_type" = 'Server' ] && interactive_custom_dh
+		fi
 
 		# Print command
 		interactive_show_cmd
@@ -3644,9 +3681,9 @@ To cancel this inter-active menu at any time, press Control-C
 				return 1
 				}
 	;;
-	3)	# Inline TLS Crypt v2 Server
+	5)	# Inline TLS Crypt v2 Server
 		print '
-** Build TLS-Crypt-v2 Server inline-file'
+** Create TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Server"
 
@@ -3656,9 +3693,6 @@ To cancel this inter-active menu at any time, press Control-C
 		# Verify purpose
 		interactive_verify_cert
 
-		# Set option --sub-key-name
-		#interactive_sub_key_name
-
 		# Set opt_nokey
 		interactive_opt_nokey
 
@@ -3667,12 +3701,6 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Set option --dh
 		interactive_custom_dh
-
-		# Set opt_no_md
-		#interactive_opt_no_md
-
-		# Set opt_add_hw
-		#interactive_opt_add_hw
 
 		# Print command
 		interactive_show_cmd
@@ -3684,9 +3712,9 @@ To cancel this inter-active menu at any time, press Control-C
 				return 1
 				}
 	;;
-	4)	# Inline TLS Crypt v2 Client
+	6)	# Inline TLS Crypt v2 Client
 		print '
-** Build TLS-Crypt-v2 Client inline-file'
+** Create TLS-Crypt-v2 Client inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Client"
 
@@ -3702,12 +3730,6 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set opt_nokey
 		interactive_opt_nokey
 
-		# Set opt_add_dh
-		#interactive_opt_add_dh
-
-		# Set option --dh
-		#interactive_custom_dh
-
 		# Set opt_no_md
 		interactive_opt_no_md
 
@@ -3719,7 +3741,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Build .inline
 		inline_tls_crypt_v2 \
-			"$common_name" "$opt_nokey" "$opt_no_md" "$opt_add_hw" || {
+			"$common_name" ${opt_nokey} ${opt_no_md} ${opt_add_hw} || {
 				error_msg "Create inline-file failed"
 				return 1
 				}
@@ -3765,7 +3787,7 @@ To cancel this inter-active menu at any time, press Control-C
 		cmd_line="remove-inline"
 
 		# Set commonName
-		cert_type='*Client*'
+		cert_type='Client'
 		interactive_common_name
 
 		# Set option --sub-key-name
@@ -3779,6 +3801,9 @@ To cancel this inter-active menu at any time, press Control-C
 				error_msg "Remove inline-file failed"
 				return 1
 				}
+
+		# save me! - Changes have been made
+		save_wiscii_hash || die "Master hash save failed"
 
 		# Invoke remove_tlskey
 		cmd_line="remove-tlskey $common_name"
@@ -3825,7 +3850,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Set Client name
 		opt_client_name=""
-		cert_type='*Client*'
+		cert_type='Client'
 		interactive_common_name
 		opt_client_name="$common_name"
 
@@ -3887,8 +3912,10 @@ To cancel this inter-active menu at any time, press Control-C
 	case $EASYTLS_ANSWER in
 	1)	# easytls-cryptv2-verify.sh
 
-		[ -f "$EASYTLS_VERIFY_SH" ] || \
+		[ -f "$EASYTLS_VERIFY_SH" ] || {
+			help_note='Download: https://github.com/TinCanTech/easy-tls'
 			die "Required script missing: $EASYTLS_VERIFY_SH"
+			}
 
 		# -c|--ca=<path> - opt_ca_path
 		interactive_ca_path
@@ -3926,16 +3953,16 @@ To cancel this inter-active menu at any time, press Control-C
 				'# Add the following line(s) to your OpenVPN Server config file'
 			printf '%s' 'tls-crypt-v2-verify'
 			printf ' %s' "$EASYTLS_VERIFY_SH"
-			printf ' %s' "-c=$opt_ca_path"
-			[ $opt_customg ] && printf ' %s' "$opt_customg"
-			[ $opt_key_age ] && printf ' %s' "$opt_key_age"
-			[ $opt_disable_list ] && printf ' %s' "$opt_disable_list"
-			[ $opt_tmp_dir ] && printf ' %s' "-t=${opt_tmp_dir}"
-			[ $opt_x509_method ] && printf ' %s' "$opt_x509_method"
-			[ $opt_load_ca_id ] && printf ' %s' "$opt_load_ca_id"
-			[ $opt_preload_id ] && printf ' %s' "$opt_preload_id"
+			printf ' %s' "-c='${opt_ca_path}'"
+			[ $opt_customg ] && printf ' %s' "${opt_customg}"
+			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
+			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
+			[ $opt_tmp_dir ] && printf ' %s' "-t='${opt_tmp_dir}'"
+			[ $opt_x509_method ] && printf ' %s' "${opt_x509_method}"
+			[ $opt_load_ca_id ] && printf ' %s' "${opt_load_ca_id}"
+			[ $opt_preload_id ] && printf ' %s' "${opt_preload_id}"
 			[ $opt_openvpn_pid ] && printf '\n\n%s' \
-				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
+				"${opt_openvpn_pid} '${opt_tmp_dir}/easytls-server.pid'"
 			printf '\n'
 		} > "$EASYTLS_VERIFY_CFG" || die "Failed to create config file"
 
@@ -4026,7 +4053,10 @@ interactive_common_name ()
 		interactive_question
 		common_name="$EASYTLS_ANSWER"
 		cert_file="$EASYRSA_PKI/issued/$common_name.crt"
-		interactive_verify_cert && break
+		interactive_verify_cert && {
+			cmd_line="${cmd_line} $common_name"
+			break
+			}
 	done
 }
 
@@ -4044,37 +4074,62 @@ interactive_verify_cert ()
 		}
 }
 
+# Automatically detect certificate type
+interactive_auto_cert_type ()
+{
+	unset cert_type
+	grep -q 'TLS Web Server' "$cert_file" && is_server=1
+	grep -q 'TLS Web Client' "$cert_file" && is_client=1
+	[ $is_server ] && [ $is_client ] && \
+		die "Unsupported certificate: Server&Client"
+	[ $is_server ] && cert_type='Server'
+	[ $is_client ] && cert_type='Client'
+}
+
 # Set option --sub-key-name
 interactive_sub_key_name ()
 {
 	unset sub_key_name
+	default='NOSUBKEY'
 	EASYTLS_QHELP='
 * Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
   these keys are referred to as Sub-keys.  Each Sub-key is used in
   a separate inline file with the same X509 Client certificate.'
 	EASYTLS_QTEXT='
-  Enter the Sub-key Name for your key
-  or leave blank to continue:'
+  Enter the Sub-key Name for your key or leave blank to continue:'
 	interactive_question
-	[ -n "$EASYTLS_ANSWER" ] && {
+	EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
+	if [ "$EASYTLS_ANSWER" != "$TLSKEY_SUBNAME" ]
+	then
 		sub_key_name="$EASYTLS_ANSWER"
 		cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
 		export TLSKEY_SUBNAME="${sub_key_name}"
-		}
+	else
+		# Otherwise this returns a hidden error
+		:
+	fi
 }
 
 # Set key direction
 interactive_key_direction ()
 {
 	unset key_direction
-	print
-	EASYTLS_QHELP='
-* Enter Key direction [Server=0 or Client=1]'
+	if [ "$cert_type" = "Server" ]
+	then
+		default=0
+	else
+		default=1
+	fi
+	EASYTLS_QHELP="
+* Select Key direction.   Default: Server=0 | Client=1
+
+  * Currently selected default is: $default"
 	EASYTLS_QTEXT='
-  Enter 0 or 1:'
+  Enter 0 or 1, or leave blank for default:'
 	while :
 	do
 		interactive_question
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
 		case "$EASYTLS_ANSWER" in
 			0|1)
 				key_direction="$EASYTLS_ANSWER"
@@ -4116,10 +4171,10 @@ interactive_opt_add_dh ()
 
 '
 	unset opt_add_dh
-	EASYTLS_QHELP='
-* Do you want to inline the Diffy-Hellman parameter file ?
+	EASYTLS_QHELP="
+* Do you want to inline the Diffy-Hellman parameters file ?
 
-  Only Servers can use Diffy-Hellman parameter file.'
+  Default DH File: $current_dh_file"
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -4141,19 +4196,24 @@ interactive_opt_add_dh ()
 # Set custom dh file
 interactive_custom_dh ()
 {
-	[ -z "$opt_add_dh" ] && return 0
 	unset opt_custom_dh
 	EASYTLS_QHELP='
-* If you need to use a custom Diffy-Hellman parameters file then
+* No Diffy-Hellman parameters file was found!
+
+  If you need to use a custom Diffy-Hellman parameters file then
   enter the file location and name.
 
-  Leave this blank to use the default Easy-TLS DH file.'
+  Otherwise, quit this menu and use Easy-RSA to create your
+  Diffy-Hellman parameters file.
+
+  If you leave this blank then the Diffy-Hellman parameters file
+  will NOT be add to the inline-file.'
 	EASYTLS_QTEXT='
   Enter the DH file name:'
 	interactive_question
 	[ -n "$EASYTLS_ANSWER" ] && {
 		opt_custom_dh="$EASYTLS_ANSWER"
-		cmd_line="--dh=${opt_custom_dh} ${cmd_line}"
+		cmd_line="--dh=\'${opt_custom_dh}\' ${cmd_line}"
 		export EASYRSA_DH_FILE="${opt_custom_dh}"
 		}
 }
@@ -4163,11 +4223,13 @@ interactive_opt_no_md ()
 {
 	unset opt_no_md
 	default='Y'
-	EASYTLS_QHELP='
+	EASYTLS_QHELP="
 * Do you want to include the client metadata in the inline file ?
 
   The metadata does not contain any security sensitive data but
-  you may prefer to omit it. (Default is Yes)'
+  you may prefer to omit it.
+
+  * Default: $default"
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -4193,9 +4255,10 @@ interactive_opt_add_hw ()
 	[ -n "$opt_no_md" ] && return 0
 	unset opt_add_hw
 	default='N'
-	EASYTLS_QHELP='
+	EASYTLS_QHELP="
 * Do you want to include the hardware addresses in the client metadata ?
-  (Default is No)'
+
+  * Default: $default"
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -4226,11 +4289,9 @@ interactive_hwaddr ()
 
     * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
 
-  If you do not require hardware address lock-down
-  then leave this field blank.'
+  If you do not require hardware address lock-down then leave this field blank.'
 	EASYTLS_QTEXT='
-  Enter a single MAC hardware address
-  or leave blank to continue:'
+  Enter a single MAC hardware address or leave blank to continue:'
 	while :
 	do
 		interactive_question
@@ -4239,10 +4300,7 @@ interactive_hwaddr ()
 		[ -z "$EASYTLS_ANSWER" ] && unset EASYTLS_TLSCV2_HWLIST && break
 
 		# Verify valid HWADDR
-		hw_addr_hex_check "$EASYTLS_ANSWER" || {
-			printf '\n%s\n' "  ERROR: Invalid hardware-address: $EASYTLS_ANSWER"
-			continue
-			}
+		hw_addr_hex_check "$EASYTLS_ANSWER" || return 1
 
 		# Add this HWADDR to the list
 		opt_hardware="$opt_hardware $EASYTLS_ANSWER"
@@ -4278,8 +4336,10 @@ interactive_ca_path ()
 
 # Set Custom Group
 interactive_custom_group ()
-{		opt_customg=""
-		EASYTLS_QHELP='
+{
+	opt_customg=""
+	default="$TLSKEY_CUSTOM_GRP"
+	EASYTLS_QHELP='
 * All TLS-Crypt-V2 Client keys which are created by the same Server key
   MUST use the same Custom-Group.
 
@@ -4287,22 +4347,26 @@ interactive_custom_group ()
 
     $ ./easytls config custom.group NAME
 
-  If you want to configure a Custom-Group then use CTRL-C now.
+  If you want to configure a Custom-Group now then quit this menu.
 
   If you have configured your Custom-Group or do not require a Custom-Group
   then leave this field blank.
+
+  If you configure this key to use a different Custom-Group then this key
+  will most likely fail to connect to your server because the Custom-Group
+  will be incorrect.
 
   Your current Custom-Group is:'
 		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
 			EASYTLS_QHELP="$EASYTLS_QHELP $TLSKEY_CUSTOM_GRP"
 		EASYTLS_QTEXT='
-  Enter your Custom-Group NAME
-  or leave this blank to accept the current Custom-Group:'
+  Enter your Custom-Group or leave this blank to continue:'
 		interactive_question
 		opt_customg="$EASYTLS_ANSWER"
 		if [ -n "$opt_customg" ]
 		then
-			# This is for build
+			# This will only show if user enters a Custom-Group
+			# Otherwise, the Custom-Group is what-ever is configured
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
 			export TLSKEY_CUSTOM_GRP="${opt_customg}"
 			opt_customg="-g=${opt_customg}"
@@ -4322,14 +4386,16 @@ interactive_key_age ()
 	EASYTLS_QHELP="
 * Enter the maximum allowable age in days of your TLS-Crypt-V2 Client keys.
 
+  Enter 0 to disable this check.
+
   Leave this blank to use the default age. (1825 days is 5 years)
 
   * Default: $default"
 	EASYTLS_QTEXT='
   Enter the allowable age:'
 	interactive_question
-	key_age_days="${EASYTLS_ANSWER}"
-	[ -z "$key_age_days" ] || opt_key_age="-x=${key_age_days}"
+	key_age_days="${EASYTLS_ANSWER:-$default}"
+	[ "$key_age_days" = "1825" ] || opt_key_age="-x=${key_age_days}"
 	easytls_verbose "Config: $opt_key_age"
 }
 
@@ -4338,8 +4404,13 @@ interactive_disabled_list ()
 {
 	unset opt_disable_list
 	default='Y'
-	EASYTLS_QHELP='
-* Do you want to use the dynamic disabled-list ? (Default is Yes)'
+	EASYTLS_QHELP="
+* Do you want to use the dynamic disabled-list ?
+
+  Leave this blank to use the default
+
+  * Default: $default"
+
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -4391,13 +4462,14 @@ interactive_tmp_dir ()
 interactive_x509_method ()
 {
 	unset opt_x509_method
-	default="off"
+	default="0"
 	EASYTLS_QHELP='
 * Select the X509 method to verify client certificates.
 
   The default setting will not invoke any X509 code in the script
   and only do TLS verification.  X509 is then handled by OpenVPN.'
 	EASYTLS_QTEXT='
+  [0] Do not use X509 for TLS key verification (default)
   [1] Verify via CRL:   Verify your cert. using openssl crl
   [2] Verify via CA:    Verify your cert. using openssl ca (DOES NOT WORK)
   [3] Verify via Index: Verify your cert. by searching your current CRL
@@ -4407,7 +4479,11 @@ interactive_x509_method ()
 	while :
 	do
 		interactive_question
-		case $EASYTLS_ANSWER in
+		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
+		case "$EASYTLS_ANSWER" in
+		0)	# OFF
+			break
+		;;
 		1)	# crl
 			opt_x509_method="--v1"
 			break
@@ -4698,6 +4774,9 @@ generate_wiscii_hash ()
 	do
 		# Skip comment
 		[ -z "${tlskey_serial%%#*}" ] && continue
+
+		# Quiet shellcheck
+		[ $cert_serial ]  && unset cert_serial
 
 		# Hash tlskey
 		tlskey_file="${EASYTLS_PKI}/${CN}-tls-crypt-v2.key"
