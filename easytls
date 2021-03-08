@@ -356,6 +356,7 @@ Easy-TLS configurable options:
 
   cg|custom.group NAME
      Save the Custom Group NAME - NAME must be a single contiguous word.
+
      Once set and used to build any TLS-Crypt-V2 Client keys, this NAME
      cannot be changed.
 
@@ -364,9 +365,11 @@ Easy-TLS configurable options:
 
   co|custom.openvpn "/full/path/to/openvpn(.exe)"
      Save your custom openvpn binary location.
-     EG: /usr/local/bin/openvpn (Qutotes are not required)
-         "C:/Program Files/OpenVPN/mybin/openvpn.exe"
-         (Quotes are required for spaces and "\" must be "/")
+     EG: /usr/local/bin/openvpn
+         Qutotes are not required.
+     EG: "C:/Program Files/OpenVPN/mybin/openvpn.exe"
+         Quotes are required for spaces.
+         Back-slash is not support, use Forward-slash "/" ONLY.
 
   im|inline.metadata on|off
      Add metadata to inline file
@@ -3772,23 +3775,25 @@ To cancel this inter-active menu at any time, press Control-C
 	EASYTLS_QTEXT='
   [1] TLS-Crypt-V2 Client inline-file
   [2] TLS-Crypt-V2 Client key
+  [3] TLS-Crypt-V2 Server inline-file
+  [4] TLS-Crypt-V2 Server key
+  [5] TLS-Crypt-V1 key
+  [6] TLS-Auth key
 
   Select the type of file to remove:'
 	interactive_question
 
 	case $EASYTLS_ANSWER in
-	1)	# Inline remove
-		# Only TLS-Crypt-V2 client inline files can be removed.
-		# Removing any other inline file invalidates all client inline files.
-
-		# Remove Inline TLS Crypt v2
+	1)	# Remove Client inline-file
 		print '
-** Remove TLS-Crypt-v2 inline-file'
+** Remove Client TLS-Crypt-v2 inline-file'
 		cmd_line="remove-inline"
 
 		# Set commonName
+		opt_name=""
 		cert_type='Client'
 		interactive_common_name
+		opt_name="$common_name"
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
@@ -3797,7 +3802,7 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 
 		# Remove .inline
-		remove_inline "$common_name" || {
+		remove_inline "$opt_name" || {
 				error_msg "Remove inline-file failed"
 				return 1
 				}
@@ -3832,7 +3837,7 @@ To cancel this inter-active menu at any time, press Control-C
 			interactive_show_cmd
 
 			# Remove TLS key
-			remove_tlskey "$common_name" || {
+			remove_tlskey "$opt_name" || {
 				error_msg "Remove TLS-key failed"
 				return 1
 				}
@@ -3842,17 +3847,15 @@ To cancel this inter-active menu at any time, press Control-C
 		fi
 	;;
 	2)	# Remove client key
-		# Only TLS-Crypt-V2 client keys can be removed.
-		# Removing any other key invalidates all client inline files.
 		print '
-** Remove TLS-Crypt-V2 key for Client'
+** Remove Client TLS-Crypt-V2 key'
 		cmd_line="remove-tlskey"
 
 		# Set Client name
-		opt_client_name=""
+		opt_name=""
 		cert_type='Client'
 		interactive_common_name
-		opt_client_name="$common_name"
+		opt_name="$common_name"
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
@@ -3861,10 +3864,106 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 
 		# Remove key
-		remove_tlskey "$opt_client_name" || {
+		remove_tlskey "$opt_name" || {
 				error_msg "Remove TLS-key failed"
 				return 1
 				}
+	;;
+	3)	# Remove Server inline-file
+		Print "Coming soon .."
+		return 0
+
+		print '
+** Remove Server TLS-Crypt-v2 inline-file'
+		cmd_line="remove-inline"
+
+		# Set commonName
+		opt_name=""
+		cert_type='Server'
+		interactive_common_name
+		opt_name="$common_name"
+
+		# Print command
+		interactive_show_cmd
+
+		# Remove .inline
+		remove_inline "$opt_name" || {
+				error_msg "Remove inline-file failed"
+				return 1
+				}
+
+		# save me! - Changes have been made
+		save_wiscii_hash || die "Master hash save failed"
+
+		# Invoke remove_tlskey
+		cmd_line="remove-tlskey $opt_name"
+		EASYTLS_QHELP='
+* Do you want to remove the corresponding TLS-Crypt-V2 key ?'
+		EASYTLS_QTEXT='
+  Enter (y)es or (n)o:'
+		while :
+		do
+			interactive_question
+			case "$EASYTLS_ANSWER" in
+				Y|y|Yes|yes|YES)
+					remove_inline_and_tlskey=1
+					break
+				;;
+				N|n|No|no|NO)
+					break
+				;;
+			esac
+		done
+
+		# Remove key now
+		if [ $remove_inline_and_tlskey ]
+		then
+			# Print command
+			interactive_show_cmd
+
+			# Remove TLS key
+			remove_tlskey "$opt_name" || {
+				error_msg "Remove TLS-key failed"
+				return 1
+				}
+		else
+			printf '\n%s\n' \
+				'  * Inline-file removed. TLS-Crypt-V2 Key is unchanged.'
+		fi
+	;;
+	4)	# Remove Server key
+		Print "Coming soon .."
+		return 0
+
+		print '
+** Remove Server TLS-Crypt-V2 key'
+		cmd_line="remove-tlskey"
+
+		# Set Server name
+		opt_name=""
+		cert_type='Server'
+		interactive_common_name
+		opt_name="$common_name"
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		# Print command
+		interactive_show_cmd
+
+		# Remove key
+		remove_tlskey "$opt_name" || {
+				error_msg "Remove TLS-key failed"
+				return 1
+				}
+	;;
+	5)	# tls-crypt key
+		print "Coming soon .."
+		return 0
+	;;
+	6)	# tls-auth key
+		print "Coming soon .."
+		return 0
 	;;
 	*)	# Other value -> Quit
 		print "Quit!"
