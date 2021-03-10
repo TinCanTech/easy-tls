@@ -48,7 +48,7 @@ fail_and_exit ()
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
 		printf "%s %s %s\n" "$easytls_msg" \
-			"$success_msg" "$failure_msg"
+			"$success_msg" "$failure_msg" "$1"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -257,12 +257,17 @@ then
 	fi
 else
 	# If the file does not exist then metadata vs certificate serial do not match
-	failure_msg="Client serial number mismatch"
-	fail_and_exit "SERIAL NUMBER" 3
+	#failure_msg="Client serial number mismatch"
+	#fail_and_exit "SERIAL NUMBER" 3
+	# There is a bug here - todo with --push-peer-info
+	# If the client hardware-address file does not exist then the server
+	# is not configured to record hardware-address
+	#connection_allowed
+	:
 fi
 
 # Any failure_msg means fail_and_exit
-[ "$failure_msg" ] && fail_and_exit "NEIN" 9
+[ "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 99
 
 # For DUBUG
 [ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
