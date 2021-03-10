@@ -855,18 +855,20 @@ then
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
 	printf '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
 		die "Failed to write HW file"
+	[ $status_verbose ] && print "HWADDR-file: $client_hw_list"
 else
 	# OpenVPN does not give the PID so it must be set via $server_pid_file
 	# In this case, assume hardware address verification is not required
+	[ $status_verbose ] && print "Hardware-address verification is not configured."
 	:
 fi
 
 # Any failure_msg means fail_and_exit
-[ "$failure_msg" ] && fail_and_exit "NEIN" 9
+[ "$failure_msg" ] && fail_and_exit "NEIN" 99
 
 # For DUBUG
 [ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
-	failure_msg="FORCE ABSOLUTE FAIL"
+	failure_msg="FORCE ABSOLUTE FAIL" 101
 
 # There is only one way out of this...
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
