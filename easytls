@@ -3962,8 +3962,24 @@ To cancel this inter-active menu at any time, press Control-C
 				}
 	;;
 	5)	# tls-crypt key
-		print "Coming soon .."
-		return 0
+		#print "Coming soon .."
+		#return 0
+		key_file="$EASYTLS_PKI/tls-crypt.key"
+
+		[ -f "$key_file" ] || \
+			die "TLS-Crypt key does not exist: $key_file"
+
+		# Confirm
+		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
+			'yes' "
+* If you delete this TLS-Crypt key and it is in use
+  then all of your inline files will become invalid:
+
+  * $key_file"
+
+		rm "$key_file" || die "Failed to delete TLS-Crypt key"
+
+		notice "  TLS-Crypt key removed: $key_file"
 	;;
 	6)	# tls-auth key
 		#print "Coming soon .."
@@ -3971,7 +3987,7 @@ To cancel this inter-active menu at any time, press Control-C
 		key_file="$EASYTLS_PKI/tls-auth.key"
 
 		[ -f "$key_file" ] || \
-			die "TLS auth key does not exist: $key_file"
+			die "TLS-Auth key does not exist: $key_file"
 
 		# Confirm
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
@@ -3983,7 +3999,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		rm "$key_file" || die "Failed to delete TLS-Auth key"
 
-		notice "  TLS auth key removed: $key_file"
+		notice "  TLS-Auth key removed: $key_file"
 	;;
 	*)	# Other value -> Quit
 		print "Quit!"
