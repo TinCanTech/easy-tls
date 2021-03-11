@@ -47,7 +47,7 @@ fail_and_exit ()
 
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s\n" "$easytls_msg" \
+		printf "%s %s %s %s\n" "$easytls_msg" \
 			"$success_msg" "$failure_msg" "$1"
 	fi
 	exit "${2:-254}"
