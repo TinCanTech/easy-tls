@@ -322,8 +322,8 @@ opt_abbreviations ()
 	print '
 Easy-TLS abbreviations:
 
+  config                        - cf | cfg
   init-tls                      - init
-  config_file                   - cf | cfg
   build-tls-auth                - bta
   build-tls-crypt               - btc
   build-tls-crypt-v2-server     - btv2s | btcv2s
@@ -655,7 +655,10 @@ config_update ()
 	# Replace the pattern
 	sed -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
-	"$EASYTLS_CONFIG_FILE" || return 1
+	"$EASYTLS_CONFIG_FILE" || {
+		error_msg "config_update - replace error"
+		return 1
+		}
 
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 	return 0
@@ -679,6 +682,8 @@ config_use ()
 	# Verify the Config hash
 	config_verify_hash || {
 		error_msg "Config file hash failed."
+		error_msg "config_saved_hash: $config_saved_hash"
+		error_msg "config_current_hash: $config_current_hash"
 		return 1
 		}
 
@@ -2078,6 +2083,8 @@ tlskey_index_verify_hash ()
 	# Verify hash match
 	[ "$tlskey_index_saved_hash" = "$tlskey_index_current_hash" ] || {
 		error_msg "tlskey_index_verify_hash - Verify hash match"
+		error_msg "tlskey_index_saved_hash: $tlskey_index_saved_hash"
+		error_msg "tlskey_index_current_hash: $tlskey_index_current_hash"
 		return 1
 		}
 
