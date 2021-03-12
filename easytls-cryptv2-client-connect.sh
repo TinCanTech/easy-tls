@@ -30,6 +30,7 @@ print() { printf "%s\n" "$1"; }
 # Exit on error
 die ()
 {
+	rm -f "$client_hwaddr_file"
 	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
 	printf "\n%s\n" "ERROR: $1"
 	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
@@ -39,6 +40,7 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
+	rm -f "$client_hwaddr_file"
 	if [ $TLS_CRYPT_V2_VERIFY_VERBOSE ]
 	then
 		printf "%s " "$easytls_msg"
@@ -99,7 +101,7 @@ get_ovpn_client_hwaddr ()
 # Allow connection
 connection_allowed ()
 {
-	#rm -f "$client_hwaddr_file"
+	rm -f "$client_hwaddr_file"
 	absolute_fail=0
 }
 
