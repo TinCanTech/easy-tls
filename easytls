@@ -667,6 +667,7 @@ config_update ()
 # Use config
 config_use ()
 {
+	[ $EASYTLS_TRAVIS_CI ] && return 0
 	# If config file does not exist then this must be init-tls
 	[ -f "$EASYTLS_CONFIG_FILE" ] || {
 		EASYTLS_not_init=1
@@ -723,9 +724,11 @@ config_use ()
 				;;
 			custom.group)
 				[ -n "$cfg_val" ] && set_var TLSKEY_CUSTOM_GRP "$cfg_val"
+				set_var TLSKEY_CUSTOM_GRP "EASYTLS"
 				;;
 			custom.openvpn)
 				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
+				set_var EASYTLS_OPENVPN "openvpn"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
@@ -737,10 +740,6 @@ config_use ()
 		esac
 
 	done < "$EASYTLS_CONFIG_FILE"
-
-	# Set final defaults
-	set_var TLSKEY_CUSTOM_GRP "EASYTLS"
-	set_var EASYTLS_OPENVPN "openvpn"
 
 	[ $config_error ] && return "$config_error"
 	easytls_verbose "config-file loaded OK"
@@ -926,7 +925,9 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
+	[ $EASYTLS_TRAVIS_CI ] && return 0
 	[ $auto_check_disabled ] && return 0
+	[ $status_disabled_auto_check ] && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
@@ -1008,7 +1009,7 @@ generate_file_hash ()
 # Report duplicate CNs in EasyRSA due to certificate renewal
 status ()
 {
-	[ $auto_check ] || auto_check_disabled=1
+	[ $auto_check ] || status_disabled_auto_check=1
 	subsection="$1"
 
 	#verify_ca_init
@@ -5044,6 +5045,7 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
+	[ $EASYTLS_TRAVIS_CI ] && return 0
 	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
@@ -5070,6 +5072,7 @@ save_wiscii_hash ()
 # Verify wiscii hash
 verify_wiscii_hash ()
 {
+	[ $EASYTLS_TRAVIS_CI ] && return 0
 	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
@@ -5371,7 +5374,7 @@ case "$cmd" in
 	s|status)
 		status "$@" || \
 			die "Error: status"
-		unset auto_check_disabled
+		unset status_disabled_auto_check
 		;;
 	ita|inline-tls-auth)
 		inline_tls_auth "$@" || \
