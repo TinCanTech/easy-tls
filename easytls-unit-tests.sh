@@ -248,12 +248,13 @@ do
 		--genkey tls-crypt-v2-client "$ETLS_DIR/c07-nomd-tls-crypt-v2.key" || \
 		fail "Unit test error 61: Probably the wrong directory.."
 
+	# Easy-TLS no longer allows for keys created outside of easytls
 	# Build a default openvpn tls-crypt-v2 client debug file with no metadata
 	# TODO: get in the right place
-	printf "%s" "" > "$DBUG_DIR/c07-nomd-tls-crypt-v2.metadata"
+	#printf "%s" "" > "$DBUG_DIR/c07-nomd-tls-crypt-v2.metadata"
 	# Inline c07
-	"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07-nomd || \
-		fail "Unit test error 62: inline-tls-crypt-v2 c07-nomd"
+	#"$EASYTLS_CMD" $EASYTLS_OPTS inline-tls-crypt-v2 c07-nomd || \
+	#	fail "Unit test error 62: inline-tls-crypt-v2 c07-nomd"
 
 	# Build a node for Windblows test
 	print "============================================================"

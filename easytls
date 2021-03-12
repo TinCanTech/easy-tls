@@ -1492,7 +1492,7 @@ inline_index_update ()
 		new_record="$current_inline_hash $inline_serial $name $TLSKEY_SUBNAME"
 
 		# Append tlskey-serial (Clients only)
-		new_record="$new_record ${tlskey_serial:-NO-TLSKEY-SERIAL}"
+		new_record="$new_record $tlskey_serial"
 
 		easytls_verbose "  ADD: $new_record"
 
@@ -2651,6 +2651,10 @@ inline_tls_crypt_v2 ()
 		shift
 	done
 
+	cert_file="$EASYRSA_PKI/issued/$name.crt"
+	[ -f "$cert_file" ] || die "Missing cert file: $cert_file"
+	cert_purpose='Client'
+	verify_cert_purpose "$cert_file" "SSL client : Yes" || cert_purpose='Server'
 	tls_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 	inline_file="$EASYTLS_PKI/$name.inline"
@@ -2670,9 +2674,10 @@ inline_tls_crypt_v2 ()
 	[ -f "$tls_file" ] || die "TLS key file does not exist: $tls_file"
 	[ -f "$inline_file" ] && die "Inline file already exist: $inline_file"
 
-	if [ -f "$metadata_file" ]
+	if [ "$cert_purpose" = 'Client' ]
 	then
 		# Must be a client
+		[ -f "$metadata_file" ] || die "Missing metadata_file: $metadata_file"
 		# Get metadata
 		metadata_string="$(cat "$metadata_file")"
 
@@ -2726,7 +2731,7 @@ inline_tls_crypt_v2 ()
 	else
 		# Must be a server
 		no_metadata=1
-		tlskey_serial='server'
+		tlskey_serial='0000000000000000000000000000000000000000'
 	fi
 
 	# Inline base file
