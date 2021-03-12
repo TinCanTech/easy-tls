@@ -47,8 +47,7 @@ fail_and_exit ()
 
 		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s %s\n" "$easytls_msg" \
-			"$success_msg" "$failure_msg" "$1"
+		printf "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -70,9 +69,10 @@ help_text ()
 
   Exit codes:
   0   - Allow connection, Client hardware address is correct.
-  1   - Disallow connection, hardware address not allowed.
-  2   - Disallow connection, hardware address missing or invalid.
+  1   - Disallow connection, key locked but pushed hwaddr does not match.
+  2   - Disallow connection, key locked and push required but not pushed.
   3   - Disallow connection, X509 certificate incorrect for this TLS-key.
+  4   - Disallow connection, missing X509 client cert serial.
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -85,59 +85,21 @@ help_text ()
 }
 
 # Get the client serial number from env
-get_client_serial ()
+get_ovpn_client_serial ()
 {
 	printf '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Get the client hardware address from env
-get_client_hwaddr ()
+get_ovpn_client_hwaddr ()
 {
 	printf '%s' "$IV_HWADDR" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
-}
-
-# Verify the client serial
-verify_client_serial ()
-{
-	[ -z "$client_serial" ] && { 
-		help_note="Failed to set client serial number: $client_serial"
-		return 1
-		}
-
-	return 0
-}
-
-# Verify the pushed hardware address
-verify_client_hwaddr ()
-{
-	[ -z "$client_hwaddr" ] && {
-		failure_msg="Client $common_name did not push a Hardware Address!"
-		return 1
-		}
-
-	[ 12 -eq ${#client_hwaddr} ] || {
-		failure_msg="Hardware Address must be 12 digits exactly!"
-		return 1
-		}
-
-	printf '%s\n' "$client_hwaddr" | grep -q '^[[:xdigit:]]\{12\}$' || {
-		failure_msg="Hardware Adress must be hexidecimal digits!"
-		return 1
-		}
-
-	return 0
-}
-
-# Verify the pushed hwaddr is in the key list
-verify_allowed_hwaddr ()
-{
-	grep -q "+${client_hwaddr}+" "$client_hwaddr_file"
 }
 
 # Allow connection
 connection_allowed ()
 {
-	rm -f "$client_hwaddr_file"
+	#rm -f "$client_hwaddr_file"
 	absolute_fail=0
 }
 
@@ -151,15 +113,34 @@ init ()
 	EASYTLS_TMP_DIR="/tmp"
 
 	# Log message
-	easytls_msg="* EasyTLS-cryptv2-client-connect ==>"
+	easytls_msg="* EasyTLS-cryptv2-client-connect"
 }
 
 # Dependancies
 deps ()
 {
-	# Client certificate serial number
-	client_serial="$(get_client_serial)"
-	verify_client_serial || die "CLIENT SERIAL"
+	# Set Client certificate serial number from Openvpn env
+	client_serial="$(get_ovpn_client_serial)"
+
+	# Verify Client certificate serial number
+	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 4
+
+	# Set hwaddr file name - daemon_pid is from Openvpn env
+	client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
+
+	# Verify the hwaddr file
+	if [ -f "$client_hwaddr_file" ]
+	then
+		# Client cert serial matches
+		easytls_msg="${easytls_msg} ==> X509 serial matched"
+	else
+		# Either the cert serial does not match
+		# or VPN server is not configured with easytls-cryptv2-verify.sh
+		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
+	fi
+
+	# Load key hwaddr
+	#key_hwaddr="$(cat $client_hwaddr_file)"
 }
 
 #######################################
@@ -214,60 +195,44 @@ done
 # Dependencies
 deps
 
-# File name - daemon_pid is from Openvpn env
-client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
+# Set hwaddr from Openvpn env
+# This is not a dep. different clients may not push-peer-info
+push_hwaddr="$(get_ovpn_client_hwaddr)"
 
-# Get client pushed hardware address
-client_hwaddr="$(get_client_hwaddr)"
-
-# Does the hardware-address-list file exist
-if [ -f "$client_hwaddr_file" ]
+# Verify hwaddr from key
+if grep -q "000000000000" "$client_hwaddr_file"
 then
-	# Check that hardware-address is 000000000000
-	if grep -q '^000000000000$' "$client_hwaddr_file"
-	then
-		# This cert serial number is not bound by hardware address
-		success_msg="Hardware address not set: $common_name"
-		connection_allowed
-	else
-		# Client pushed IV_HWADDR
-		verify_client_hwaddr || {
-			# Only fail if HWADDR is required
-			[ $EASYTLS_hwaddr_required ] && {
-				failure_msg="Hardware address is required"
-				fail_and_exit "NO CLIENT IV_HWADDR" 2
-				}
-			# If HWADDR is not required and client did not push HWADDR
-			HWADDR_not_pushed=1
-			}
+	# hwaddr NOT keyed
+	success_msg="==> Key is not locked to hwaddr"
+	connection_allowed
+else
+	# Otherwise, this key has a hwaddr
 
-		# Search hardware list file for client pushed hardware address
-		verify_allowed_hwaddr || {
-			# Only fail if HWADDR is pushed
-			[ $HWADDR_not_pushed ] || {
-				failure_msg="Hardware address $client_hwaddr not allowed"
-				fail_and_exit "HWADDR NOT ALLOWED" 1
-				}
-			}
-		unset failure_msg
-		success_msg="Hardware address not required: $common_name"
-		[ $HWADDR_not_pushed ] || \
-			success_msg="Hardware address correct: $common_name $client_hwaddr"
+	# hwaddr not pushed
+	if [ -z "$push_hwaddr" ]
+	then
+		[ $EASYTLS_hwaddr_required ] && \
+			fail_and_exit "hwaddr verify is required but no push hwaddr!" 2
+
+		# hwaddr NOT required and not a pushed
+		success_msg="==> hwaddr not pushed and not required"
 		connection_allowed
 	fi
-else
-	# If the file does not exist then metadata vs certificate serial do not match
-	#failure_msg="Client serial number mismatch"
-	#fail_and_exit "SERIAL NUMBER" 3
-	# There is a bug here - todo with --push-peer-info
-	# If the client hardware-address file does not exist then the server
-	# is not configured to record hardware-address
-	#connection_allowed
-	:
+
+	# hwaddr pushed
+	if grep -q "$push_hwaddr" "$client_hwaddr_file"
+	then
+		# MATCH!
+		success_msg="==> hwaddr pushed and matched!"
+		connection_allowed
+	else
+		# push does not match key hwaddr
+		fail_and_exit "hwaddr verify found mismatched hwaddr!" 1
+	fi
 fi
 
 # Any failure_msg means fail_and_exit
-[ "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 99
+[ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 99
 
 # For DUBUG
 [ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
