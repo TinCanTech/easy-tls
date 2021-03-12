@@ -955,13 +955,13 @@ easytls_auto_check ()
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	#inline_index_verify_hash || warn "inline-index hash failed."
+	inline_index_verify_hash || warn "inline-index hash failed."
 
 	# Verify tlskey-index hash
 	tlskey_index_verify_hash || warn "tlskey-index hash failed."
 
 	# Check disabled-list hash
-	#disabled_list_verify_hash || warn "disabled-list hash failed."
+	disabled_list_verify_hash || warn "disabled-list hash failed."
 
 	unset auto_check
 	easytls_verbose "auto-check complete."
@@ -1023,13 +1023,13 @@ status ()
 	#easytls_revoked_serial_list="" # Not used
 
 	# Verify inline-index hash
-	inline_index_verify_hash || warn "inline-index hash failed"
+	#inline_index_verify_hash || warn "inline-index hash failed"
 
 	# Verify config-file hash
 	#config_verify_hash || warn "Config-file hash failed"
 
 	# Verify disabled-list hash
-	disabled_list_verify_hash || warn "Disabled-list hash failed"
+	#disabled_list_verify_hash || warn "Disabled-list hash failed"
 
 	if [ -n "$subsection" ]
 	then
@@ -5371,6 +5371,7 @@ case "$cmd" in
 	s|status)
 		status "$@" || \
 			die "Error: status"
+		unset auto_check_disabled
 		;;
 	ita|inline-tls-auth)
 		inline_tls_auth "$@" || \
