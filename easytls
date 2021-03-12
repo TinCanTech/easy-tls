@@ -667,7 +667,6 @@ config_update ()
 # Use config
 config_use ()
 {
-	[ $EASYTLS_TRAVIS_CI ] && return 0
 	# If config file does not exist then this must be init-tls
 	[ -f "$EASYTLS_CONFIG_FILE" ] || {
 		EASYTLS_not_init=1
@@ -748,6 +747,7 @@ config_use ()
 # Verify the config-file hash
 config_verify_hash ()
 {
+	[ $EASYTLS_TRAVIS_CI ] && return 0
 	# Read the saved hash
 	config_saved_hash="$(cat "$EASYTLS_CONFIG_HASH")"
 
