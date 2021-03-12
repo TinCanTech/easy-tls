@@ -173,7 +173,7 @@ do
 		"build-tls-crypt-v2-server s01" \
 		"--inline --custom-group=tincantech build-tls-crypt-v2-server s02" \
 		"build-tls-crypt-v2-client s01 c01" \
-		"build-tls-crypt-v2-client s01 c02" \
+		"--custom-group=tincantech build-tls-crypt-v2-client s01 c02" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c05" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
@@ -192,7 +192,7 @@ do
 		"--custom-group=tincantech inline-tls-crypt c01" \
 		"remove-inline c01" \
 		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c01" \
+		"inline-tls-crypt-v2 c01" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c05" \
 		"disable c05" \
@@ -267,7 +267,7 @@ do
 	print "============================================================"
 	print "Build a Windblows inline file with metadata and hw-addr"
 	"$EASYTLS_CMD" $EASYTLS_OPTS \
-		inline-tls-crypt-v2 cw01 || \
+		--custom-group=tincantech inline-tls-crypt-v2 cw01 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
 	# Test tls-crypt-v2-verify.sh

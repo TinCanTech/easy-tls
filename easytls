@@ -2469,9 +2469,7 @@ inline_base ()
 
 	# Build .inline file
 	{
-		# Add Custom Group if defined
-		[ $TLSKEY_CUSTOM_GRP ] && printf '%s\n' "# $TLSKEY_CUSTOM_GRP"
-
+		printf '%s\n' "# $TLSKEY_CUSTOM_GRP"
 		printf '%s\n' "# EasyTLS version $EASYTLS_VERSION"
 		printf '%s\n' "# Common name: $name"
 		printf '%s\n' "# X509 serial: $crt_serial"
@@ -2703,6 +2701,12 @@ inline_tls_crypt_v2 ()
 		MD_cgroup="${metadata_string%% *}"
 		# Drop custom-group
 		metadata_string="${metadata_string#* }"
+
+		# Verify Custom-Group
+		help_note="This key was built with a different Custom-Group"
+		[ "$TLSKEY_CUSTOM_GRP" = "$MD_cgroup" ] || \
+			die "Custom-group mismatch: $TLSKEY_CUSTOM_GRP <> $MD_cgroup"
+		unset help_note
 
 		# Set common-name
 		MD_cn="${metadata_string%% *}"
