@@ -2686,6 +2686,10 @@ inline_tls_crypt_v2 ()
 		metadata_string="${metadata_string#* }"
 
 		# Drop CA fingerprint
+		metadata_string="${metadata_string#*-}"
+
+		# Extract Server name and drop it
+		srv_name="${metadata_string%% *}"
 		metadata_string="${metadata_string#* }"
 
 		# Drop x509 cert-serial
@@ -2751,6 +2755,7 @@ inline_tls_crypt_v2 ()
 			printf '%s\n' "# tlskey-serial: $tlskey_serial"
 			printf '%s\n' "# Creation date: $MD_date"
 			printf '%s\n' "# Custom-Group: $MD_cgroup"
+			printf '%s\n' "# Server Common Name: $srv_name"
 			printf '%s\n' "# Client Common Name: $MD_cn"
 			[ "$MD_subkey" = 'NOSUBKEY' ] || \
 				printf '%s\n' "# Sub-key name: $MD_subkey"
@@ -3069,6 +3074,9 @@ b64_enc_metadata ()
 
 	# CA Identity
 	generate_ca_identity
+
+	# Append Server name to CA-ID
+	ca_identity="$ca_identity-$srv_name"
 
 	# get the serial number of the certificate from openssl
 	crt_file="$cli_cert"
