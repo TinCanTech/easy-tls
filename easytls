@@ -2692,8 +2692,8 @@ inline_tls_crypt_v2 ()
 		metadata_string="${metadata_string#* }"
 
 		# Set creation date
-		MD_date="${metadata_string%% *}"
-		MD_date="$(date --date=@${MD_date} +%F)" 2>/dev/null || {
+		MD_date_sec="${metadata_string%% *}"
+		MD_date="$(date --date=@${MD_date_sec} +%F)" 2>/dev/null || {
 			MD_date="$(date -u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
 			}
 		# Drop date
