@@ -1428,9 +1428,6 @@ cert_expire ()
 # Get inline certificate expiry date
 inline_expire ()
 {
-	# Temporarily disable
-	return 0
-
 	name="$1"
 
 	verify_tls_init
