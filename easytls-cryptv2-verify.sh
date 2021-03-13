@@ -200,7 +200,9 @@ metadata_string_to_vars ()
 	md_easytls="${1#*--}"
 	md_version="${md_easytls%-*.*}"
 
-	md_identity="$2"
+	md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
 	md_serial="$3"
 	md_date="$4"
 	md_custom_g="$5"
