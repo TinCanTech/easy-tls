@@ -682,7 +682,7 @@ config_use ()
 	# Verify the Config hash
 	config_verify_hash || {
 		error_msg "Config file hash failed."
-		error_msg "config_saved_hash: $config_saved_hash"
+		error_msg "config_saved_hash:   $config_saved_hash"
 		error_msg "config_current_hash: $config_current_hash"
 		return 1
 		}
