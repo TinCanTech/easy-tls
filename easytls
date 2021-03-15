@@ -4147,7 +4147,6 @@ To cancel this inter-active menu at any time, press Control-C
 * Available script which can be configured:'
 	EASYTLS_QTEXT='
   [1] TLS Crypt v2 Verify (easytls-cryptv2-verify.sh)
-  [2] TLS Crypt v2 Client Connect (easytls-cryptv2-client-connect.sh)
 
   Select the type of script to configure:'
 	interactive_question
@@ -4172,9 +4171,6 @@ To cancel this inter-active menu at any time, press Control-C
 		# -d|--disable-list - opt_disable_list
 		interactive_disabled_list
 
-		# -t|--tmp-dir - opt_tmp_dir
-		interactive_tmp_dir
-
 		# --v1|--via-crl
 		# --v2|--via-ca
 		# --v3|--via-index
@@ -4184,48 +4180,95 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_x509_method
 
 		# Openvpn PID - opt_openvpn_pid
-		[ $opt_tmp_dir ] && interactive_openvpn_pid
+		interactive_openvpn_pid
 
-		# Create config
-		#interactive_create_verify_config
+		# -t|--tmp-dir - opt_tmp_dir
+		[ $opt_openvpn_pid ] && interactive_tmp_dir
 
+		# -r|--required
+		[ $opt_openvpn_pid ] && interactive_hw_required
+
+		# Create NIX config
 		{
-			printf '%s\n\n' '===================='
-			printf '%s\n' \
-				'# Configure OpenVPN to use easytls-cryptv2-verify.sh'
-			printf '%s\n\n' \
-				'# Add the following line(s) to your OpenVPN Server config file'
-			printf '%s' 'tls-crypt-v2-verify'
-			printf ' %s' "$EASYTLS_VERIFY_SH"
-			printf ' %s' "-c='${opt_ca_path}'"
+		# easytls-cryptv2-verify.sh
+			printf '%s\n' '# Easy-TLS script configuration'
+			printf '%s\n' 'script-security 2'
+			printf '%s' '    tls-crypt-v2-verify'
+			printf ' %s' "'"
+			printf '%s' "\"$EASYTLS_VERIFY_SH\""
+			printf ' %s' "-c=\"${opt_ca_path}\""
 			[ $opt_customg ] && printf ' %s' "${opt_customg}"
 			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
 			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
-			[ $opt_tmp_dir ] && printf ' %s' "-t='${opt_tmp_dir}'"
+			[ $opt_tmp_dir ] && printf ' %s' "-t=\"${opt_tmp_dir}\""
 			[ $opt_x509_method ] && printf ' %s' "${opt_x509_method}"
 			[ $opt_load_ca_id ] && printf ' %s' "${opt_load_ca_id}"
 			[ $opt_preload_id ] && printf ' %s' "${opt_preload_id}"
-			[ $opt_openvpn_pid ] && printf '\n\n%s' \
-				"${opt_openvpn_pid} '${opt_tmp_dir}/easytls-server.pid'"
-			printf '\n'
-		} > "$EASYTLS_VERIFY_CFG" || die "Failed to create config file"
+			printf '%s\n' "'"
+			[ $opt_openvpn_pid ] && printf '%s\n' \
+				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
+		# easytls-cryptv2-client-connect.sh
+			[ $opt_openvpn_pid ] && {
+				printf '%s' '    client-connect'
+				printf ' %s' "'"
+				printf '%s' "\"${EASYTLS_CLICON_SH}\""
+				printf ' %s' "$opt_hw_required"
+				printf ' %s' "-t=\"${opt_tmp_dir}\""
+				printf '%s\n' "'"
+				}
+		} > "$EASYTLS_NIX_OVPN_CFG" || die "Failed to create config file"
 
-		# Show config
-		printf '\n'
-		cat "$EASYTLS_VERIFY_CFG"
-		printf '\n'
+		# Linux instructions
+		printf '\n%s\n\n' '===================='
+		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
+		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
+		printf '\n    %s %s\n' 'config' "\"$EASYTLS_NIX_OVPN_CFG\""
+
+		# Create WIN config
+		{
+			printf '%s\n' '# Easy-TLS script configuration'
+			printf '%s\n' 'script-security 2'
+			printf '%s' '    tls-crypt-v2-verify'
+			printf ' %s' "'"
+			printf '%s' "\"${EASYTLS_WIN_TC2V_BAT}\""
+			printf '%s\n' "'"
+			[ $opt_openvpn_pid ] && printf '%s\n' \
+				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
+			[ $opt_openvpn_pid ] && {
+				printf '%s' '    client-connect'
+				printf ' %s' "'\""
+				printf '%s' "${EASYTLS_WIN_CCON_BAT}\""
+				printf '%s\n' "'"
+				}
+		} > "$EASYTLS_WIN_OVPN_CFG" || die "Failed to create config file"
+
+		# sed easytls-cryptv2-verify.bat
+		sed -i \
+			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
+			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
+			-e "s\`^SET CUST_GRP=.*$\`SET CUST_GRP=${opt_customg}\`g" \
+			"$EASYTLS_WIN_TC2V_BAT"
+
+		# sed easytls-cryptv2-client-connect.bat
+		sed -i \
+			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
+			-e "s\`^SET HWADDR_REQ=.*$\`SET HWADDR_REQ=${opt_hw_required}\`g" \
+			"$EASYTLS_WIN_CCON_BAT"
 
 		# Windows instructions
-		printf '%s\n\n' \
-			'# For use with Windows, those settings are inserted into:'
-		printf '%s\n\n' \
-			'    easytls-cryptv2-verify.bat'
-		printf '%s\n\n' \
-			'# Add this to your Windows OpenVPN Server config file:'
-		printf '%s\n' \
-			'tls-crypt-v2-verify /path/to/easytls-cryptv2-verify.bat'
-		printf '\n%s\n' \
-			'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
+		#printf '\n%s\n' \
+		#	'* Windows'
+		#printf '%s\n\n' \
+		#	'  Add this to your OpenVPN Server config file:'
+		#printf '%s\n' \
+		#	"    tls-crypt-v2-verify \"${EASYTLS}/easytls-cryptv2-verify.bat\""
+
+		# Show config
+		#printf '\n%s\n' \
+		#	'* These are the settings in the Easy-TLS OpenVPN config-file:'
+		#printf '\n'
+		#cat "$EASYTLS_OPENVPN_CFG"
+		#printf '\n'
 
 		easytls_verbose
 		easytls_verbose "wotsa config ?"
@@ -4239,9 +4282,6 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# -t|--tmp-dir - opt_tmp_dir
 		interactive_tmp_dir
-
-		# -r|--required
-		interactive_hw_required
 
 		# Create config
 		#interactive_create_verify_config
@@ -4272,7 +4312,7 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '%s\n\n' \
 			'# Add this to your Windows OpenVPN Server config file:'
 		printf '%s\n' \
-			'tls-crypt-v2-verify /path/to/easytls-cryptv2-client-connect.bat'
+			'    tls-crypt-v2-verify /path/to/easytls-cryptv2-client-connect.bat'
 		printf '\n%s\n' \
 			'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
 
@@ -4602,17 +4642,13 @@ interactive_custom_group ()
   If you have configured your Custom-Group or do not require a Custom-Group
   then leave this field blank.
 
-  If you configure this key to use a different Custom-Group then this key
-  will most likely fail to connect to your server because the Custom-Group
-  will be incorrect.
-
-  Your current Custom-Group is:'
+  * Your current Custom-Group is:'
 		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
 			EASYTLS_QHELP="$EASYTLS_QHELP $TLSKEY_CUSTOM_GRP"
 		EASYTLS_QTEXT='
   Enter your Custom-Group or leave this blank to continue:'
 		interactive_question
-		opt_customg="$EASYTLS_ANSWER"
+		opt_customg="${EASYTLS_ANSWER:-$default}"
 		if [ -n "$opt_customg" ]
 		then
 			# This will only show if user enters a Custom-Group
@@ -4686,12 +4722,9 @@ interactive_disabled_list ()
 interactive_tmp_dir ()
 {
 	unset opt_tmp_dir
-	default="DISABLED"
+	default="$EASYTLS"
 	EASYTLS_QHELP="
 * Enter the temporary directory path where the script can write temp files.
-
-  If this is left blank then the script will not write any temp files
-  and hardware-address verification will be disabled.
 
   * Default: $default"
 	EASYTLS_QTEXT='
@@ -4699,7 +4732,7 @@ interactive_tmp_dir ()
 	while :
 	do
 		interactive_question
-		opt_tmp_dir="${EASYTLS_ANSWER}"
+		opt_tmp_dir="${EASYTLS_ANSWER:-$default}"
 		[ -z "$opt_tmp_dir" ] && break
 		[ -d "$opt_tmp_dir" ] && opt_tmp_dir="$opt_tmp_dir" && break
 		print '
@@ -4832,8 +4865,12 @@ interactive_openvpn_pid ()
 {
 	unset opt_hw_required
 	default='Y'
-	EASYTLS_QHELP='
-* Do you want to use the Easy-TLS client-connect script ? (Default is Yes)'
+	EASYTLS_QHELP="
+* Do you want to use the Easy-TLS client-connect script ?
+
+  Leave this blank to use the default
+
+  * Default: $default"
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -4860,8 +4897,10 @@ interactive_hw_required ()
 {
 	unset opt_hw_required
 	default='Y'
-	EASYTLS_QHELP='
-* Do you want to use the hardware-address required flag ? (Default is Yes)'
+	EASYTLS_QHELP="
+* Do you want to use the hardware-address required flag ?
+
+  * Default: $default"
 	EASYTLS_QTEXT='
   Enter (y)es or (n)o:'
 	while :
@@ -5170,7 +5209,7 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 
-	set_var EASYTLS                 "$prog_dir"
+	set_var EASYTLS                 "$PWD"
 	set_var EASYTLS_PKI             "$EASYRSA_PKI/easytls"
 	set_var EASYTLS_MD_DIR          "$EASYTLS_PKI/metadata"
 	set_var EASYTLS_DATA_DIR        "$EASYTLS_PKI/data"
@@ -5186,11 +5225,13 @@ vars_setup()
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
-	set_var EASYTLS_VERIFY_SH    "$PWD/easytls-cryptv2-verify.sh"
-	set_var EASYTLS_CLICON_SH    "$PWD/easytls-cryptv2-client-connect.sh"
+	set_var EASYTLS_VERIFY_SH       "$EASYTLS/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-cryptv2-client-connect.sh"
 
-	set_var EASYTLS_VERIFY_CFG   "$PWD/easytls-cryptv2-verify.conf"
-	set_var EASYTLS_CLICON_CFG   "$PWD/easytls-cryptv2-client-connect.conf"
+	set_var EASYTLS_NIX_OVPN_CFG    "$EASYTLS/easytls-cryptv2-nix-script.conf"
+	set_var EASYTLS_WIN_OVPN_CFG    "$EASYTLS/easytls-cryptv2-win-script.conf"
+	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
+	set_var EASYTLS_WIN_CCON_BAT    "$EASYTLS/easytls-cryptv2-client-connect.bat"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
