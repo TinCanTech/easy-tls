@@ -5228,8 +5228,8 @@ vars_setup()
 	set_var EASYTLS_VERIFY_SH       "$EASYTLS/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-cryptv2-client-connect.sh"
 
-	set_var EASYTLS_NIX_OVPN_CFG    "$EASYTLS/easytls-cryptv2-nix-script.conf"
-	set_var EASYTLS_WIN_OVPN_CFG    "$EASYTLS/easytls-cryptv2-win-script.conf"
+	set_var EASYTLS_NIX_OVPN_CFG    "$EASYTLS/easytls-cryptv2-nix.conf"
+	set_var EASYTLS_WIN_OVPN_CFG    "$EASYTLS/easytls-cryptv2-win.conf"
 	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
 	set_var EASYTLS_WIN_CCON_BAT    "$EASYTLS/easytls-cryptv2-client-connect.bat"
 
