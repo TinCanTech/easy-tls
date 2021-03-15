@@ -4188,43 +4188,10 @@ To cancel this inter-active menu at any time, press Control-C
 		# -r|--required
 		[ $opt_openvpn_pid ] && interactive_hw_required
 
-		# Create NIX config
-		{
-		# easytls-cryptv2-verify.sh
-			printf '%s\n' '# Easy-TLS script configuration'
-			printf '%s\n' 'script-security 2'
-			printf '%s' '    tls-crypt-v2-verify'
-			printf ' %s' "'"
-			printf '%s' "\"$EASYTLS_VERIFY_SH\""
-			printf ' %s' "-c=\"${opt_ca_path}\""
-			[ $opt_customg ] && printf ' %s' "${opt_customg}"
-			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
-			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
-			[ $opt_tmp_dir ] && printf ' %s' "-t=\"${opt_tmp_dir}\""
-			[ $opt_x509_method ] && printf ' %s' "${opt_x509_method}"
-			[ $opt_load_ca_id ] && printf ' %s' "${opt_load_ca_id}"
-			[ $opt_preload_id ] && printf ' %s' "${opt_preload_id}"
-			printf '%s\n' "'"
-			[ $opt_openvpn_pid ] && printf '%s\n' \
-				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
-		# easytls-cryptv2-client-connect.sh
-			[ $opt_openvpn_pid ] && {
-				printf '%s' '    client-connect'
-				printf ' %s' "'"
-				printf '%s' "\"${EASYTLS_CLICON_SH}\""
-				printf ' %s' "$opt_hw_required"
-				printf ' %s' "-t=\"${opt_tmp_dir}\""
-				printf '%s\n' "'"
-				}
-		} > "$EASYTLS_NIX_OVPN_CFG" || die "Failed to create config file"
-
-		# Linux instructions
-		printf '\n%s\n\n' '===================='
-		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
-		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
-		printf '\n    %s %s\n' 'config' "\"$EASYTLS_NIX_OVPN_CFG\""
-
-		# Create WIN config
+	if [ $OS ]
+	then
+		# Windows
+		# Create config
 		{
 			printf '%s\n' '# Easy-TLS script configuration'
 			printf '%s\n' 'script-security 2'
@@ -4256,13 +4223,49 @@ To cancel this inter-active menu at any time, press Control-C
 			"$EASYTLS_WIN_CCON_BAT"
 
 		# Windows instructions
-		#printf '\n%s\n' \
-		#	'* Windows'
-		#printf '%s\n\n' \
-		#	'  Add this to your OpenVPN Server config file:'
-		#printf '%s\n' \
-		#	"    tls-crypt-v2-verify \"${EASYTLS}/easytls-cryptv2-verify.bat\""
+		printf '\n%s\n\n' '===================='
+		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
+		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
+		printf '\n    %s %s\n' 'config' "\"$EASYTLS_WIN_OVPN_CFG\""
+	else
+		# NIX
+		# Create config
+		{
+			# easytls-cryptv2-verify.sh
+			printf '%s\n' '# Easy-TLS script configuration'
+			printf '%s\n' 'script-security 2'
+			printf '%s' '    tls-crypt-v2-verify'
+			printf ' %s' "'"
+			printf '%s' "\"$EASYTLS_VERIFY_SH\""
+			printf ' %s' "-c=\"${opt_ca_path}\""
+			[ $opt_customg ] && printf ' %s' "${opt_customg}"
+			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
+			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
+			[ $opt_tmp_dir ] && printf ' %s' "-t=\"${opt_tmp_dir}\""
+			[ $opt_x509_method ] && printf ' %s' "${opt_x509_method}"
+			[ $opt_load_ca_id ] && printf ' %s' "${opt_load_ca_id}"
+			[ $opt_preload_id ] && printf ' %s' "${opt_preload_id}"
+			printf '%s\n' "'"
+			[ $opt_openvpn_pid ] && printf '%s\n' \
+				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
 
+			# easytls-cryptv2-client-connect.sh
+			[ $opt_openvpn_pid ] && {
+				printf '%s' '    client-connect'
+				printf ' %s' "'"
+				printf '%s' "\"${EASYTLS_CLICON_SH}\""
+				printf ' %s' "$opt_hw_required"
+				printf ' %s' "-t=\"${opt_tmp_dir}\""
+				printf '%s\n' "'"
+				}
+		} > "$EASYTLS_NIX_OVPN_CFG" || die "Failed to create config file"
+
+		# Linux instructions
+		printf '\n%s\n\n' '===================='
+		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
+		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
+		printf '\n    %s %s\n' 'config' "\"$EASYTLS_NIX_OVPN_CFG\""
+	fi
 		# Show config
 		#printf '\n%s\n' \
 		#	'* These are the settings in the Easy-TLS OpenVPN config-file:'
