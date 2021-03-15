@@ -578,6 +578,13 @@ deps ()
 	if [ -n "$server_pid_file" ]
 	then
 		[ -f "$server_pid_file" ] || die "Missing PID file: $server_pid_file" 23
+	else
+		if [ $EASYTLS_tmp_dir ]
+		then
+			server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
+		else
+			[ $status_verbose ] && printf '%s\n' "No pid file."
+		fi
 	fi
 }
 
