@@ -75,6 +75,7 @@ help_text ()
   2   - Disallow connection, key locked and push required but not pushed.
   3   - Disallow connection, X509 certificate incorrect for this TLS-key.
   4   - Disallow connection, missing X509 client cert serial.
+  5   - Disallow connection, hwaddr verification has not been configured.
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -127,6 +128,12 @@ deps ()
 	# Verify Client certificate serial number
 	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 4
 
+	# Verify Server PID file
+	if ls "$EASYTLS_TMP_DIR/*.${daemon_pid}"
+	then
+		Server_pid_ok=1
+	fi
+
 	# Set hwaddr file name - daemon_pid is from Openvpn env
 	client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
 
@@ -138,7 +145,12 @@ deps ()
 	else
 		# Either the cert serial does not match
 		# or VPN server is not configured with easytls-cryptv2-verify.sh
-		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
+		if [ $Server_pid_ok ]
+		then
+			fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
+		else
+			fail_and_exit "HWADDR VERIFY HAS NOT BEEN CONFIGURED" 5
+		fi
 	fi
 
 	# Load key hwaddr
