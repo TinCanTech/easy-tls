@@ -114,7 +114,6 @@ init ()
 
 	# Defaults
 	EASYTLS_tmp_dir="/tmp"
-	EASYTLS_server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 
 	# Log message
 	easytls_msg="* EasyTLS-cryptv2-client-connect"
@@ -131,6 +130,10 @@ deps ()
 
 	# Set hwaddr file name - daemon_pid is from Openvpn env
 	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
+
+	# Set Server PID file
+	[ $EASYTLS_server_pid_file ] || \
+		EASYTLS_server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 
 	# Verify Server PID file
 	if [ -f "$EASYTLS_server_pid_file" ]
