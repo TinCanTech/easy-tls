@@ -112,8 +112,9 @@ init ()
 	# Fail by design
 	absolute_fail=1
 
-	# Default temp dir
-	EASYTLS_TMP_DIR="/tmp"
+	# Defaults
+	EASYTLS_tmp_dir="/tmp"
+	EASYTLS_server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 
 	# Log message
 	easytls_msg="* EasyTLS-cryptv2-client-connect"
@@ -128,14 +129,20 @@ deps ()
 	# Verify Client certificate serial number
 	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 4
 
-	# Verify Server PID file
-	if ls "$EASYTLS_TMP_DIR/*.${daemon_pid}"
-	then
-		Server_pid_ok=1
-	fi
-
 	# Set hwaddr file name - daemon_pid is from Openvpn env
-	client_hwaddr_file="$EASYTLS_TMP_DIR/$client_serial.$daemon_pid"
+	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
+
+	# Verify Server PID file
+	if [ -f "$EASYTLS_server_pid_file" ]
+	then
+		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
+		# PID file MUST match daemon PID
+		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
+			fail_and_exit "SERVER PID MISMATCH" 6
+	else
+		# The Server is not configured for easytls-cryptv2-client-connect.sh
+		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 7
+	fi
 
 	# Verify the hwaddr file
 	if [ -f "$client_hwaddr_file" ]
@@ -143,18 +150,12 @@ deps ()
 		# Client cert serial matches
 		easytls_msg="${easytls_msg} ==> X509 serial matched"
 	else
-		# Either the cert serial does not match
-		# or VPN server is not configured with easytls-cryptv2-verify.sh
-		if [ $Server_pid_ok ]
-		then
-			fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
-		else
-			fail_and_exit "HWADDR VERIFY HAS NOT BEEN CONFIGURED" 5
-		fi
+		# cert serial does not match
+		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
 	fi
 
 	# Load key hwaddr
-	#key_hwaddr="$(cat $client_hwaddr_file)"
+	key_hwaddr="$(cat $client_hwaddr_file)"
 }
 
 #######################################
@@ -181,7 +182,10 @@ do
 		TLS_CRYPT_V2_VERIFY_VERBOSE=1
 	;;
 	-t|--tmp-dir)
-		EASYTLS_TMP_DIR="$val"
+		EASYTLS_tmp_dir="$val"
+	;;
+	-s|--pid-file)
+		EASYTLS_server_pid_file="$val"
 	;;
 	-r|--required)
 		empty_ok=1
@@ -214,7 +218,7 @@ deps
 push_hwaddr="$(get_ovpn_client_hwaddr)"
 
 # Verify hwaddr from key
-if grep -q "000000000000" "$client_hwaddr_file"
+if [ "$key_hwaddr" = "000000000000" ]
 then
 	# hwaddr NOT keyed
 	success_msg="==> Key is not locked to hwaddr"
@@ -234,7 +238,7 @@ else
 	fi
 
 	# hwaddr pushed
-	if grep -q "$push_hwaddr" "$client_hwaddr_file"
+	if [ "$key_hwaddr" = "$push_hwaddr" ]
 	then
 		# MATCH!
 		success_msg="==> hwaddr pushed and matched!"
