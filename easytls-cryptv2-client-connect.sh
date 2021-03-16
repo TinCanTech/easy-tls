@@ -158,7 +158,7 @@ deps ()
 	fi
 
 	# Load key hwaddr
-	key_hwaddr="$(cat $client_hwaddr_file)"
+	#key_hwaddr="$(cat $client_hwaddr_file)"
 }
 
 #######################################
@@ -220,8 +220,8 @@ deps
 # This is not a dep. different clients may not push-peer-info
 push_hwaddr="$(get_ovpn_client_hwaddr)"
 
-# Verify hwaddr from key
-if [ "$key_hwaddr" = "000000000000" ]
+# Verify hwaddr
+if grep -q '000000000000' "$client_hwaddr_file"
 then
 	# hwaddr NOT keyed
 	success_msg="==> Key is not locked to hwaddr"
@@ -233,7 +233,7 @@ else
 	if [ -z "$push_hwaddr" ]
 	then
 		[ $EASYTLS_hwaddr_required ] && \
-			fail_and_exit "hwaddr verify is required but no push hwaddr!" 2
+			fail_and_exit "HWADDR REQUIRED BUT NOT PUSHED" 2
 
 		# hwaddr NOT required and not a pushed
 		success_msg="==> hwaddr not pushed and not required"
@@ -241,14 +241,14 @@ else
 	fi
 
 	# hwaddr pushed
-	if [ "$key_hwaddr" = "$push_hwaddr" ]
+	if grep -q "$push_hwaddr" "$client_hwaddr_file"
 	then
 		# MATCH!
 		success_msg="==> hwaddr pushed and matched!"
 		connection_allowed
 	else
 		# push does not match key hwaddr
-		fail_and_exit "hwaddr verify found mismatched hwaddr!" 1
+		fail_and_exit "HWADDR MISMATCH" 1
 	fi
 fi
 
