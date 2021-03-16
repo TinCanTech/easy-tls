@@ -235,7 +235,7 @@ else
 		# hwaddr NOT required and not a pushed
 		success_msg="==> hwaddr not pushed and not required"
 		connection_allowed
-	fi
+	else
 
 	# hwaddr pushed
 	if grep -q "$push_hwaddr" "$client_hwaddr_file"
@@ -246,6 +246,7 @@ else
 	else
 		# push does not match key hwaddr
 		fail_and_exit "HWADDR MISMATCH" 1
+	fi
 	fi
 fi
 
