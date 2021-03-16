@@ -122,20 +122,11 @@ init ()
 # Dependancies
 deps ()
 {
-	# Set Client certificate serial number from Openvpn env
-	client_serial="$(get_ovpn_client_serial)"
-
-	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 4
-
-	# Set hwaddr file name - daemon_pid is from Openvpn env
-	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
-
-	# Set Server PID file
+	# Set default Server PID file if not set by command line
 	[ $EASYTLS_server_pid_file ] || \
 		EASYTLS_server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 
-	# Verify Server PID file
+	# Verify Server PID file - daemon_pid is from Openvpn env
 	if [ -f "$EASYTLS_server_pid_file" ]
 	then
 		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
@@ -144,8 +135,17 @@ deps ()
 			fail_and_exit "SERVER PID MISMATCH" 6
 	else
 		# The Server is not configured for easytls-cryptv2-client-connect.sh
-		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 7
+		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 5
 	fi
+
+	# Set Client certificate serial number from Openvpn env
+	client_serial="$(get_ovpn_client_serial)"
+
+	# Verify Client certificate serial number
+	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 4
+
+	# Set hwaddr file name
+	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
 
 	# Verify the hwaddr file
 	if [ -f "$client_hwaddr_file" ]
@@ -156,9 +156,6 @@ deps ()
 		# cert serial does not match
 		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
 	fi
-
-	# Load key hwaddr
-	#key_hwaddr="$(cat $client_hwaddr_file)"
 }
 
 #######################################
