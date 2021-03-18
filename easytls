@@ -4207,7 +4207,7 @@ To cancel this inter-active menu at any time, press Control-C
 				printf '%s' "${EASYTLS_WIN_CCON_BAT}\""
 				printf '%s\n' "'"
 				}
-		} > "$EASYTLS_WIN_OVPN_CFG" || die "Failed to create config file"
+		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
 
 		# sed easytls-cryptv2-verify.bat
 		sed -i \
@@ -4226,7 +4226,7 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '\n%s\n\n' '===================='
 		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
-		printf '\n    %s %s\n' 'config' "\"$EASYTLS_WIN_OVPN_CFG\""
+		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
 	else
 		# NIX
 		# Create config
@@ -4258,13 +4258,13 @@ To cancel this inter-active menu at any time, press Control-C
 				printf ' %s' "\"-t=${opt_tmp_dir}\""
 				printf '%s\n' "'"
 				}
-		} > "$EASYTLS_NIX_OVPN_CFG" || die "Failed to create config file"
+		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
 
 		# Linux instructions
 		printf '\n%s\n\n' '===================='
 		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
-		printf '\n    %s %s\n' 'config' "\"$EASYTLS_NIX_OVPN_CFG\""
+		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
 	fi
 		# Show config
 		#printf '\n%s\n' \
@@ -4277,6 +4277,9 @@ To cancel this inter-active menu at any time, press Control-C
 		easytls_verbose "wotsa config ?"
 	;;
 	2)	# easytls-cryptv2-client-connect.sh
+
+		# Disabled
+		return 0
 
 		[ -f "$EASYTLS_CLICON_SH" ] || {
 			help_note='Download from: https://github.com/TinCanTech/easy-tls'
@@ -5231,8 +5234,8 @@ vars_setup()
 	set_var EASYTLS_VERIFY_SH       "$EASYTLS/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-cryptv2-client-connect.sh"
 
-	set_var EASYTLS_NIX_OVPN_CFG    "$EASYTLS/easytls-cryptv2-nix.conf"
-	set_var EASYTLS_WIN_OVPN_CFG    "$EASYTLS/easytls-cryptv2-win.conf"
+	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-cryptv2-script.conf"
+
 	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
 	set_var EASYTLS_WIN_CCON_BAT    "$EASYTLS/easytls-cryptv2-client-connect.bat"
 
