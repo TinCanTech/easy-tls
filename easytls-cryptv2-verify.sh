@@ -593,7 +593,6 @@ deps ()
 # Initialise
 init
 
-
 # Options
 while [ -n "$1" ]
 do
@@ -601,6 +600,7 @@ do
 	opt="${1%%=*}"
 	val="${1#*=}"
 	empty_ok="" # Empty values are not allowed unless expected
+	shift
 
 	case "$opt" in
 	-c|--ca)
@@ -668,8 +668,6 @@ do
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
 		die "Missing value to option: $opt" 21
 	fi
-
-	shift
 done
 
 

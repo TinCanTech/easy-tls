@@ -173,6 +173,7 @@ do
 	opt="${1%%=*}"
 	val="${1#*=}"
 	empty_ok="" # Empty values are not allowed unless expected
+	shift
 
 	case "$opt" in
 	help|-h|-help|--help)
@@ -208,8 +209,6 @@ do
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
 		die "Missing value to option: $opt" 7
 	fi
-
-	shift
 done
 
 # Dependencies
