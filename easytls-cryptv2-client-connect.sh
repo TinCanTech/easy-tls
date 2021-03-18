@@ -35,19 +35,26 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -t|--tmp-dir=<path> Temporary directory to load the client hardware list from.
-  -r|--required       Require client to use --push-peer-info
+  -s|--pid-file=<FILE>
+                      The PID file for the openvpn server instance.
+  -a|--allow-no-check If the key has a hardware-address configured
+                      and the client did NOT use --push-peer-info
+                      then allow the connection.  Otherwise, keys with a
+                      hardware-address MUST use --push-peer-info.
+  -p|--push-required  Require all clients to use --push-peer-info.
+  -k|--key-required   Require all client keys to have a hardware-address.
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
   1   - Disallow connection, pushed hwaddr does not match.
-  2   - Disallow connection, pushed hwaddr missing (not pushed).
-  3   - Disallow connection, X509 certificate incorrect for this TLS-key.
-  4   - Disallow connection, hwaddr verification has not been configured.
-  5   - Disallow connection, Server PID does not match daemon_pid.
-  6   - Disallow connection, missing X509 client cert serial. (BUG)
+  2   - Disallow connection, hwaddr required and not pushed.
+  3   - Disallow connection, hwaddr required and not keyed.
+  4   - Disallow connection, X509 certificate incorrect for this TLS-key.
+  5   - Disallow connection, hwaddr verification has not been configured.
+  6   - Disallow connection, Server PID does not match daemon_pid.
   7   - Disallow connection, missing value to option.
-  8   - Disallow connection, unexpected failure. (BUG)
-  9   - Disallow connection, Absolute Fail. (BUG)
+  8   - Disallow connection, missing X509 client cert serial. (BUG)
+  9   - Disallow connection, unexpected failure. (BUG)
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -135,17 +142,17 @@ deps ()
 		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
 		# PID file MUST match daemon PID
 		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
-			fail_and_exit "SERVER PID MISMATCH" 5
+			fail_and_exit "SERVER PID MISMATCH" 6
 	else
 		# The Server is not configured for easytls-cryptv2-client-connect.sh
-		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 4
+		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 5
 	fi
 
 	# Set Client certificate serial number from Openvpn env
 	client_serial="$(get_ovpn_client_serial)"
 
 	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 6
+	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 8
 
 	# Set hwaddr file name
 	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
@@ -156,8 +163,8 @@ deps ()
 		# Client cert serial matches
 		easytls_msg="${easytls_msg} ==> X509 serial matched"
 	else
-		# cert serial does not match
-		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 3
+		# cert serial does not match - ALWAYS fail
+		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 4
 	fi
 }
 
@@ -190,17 +197,25 @@ do
 	-s|--pid-file)
 		EASYTLS_server_pid_file="$val"
 	;;
-	-r|--required)
+	-a|--allow-no-check)
 		empty_ok=1
-		EASYTLS_hwaddr_required=1
+		allow_no_check=1
+	;;
+	-p|--push-hwaddr-required)
+		empty_ok=1
+		push_hwaddr_required=1
+	;;
+	-k|--key-hwaddr-required)
+		empty_ok=1
+		key_hwaddr_required=1
 	;;
 	*)
 		empty_ok=1
-		if [ -f "$1" ]
+		if [ -f "$opt" ]
 		then
-			print "Ignoring temp file: $1"
+			print "Ignoring temp file: $opt"
 		else
-			print "Ignoring unknown option: $1"
+			print "Ignoring unknown option: $opt"
 		fi
 	;;
 	esac
@@ -214,33 +229,51 @@ done
 # Dependencies
 deps
 
+# Set only for NO keyed hwaddr
+if grep -q '000000000000' "$client_hwaddr_file"
+then
+	key_hwaddr_missing=1
+fi
+
+# If keyed hwaddr is required and missing then fail - No exceptions
+[ $key_hwaddr_required ] && [ $key_hwaddr_missing ] && \
+	fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 3
+
+
 # Set hwaddr from Openvpn env
 # This is not a dep. different clients may not push-peer-info
 push_hwaddr="$(get_ovpn_client_hwaddr)"
+[ -z "$push_hwaddr" ] && push_hwaddr_missing=1
+
+# If pushed hwaddr is required and missing then fail - No exceptions
+[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && \
+	fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 2
+
 
 # Verify hwaddr
-if grep -q '000000000000' "$client_hwaddr_file"
+if [ $key_hwaddr_missing ]
 then
-	# hwaddr NOT keyed
+	# No keyed hwaddr
 	success_msg="==> Key is not locked to hwaddr"
 	connection_allowed
 else
-	# Otherwise, this key has a hwaddr
-	if [ -z "$push_hwaddr" ]
-	then
-		# hwaddr NOT pushed
-		[ $EASYTLS_hwaddr_required ] && \
-			fail_and_exit "HWADDR REQUIRED BUT NOT PUSHED" 2
+	# key has a hwaddr
 
-		# hwaddr NOT required
+	# push hwaddr NOT required for keyed hwaddr
+	if [ $push_hwaddr_missing ] && [ $allow_no_check ]
+	then
 		success_msg="==> hwaddr not pushed and not required"
 		connection_allowed
 	else
-		# hwaddr pushed
+		# push hwaddr required for keyed hwaddr
+		[ $push_hwaddr_missing ] && \
+			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 2
+
+		# hwaddr is pushed
 		if grep -q "$push_hwaddr" "$client_hwaddr_file"
 		then
 			# MATCH!
-			success_msg="==> hwaddr pushed and matched!"
+			success_msg="==> hwaddr $push_hwaddr pushed and matched!"
 			connection_allowed
 		else
 			# push does not match key hwaddr
@@ -250,7 +283,7 @@ else
 fi
 
 # Any failure_msg means fail_and_exit
-[ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 8
+[ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
 
 # For DUBUG
 [ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
