@@ -168,7 +168,7 @@ cmd_help()
       <key_direction> '0' or '1' (key-direction is mandatory)"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file (Server only)
+        add-dh  - inline Diffie-Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
 		itc|inline-tls-crypt) text="
@@ -177,7 +177,7 @@ cmd_help()
       for VPN node <filename_base> using the Easy-TLS TLS crypt file"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file (Server only)
+        add-dh  - inline Diffie-Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
 		itv2|itcv2|inline-tls-crypt-v2) text="
@@ -186,7 +186,7 @@ cmd_help()
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
 			opts="
         nokey   - do not require an x509 key (default: key is required)
-        add-dh  - inline Diffy Hellman parameters file (Server only)
+        add-dh  - inline Diffie-Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option
         no-md   - Do not add public metadata details to inline file
@@ -295,7 +295,7 @@ General options:
 -s|--silent        : Silence all message output except prompts.
 -p|--pki-dir="DIR" : Declare the EasyRSA PKI directory.
 --vars="FILE"      : Define a specific "vars" file to use for Easy-RSA config.
---dh=FILE          : Define an alternate Diffy Hellman parameters file.
+--dh=FILE          : Define an alternate Diffie-Hellman parameters file.
 -i|--inline        : When building a TLS Crypt V2 key, also build the Inline file.
                      This only accepts default options for inline-tls-crypt-v2.
 
@@ -2443,7 +2443,7 @@ inline_base ()
 		default_dh_file="$EASYRSA_PKI/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"$default_dh_file"}"
 		[ -f "$EASYRSA_DH_FILE" ] || {
-			"Diffy Hellman parameters file missing: $EASYRSA_DH_FILE"
+			"Diffie-Hellman parameters file missing: $EASYRSA_DH_FILE"
 			return 1
 			}
 	fi
@@ -4468,7 +4468,7 @@ interactive_opt_add_dh ()
 '
 	unset opt_add_dh
 	EASYTLS_QHELP="
-* Do you want to inline the Diffy-Hellman parameters file ?
+* Do you want to inline the Diffie-Hellman parameters file ?
 
   Default DH File: $current_dh_file"
 	EASYTLS_QTEXT='
@@ -4494,15 +4494,15 @@ interactive_custom_dh ()
 {
 	unset opt_custom_dh
 	EASYTLS_QHELP='
-* No Diffy-Hellman parameters file was found!
+* No Diffie-Hellman parameters file was found!
 
-  If you need to use a custom Diffy-Hellman parameters file then
+  If you need to use a custom Diffie-Hellman parameters file then
   enter the file location and name.
 
   Otherwise, quit this menu and use Easy-RSA to create your
-  Diffy-Hellman parameters file.
+  Diffie-Hellman parameters file.
 
-  If you leave this blank then the Diffy-Hellman parameters file
+  If you leave this blank then the Diffie-Hellman parameters file
   will NOT be add to the inline-file.'
 	EASYTLS_QTEXT='
   Enter the DH file name:'
