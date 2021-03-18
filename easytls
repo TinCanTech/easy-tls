@@ -5509,4 +5509,4 @@ easytls_auto_check || die "Error: easytls_auto_check"
 # save me!
 save_wiscii_hash || die "Master hash save failed"
 
-# vim: ft=sh nu ai sw=8 ts=8 noet
+# Done
