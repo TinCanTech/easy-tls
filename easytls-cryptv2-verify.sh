@@ -55,10 +55,10 @@ fail_and_exit ()
 		printf "%s\n%s\n" "$failure_msg $md_name" "$1"
 
 		printf "%s\n" \
-			"* ==> version       local: $local_version"
+			"* ==> version       local: $local_easytls"
 
 		printf "%s\n" \
-			"* ==> version      remote: $md_version"
+			"* ==> version      remote: $md_easytls"
 
 		printf "%s\n" \
 			"* ==> custom_group  local: $local_custom_g"
@@ -167,7 +167,7 @@ help_text ()
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
-  127 - BUG Disallow connection, duplicate serial number in CA database. !?
+  127 - BUG Disallow connection, duplicate serial number in CA database.
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit exited with default error code.
   255 - BUG Disallow connection, die exited with default error code.
@@ -189,83 +189,6 @@ fn_local_identity ()
 {
 	openssl x509 -in "$ca_cert" -noout -fingerprint | \
 		sed -e 's/^.*=//g' -e 's/://g'
-}
-
-# Break metadata_string into variables
-metadata_string_to_vars ()
-{
-	tlskey_serial="${1%%-*}"
-	md_seed="${metadata_string#*-}"
-	#md_padding="${md_seed%%--*}"
-	md_easytls="${1#*--}"
-	md_version="${md_easytls%-*.*}"
-
-	md_identity="${2%%-*}"
-	#md_srv_name="${2##*-}"
-
-	md_serial="$3"
-	md_date="$4"
-	md_custom_g="$5"
-	md_name="$6"
-	md_subkey="$7"
-	md_opt="$8"
-	md_hwadds="$9"
-}
-
-# Convert metadata file to metadata_string
-metadata_file_to_metadata_string ()
-{
-	cat "$openvpn_metadata_file"
-}
-
-# Verify the age of the TLS key from metadata
-verify_tls_key_age ()
-{
-	# current date
-	local_date_sec=$(date +%s)
-
-	# days since key creation
-	key_age_sec=$(( local_date_sec - md_date ))
-	key_age_day=$(( key_age_sec / (60*60*24) ))
-
-	# Check key_age is less than --tls-age
-	[ $key_age_sec -lt $tlskey_expire_age_seconds ] || return 1
-
-	# Success message
-	insert_msg="Key age $key_age_day days OK ==>"
-	success_msg="$success_msg $insert_msg"
-}
-
-# Check metadata client certificate serial number against disabled list
-verify_serial_number_not_disabled ()
-{
-	# Search the disabled_list for client serial number
-	client_disabled="$(fn_search_disabled_list)"
-	case $client_disabled in
-	0)
-		# Client is not disabled
-		return 0
-	;;
-	*)
-		# Client is disabled
-		insert_msg="client serial number is disabled:"
-		failure_msg="$insert_msg $md_serial"
-		return 1
-	;;
-	esac
-
-	# Otherwise fail
-	help_note="Check your disabled list: $disabled_list"
-	insert_msg="client serial number failed disabled test:"
-	failure_msg="$insert_msg $md_serial"
-	return 1
-}
-
-# Search disabled list for client serial number
-fn_search_disabled_list ()
-{
-	grep -c "^${tlskey_serial}[[:blank:]]${md_serial}[[:blank:]]" \
-		"$disabled_list"
 }
 
 # Verify CRL
@@ -323,32 +246,6 @@ serial_status_via_crl ()
 		die "Duplicate serial numbers: $md_serial" 127
 	;;
 	esac
-}
-
-# This is the best way to connect
-client_passed_tls_tests_connection_allowed ()
-{
-	insert_msg="TLS key is recognised and Valid:"
-	success_msg="$success_msg $insert_msg $tlskey_serial"
-	success_msg="$success_msg $md_name"
-	absolute_fail=0
-}
-
-# This is the long way to connect
-client_passed_x509_tests_connection_allowed ()
-{
-	insert_msg="Client certificate is recognised and Valid:"
-	success_msg="$success_msg $insert_msg $md_serial"
-	success_msg="$success_msg $md_name"
-	absolute_fail=0
-}
-
-# This is the only way to fail for Revokation
-client_passed_x509_tests_certificate_revoked ()
-{
-	insert_msg="Client certificate is revoked:"
-	failure_msg="$insert_msg $md_serial"
-	fail_and_exit "CERTIFICATE REVOKED" 1
 }
 
 # Check metadata client certificate serial number against CA
@@ -455,6 +352,32 @@ fn_search_revoked_pki_index ()
 		"$index_txt"
 }
 
+# This is the long way to connect - X509
+client_passed_x509_tests_connection_allowed ()
+{
+	insert_msg="Client certificate is recognised and Valid:"
+	success_msg="$success_msg $insert_msg $md_serial"
+	success_msg="$success_msg $md_name"
+	absolute_fail=0
+}
+
+# This is the only way to fail for Revokation - X509
+client_passed_x509_tests_certificate_revoked ()
+{
+	insert_msg="Client certificate is revoked:"
+	failure_msg="$insert_msg $md_serial"
+	fail_and_exit "CERTIFICATE REVOKED" 1
+}
+
+# This is the best way to connect - TLS only
+client_passed_tls_tests_connection_allowed ()
+{
+	insert_msg="TLS key is recognised and Valid:"
+	success_msg="$success_msg $insert_msg $tlskey_serial"
+	success_msg="$success_msg $md_name"
+	absolute_fail=0
+}
+
 # Initialise
 init ()
 {
@@ -462,7 +385,7 @@ init ()
 	absolute_fail=1
 
 	# metadata version
-	local_version='easytls'
+	local_easytls='easytls'
 	local_custom_g='EASYTLS'
 
 	# Verify tlskey-serial number by hash of metadata
@@ -492,7 +415,7 @@ init ()
 
 	# Enable disable list by default
 	use_disable_list=1
-}
+} # => init ()
 
 # Dependancies
 deps ()
@@ -551,8 +474,7 @@ deps ()
 	unset help_note
 
 	# Get metadata_string
-	# Load binary: cat +1
-	metadata_string="$(metadata_file_to_metadata_string)"
+	metadata_string="$(cat "$openvpn_metadata_file")"
 
 	# Populate metadata variables
 	metadata_string_to_vars $metadata_string
@@ -565,7 +487,7 @@ deps ()
 		;;
 		*) # Valid value
 		# maximum age in seconds
-		tlskey_expire_age_seconds=$((tlskey_max_age*60*60*24))
+		tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
 		;;
 	esac
 
@@ -586,6 +508,27 @@ deps ()
 			[ $status_verbose ] && printf '%s\n' "No pid file."
 		fi
 	fi
+} # => deps ()
+
+# Break metadata_string into variables
+metadata_string_to_vars ()
+{
+	tlskey_serial="${1%%-*}"
+	md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	md_easytls_ver="${1#*--}"
+	md_easytls="${md_easytls_ver%-*.*}"
+
+	md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	md_serial="$3"
+	md_date="$4"
+	md_custom_g="$5"
+	md_name="$6"
+	md_subkey="$7"
+	md_opt="$8"
+	md_hwadds="$9"
 }
 
 #######################################
@@ -670,54 +613,50 @@ do
 	shift
 done
 
-
 # Dependancies
 deps
 
+# Metadata version
 
-# Metadata Version
-
-	# metadata_version Must equal 'easytls'
-	case $md_version in
-	"$local_version")
-		success_msg="$md_version OK ==>"
+	# metadata_version MUST equal 'easytls'
+	case "$md_easytls" in
+	"$local_easytls")
+		status_msg="$status_msg $md_easytls OK ==>"
+	;;
+	'')
+		failure_msg="metadata version is missing"
+		fail_and_exit "METADATA VERSION" 3
 	;;
 	*)
-		if [ -z "$md_version" ]
-		then
-			insert_msg="metadata version is missing."
-		else
-			insert_msg="metadata version is not recognised:"
-		fi
-		failure_msg="$insert_msg $md_version"
+		failure_msg="metadata version is not recognised: $md_easytls"
 		fail_and_exit "METADATA VERSION" 3
 	;;
 	esac
 
-
 # Metadata custom_group
 
-	# This test must be configured by option: --custom-group
-	# md_custom_g Must equal local_custom_g
-	if [ -n "$local_custom_g" ]
-	then
-		# Custom group is in use
-		if [ "$md_custom_g" = "$local_custom_g" ]
-		then
-			insert_msg="custom_group $md_custom_g OK ==>"
-			success_msg="$success_msg $insert_msg"
-		else
-			insert_msg="metadata custom_group is not correct:"
-			[ -z "$md_custom_g" ] && \
-				insert_msg="metadata custom_group is missing"
-
-			failure_msg="$insert_msg $md_custom_g"
-			fail_and_exit "METADATA CUSTOM GROUP" 4
-		fi
-	fi
-
+	# md_custom_g MUST equal local_custom_g
+	case "$md_custom_g" in
+	"$local_custom_g")
+		status_msg="$status_msg custom_group $md_custom_g OK ==>"
+	;;
+	'')
+		failure_msg="metadata custom_group is missing"
+		fail_and_exit "METADATA CUSTOM GROUP" 4
+	;;
+	*)
+		failure_msg="metadata custom_group is not correct: $md_custom_g"
+		fail_and_exit "METADATA CUSTOM GROUP" 4
+	;;
+	esac
 
 # tlskey-serial checks
+
+	# Verify tlskey-serial is in index
+	grep -q "$tlskey_serial" "$tlskey_serial_index" || {
+		failure_msg="TL-key is not recognised"
+		fail_and_exit "TLSKEY SERIAL ALIEN" 9
+		}
 
 	# HASH metadata sring without the tlskey-serial
 	if [ $VERIFY_hash ]
@@ -725,32 +664,35 @@ deps
 		md_hash="$(printf '%s' "$md_seed" | openssl sha1 -r)"
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
-			failure_msg="TLS-key metadata hash is incorrect ==>"
-			fail_and_exit "METADATA HASH" 9
+			failure_msg="TLS-key metadata hash is incorrect"
+			fail_and_exit "TLSKEY SERIAL HASH" 9
 			}
 	fi
 
-	# Verify tlskey-serial is in index
-	grep -q "$tlskey_serial" "$tlskey_serial_index" || {
-		failure_msg="TL-key is not recognised ==>"
-		fail_and_exit "TLSKEY SERIAL" 9
-		}
-
-# TLS Key expired
+# tlskey expired
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
-	if [ $tlskey_expire_age_seconds -gt 0 ]
+	if [ $tlskey_expire_age_sec -gt 0 ]
 	then
-		# Load binary: date +1
-		verify_tls_key_age || {
+		# current date
+		local_date_sec=$(date +%s)
+
+		# days since key creation
+		tlskey_age_sec=$(( local_date_sec - md_date ))
+		tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
+
+		# Check key_age is less than --tls-age
+		[ $tlskey_age_sec -lt $tlskey_expire_age_sec ] || {
 			max_age_msg="Max age: $tlskey_max_age days"
-			key_age_msg="Key age: $key_age_day days"
-			failure_msg="Key expired: $max_age_msg $key_age_msg ==>"
+			key_age_msg="Key age: $tlskey_age_day days"
+			failure_msg="Key expired: $max_age_msg $key_age_msg"
 			fail_and_exit "TLSKEY EXPIRED" 6
 			}
-	fi
 
+		# Success message
+		success_msg="$success_msg Key age $tlskey_age_day days OK ==>"
+	fi
 
 # Disabled list
 
@@ -758,16 +700,16 @@ deps
 	# Use --disable-list to disable this check
 	if [ $use_disable_list ]
 	then
-		# Append --sub-key-name first
-		full_name="$md_name $md_subkey"
-
-		# Load binary: grep +1
-		verify_serial_number_not_disabled || {
-			failure_msg="Client is disabled"
+		# Search the disabled_list for client serial number
+		if grep -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
+		then
+			# Client is disabled
+			failure_msg="client serial number is disabled: $md_serial"
 			fail_and_exit "CLIENT DISABLED" 2
-			}
-		insert_msg="Enabled OK ==>"
-		success_msg="$success_msg $insert_msg"
+		else
+			# Client is not disabled
+			success_msg="$success_msg Enabled OK ==>"
+		fi
 	fi
 
 
@@ -777,9 +719,6 @@ then
 	# No X509 required
 	client_passed_tls_tests_connection_allowed
 else
-
-
-# CA identity
 
 	# Verify CA cert is valid and/or set the CA identity
 	if [ $use_cache_id ]
@@ -813,8 +752,7 @@ else
 	fi
 
 
-# Verify serial status
-
+	# Verify serial status
 	case $x509_method in
 	1)
 		# Method 1
@@ -875,7 +813,7 @@ fi
 
 # For DUBUG
 [ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
-	failure_msg="FORCE ABSOLUTE FAIL" 101
+	failure_msg="FORCE ABSOLUTE FAIL"
 
 # There is only one way out of this...
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
