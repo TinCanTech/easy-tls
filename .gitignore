@@ -1,7 +1,4 @@
-easytls-cryptv2-nix.conf
-easytls-cryptv2-win.conf
-easytls-cryptv2-verify.conf
-easytls-cryptv2-client-connect.conf
+easytls-cryptv2-script.conf
 et-tdir*/*
 x509-types/*
 easyrsa
