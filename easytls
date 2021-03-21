@@ -2757,16 +2757,16 @@ inline_tls_crypt_v2 ()
 			[ "$MD_subkey" = 'NOSUBKEY' ] || \
 				printf '%s\n' "# Sub-key name: $MD_subkey"
 			[ "$MD_opt" = "OPT" ] || printf '%s\n' "# Opt: $MD_opt"
-			printf '%s' "# Hardware addresses: "
+			printf '%s' "# Key status: "
 			if [ "$MD_hw" = "000000000000" ]
 			then
-				printf '%s\n' "Not Locked"
+				printf '%s\n' "Open"
 			else
 				if [ $add_hardware ]
 				then
-					printf '%s\n' "$MD_hw"
+					printf '%s\n' "Locked $MD_hw"
 				else
-					printf '%s\n' "Locked"
+					printf '%s\n' "Closed"
 				fi
 			fi
 			printf "%s\n" ""
