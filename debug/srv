@@ -11,17 +11,20 @@ OVPN_BIN="openvpn"
 DH_FILE="$ROOT_DIR/debug/dh.pem"
 
 # Config
-EASYTLS_CRYPT_V2_VERIFY="$ROOT_DIR/easytls-cryptv2-verify.sh"
-EASYTLS_CRYPT_V2_VERIFY_CONF="$ROOT_DIR/debug/easytls-crypt-v2-verify.conf"
-EASYTLS_CRYPTV2_CLIENT_CONNECT="$ROOT_DIR/easytls-cryptv2-client-connect.sh"
-EASYTLS_CRYPTV2_CLIENT_CONNECT_CONF="$ROOT_DIR/debug/easytls-cryptv2-client-connect.conf"
-AUTH_USER_PASS_VERIFY="$ROOT_DIR/debug/auth-user-pass-verify.conf"
+EASYTLS_CRYPT_V2_CONFIG="$ROOT_DIR/easytls-cryptv2-script.conf"
 CRL_FILE="$PKI_DIR/crl.pem"
-PUSH_CONF="$ROOT_DIR/debug/push.conf"
+
+#EASYTLS_CRYPT_V2_VERIFY="$ROOT_DIR/easytls-cryptv2-verify.sh"
+#EASYTLS_CRYPT_V2_VERIFY_CONF="$ROOT_DIR/debug/easytls-crypt-v2-verify.conf"
+#EASYTLS_CRYPTV2_CLIENT_CONNECT="$ROOT_DIR/easytls-cryptv2-client-connect.sh"
+#EASYTLS_CRYPTV2_CLIENT_CONNECT_CONF="$ROOT_DIR/debug/easytls-cryptv2-client-connect.conf"
+#AUTH_USER_PASS_VERIFY="$ROOT_DIR/debug/auth-user-pass-verify.conf"
+#PUSH_CONF="$ROOT_DIR/debug/push.conf"
 
 # Command line
 OVPN_CMD=" \
 --config $INLINE_SRV \
+--config $EASYTLS_CRYPT_V2_CONFIG \
 --dh $DH_FILE \
 --script-security 2 \
 --crl-verify $CRL_FILE \
@@ -32,13 +35,8 @@ OVPN_CMD=" \
 --port 34571 \
 --dev tun34571 \
 --server 10.127.121.0 255.255.255.240 \
---ping 5 \
---ping-restart 30 \
+--keepalive 5 30 \
 --reneg-sec 300 \
---config $EASYTLS_CRYPT_V2_VERIFY_CONF \
---config $EASYTLS_CRYPTV2_CLIENT_CONNECT_CONF \
---config $AUTH_USER_PASS_VERIFY \
---config $PUSH_CONF \
 "
 
 FULL_CMD="$OVPN_BIN $OVPN_CMD"

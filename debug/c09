@@ -7,7 +7,7 @@ TLS_DIR="$PKI_DIR/easytls"
 
 # Files
 INLINE_CLI="$TLS_DIR/c09-bob.inline"
-OVPN_BIN="/home/tct/openvpn/master/src/openvpn/openvpn"
+OVPN_BIN="openvpn"
 
 # Command line
 OVPN_CMD=" \
