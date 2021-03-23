@@ -995,18 +995,18 @@ generate_file_hash ()
 		return 1
 		}
 
-	# SHA1 has been broken: shattered.io
-	# That is unlikely to effect Easy-TLS
-	# If/when it does, Easy-TLS has measures to detect collisions
+	# hash the file
+	openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
 
-	# What ever openssl says ..
-	openssl_hash="$("$EASYRSA_OPENSSL" sha1 -r "$1")"
-
-	# Assume it is a valid HASH
+	# only need hash
 	generated_hash="${openssl_hash%% *}"
 
 	# Test it
-	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
+	printf '%s' "$generated_hash" | grep -q '[[:blank:][:punct:]]' && {
+		error_msg "generate_file_hash - Invalid hash: $generated_hash"
+		return 1
+		}
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\+$' || {
 		error_msg "generate_file_hash - Invalid hash: $generated_hash"
 		return 1
 		}
