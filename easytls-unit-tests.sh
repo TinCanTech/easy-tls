@@ -141,7 +141,11 @@ do
 	#[ $loops -eq 2 ] && exit 99
 	[ $loops -eq 2 ] && build_vars
 	#[ $loops -eq 3 ] && exit 99
-	[ $loops -eq 3 ] && export EASYRSA_RAND_SN="yes"
+	[ $loops -eq 3 ] && {
+		export EASYRSA_RAND_SN="yes"
+		EASYTLS_OPTS="--verbose --batch --no-auto-check"
+		TLSCV2V_OPTS="-v --hash=SHA1"
+		}
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
@@ -206,18 +210,21 @@ do
 		#"inline-index-rebuild" \
 		## EOL
 	do
+		test_cmd="$i"
+		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && test_cmd="$test_cmd SHA1"
 		print "============================================================"
-		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $i"
+		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 
 		# EasyOut
-		#[ "$i" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
-		#[ "$i" = "Planned break" ] && echo "Planned break" && continue
+		#[ "$test_cmd" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
+		#[ "$test_cmd" = "Planned break" ] && echo "Planned break" && continue
 
-		if [ "$i" = "status" ]
+		if [ "$test_cmd" = "status" ]
 		then
 			echo "Skipped status"
 		else
-			"$EASYTLS_CMD" $EASYTLS_OPTS $i || fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $i"
+			"$EASYTLS_CMD" $EASYTLS_OPTS $test_cmd || \
+			fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 		fi
 	done
 

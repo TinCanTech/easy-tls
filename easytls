@@ -58,7 +58,7 @@ Here is the list of commands available with a short syntax reminder.
 Use the "help" command above to get full usage details.
 
   config
-  init-tls
+  init-tls <hash_algorithm>
   build     :Inter-active menu to build TLS keys
   inline    :Inter-active menu to build Inline files
   remove    :Inter-active menu to remove TLS keys and Inline files
@@ -110,8 +110,10 @@ cmd_help()
 	opts=""
 	case "$1" in
 		init-tls) text="
-  init-tls
-      Removes & re-initializes the TLS key dir" ;;
+  init-tls <hash_algorithm>
+      Removes & re-initializes the TLS key dir
+
+      Specify an alternat6e <hash_algorithm> to use. Default SHA256" ;;
 		build|inline|remove|script) text="
   Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
@@ -375,7 +377,7 @@ Easy-TLS configurable options:
      Add metadata to inline file
      Toggle inline-file metadata on|off.
 
-  ih|inline.hardware
+  ih|inline.hardware on|off
      Include metadata hardware-addresses in metadata for inline file
      Toggle inline-file hardware-address metadata on|off.'
 }
@@ -552,6 +554,10 @@ easytls_config ()
 	# Verify config-file and hash has already been done by config_use()
 
 	case "$1" in
+		ha|hash.algorithm)
+			cfg_opt="hash.algorithm"
+			cfg_val=$2
+		;;
 		ac|auto.check)
 			cfg_opt="auto.check"
 			cfg_val=$2
@@ -582,7 +588,7 @@ easytls_config ()
 			return 0
 		;;
 		*)
-			print "Unknown option: $1"
+			error_msg "Unknown option: $1"
 			return 1
 		;;
 	esac
@@ -632,8 +638,12 @@ easytls_config ()
 			[ $save_id_authorized ] || \
 				die "Please use 'easytls save-id' to configure your CA-ID"
 		;;
+		hash.algorithm)
+			help_note="See help for init-tls"
+			die "To change your HASH you must create a new Easy-TLS PKI"
+		;;
 		*)
-			die "config oops!"
+			die "Unknown option: $cfg_opt"
 		;;
 	esac
 	unset help_note
@@ -728,6 +738,10 @@ config_use ()
 			custom.openvpn)
 				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
 				set_var EASYTLS_OPENVPN "openvpn"
+				;;
+			hash.algorithm)
+				# This is set explicitly here to protect config
+				export EASYTLS_HASH_ALGO="$cfg_val"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
@@ -884,6 +898,7 @@ and initialize a fresh TLS PKI here."
 	# Create config-file
 	{
 		#printf '%s\n' "batch.mode = off"
+		printf '%s\n' "hash.algorithm = ${1:-SHA256}"
 		printf '%s\n' "ca.id = "
 		printf '%s\n' "custom.group = "
 		printf '%s\n' "auto.check = on"

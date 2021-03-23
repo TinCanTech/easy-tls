@@ -390,6 +390,7 @@ init ()
 
 	# Verify tlskey-serial number by hash of metadata
 	VERIFY_hash=1
+	EASYTLS_HASH_ALGO="SHA256"
 
 	# Do not accept external settings
 	unset use_x509
@@ -567,6 +568,9 @@ do
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="$val"
+	;;
+	--hash)
+		EASYTLS_HASH_ALGO="$val"
 	;;
 	--v1|--via-crl)
 		empty_ok=1
