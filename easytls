@@ -2151,13 +2151,17 @@ tls_crypt_v2_serial_number ()
 	metadata="${metadata_padding}--${metadata}"
 
 	# What ever openssl says ..
-	temp_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" sha1 -r)"
+	md_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 
 	# Assume it is a valid HASH
-	generated_hash="${temp_hash%% *}"
+	generated_hash="${md_hash%% *}"
 
 	# Test it
-	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\{40\}$' || {
+	printf '%s' "$generated_hash" | grep -q '[[:blank:][:punct:]]' && {
+		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
+		return 1
+		}
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\+$' || {
 		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
 		return 1
 		}
