@@ -5045,7 +5045,7 @@ generate_wiscii_hash ()
 			#warn "create_master_hash missing: $inline_file"
 			continue
 			}
-		inline_hash="$(openssl sha1 -r "$inline_file")"
+		inline_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$inline_file")"
 		inline_hash="${inline_hash%% *}"
 
 		# Append hash to seed
@@ -5054,7 +5054,7 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_INLINE_INDEX"
 
 	# Hash2 the inline-files seed
-	inline_hash2="$(printf '%s' "$inline_seed" | openssl sha256 -r)"
+	inline_hash2="$(printf '%s' "$inline_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
 	inline_seed2="${inline_hash2%% *}"
 
 	# Hash all tls-keys
@@ -5062,7 +5062,7 @@ generate_wiscii_hash ()
 	tlskey_file="$EASYTLS_PKI/tls-auth.key"
 	if [ -f "$tlskey_file" ]
 	then
-		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 		tlskey_seed="${tlskey_seed}${tlskey_hash}"
 	else
@@ -5073,7 +5073,7 @@ generate_wiscii_hash ()
 	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
 	if [ -f "$tlskey_file" ]
 	then
-		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 		tlskey_seed="${tlskey_seed}${tlskey_hash}"
 	else
@@ -5099,7 +5099,7 @@ generate_wiscii_hash ()
 			#warn "create_master_hash missing: $tlskey_file"
 			continue
 			}
-		tlskey_hash="$(openssl sha1 -r "$tlskey_file")"
+		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 
 		# Append hash to seed
@@ -5108,7 +5108,7 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_KEY_INDEX"
 
 	# Hash2 the tls-keys seed
-	tlskey_hash2="$(printf '%s' "$tlskey_seed" | openssl sha256 -r)"
+	tlskey_hash2="$(printf '%s' "$tlskey_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
 	tlskey_seed2="${tlskey_hash2%% *}"
 
 	# Include config hash
@@ -5116,7 +5116,7 @@ generate_wiscii_hash ()
 
 	# master a.k.a. wiscii hash
 	wiscii_seed2="${config_file_hash}${tlskey_seed2}${inline_seed2}"
-	wiscii_hash2="$(printf '%s' "$wiscii_seed2" | openssl sha256 -r)"
+	wiscii_hash2="$(printf '%s' "$wiscii_seed2" | openssl ${EASYTLS_HASH_ALGO} -r)"
 	counted_wiscii="${wiscii_hash2%% *}"
 }
 
@@ -5137,7 +5137,11 @@ save_wiscii_hash ()
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
-	printf '%s' "$counted_wiscii" | grep -q '^[[:xdigit:]]\{64\}$' || {
+	printf '%s' "$generated_hash" | grep -q '[[:blank:][:punct:]]' && {
+		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
+		return 1
+		}
+	printf '%s' "$generated_hash" | grep -q '^[[:xdigit:]]\+$' || {
 		error_msg "generate_wiscii_hash - Invalid hash: $counted_wiscii"
 		return 1
 		}
@@ -5371,15 +5375,15 @@ trap "exit 3" 3
 trap "exit 6" 6
 trap "exit 14" 15
 
+# Load config options - Does not change command line options
+config_use || die "Config error"
+
 # Verify me!
 verify_wiscii_hash || {
 	help_note='
  * Some files have been manually altered, restore the changes to continue..'
 	die "Master hash check failed"
 	}
-
-# Load config options - Does not change command line options
-config_use || die "Config error"
 
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
