@@ -868,6 +868,9 @@ and initialize a fresh TLS PKI here."
 		|| die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
+	# Explicitly set EASYTLS_HASH_ALGO here
+	EASYTLS_HASH_ALGO="${1:-SHA256}"
+
 	# Create easytls dir in EasyRSA-PKI dir
 	mkdir -p "$EASYTLS_PKI" || die "Failed to create easytls dir"
 
@@ -898,7 +901,7 @@ and initialize a fresh TLS PKI here."
 	# Create config-file
 	{
 		#printf '%s\n' "batch.mode = off"
-		printf '%s\n' "hash.algorithm = ${1:-SHA256}"
+		printf '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
 		printf '%s\n' "ca.id = "
 		printf '%s\n' "custom.group = "
 		printf '%s\n' "auto.check = on"
