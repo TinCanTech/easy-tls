@@ -689,14 +689,6 @@ config_use ()
 		return 1
 		}
 
-	# Verify the Config hash
-	config_verify_hash || {
-		error_msg "Config file hash failed."
-		error_msg "config_saved_hash:   $config_saved_hash"
-		error_msg "config_current_hash: $config_current_hash"
-		return 1
-		}
-
 	# Clear config errors
 	unset config_error
 
@@ -753,6 +745,14 @@ config_use ()
 		esac
 
 	done < "$EASYTLS_CONFIG_FILE"
+
+	# Verify the Config hash
+	config_verify_hash || {
+		error_msg "Config file hash failed."
+		error_msg "config_saved_hash:   $config_saved_hash"
+		error_msg "config_current_hash: $config_current_hash"
+		return 1
+		}
 
 	[ $config_error ] && return "$config_error"
 	easytls_verbose "config-file loaded OK"
