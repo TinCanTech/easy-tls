@@ -797,7 +797,7 @@ config_save_hash ()
 	config_current_hash="$generated_hash"
 
 	# Save the current hash
-	printf '%s\n' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || {
+	printf '%s' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || {
 		error_msg "config_file_save_hash - Save the current hash failed."
 		return 1
 		}
@@ -1597,7 +1597,7 @@ inline_index_save_hash ()
 
 	inline_index_current_hash="$generated_hash"
 	# Save the current hash
-	printf '%s\n' "$inline_index_current_hash" > "$EASYTLS_IL_INDEX_HASH" || {
+	printf '%s' "$inline_index_current_hash" > "$EASYTLS_IL_INDEX_HASH" || {
 		error_msg "inline_index_save_hash - Save the current hash"
 		return 1
 		}
@@ -2120,7 +2120,7 @@ tlskey_index_save_hash ()
 	tlskey_index_current_hash="$generated_hash"
 
 	# Save the current hash
-	printf '%s\n' "$tlskey_index_current_hash" > "$EASYTLS_KEY_HASH" || {
+	printf '%s' "$tlskey_index_current_hash" > "$EASYTLS_KEY_HASH" || {
 		error_msg "tlskey_index_save_hash - Save the current hash"
 		return 1
 		}
@@ -3181,7 +3181,8 @@ fn_ca_serial ()
 # Collect CA fingerprint
 fn_ca_fingerprint ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -fingerprint
+	"$EASYRSA_OPENSSL" \
+		x509 -in "$ca_cert" -noout -fingerprint
 }
 
 # Collect CA Identity
@@ -3226,7 +3227,7 @@ save_id ()
 	unset save_id_authorized
 
 	# Create CA-ID file - Legacy
-	printf "%s\n" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
+	printf "%s" "$ca_identity" > "$EASYTLS_CA_IDENTITY" || \
 		die "Failed to create CA Identify file: $EASYTLS_CA_IDENTITY"
 
 	notice "Saved CA Identity: $EASYTLS_CA_IDENTITY"
@@ -3422,7 +3423,7 @@ disabled_list_save_hash ()
 	disabled_list_current_hash="$generated_hash"
 
 	# Save the current hash
-	printf '%s\n' "$disabled_list_current_hash" > "$EASYTLS_DISABLED_HASH" || {
+	printf '%s' "$disabled_list_current_hash" > "$EASYTLS_DISABLED_HASH" || {
 		error_msg "disabled_list_save_hash: Write failed: $EASYTLS_DISABLED_HASH"
 		return 1
 		}
