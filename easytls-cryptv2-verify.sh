@@ -665,7 +665,7 @@ deps
 	# HASH metadata sring without the tlskey-serial
 	if [ $VERIFY_hash ]
 	then
-		md_hash="$(printf '%s' "$md_seed" | openssl sha1 -r)"
+		md_hash="$(printf '%s' "$md_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
