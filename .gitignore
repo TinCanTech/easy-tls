@@ -1,4 +1,5 @@
 easytls-cryptv2-script.conf
+easytls-server.pid
 et-tdir*/*
 x509-types/*
 easyrsa
