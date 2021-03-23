@@ -3182,7 +3182,7 @@ fn_ca_serial ()
 fn_ca_fingerprint ()
 {
 	"$EASYRSA_OPENSSL" \
-		x509 -in "$ca_cert" -noout -fingerprint
+		x509 -in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint
 }
 
 # Collect CA Identity
