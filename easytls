@@ -4165,6 +4165,7 @@ To cancel this inter-active menu at any time, press Control-C
 * Available script which can be configured:'
 	EASYTLS_QTEXT='
   [1] TLS Crypt v2 Verify (easytls-cryptv2-verify.sh)
+      (Includes hwaddr verification script: easytls-cryptv2-client-connect.sh)
 
   Select the type of script to configure:'
 	interactive_question
@@ -4254,7 +4255,7 @@ To cancel this inter-active menu at any time, press Control-C
 			printf '%s\n' 'script-security 2'
 			printf '%s' '    tls-crypt-v2-verify'
 			printf ' %s' "'"
-			printf '%s' "\"$EASYTLS_VERIFY_SH\""
+			printf '%s' "\"$EASYTLS_VERIFY_SH\" -v"
 			printf ' %s' "\"-c=${opt_ca_path}\""
 			[ $opt_customg ] && printf ' %s' "${opt_customg}"
 			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
@@ -4271,7 +4272,7 @@ To cancel this inter-active menu at any time, press Control-C
 			[ $opt_openvpn_pid ] && {
 				printf '%s' '    client-connect'
 				printf ' %s' "'"
-				printf '%s' "\"${EASYTLS_CLICON_SH}\""
+				printf '%s' "\"${EASYTLS_CLICON_SH}\" -v"
 				printf ' %s' "$opt_hw_required"
 				printf ' %s' "\"-t=${opt_tmp_dir}\""
 				printf '%s\n' "'"
@@ -4920,9 +4921,14 @@ interactive_openvpn_pid ()
 interactive_hw_required ()
 {
 	unset opt_hw_required
-	default='Y'
+	default='1'
 	EASYTLS_QHELP="
-* Do you want to use the hardware-address required flag ?
+* Select the level of hardware-address verification required ?
+
+  [0] Low - Allow all keys to connect, hwaddr verification is not enforced.
+  [1] Default - Keys with a hwaddr mismatch will be disconnected.
+  [2] Medium - Require all clients to push a hwaddr.
+  [3] High - Require all keys to have a hwaddr encrypted.
 
   * Default: $default"
 	EASYTLS_QTEXT='
@@ -4932,11 +4938,19 @@ interactive_hw_required ()
 		interactive_question
 		EASYTLS_ANSWER="${EASYTLS_ANSWER:-$default}"
 		case "$EASYTLS_ANSWER" in
-			Y|y|Yes|yes|YES)
-				opt_hw_required='-r'
+			0)
+				opt_hw_required='-a'
 				break
 			;;
-			N|n|No|no|NO)
+			1)
+				break
+			;;
+			2)
+				opt_hw_required='-p'
+				break
+			;;
+			3)
+				opt_hw_required='-k'
 				break
 			;;
 		esac
