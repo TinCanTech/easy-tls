@@ -172,7 +172,7 @@ do
 	#rm "$PKI_DIR/private/ca.key" || Die "fk"
 
 	# Test EasyTLS
-	for i in "init-tls" \
+	for i in "init-tls" "config"\
 		"build-tls-auth" "build-tls-crypt" \
 		"build-tls-crypt-v2-server s01" \
 		"--inline --custom-group=tincantech build-tls-crypt-v2-server s02" \
