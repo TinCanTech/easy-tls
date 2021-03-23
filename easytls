@@ -3268,22 +3268,17 @@ disabled_list_manager ()
 
 	# Get tlskey-serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
-	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\{40\}$' || \
+	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\+$' || \
 		die "tlskey-serial is invalid: $tlskey_serial"
 
 	# Check disabled-list for this tlskey-serial
-	count_tlskey="$(grep -c "^${tlskey_serial}[[:blank:]]" \
-		"$EASYTLS_DISABLED_LIST")"
-	case $count_tlskey in
-		0)
-			# Not found
-			:
-		;;
-		1) is_disabled=1
-		;;
-		*) die "* Bogus dude! Please report this bug."
-		;;
-	esac
+	if grep -q "^${tlskey_serial}[[:blank:]]" "$EASYTLS_DISABLED_LIST"
+	then
+		is_disabled=1
+	else
+		# Not found
+		:
+	fi
 
 	#disabled_list_serial_status="$(disabled_list_serial_search)"
 	#[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
