@@ -2472,8 +2472,8 @@ inline_base ()
 			"Diffie-Hellman parameters file missing: $EASYRSA_DH_FILE"
 			return 1
 			}
+		unset help_note
 	fi
-	unset help_note
 
 	# get the serial number of the certificate from openssl
 	crt_serial=""
@@ -2983,8 +2983,11 @@ build_tls_crypt_v2_client ()
 		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
 		}
 
+	help_note="You must first build a Server TLS-Crypt-V2 key."
 	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
+	help_note="To remove an inline file use: easytls remove"
 	[ -f "$key_file" ] && die "Client key already exists: $key_file"
+	unset help_note
 
 	# Capture HW addresses
 	EASYTLS_TLSCV2_HWLIST=""
@@ -5458,11 +5461,11 @@ case "$cmd" in
 		build_tls_crypt_v1 "$@" || \
 			die "Error: build_tls_crypt_v1"
 		;;
-	btv2s|b-tcv2s|build-tls-crypt-v2-server)
+	btv2s|btcv2s|build-tls-crypt-v2-server)
 		build_tls_crypt_v2_server "$@" || \
 			die "Error: build_tls_crypt_v2_server"
 		;;
-	btv2c|b-tcv2c|build-tls-crypt-v2-client)
+	btv2c|btcv2c|build-tls-crypt-v2-client)
 		build_tls_crypt_v2_client "$@" || \
 			die "Error: build_tls_crypt_v2_client"
 		;;
