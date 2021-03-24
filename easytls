@@ -2205,8 +2205,12 @@ verify_cert_serial ()
 # tlskey verify serial number is valid
 verify_tlskey_serial ()
 {
-	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\{40\}$' || {
-		help_note="tlskey_serial must be 40 hexidecimal digits!"
+	printf '%s' "$tlskey_serial" | grep -q '[[:blank:][:punct:]]' && {
+		error_msg "verify_tlskey_serial - Invalid serial: $tlskey_serial"
+		return 1
+		}
+	printf '%s' "$tlskey_serial" | grep -q '^[[:xdigit:]]\+$' || {
+		error_msg "verify_tlskey_serial - Invalid serial: $tlskey_serial"
 		return 1
 		}
 }
