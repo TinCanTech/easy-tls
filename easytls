@@ -162,7 +162,8 @@ cmd_help()
 	rev|revoked - List only Easy-RSA revoked certificates
 	inl|inline  - List only Easy-TLS inline files
 	inv|invalid - List only Easy-TLS invalid inline files
-	ren|renewed - List only Easy-RSA renewed certificates" ;;
+	ren|renewed - List only Easy-RSA renewed certificates
+	tls|tlskeys - List only Easy-TLS known TLS keys" ;;
 		ita|inline-tls-auth) text="
   inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
@@ -332,7 +333,15 @@ Easy-TLS abbreviations:
   build-tls-crypt-v2-client     - btv2c | btcv2c
   remove-tlskey                 - No abbreviation
   save-id                       - sid
+ 
   status                        - s
+	Easy-RSA valid certificates   - val|valid
+	Easy-RSA revoked certificates - rev|revoked
+	Easy-TLS inline files         - inl|inline
+	Easy-TLS invalid inline files - inv|invalid
+	Easy-RSA renewed certificates - ren|renewed
+	Easy-TLS known TLS keys       - tls|tlskeys
+
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itv2 | itcv2
@@ -1031,8 +1040,7 @@ status ()
 	[ $auto_check ] || status_disabled_auto_check=1
 	subsection="$1"
 
-	#verify_ca_init
-
+	# Clear lists
 	ersa_valid_cn_list=""
 	ersa_valid_serial_list=""
 	ersa_revoked_cn_list=""
@@ -1041,16 +1049,9 @@ status ()
 	etls_valid_name_list=""
 	etls_valid_serial_list=""
 	#easytls_revoked_serial_list="" # Not used
+	etls_valid_tlskey_list=""
 
-	# Verify inline-index hash
-	#inline_index_verify_hash || warn "inline-index hash failed"
-
-	# Verify config-file hash
-	#config_verify_hash || warn "Config-file hash failed"
-
-	# Verify disabled-list hash
-	#disabled_list_verify_hash || warn "Disabled-list hash failed"
-
+	# Invoke sub-section if specified
 	if [ -n "$subsection" ]
 	then
 		case "$subsection" in
@@ -1084,6 +1085,9 @@ status ()
 		;;
 		dis|disabled)
 			status_disabled_list || return 1
+		;;
+		tls|tlskeys)
+			status_easytls_tlskeys || return 1
 		;;
 		*)
 			print "Unknown status option"
@@ -1135,6 +1139,11 @@ status ()
 	else
 		print "  No mismatches found"
 	fi
+
+	print "Easy-TLS: Known TLS keys:"
+	status_easytls_tlskeys
+	[ -z "$etls_valid_tlskey_list" ] && \
+		print "  No TLS keys found"
 
 	easytls_verbose "Status complete"
 } #=> status ()
@@ -1352,6 +1361,12 @@ status_easyrsa_renewed ()
 	done
 
 } # => status_easyrsa_renewed ()
+
+# List known TLS keys
+status_easytls_tlskeys ()
+{
+	print "Comming soon.."
+}
 
 # List disabled client keys
 status_disabled_list()
