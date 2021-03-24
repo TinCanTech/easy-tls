@@ -753,8 +753,10 @@ config_use ()
 				die "config error"
 				;;
 		esac
-
 	done < "$EASYTLS_CONFIG_FILE"
+
+	# Set default hash.algorithm
+	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Verify the Config hash
 	config_verify_hash || {
