@@ -461,7 +461,7 @@ $msg
 
   Type the word '$value' to continue, or any other input to abort."
 	printf '\n%s' "  $prompt"
-	read input
+	read -r input
 	[ "$input" = "$value" ] && return
 	notice "Aborting without confirmation."
 	exit 9
@@ -3501,7 +3501,7 @@ interactive_question ()
 	printf '%s\n' "$EASYTLS_QHELP"
 	printf '\n%s\n' '  * Ctrl-C to Quit.'
 	printf '%s ' "$EASYTLS_QTEXT"
-	read input
+	read -r input
 	EASYTLS_ANSWER="$input"
 }
 
