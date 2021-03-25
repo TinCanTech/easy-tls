@@ -211,7 +211,12 @@ do
 		## EOL
 	do
 		test_cmd="$i"
-		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && test_cmd="$test_cmd SHA1"
+		[ $loops -eq 2 ] && [ "$test_cmd" = "init-tls" ] && \
+			EASYTLS_OPTS="--verbose --batch --no-auto-check -y"
+		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && {
+			test_cmd="$test_cmd SHA1"
+			EASYTLS_OPTS="--verbose --batch --no-auto-check"
+			}
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 
