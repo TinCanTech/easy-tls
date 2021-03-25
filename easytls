@@ -5197,7 +5197,6 @@ generate_wiscii_hash ()
 save_wiscii_hash ()
 {
 	[ $EASYTLS_TRAVIS_CI ] && return 0
-	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
@@ -5206,21 +5205,28 @@ save_wiscii_hash ()
 	fi
 
 	generate_wiscii_hash
+
+	# TLS not initialised
 	[ "$counted_wiscii" = '00' ] && return 0
+	# No files changed
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
 	printf '%s' "$counted_wiscii" | grep -q '[[:blank:][:punct:]]' && {
-		error_msg "generate_wiscii_hash - Invalid hash: $counted_wiscii"
+		error_msg "save_wiscii_hash - Invalid hash: $counted_wiscii"
 		return 1
 		}
 	printf '%s' "$counted_wiscii" | grep -q '^[[:xdigit:]]\+$' || {
-		error_msg "generate_wiscii_hash - Invalid hash: $counted_wiscii"
+		error_msg "save_wiscii_hash - Invalid hash: $counted_wiscii"
 		return 1
 		}
 
 	# Save it
-	printf '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || return 1
+	printf '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || {
+		error_msg 'Failed to save master hash'
+		return 1
+		}
+
 	easytls_verbose "Master hash save OK: $counted_wiscii"
 }
 
@@ -5229,7 +5235,6 @@ verify_wiscii_hash ()
 {
 	[ $verify_file_hash_disabled ] && return 0
 	[ $EASYTLS_TRAVIS_CI ] && return 0
-	[ $Skip_wiscii_hash ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
@@ -5238,7 +5243,11 @@ verify_wiscii_hash ()
 	fi
 
 	generate_wiscii_hash
+
+	# TLS not initialised
 	[ "$counted_wiscii" = '00' ] && return 0
+
+	# hash match or error
 	[ "$counted_wiscii" = "$bottled_wiscii" ] || {
 		error_msg "bottled_wiscii: $bottled_wiscii"
 		error_msg "counted_wiscii: $counted_wiscii"
