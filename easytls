@@ -3517,11 +3517,13 @@ interactive_show_cmd ()
 # Inter-active build menu
 interactive_build ()
 {
-	printf '\n%s\n' 'Easy-TLS Inter-active TLS-key builder.'
+	printf '\n%s\n' 'Easy-TLS Inter-active TLS-key builder Menu.'
 
 	# Verify PKI
-	interactive_verify_pki || \
-		die 'Please create and/or specify your PKI directory.'
+	interactive_verify_pki || {
+		error_msg 'Please create and/or specify your PKI directory.'
+		return 1
+		}
 
 	# Capture the command line to build
 	cmd_line='build'
@@ -3547,7 +3549,7 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 		# Build key
 		build_tls_auth || {
-			error_msg "Build TLS-Auth key failed"
+			error_msg '***Build TLS-Auth key failed'
 			return 1
 			}
 	;;
@@ -3557,7 +3559,7 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 		# Build key
 		build_tls_crypt_v1 || {
-			error_msg "Build TLS-Crypt key failed"
+			error_msg '***Build TLS-Crypt key failed'
 			return 1
 			}
 	;;
@@ -3576,7 +3578,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Build key
 		build_tls_crypt_v2_server "$opt_server_name" || {
-			error_msg "Build TLS-Crypt-V2 Server key failed"
+			error_msg '***Build TLS-Crypt-V2 Server key failed'
 			return 1
 			}
 
@@ -3616,8 +3618,8 @@ To cancel this inter-active menu at any time, press Control-C
 			interactive_opt_nokey
 
 			# Set opt_add_dh or opt_custom_dh
-			current_dh_file="$EASYRSA_PKI/dh.pem"
-			if [ -f "$current_dh_file" ]
+			default_dh_file="$EASYRSA_PKI/dh.pem"
+			if [ -f "$default_dh_file" ]
 			then
 				# opt_add_dh
 				interactive_opt_add_dh
@@ -3632,9 +3634,9 @@ To cancel this inter-active menu at any time, press Control-C
 			# Create inline
 			inline_tls_crypt_v2 "$opt_server_name" \
 				${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
-				error_msg "Create inline-file failed"
-				return 1
-				}
+					error_msg '***Create inline-file failed'
+					return 1
+					}
 		fi
 
 		return 0
@@ -3670,7 +3672,10 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_sub_key_name
 
 		# Set hardware addresses
-		interactive_hwaddr || die "Invalid hardware-address: $ia_answer"
+		interactive_hwaddr || {
+			error_msg "Invalid hardware-address: $ia_answer"
+			return 1
+			}
 
 		# Print command
 		interactive_show_cmd
@@ -3679,8 +3684,9 @@ To cancel this inter-active menu at any time, press Control-C
 		batch_mode=1
 
 		# Build key
-		build_tls_crypt_v2_client \
-			"$opt_server_name" "$opt_client_name" ${opt_hardware} || {
+		build_tls_crypt_v2_client "$opt_server_name" "$opt_client_name" \
+			${opt_hardware} || {
+				error_msg '***Build TLS-CryptV2 Client key failed'
 				return 1
 				}
 
@@ -3734,9 +3740,9 @@ To cancel this inter-active menu at any time, press Control-C
 			# Create inline
 			inline_tls_crypt_v2 "$opt_client_name" \
 				${opt_nokey} ${opt_no_md} ${opt_add_hw} || {
-				error_msg "Create inline-file failed"
-				return 1
-				}
+					error_msg '***Create inline-file failed'
+					return 1
+					}
 		fi
 
 		return 0
@@ -3750,10 +3756,13 @@ To cancel this inter-active menu at any time, press Control-C
 # Inter-active inline menu
 interactive_inline ()
 {
-	printf '\n%s\n' 'Easy-TLS Inter-active Inline-file builder.'
+	printf '\n%s\n' 'Easy-TLS Inter-active Inline-file builder Menu.'
 
 	# Verify PKI
-	interactive_verify_pki || die 'Please specify your PKI directory.'
+	interactive_verify_pki || {
+		error_msg 'Please create and/or specify your PKI directory.'
+		return 1
+		}
 
 	# Capture the command line to inline
 	cmd_line='inline'
@@ -3793,8 +3802,8 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_opt_nokey
 
 		# Set opt_add_dh
-		current_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$current_dh_file" ]
+		default_dh_file="$EASYRSA_PKI/dh.pem"
+		if [ -f "$default_dh_file" ]
 		then
 			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
 		else
@@ -3805,9 +3814,9 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_auth \
-			"$common_name" "$key_direction" ${opt_nokey} ${opt_add_dh} || {
-				error_msg "Create inline-file failed"
+		inline_tls_auth "$common_name" "$key_direction" \
+			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
+				error_msg '***Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3826,8 +3835,8 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_opt_nokey
 
 		# Set opt_add_dh
-		current_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$current_dh_file" ]
+		default_dh_file="$EASYRSA_PKI/dh.pem"
+		if [ -f "$default_dh_file" ]
 		then
 			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
 		else
@@ -3838,8 +3847,9 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_crypt_v1 "$common_name" ${opt_nokey} ${opt_add_dh} || {
-				error_msg "Create inline-file failed"
+		inline_tls_crypt_v1 "$common_name" \
+			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
+				error_msg '***Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3858,8 +3868,8 @@ To cancel this inter-active menu at any time, press Control-C
 		interactive_opt_nokey
 
 		# Set opt_add_dh
-		current_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$current_dh_file" ]
+		default_dh_file="$EASYRSA_PKI/dh.pem"
+		if [ -f "$default_dh_file" ]
 		then
 			interactive_opt_add_dh
 		else
@@ -3871,8 +3881,8 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Build .inline
 		inline_tls_crypt_v2 "$common_name" \
-			${opt_nokey} ${opt_add_dh} ${opt_no_md} ${opt_add_hw} || {
-				error_msg "Create inline-file failed"
+			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
+				error_msg '***Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3905,7 +3915,7 @@ To cancel this inter-active menu at any time, press Control-C
 		# Build .inline
 		inline_tls_crypt_v2 \
 			"$common_name" ${opt_nokey} ${opt_no_md} ${opt_add_hw} || {
-				error_msg "Create inline-file failed"
+				error_msg '***Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3920,7 +3930,10 @@ interactive_remove ()
 	printf '\n%s\n' 'Easy-TLS Inter-active Remove menu.'
 
 	# Verify PKI
-	interactive_verify_pki || die 'Please specify your PKI directory.'
+	interactive_verify_pki || {
+		error_msg 'Please create and/or specify your PKI directory.'
+		return 1
+		}
 
 	# Capture the command line to inline
 	cmd_line='remove'
@@ -3944,7 +3957,7 @@ To cancel this inter-active menu at any time, press Control-C
 	case $ia_answer in
 	1)	# Remove Client inline-file
 		printf '\n%s\n' '** Remove Client TLS-Crypt-v2 inline-file'
-		cmd_line="remove-inline"
+		cmd_line="${cmd_line}-inline"
 
 		# Set commonName
 		opt_name=""
@@ -3960,9 +3973,9 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
-				error_msg "Remove inline-file failed"
-				return 1
-				}
+			error_msg '***Remove inline-file failed'
+			return 1
+			}
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -3999,7 +4012,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
-				error_msg "Remove TLS-key failed"
+				error_msg '***Remove TLS-key failed'
 				return 1
 				}
 		else
@@ -4009,7 +4022,7 @@ To cancel this inter-active menu at any time, press Control-C
 	;;
 	2)	# Remove client key
 		printf '\n%s\n' '** Remove Client TLS-Crypt-V2 key'
-		cmd_line="remove-tlskey"
+		cmd_line="${cmd_line}-tlskey"
 
 		# Set Client name
 		opt_name=""
@@ -4025,13 +4038,13 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
-				error_msg "Remove TLS-key failed"
-				return 1
-				}
+			error_msg '***Remove TLS-key failed'
+			return 1
+			}
 	;;
 	3)	# Remove Server inline-file
 		printf '\n%s\n' '** Remove Server TLS-Crypt-v2 inline-file'
-		cmd_line="remove-inline"
+		cmd_line="${cmd_line}-inline"
 
 		# Set commonName
 		opt_name=""
@@ -4048,7 +4061,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
-				error_msg "Remove inline-file failed"
+				error_msg '***Remove inline-file failed'
 				return 1
 				}
 
@@ -4104,7 +4117,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
-				error_msg "Remove TLS-key failed"
+				error_msg '***Remove TLS-key failed'
 				return 1
 				}
 
@@ -4117,7 +4130,7 @@ To cancel this inter-active menu at any time, press Control-C
 	;;
 	4)	# Remove Server key
 		printf '\n%s\n' '** Remove Server TLS-Crypt-V2 key'
-		cmd_line="remove-tlskey"
+		cmd_line="${cmd_line}-tlskey"
 
 		# Set Server name
 		opt_name=""
@@ -4147,32 +4160,40 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
-				error_msg "Remove TLS-Crypt-V2 key failed"
-				return 1
-				}
+			error_msg '***Remove TLS-Crypt-V2 key failed'
+			return 1
+			}
 
 		# Disable internal batch_mode
 		unset batch_mode
 	;;
 	5)	# tls-crypt key
 		printf '\n%s\n' '** Remove TLS-Crypt key'
+		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-crypt.key"
 		[ -f "$key_file" ] || \
 			die "TLS-Crypt key does not exist: $key_file"
 
-		rm "$key_file" || die "Failed to delete TLS-Crypt key"
+		rm "$key_file" || {
+			error_msg '***Remove TLS-Crypt key failed'
+			return 1
+			}
 
 		notice "  TLS-Crypt key removed: $key_file"
 	;;
 	6)	# tls-auth key
 		printf '\n%s\n' '** Remove TLS-Auth key'
+		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-auth.key"
 		[ -f "$key_file" ] || \
 			die "TLS-Auth key does not exist: $key_file"
 
-		rm "$key_file" || die "Failed to delete TLS-Auth key"
+		rm "$key_file" || {
+			error_msg '***Remove TLS-Auth key failed'
+			return 1
+			}
 
 		printf '\n%s\n' "  TLS-Auth key removed: $key_file"
 	;;
@@ -4185,10 +4206,13 @@ To cancel this inter-active menu at any time, press Control-C
 # Configure scripts
 interactive_scripts ()
 {
-	printf '\n%s\n' 'Easy-TLS Inter-active Script configuration menu.'
+	printf '\n%s\n' 'Easy-TLS Inter-active Script Configuration Menu.'
 
 	# Verify PKI
-	interactive_verify_pki || die 'Please specify your PKI directory.'
+	interactive_verify_pki || {
+		error_msg 'Please create and/or specify your PKI directory.'
+		return 1
+		}
 
 	# CA dir used for inter-active script must be fully expanded
 	if [ "${EASYRSA_PKI%/*}" = "$PWD" ]
@@ -4223,6 +4247,11 @@ To cancel this inter-active menu at any time, press Control-C
 		[ -f "$EASYTLS_VERIFY_SH" ] || {
 			help_note='Download from: https://github.com/TinCanTech/easy-tls'
 			die "Required script missing: $EASYTLS_VERIFY_SH"
+			}
+
+		[ -f "$EASYTLS_CLICON_SH" ] || {
+			help_note='Download from: https://github.com/TinCanTech/easy-tls'
+			die "Required script missing: $EASYTLS_CLICON_SH"
 			}
 
 		# -c|--ca=<path> - opt_ca_path
@@ -4332,64 +4361,8 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
 		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
 	fi
-		# Show config
-		#printf '\n%s\n' \
-		#	'* These are the settings in the Easy-TLS OpenVPN config-file:'
-		#printf '\n'
-		#cat "$EASYTLS_OPENVPN_CFG"
-		#printf '\n'
-
 		easytls_verbose
-		easytls_verbose "wotsa config ?"
-	;;
-	2)	# easytls-cryptv2-client-connect.sh
-
-		# Disabled
-		return 0
-
-		[ -f "$EASYTLS_CLICON_SH" ] || {
-			help_note='Download from: https://github.com/TinCanTech/easy-tls'
-			die "Required script missing: $EASYTLS_CLICON_SH"
-			}
-
-		# -t|--tmp-dir - opt_tmp_dir
-		interactive_tmp_dir
-
-		# Create config
-		#interactive_create_verify_config
-
-		{
-			printf '%s\n\n' '===================='
-			printf '%s\n' \
-				'# Configure OpenVPN to use easytls-cryptv2-client-connect.sh'
-			printf '%s\n\n' \
-				'# Add the following line(s) to your OpenVPN Server config file'
-			printf '%s' 'client-connect'
-			printf ' %s' "$EASYTLS_CLICON_SH"
-			[ $opt_tmp_dir ] && printf ' %s' "$opt_tmp_dir"
-			[ $opt_hw_required ] && printf ' %s' "$opt_hw_required"
-			printf '\n'
-		} > "$EASYTLS_CLICON_CFG" || die "Failed to create config file"
-
-		# Show config
-		printf '\n'
-		cat "$EASYTLS_CLICON_CFG"
-		printf '\n'
-
-		# Windows instructions
-		printf '%s\n\n' \
-			'# For use with Windows, those settings are inserted into:'
-		printf '%s\n\n' \
-			'    easytls-cryptv2-client-connect.bat'
-		printf '%s\n\n' \
-			'# Add this to your Windows OpenVPN Server config file:'
-		printf '%s\n' \
-			'    tls-crypt-v2-verify /path/to/easytls-cryptv2-client-connect.bat'
-		printf '\n%s\n' \
-			'# https://github.com/TinCanTech/easy-tls/wiki/02-=-Windows-Usage'
-
-		easytls_verbose
-		easytls_verbose "wotsa config ?"
+		easytls_verbose 'Easy-TLS Scripts configuration completed'
 	;;
 	*)	# Other value -> Quit
 		print "Quit!"
@@ -4533,15 +4506,12 @@ interactive_opt_nokey ()
 # Set option add-dh
 interactive_opt_add_dh ()
 {
-	print '
-
-'
 	unset opt_add_dh
 	default='Y'
 	ia_question_help="
 * Do you want to inline the Diffie-Hellman parameters file ?
 
-  Default DH File: $current_dh_file
+  Default DH File: $default_dh_file
 
   * Default: $default"
 	ia_question_test='
