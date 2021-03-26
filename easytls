@@ -3748,7 +3748,7 @@ To cancel this inter-active menu at any time, press Control-C
 		return 0
 	;;
 	*)	# Other value -> Quit
-		printf '\n%s\n' "  Quit!"
+		printf '\n%s\n' '  Quit!'
 	;;
 	esac
 } # => interactive_build ()
@@ -3920,7 +3920,7 @@ To cancel this inter-active menu at any time, press Control-C
 				}
 	;;
 	*)	# Other value -> Quit
-		printf '\n%s\n' "  Quit!"
+		printf '\n%s\n' '  Quit!'
 	esac
 } # => interactive_inline ()
 
@@ -4198,7 +4198,7 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '\n%s\n' "  TLS-Auth key removed: $key_file"
 	;;
 	*)	# Other value -> Quit
-		printf '\n%s\n' "  Quit!"
+		printf '\n%s\n' '  Quit!'
 	;;
 	esac
 } # => interactive_remove ()
@@ -4361,11 +4361,10 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
 		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
 	fi
-		easytls_verbose
-		easytls_verbose 'Easy-TLS Scripts configuration completed'
+	printf '\n%s\n' '* Easy-TLS Scripts configuration completed'
 	;;
 	*)	# Other value -> Quit
-		print "Quit!"
+		printf '\n%s\n' '  Quit!'
 	;;
 	esac
 
