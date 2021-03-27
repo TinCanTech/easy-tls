@@ -3978,11 +3978,17 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
+		# Enable internal batch_mode
+		batch_mode=1
+
 		# Remove .inline
 		remove_inline "$opt_name" || {
 			error_msg '**Remove inline-file failed'
 			return 1
 			}
+
+		# Disable internal batch_mode
+		unset batch_mode
 
 		printf '\n%s\n' "  * TLS-Crypt-V2 Client inline removed: $key_file"
 
@@ -4019,11 +4025,18 @@ interactive_remove ()
 			# Print command
 			interactive_show_cmd
 
+			# Enable internal batch_mode
+			batch_mode=1
+
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
 				error_msg '**Remove TLS-key failed'
 				return 1
 				}
+
+			# Disable internal batch_mode
+			unset batch_mode
+
 			printf '\n%s\n' "  * TLS-Crypt-V2 Client key removed: $key_file"
 		else
 			printf '\n%s\n' \
@@ -4096,11 +4109,17 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
+		# Enable internal batch_mode
+		batch_mode=1
+
 		# Remove .inline
 		remove_inline "$opt_name" || {
 				error_msg '**Remove inline-file failed'
 				return 1
 				}
+
+		# Disable internal batch_mode
+		unset batch_mode
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
