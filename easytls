@@ -2221,8 +2221,12 @@ tlskey_index_full_name_to_x509_serial ()
 # tlskey verify serial number is valid
 verify_cert_serial ()
 {
-	printf '%s' "$cert_serial" | grep -q '^[[:xdigit:]]\{32\}$' || {
-		help_note="cert_serial must be 32 hexidecimal digits!"
+	printf '%s' "$cert_serial" | grep -q '[[:blank:][:punct:]]' && {
+		error_msg "verify_cert_serial - Invalid serial: $cert_serial"
+		return 1
+		}
+	printf '%s' "$cert_serial" | grep -q '^[[:xdigit:]]\+$' || {
+		error_msg "verify_cert_serial - Invalid serial: $cert_serial"
 		return 1
 		}
 }
@@ -3497,10 +3501,10 @@ interactive_question ()
 {
 	unset ia_answer
 	printf '\n%s\n' "===================="
+	printf '\n%s\n' 'To cancel this inter-active menu at any time, press Control-C'
 	[ -n "$ia_extra_help" ] && printf '\n%s\n' "$ia_extra_help"
 	printf '%s\n' "$ia_question_help"
-	printf '\n%s\n' '  * Ctrl-C to Quit.'
-	printf '%s ' "$ia_question_test"
+	printf '%s ' "$ia_question_text"
 	read -r input
 	ia_answer="$input"
 }
@@ -3530,10 +3534,8 @@ interactive_build ()
 
 	# Choose Key
 	ia_question_help='
-To cancel this inter-active menu at any time, press Control-C
-
 * Available TLS-key types:'
-	ia_question_test='
+	ia_question_text='
   [1] TLS-Auth key                   - Legacy HMAC pre-shared key
   [2] TLS-Crypt-V1 key               - Basic TLS-crypt-v1 pre-shared key
   [3] TLS-Crypt-V2 key for Server    - Advanced TLS-Crypt-v2 Server key
@@ -3544,27 +3546,27 @@ To cancel this inter-active menu at any time, press Control-C
 
 	case $ia_answer in
 	1)	# Build TLS Auth
-		printf '\n%s\n' '** Build TLS-Auth key'
+		printf '\n%s\n' '* Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
 		interactive_show_cmd
 		# Build key
 		build_tls_auth || {
-			error_msg '***Build TLS-Auth key failed'
+			error_msg '**Build TLS-Auth key failed'
 			return 1
 			}
 	;;
 	2)	# Build TLS Crypt v1
-		printf '\n%s\n' '** Build TLS-Crypt-V1 key'
+		printf '\n%s\n' '* Build TLS-Crypt-V1 key'
 		cmd_line="${cmd_line}-tls-crypt"
 		interactive_show_cmd
 		# Build key
 		build_tls_crypt_v1 || {
-			error_msg '***Build TLS-Crypt key failed'
+			error_msg '**Build TLS-Crypt key failed'
 			return 1
 			}
 	;;
 	3)	# Build TLS Crypt v2 Server
-		printf '\n%s\n' '** Build TLS-Crypt-V2 key for Server'
+		printf '\n%s\n' '* Build TLS-Crypt-V2 key for Server'
 		cmd_line="${cmd_line}-tls-crypt-v2-server"
 
 		# Set Server name and verify cert type
@@ -3578,7 +3580,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Build key
 		build_tls_crypt_v2_server "$opt_server_name" || {
-			error_msg '***Build TLS-Crypt-V2 Server key failed'
+			error_msg '**Build TLS-Crypt-V2 Server key failed'
 			return 1
 			}
 
@@ -3592,7 +3594,7 @@ To cancel this inter-active menu at any time, press Control-C
 * Do you want to build a corresponding inline-file ?
 
   * Default: $default"
-		ia_question_test='
+		ia_question_text='
   Enter (y)es or (n)o:'
 		while :
 		do
@@ -3634,7 +3636,7 @@ To cancel this inter-active menu at any time, press Control-C
 			# Create inline
 			inline_tls_crypt_v2 "$opt_server_name" \
 				${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
-					error_msg '***Create inline-file failed'
+					error_msg '**Create inline-file failed'
 					return 1
 					}
 		fi
@@ -3642,7 +3644,7 @@ To cancel this inter-active menu at any time, press Control-C
 		return 0
 	;;
 	4)	# Build TLS Crypt v2 Client
-		printf '\n%s\n' '** Build TLS-Crypt-V2 key for Client'
+		printf '\n%s\n' '* Build TLS-Crypt-V2 key for Client'
 
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
 
@@ -3686,7 +3688,7 @@ To cancel this inter-active menu at any time, press Control-C
 		# Build key
 		build_tls_crypt_v2_client "$opt_server_name" "$opt_client_name" \
 			${opt_hardware} || {
-				error_msg '***Build TLS-CryptV2 Client key failed'
+				error_msg '**Build TLS-CryptV2 Client key failed'
 				return 1
 				}
 
@@ -3703,7 +3705,7 @@ To cancel this inter-active menu at any time, press Control-C
 * Do you want to build a corresponding inline-file ?
 
   * Default: $default"
-		ia_question_test='
+		ia_question_text='
   Enter (y)es or (n)o:'
 		while :
 		do
@@ -3740,7 +3742,7 @@ To cancel this inter-active menu at any time, press Control-C
 			# Create inline
 			inline_tls_crypt_v2 "$opt_client_name" \
 				${opt_nokey} ${opt_no_md} ${opt_add_hw} || {
-					error_msg '***Create inline-file failed'
+					error_msg '**Create inline-file failed'
 					return 1
 					}
 		fi
@@ -3752,6 +3754,12 @@ To cancel this inter-active menu at any time, press Control-C
 	;;
 	esac
 } # => interactive_build ()
+
+# Inter-active build TLS-AUTH key
+interactive_inline_tls_crypt_v2 ()
+{
+	:
+}
 
 # Inter-active inline menu
 interactive_inline ()
@@ -3769,10 +3777,8 @@ interactive_inline ()
 
 	# Choose Key
 	ia_question_help='
-To cancel this inter-active menu at any time, press Control-C
-
 * Available Inline-file types:'
-	ia_question_test='
+	ia_question_text='
   [1] Inline-file with TLS-Auth key for Server
   [2] Inline-file with TLS-Auth key for Client
   [3] Inline-file with TLS-Crypt-V1 key for Server
@@ -3789,7 +3795,7 @@ To cancel this inter-active menu at any time, press Control-C
 		cert_type='Client'
 		[ "$ia_answer" = '1' ] && cert_type='Server'
 
-		printf '\n%s\n' "** Create $cert_type TLS-Auth inline-file"
+		printf '\n%s\n' "* Create TLS-Auth $cert_type inline-file"
 		cmd_line="${cmd_line}-tls-auth"
 
 		# Set commonName
@@ -3816,7 +3822,7 @@ To cancel this inter-active menu at any time, press Control-C
 		# Build .inline
 		inline_tls_auth "$common_name" "$key_direction" \
 			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
-				error_msg '***Create inline-file failed'
+				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3825,7 +3831,7 @@ To cancel this inter-active menu at any time, press Control-C
 		cert_type='Client'
 		[ "$ia_answer" = '3' ] && cert_type='Server'
 
-		printf '\n%s\n' "** Create $cert_type TLS-Crypt-V1 inline-file"
+		printf '\n%s\n' "* Create TLS-Crypt-V1 $cert_type inline-file"
 		cmd_line="${cmd_line}-tls-crypt"
 
 		# Set commonName
@@ -3849,12 +3855,12 @@ To cancel this inter-active menu at any time, press Control-C
 		# Build .inline
 		inline_tls_crypt_v1 "$common_name" \
 			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
-				error_msg '***Create inline-file failed'
+				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
 	5)	# Inline TLS Crypt v2 Server
-		printf '\n%s\n' '** Create TLS-Crypt-v2 Server inline-file'
+		printf '\n%s\n' '* Create TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Server"
 
@@ -3881,13 +3887,13 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Build .inline
 		inline_tls_crypt_v2 "$common_name" \
-			${opt_nokey} ${opt_add_dh} ${opt_custom_dh} || {
-				error_msg '***Create inline-file failed'
+			${opt_nokey} ${opt_add_dh} || {
+				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
 	6)	# Inline TLS Crypt v2 Client
-		printf '\n%s\n' '** Create TLS-Crypt-v2 Client inline-file'
+		printf '\n%s\n' '* Create TLS-Crypt-v2 Client inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Client"
 
@@ -3915,7 +3921,7 @@ To cancel this inter-active menu at any time, press Control-C
 		# Build .inline
 		inline_tls_crypt_v2 \
 			"$common_name" ${opt_nokey} ${opt_no_md} ${opt_add_hw} || {
-				error_msg '***Create inline-file failed'
+				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
@@ -3927,7 +3933,7 @@ To cancel this inter-active menu at any time, press Control-C
 # Inter-active Remove menu
 interactive_remove ()
 {
-	printf '\n%s\n' 'Easy-TLS Inter-active Remove menu.'
+	printf '\n%s\n' 'Easy-TLS Inter-active Remove Menu.'
 
 	# Verify PKI
 	interactive_verify_pki || {
@@ -3940,10 +3946,8 @@ interactive_remove ()
 
 	# Choose Key
 	ia_question_help='
-To cancel this inter-active menu at any time, press Control-C
-
 * Available file types:'
-	ia_question_test='
+	ia_question_text='
   [1] TLS-Crypt-V2 Client inline-file
   [2] TLS-Crypt-V2 Client key
   [3] TLS-Crypt-V2 Server inline-file
@@ -3956,7 +3960,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 	case $ia_answer in
 	1)	# Remove Client inline-file
-		printf '\n%s\n' '** Remove Client TLS-Crypt-v2 inline-file'
+		printf '\n%s\n' '* Remove TLS-Crypt-v2 Client inline-file'
 		cmd_line="${cmd_line}-inline"
 
 		# Set commonName
@@ -3968,14 +3972,19 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set option --sub-key-name
 		interactive_sub_key_name
 
+		# Confirm
+		interactive_remove_warning 'remove-tls-crypt-v2-client-inline'
+
 		# Print command
 		interactive_show_cmd
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
-			error_msg '***Remove inline-file failed'
+			error_msg '**Remove inline-file failed'
 			return 1
 			}
+
+		printf '\n%s\n' "  * TLS-Crypt-V2 Client inline removed: $key_file"
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -3987,7 +3996,7 @@ To cancel this inter-active menu at any time, press Control-C
 * Do you want to remove the corresponding TLS-Crypt-V2 key ?
 
   * Default: $default"
-		ia_question_test='
+		ia_question_text='
   Enter (y)es or (n)o:'
 		while :
 		do
@@ -4012,16 +4021,18 @@ To cancel this inter-active menu at any time, press Control-C
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
-				error_msg '***Remove TLS-key failed'
+				error_msg '**Remove TLS-key failed'
 				return 1
 				}
+			printf '\n%s\n' "  * TLS-Crypt-V2 Client key removed: $key_file"
 		else
 			printf '\n%s\n' \
-				'  * Inline-file removed. TLS-Crypt-V2 Key is unchanged.'
+				"  * Inline-file removed. "
+			printf '\n%s\n'	'    TLS-Crypt-V2 Key is unchanged.'
 		fi
 	;;
 	2)	# Remove client key
-		printf '\n%s\n' '** Remove Client TLS-Crypt-V2 key'
+		printf '\n%s\n' '* Remove TLS-Crypt-V2 Client key'
 		cmd_line="${cmd_line}-tlskey"
 
 		# Set Client name
@@ -4033,17 +4044,25 @@ To cancel this inter-active menu at any time, press Control-C
 		# Set option --sub-key-name
 		interactive_sub_key_name
 
+		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
+		[ -f "$key_file" ] || \
+			die "TLS-Crypt-V2 key does not exist: $key_file"
+
+		# Confirm
+		interactive_remove_warning 'remove-tls-crypt-v2-client-key'
+
 		# Print command
 		interactive_show_cmd
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
-			error_msg '***Remove TLS-key failed'
+			error_msg '**Remove TLS-key failed'
 			return 1
 			}
+		printf '\n%s\n' "  * TLS-Crypt-V2 Client key removed: $key_file"
 	;;
 	3)	# Remove Server inline-file
-		printf '\n%s\n' '** Remove Server TLS-Crypt-v2 inline-file'
+		printf '\n%s\n' '* Remove TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-inline"
 
 		# Set commonName
@@ -4061,7 +4080,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
-				error_msg '***Remove inline-file failed'
+				error_msg '**Remove inline-file failed'
 				return 1
 				}
 
@@ -4075,7 +4094,7 @@ To cancel this inter-active menu at any time, press Control-C
 * Do you want to remove the corresponding TLS-Crypt-V2 key ?
 
   * Default: $default"
-		ia_question_test='
+		ia_question_text='
   Enter (y)es or (n)o:'
 		while :
 		do
@@ -4117,7 +4136,7 @@ To cancel this inter-active menu at any time, press Control-C
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
-				error_msg '***Remove TLS-key failed'
+				error_msg '**Remove TLS-key failed'
 				return 1
 				}
 
@@ -4129,7 +4148,7 @@ To cancel this inter-active menu at any time, press Control-C
 		fi
 	;;
 	4)	# Remove Server key
-		printf '\n%s\n' '** Remove Server TLS-Crypt-V2 key'
+		printf '\n%s\n' '* Remove TLS-Crypt-V2 Server key'
 		cmd_line="${cmd_line}-tlskey"
 
 		# Set Server name
@@ -4143,14 +4162,7 @@ To cancel this inter-active menu at any time, press Control-C
 			die "TLS-Crypt-V2 key does not exist: $key_file"
 
 		# Confirm
-		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
-			'yes' "
-* If you remove a TLS-Crypt-V2 Server key which has been used
-  to build any TLS-Crypt-V2 Client keys then those Client keys
-  and their corresponding inline files will all be invalid.
-
-  Key file:
-  * $key_file"
+		interactive_remove_warning 'remove-tls-crypt-v2-server-key'
 
 		# Print command
 		interactive_show_cmd
@@ -4160,48 +4172,138 @@ To cancel this inter-active menu at any time, press Control-C
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
-			error_msg '***Remove TLS-Crypt-V2 key failed'
+			error_msg '**Remove TLS-Crypt-V2 key failed'
 			return 1
 			}
 
 		# Disable internal batch_mode
 		unset batch_mode
+
+		printf '\n%s\n' "  * TLS-Crypt-V2 Server key removed: $key_file"
 	;;
 	5)	# tls-crypt key
-		printf '\n%s\n' '** Remove TLS-Crypt key'
+		printf '\n%s\n' '* Remove TLS-Crypt key'
 		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-crypt.key"
 		[ -f "$key_file" ] || \
 			die "TLS-Crypt key does not exist: $key_file"
 
+		# Confirm
+		interactive_remove_warning 'remove-tls-crypt-key'
+
+		# Print command
+		interactive_show_cmd
+
+		# Enable internal batch_mode
+		batch_mode=1
+
 		rm "$key_file" || {
-			error_msg '***Remove TLS-Crypt key failed'
+			error_msg '**Remove TLS-Crypt key failed'
 			return 1
 			}
 
-		notice "  TLS-Crypt key removed: $key_file"
+		# Disable internal batch_mode
+		unset batch_mode
+
+		printf '\n%s\n' "  * TLS-Crypt key removed: $key_file"
 	;;
 	6)	# tls-auth key
-		printf '\n%s\n' '** Remove TLS-Auth key'
+		printf '\n%s\n' '* Remove TLS-Auth key'
 		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-auth.key"
 		[ -f "$key_file" ] || \
 			die "TLS-Auth key does not exist: $key_file"
 
+		# Confirm
+		interactive_remove_warning 'remove-tls-auth-key'
+
+		# Print command
+		interactive_show_cmd
+
+		# Enable internal batch_mode
+		batch_mode=1
+
 		rm "$key_file" || {
-			error_msg '***Remove TLS-Auth key failed'
+			error_msg '**Remove TLS-Auth key failed'
 			return 1
 			}
 
-		printf '\n%s\n' "  TLS-Auth key removed: $key_file"
+		# Disable internal batch_mode
+		unset batch_mode
+
+		printf '\n%s\n' "  * TLS-Auth key removed: $key_file"
 	;;
 	*)	# Other value -> Quit
 		printf '\n%s\n' '  Quit!'
 	;;
 	esac
 } # => interactive_remove ()
+
+# Issue a remove warning
+interactive_remove_warning ()
+{
+	case $1 in
+	remove-tls-auth-key)
+	# TLS-Auth key
+		[ -f "$key_file" ] || die "Missing file: $key_file"
+		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
+			'yes' "
+* If you remove a TLS-Auth key which has been used to build any
+  inline-files then those inline-files will all be invalid.
+
+  Key file:
+  * $key_file"
+	;;
+	remove-tls-crypt-key)
+	# TLS-Crypt key
+		[ -f "$key_file" ] || die "Missing file: $key_file"
+		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
+			'yes' "
+* If you remove a TLS-Crypt key which has been used to build any
+  inline-files then those inline-files will all be invalid.
+
+  Key file:
+  * $key_file"
+	;;
+	remove-tls-crypt-v2-server-key)
+	# TLS-Crypt-V2 Server key
+		[ -f "$key_file" ] || die "Missing file: $key_file"
+		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
+			'yes' "
+* If you remove a TLS-Crypt-V2 Server key which has been used
+  to build any TLS-Crypt-V2 Client keys then those Client keys
+  and their corresponding inline files will all be invalid.
+
+  Key file:
+  * $key_file"
+	;;
+	remove-tls-crypt-v2-client-key)
+	# TLS-Crypt-V2 Client key
+		[ -f "$key_file" ] || die "Missing file: $key_file"
+	;;
+	remove-tls-auth-inline)
+	# TLS-Auth inline
+		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+	;;
+	remove-tls-crypt-inline)
+	# TLS-Crypt inline
+		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+	;;
+	remove-tls-crypt-v2-server-inline)
+	# TLS-Crypt-V2 Server inline
+		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+	;;
+	remove-tls-crypt-v2-client-inline)
+	# TLS-Crypt-V2 Client inline
+		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+	;;
+	*)
+		die "Cannot issue warning for unknown option: $1"
+	;;
+	esac
+} # => interactive_remove_warning ()
 
 # Configure scripts
 interactive_scripts ()
@@ -4234,7 +4336,7 @@ interactive_scripts ()
 To cancel this inter-active menu at any time, press Control-C
 
 * Available script which can be configured:'
-	ia_question_test='
+	ia_question_text='
   [1] TLS Crypt v2 Verify (easytls-cryptv2-verify.sh)
       (Includes hwaddr verification script: easytls-cryptv2-client-connect.sh)
 
@@ -4379,7 +4481,7 @@ interactive_common_name ()
 	ia_question_help='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
-	ia_question_test="
+	ia_question_text="
   Enter the commonName of your * ${cert_type} * certificate:"
 
 	while :
@@ -4429,7 +4531,7 @@ interactive_sub_key_name ()
 * Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
   these keys are referred to as Sub-keys.  Each Sub-key is used in
   a separate inline file with the same X509 Client certificate.'
-	ia_question_test='
+	ia_question_text='
   Enter the Sub-key Name for your key or leave blank to continue:'
 	interactive_question
 	ia_answer="${ia_answer:-$default}"
@@ -4458,7 +4560,7 @@ interactive_key_direction ()
 * Select Key direction.   Default: Server=0 | Client=1
 
   * Currently selected default is: $default"
-	ia_question_test='
+	ia_question_text='
   Enter 0 or 1, or leave blank for default:'
 	while :
 	do
@@ -4483,7 +4585,7 @@ interactive_opt_nokey ()
 * Do you have the private key for this X509 certificate ?
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4513,7 +4615,7 @@ interactive_opt_add_dh ()
   Default DH File: $default_dh_file
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4550,13 +4652,14 @@ interactive_custom_dh ()
   will NOT be add to the inline-file.
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter the DH file name:'
 	interactive_question
 	ia_answer="${ia_answer:-$default}"
-	[ -n "$ia_answer" ] && {
+	[ "$ia_answer" = "$default" ] || {
+		opt_add_dh='add-dh'
 		opt_custom_dh="$ia_answer"
-		cmd_line="--dh=\'${opt_custom_dh}\' ${cmd_line}"
+		cmd_line="--dh=\"${opt_custom_dh}\" ${cmd_line} add-dh"
 		export EASYRSA_DH_FILE="${opt_custom_dh}"
 		}
 }
@@ -4573,7 +4676,7 @@ interactive_opt_no_md ()
   you may prefer to omit it.
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4602,7 +4705,7 @@ interactive_opt_add_hw ()
 * Do you want to include the hardware addresses in the client metadata ?
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4633,7 +4736,7 @@ interactive_hwaddr ()
     * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
 
   If you do not require hardware address lock-down then leave this field blank.'
-	ia_question_test='
+	ia_question_text='
   Enter a single MAC hardware address or leave blank to continue:'
 	while :
 	do
@@ -4662,7 +4765,7 @@ interactive_ca_path ()
   Leave this blank to use the default Easy-RSA PKI path.
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter the path name:'
 	while :
 	do
@@ -4698,7 +4801,7 @@ interactive_custom_group ()
   * Your current Custom-Group is:'
 		[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || \
 			ia_question_help="$ia_question_help $TLSKEY_CUSTOM_GRP"
-		ia_question_test='
+		ia_question_text='
   Enter your Custom-Group or leave this blank to continue:'
 		interactive_question
 		opt_customg="${ia_answer:-$default}"
@@ -4730,7 +4833,7 @@ interactive_key_age ()
   Leave this blank to use the default age. (1825 days is 5 years)
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter the allowable age:'
 	interactive_question
 	key_age_days="${ia_answer:-$default}"
@@ -4750,7 +4853,7 @@ interactive_disabled_list ()
 
   * Default: $default"
 
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4780,7 +4883,7 @@ interactive_tmp_dir ()
 * Enter the temporary directory path where the script can write temp files.
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter the path name:'
 	while :
 	do
@@ -4804,7 +4907,7 @@ interactive_x509_method ()
 
   The default setting will not invoke any X509 code in the script
   and only do TLS verification.  X509 is then handled by OpenVPN.'
-	ia_question_test='
+	ia_question_text='
   [0] Do not use X509 for TLS key verification (default)
   [1] Verify via CRL:   Verify your cert. using openssl crl
   [2] Verify via CA:    Verify your cert. using openssl ca (DOES NOT WORK)
@@ -4851,7 +4954,7 @@ interactive_x509_method ()
 * Select how the verify script loads the CA Identity.
 
   The default setting is to build the CA-ID in the script (SLOWEST)'
-	ia_question_test='
+	ia_question_text='
   [1] --cache-id:   Load the CA-ID from easytls-ca-identity.txt (MEDIUM)
   [2] --preload-id: Load the CD-ID as a string with the script (FASTEST)
 
@@ -4887,7 +4990,7 @@ interactive_x509_method ()
 * Enter your CD-ID.
 
   Leave this blank to use the default Easy-TLS CA-ID.'
-		ia_question_test='
+		ia_question_text='
   Enter the CA-ID:'
 
 		while :
@@ -4924,7 +5027,7 @@ interactive_openvpn_pid ()
   Leave this blank to use the default
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
@@ -4959,7 +5062,7 @@ interactive_hw_required ()
   [3] High - Require all keys to have a hwaddr encrypted.
 
   * Default: $default"
-	ia_question_test='
+	ia_question_text='
   Enter (y)es or (n)o:'
 	while :
 	do
