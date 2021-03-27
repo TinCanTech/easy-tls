@@ -205,6 +205,12 @@ do
 		"--custom-group=tincantech inline-tls-crypt-v2 c08" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw" \
 		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw" \
+		"--custom-group=tincantech --sub-key-name=eve \
+			build-tls-crypt-v2-client s01 c10 ef1234567890 1234567890fe" \
+		"--custom-group=tincantech --sub-key-name=eve \
+			inline-tls-crypt-v2 c10 add-hw" \
+		"--custom-group=tincantech --sub-key-name=eve remove-inline c10" \
+		"--custom-group=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
 		#"inline-index-rebuild" \
