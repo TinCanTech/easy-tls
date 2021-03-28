@@ -34,14 +34,14 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # This is here to catch "print" statements
 # Wrapper around printf - clobber print since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { printf "%s\n" "$1"; }
+print() { "$easytls_printf" "%s\n" "$1"; }
 
 # Exit on error
 die ()
 {
-	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
-	printf "\n%s\n" "ERROR: $1"
-	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+	[ -n "$help_note" ] && "$easytls_printf" "\n%s\n" "$help_note"
+	"$easytls_printf" "\n%s\n" "ERROR: $1"
+	"$easytls_printf" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-255}"
 }
 
@@ -50,54 +50,54 @@ fail_and_exit ()
 {
 	if [ $status_verbose ]
 	then
-		printf "%s " "$status_msg"
-		[ -z "$success_msg" ] || printf "%s " "$success_msg"
-		printf "%s\n%s\n" "$failure_msg $md_name" "$1"
+		"$easytls_printf" "%s " "$status_msg"
+		[ -z "$success_msg" ] || "$easytls_printf" "%s " "$success_msg"
+		"$easytls_printf" "%s\n%s\n" "$failure_msg $md_name" "$1"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> version       local: $local_easytls"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> version      remote: $md_easytls"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> custom_group  local: $local_custom_g"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> custom_group remote: $md_custom_g"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> identity      local: $local_identity"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> identity     remote: $md_identity"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> X509 serial  remote: $md_serial"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> name         remote: $md_name"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> TLSK serial  remote: $tlskey_serial"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> sub-key      remote: $md_subkey"
 
-		printf "%s\n" \
+		"$easytls_printf" "%s\n" \
 			"* ==> date         remote: $md_date"
 
-		[ $2 -eq 1 ] && printf "%s\n" \
+		[ $2 -eq 1 ] && "$easytls_printf" "%s\n" \
 			"* ==> Client serial status: revoked"
 
-		[ $2 -eq 2 ] && printf "%s\n" \
+		[ $2 -eq 2 ] && "$easytls_printf" "%s\n" \
 			"* ==> Client serial status: disabled"
 
-		[ -n "$help_note" ] && printf "%s\n" "$help_note"
+		[ -n "$help_note" ] && "$easytls_printf" "%s\n" "$help_note"
 
-		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+		"$easytls_printf" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s %s\n" "$status_msg" \
+		"$easytls_printf" "%s %s %s %s\n" "$status_msg" \
 			"$success_msg" "$failure_msg" "$md_name"
 	fi
 	exit "${2:-254}"
@@ -172,7 +172,7 @@ help_text ()
   254 - BUG Disallow connection, fail_and_exit exited with default error code.
   255 - BUG Disallow connection, die exited with default error code.
 '
-	printf "%s\n" "$help_msg"
+	"$easytls_printf" "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
 	exit 253
@@ -181,32 +181,33 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	openssl x509 -in "$ca_cert" -noout
+	"$easytls_openssl" x509 -in "$ca_cert" -noout
 }
 
 # Local identity
 fn_local_identity ()
 {
-	openssl x509 -in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
-		sed -e 's/^.*=//g' -e 's/://g'
+	"$easytls_openssl" x509 \
+		-in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
+			sed -e 's/^.*=//g' -e 's/://g'
 }
 
 # Verify CRL
 verify_crl ()
 {
-	openssl crl -in "$crl_pem" -noout
+	"$easytls_openssl" crl -in "$crl_pem" -noout
 }
 
 # Decode CRL
 fn_read_crl ()
 {
-	openssl crl -in "$crl_pem" -noout -text
+	"$easytls_openssl" crl -in "$crl_pem" -noout -text
 }
 
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	printf "%s\n" "$crl_text" | grep -c \
+	"$easytls_printf" "%s\n" "$crl_text" | grep -c \
 		"^[[:blank:]]*Serial Number: ${md_serial}$"
 }
 
@@ -280,14 +281,14 @@ serial_status_via_ca ()
 openssl_serial_status ()
 {
 	# openssl appears to always exit with error - but here I do not care
-	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
+	"$easytls_openssl" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$md_serial" 2>&1
 }
 
 # Capture serial status
 capture_serial_status ()
 {
-	printf "%s\n" "$client_cert_serno_status" | grep '^.*=.*$'
+	"$easytls_printf" "%s\n" "$client_cert_serno_status" | grep '^.*=.*$'
 }
 
 # Verify openssl serial status returns ok
@@ -295,7 +296,7 @@ verify_openssl_serial_status ()
 {
 	return 0 # Disable this `return` if you want to test
 	# openssl appears to always exit with error - have not solved this
-	openssl ca -cert "$ca_cert" -config "$openssl_cnf" \
+	"$easytls_openssl" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$md_serial" || \
 		die "openssl returned an error exit code" 101
 
@@ -404,6 +405,13 @@ init ()
 	# From openvpn server
 	openvpn_metadata_file="$metadata_file"
 
+	# Required binaries
+	easytls_openssl="openssl"
+	easytls_cat="cat"
+	easytls_grep="grep"
+	easytls_printf="printf"
+	#easytls_fail="failfred"
+
 	# Log message
 	status_msg="* Easy-TLS ==>"
 
@@ -439,9 +447,9 @@ deps ()
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
 	help_note="This script requires external binaries."
-	[ "openssl version" ] || die "Missing openssl" 119
-	[ "cat --version"   ] || die "Missing cat" 119
-	[ "grep -V"         ] || die "Missing grep" 119
+	if ! "$easytls_openssl" version > /dev/null; then die "Missing openssl" 119; fi
+	if ! "$easytls_cat" --version   > /dev/null; then die "Missing cat"     119; fi
+	if ! "$easytls_grep" -V         > /dev/null; then die "Missing grep"    119; fi
 
 	if [ $use_cache_id ]
 	then
@@ -506,7 +514,7 @@ deps ()
 		then
 			server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 		else
-			[ $status_verbose ] && printf '%s\n' "No pid file."
+			[ $status_verbose ] && "$easytls_printf" '%s\n' "No pid file."
 		fi
 	fi
 } # => deps ()
@@ -665,7 +673,8 @@ deps
 	# HASH metadata sring without the tlskey-serial
 	if [ $VERIFY_hash ]
 	then
-		md_hash="$(printf '%s' "$md_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
+		md_hash="$("$easytls_printf" '%s' "$md_seed" | \
+			"$easytls_openssl" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
@@ -802,7 +811,7 @@ then
 	daemon_pid="$(cat "$server_pid_file")"
 	client_hw_list="$EASYTLS_tmp_dir/$md_serial.$daemon_pid"
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
-	printf '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
+	"$easytls_printf" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
 		die "Failed to write HW file"
 	[ $status_verbose ] && print "HWADDR-file: $client_hw_list"
 else
@@ -824,6 +833,6 @@ fi
 
 # All is well
 [ $status_verbose ] && \
-	printf "%s\n" "<EXOK> $status_msg $success_msg"
+	"$easytls_printf" "%s\n" "<EXOK> $status_msg $success_msg"
 
 exit 0
