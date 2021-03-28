@@ -258,17 +258,18 @@ then
 	connection_allowed
 else
 	# key has a hwaddr
-
-	# push hwaddr NOT required for keyed hwaddr
-	if [ $push_hwaddr_missing ] && [ $allow_no_check ]
+	if [ $push_hwaddr_missing ]
 	then
-		success_msg="==> hwaddr not pushed and not required"
-		connection_allowed
-	else
-		# push hwaddr required for keyed hwaddr
-		[ $push_hwaddr_missing ] && \
+		# push_hwaddr_missing and allow_no_check
+		if [ $allow_no_check ]
+		then
+			success_msg="==> hwaddr not pushed and not required"
+			connection_allowed
+		else
+			# push_hwaddr_missing NOT allow_no_check
 			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 2
-
+		fi
+	else
 		# hwaddr is pushed
 		if grep -q "$push_hwaddr" "$client_hwaddr_file"
 		then
