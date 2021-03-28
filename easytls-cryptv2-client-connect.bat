@@ -25,14 +25,26 @@ sh.exe easytls-cryptv2-client-connect.sh %VERB% %HWADDR_REQ% %TMP_DIR% >> %LOG% 
 
 REM AOK
 IF ERRORLEVEL 0 SET SH_EXIT=0
-REM HWADDR not allowed
+REM pushed hwaddr does not match
 IF ERRORLEVEL 1 SET SH_EXIT=1
-REM HWADDR missing or invalid
+REM hwaddr required and not pushed
 IF ERRORLEVEL 2 SET SH_EXIT=2
-REM X509 cert serial mismatch
+REM hwaddr required and not keyed
 IF ERRORLEVEL 3 SET SH_EXIT=3
-REM other error
+REM X509 certificate incorrect for this TLS-key
 IF ERRORLEVEL 4 SET SH_EXIT=4
+REM hwaddr verification has not been configured
+IF ERRORLEVEL 5 SET SH_EXIT=5
+REM Server PID does not match daemon_pid
+IF ERRORLEVEL 6 SET SH_EXIT=6
+REM missing value to option
+IF ERRORLEVEL 7 SET SH_EXIT=7
+REM missing X509 client cert serial. (BUG)
+IF ERRORLEVEL 8 SET SH_EXIT=8
+REM unexpected failure. (BUG)
+IF ERRORLEVEL 9 SET SH_EXIT=9
+REM other error
+IF ERRORLEVEL 10 SET SH_EXIT=10
 
 ECHO SH_EXIT: %SH_EXIT% >> %LOG%
 EXIT /B %SH_EXIT%
