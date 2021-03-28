@@ -143,10 +143,10 @@ help_text ()
   0   - Allow connection, Client key has passed all tests.
   1   - Disallow connection, client key has passed all tests but is REVOKED.
   2   - Disallow connection, TLS key serial number is disabled.
-  3   - Disallow connection, invalid metadata_version field.
+  3   - Disallow connection, TLS key has expired.
   4   - Disallow connection, local/remote Custom Groups do not match.
   5   - Disallow connection, local/remote Identities do not match.
-  6   - Disallow connection, TLS key has expired.
+  6   - Disallow connection, invalid metadata_version field.
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote Identity.
@@ -644,11 +644,11 @@ deps
 	;;
 	'')
 		failure_msg="metadata version is missing"
-		fail_and_exit "METADATA VERSION" 3
+		fail_and_exit "METADATA VERSION" 6
 	;;
 	*)
 		failure_msg="metadata version is not recognised: $md_easytls"
-		fail_and_exit "METADATA VERSION" 3
+		fail_and_exit "METADATA VERSION" 6
 	;;
 	esac
 
@@ -674,7 +674,7 @@ deps
 	# Verify tlskey-serial is in index
 	"$easytls_grep" -q "$tlskey_serial" "$tlskey_serial_index" || {
 		failure_msg="TL-key is not recognised"
-		fail_and_exit "TLSKEY SERIAL ALIEN" 9
+		fail_and_exit "TLSKEY SERIAL ALIEN" 11
 		}
 
 	# HASH metadata sring without the tlskey-serial
@@ -685,7 +685,7 @@ deps
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
-			fail_and_exit "TLSKEY SERIAL HASH" 9
+			fail_and_exit "TLSKEY SERIAL HASH" 11
 			}
 	fi
 
@@ -707,7 +707,7 @@ deps
 			max_age_msg="Max age: $tlskey_max_age days"
 			key_age_msg="Key age: $tlskey_age_day days"
 			failure_msg="Key expired: $max_age_msg $key_age_msg"
-			fail_and_exit "TLSKEY EXPIRED" 6
+			fail_and_exit "TLSKEY EXPIRED" 3
 			}
 
 		# Success message
