@@ -214,7 +214,8 @@ fn_search_crl ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	"$easytls_grep" -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
+	"$easytls_grep" -c \
+		"^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
 		"$index_txt"
 }
 
@@ -288,7 +289,8 @@ openssl_serial_status ()
 # Capture serial status
 capture_serial_status ()
 {
-	"$easytls_printf" "%s\n" "$client_cert_serno_status" | "$easytls_grep" '^.*=.*$'
+	"$easytls_printf" "%s\n" "$client_cert_serno_status" | \
+		"$easytls_grep" '^.*=.*$'
 }
 
 # Verify openssl serial status returns ok
@@ -447,10 +449,14 @@ deps ()
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
 	help_note="This script requires external binaries."
-	if ! "$easytls_openssl" version > /dev/null; then die "Missing openssl" 119; fi
-	if ! "$easytls_cat" --version   > /dev/null; then die "Missing cat"     119; fi
-	if ! "$easytls_grep" -V         > /dev/null; then die "Missing grep"    119; fi
-	if ! "$easytls_sed" --version   > /dev/null; then die "Missing sed"     119; fi
+	if ! "$easytls_openssl" version > /dev/null; then
+		die "Missing openssl" 119; fi
+	if ! "$easytls_cat" --version   > /dev/null; then
+		die "Missing cat"     119; fi
+	if ! "$easytls_grep" -V         > /dev/null; then
+		die "Missing grep"    119; fi
+	if ! "$easytls_sed" --version   > /dev/null; then
+		die "Missing sed"     119; fi
 
 	if [ $use_cache_id ]
 	then
@@ -818,8 +824,8 @@ then
 else
 	# OpenVPN does not give the PID so it must be set via $server_pid_file
 	# In this case, assume hardware address verification is not required
-	[ $status_verbose ] && print "Hardware-address verification is not configured."
-	:
+	[ $status_verbose ] && \
+		print "Hardware-address verification is not configured."
 fi
 
 # Any failure_msg means fail_and_exit
