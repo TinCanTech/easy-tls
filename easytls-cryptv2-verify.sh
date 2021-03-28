@@ -207,14 +207,14 @@ fn_read_crl ()
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	"$easytls_printf" "%s\n" "$crl_text" | grep -c \
-		"^[[:blank:]]*Serial Number: ${md_serial}$"
+	"$easytls_printf" "%s\n" "$crl_text" | \
+		"$easytls_grep" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
 }
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	grep -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
+	"$easytls_grep" -c "^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
 		"$index_txt"
 }
 
@@ -288,7 +288,7 @@ openssl_serial_status ()
 # Capture serial status
 capture_serial_status ()
 {
-	"$easytls_printf" "%s\n" "$client_cert_serno_status" | grep '^.*=.*$'
+	"$easytls_printf" "%s\n" "$client_cert_serno_status" | "$easytls_grep" '^.*=.*$'
 }
 
 # Verify openssl serial status returns ok
@@ -340,7 +340,7 @@ serial_status_via_pki_index ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_valid_pki_index ()
 {
-	grep -c \
+	"$easytls_grep" -c \
 	"^V.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
 		"$index_txt"
 }
@@ -348,7 +348,7 @@ fn_search_valid_pki_index ()
 # Final check: Search index.txt for Revoked client cert serial number
 fn_search_revoked_pki_index ()
 {
-	grep -c \
+	"$easytls_grep" -c \
 	"^R.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
 		"$index_txt"
 }
@@ -665,7 +665,7 @@ deps
 # tlskey-serial checks
 
 	# Verify tlskey-serial is in index
-	grep -q "$tlskey_serial" "$tlskey_serial_index" || {
+	"$easytls_grep" -q "$tlskey_serial" "$tlskey_serial_index" || {
 		failure_msg="TL-key is not recognised"
 		fail_and_exit "TLSKEY SERIAL ALIEN" 9
 		}
@@ -714,7 +714,7 @@ deps
 	if [ $use_disable_list ]
 	then
 		# Search the disabled_list for client serial number
-		if grep -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
+		if "$easytls_grep" -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
 		then
 			# Client is disabled
 			failure_msg="client serial number is disabled: $md_serial"
