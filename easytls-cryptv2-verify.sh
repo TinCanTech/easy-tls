@@ -409,8 +409,8 @@ init ()
 	easytls_openssl="openssl"
 	easytls_cat="cat"
 	easytls_grep="grep"
+	easytls_sed="sed"
 	easytls_printf="printf"
-	#easytls_fail="failfred"
 
 	# Log message
 	status_msg="* Easy-TLS ==>"
@@ -450,6 +450,7 @@ deps ()
 	if ! "$easytls_openssl" version > /dev/null; then die "Missing openssl" 119; fi
 	if ! "$easytls_cat" --version   > /dev/null; then die "Missing cat"     119; fi
 	if ! "$easytls_grep" -V         > /dev/null; then die "Missing grep"    119; fi
+	if ! "$easytls_sed" --version   > /dev/null; then die "Missing sed"     119; fi
 
 	if [ $use_cache_id ]
 	then
