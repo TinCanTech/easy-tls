@@ -4434,6 +4434,9 @@ To cancel this inter-active menu at any time, press Control-C
 		# -c|--ca=<path> - opt_ca_path
 		interactive_ca_path
 
+		# Hash algorithm
+		interactive_hashalgo
+
 		# -g|--custom-group=<GROUP> - opt_customg
 		interactive_custom_group
 
@@ -4457,7 +4460,7 @@ To cancel this inter-active menu at any time, press Control-C
 		# -t|--tmp-dir - opt_tmp_dir
 		[ $opt_openvpn_pid ] && interactive_tmp_dir
 
-		# -r|--required
+		# -a|-p|-k hardware requirements
 		[ $opt_openvpn_pid ] && interactive_hw_required
 
 	if [ $OS ]
@@ -4485,6 +4488,7 @@ To cancel this inter-active menu at any time, press Control-C
 		sed -i \
 			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
 			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
+			-e "s\`^SET HASH_ALGO=.*$\`SET HASH_ALGO=${opt_hashalgo}\`g" \
 			-e "s\`^SET CUST_GRP=.*$\`SET CUST_GRP=${opt_customg}\`g" \
 			"$EASYTLS_WIN_TC2V_BAT"
 
@@ -4510,6 +4514,7 @@ To cancel this inter-active menu at any time, press Control-C
 			printf ' %s'  "'"
 			printf '%s'   "$EASYTLS_VERIFY_SH -v"
 			printf ' %s'  "-c=${opt_ca_path}"
+			[ $opt_hashalgo ]     && printf ' %s' "${opt_hashalgo}"
 			[ $opt_customg ]      && printf ' %s' "${opt_customg}"
 			[ $opt_key_age ]      && printf ' %s' "${opt_key_age}"
 			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
@@ -4858,6 +4863,12 @@ interactive_ca_path ()
 		print '
   This path does not contain a valid CA certificate.'
 	done
+}
+
+# hash algorithm
+interactive_hashalgo ()
+{
+	opt_hashalgo="--hash=${EASYTLS_HASH_ALGO}"
 }
 
 # Set Custom Group
