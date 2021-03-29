@@ -870,6 +870,17 @@ init_tls ()
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
 	verify_pki_init
 
+	# Easy-TLS does NOT support folders with spaces in the name
+	# So bail out now and don't waste time
+	if [ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ]
+	then
+		# OK
+		:
+	else
+		help_note="Easy-TLS does NOT support folders with spaces in the name"
+		die "Fix your folder name: $EASYTLS_PKI"
+	fi
+
 	# If EASYTLS_PKI exists, confirm before we rm -rf
 	# skipped with EASYTLS_BATCH
 	if [ -d "$EASYTLS_PKI" ]; then
@@ -4456,16 +4467,16 @@ To cancel this inter-active menu at any time, press Control-C
 		{
 			printf '%s\n' '# Easy-TLS script configuration'
 			printf '%s\n' 'script-security 2'
-			printf '%s' '    tls-crypt-v2-verify'
-			printf ' %s' "'"
-			printf '%s' "\"${EASYTLS_WIN_TC2V_BAT}\""
+			printf '%s'   'tls-crypt-v2-verify'
+			printf ' %s'  "'"
+			printf '%s'   "${EASYTLS_WIN_TC2V_BAT}"
 			printf '%s\n' "'"
 			[ $opt_openvpn_pid ] && printf '%s\n' \
-				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
+				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
 			[ $opt_openvpn_pid ] && {
-				printf '%s' '    client-connect'
-				printf ' %s' "'\""
-				printf '%s' "${EASYTLS_WIN_CCON_BAT}\""
+				printf '%s'   'client-connect'
+				printf ' %s'  "'"
+				printf '%s'   "${EASYTLS_WIN_CCON_BAT}"
 				printf '%s\n' "'"
 				}
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
@@ -4487,7 +4498,7 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '\n%s\n\n' '===================='
 		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
-		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
+		printf '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
 	else
 		# NIX
 		# Create config
@@ -4495,28 +4506,28 @@ To cancel this inter-active menu at any time, press Control-C
 			# easytls-cryptv2-verify.sh
 			printf '%s\n' '# Easy-TLS script configuration'
 			printf '%s\n' 'script-security 2'
-			printf '%s' '    tls-crypt-v2-verify'
-			printf ' %s' "'"
-			printf '%s' "\"$EASYTLS_VERIFY_SH\" -v"
-			printf ' %s' "\"-c=${opt_ca_path}\""
-			[ $opt_customg ] && printf ' %s' "${opt_customg}"
-			[ $opt_key_age ] && printf ' %s' "${opt_key_age}"
+			printf '%s'   'tls-crypt-v2-verify'
+			printf ' %s'  "'"
+			printf '%s'   "$EASYTLS_VERIFY_SH -v"
+			printf ' %s'  "-c=${opt_ca_path}"
+			[ $opt_customg ]      && printf ' %s' "${opt_customg}"
+			[ $opt_key_age ]      && printf ' %s' "${opt_key_age}"
 			[ $opt_disable_list ] && printf ' %s' "${opt_disable_list}"
-			[ $opt_tmp_dir ] && printf ' %s' "\"-t=${opt_tmp_dir}\""
-			[ $opt_x509_method ] && printf ' %s' "${opt_x509_method}"
-			[ $opt_load_ca_id ] && printf ' %s' "${opt_load_ca_id}"
-			[ $opt_preload_id ] && printf ' %s' "${opt_preload_id}"
+			[ $opt_tmp_dir ]      && printf ' %s' "-t=${opt_tmp_dir}"
+			[ $opt_x509_method ]  && printf ' %s' "${opt_x509_method}"
+			[ $opt_load_ca_id ]   && printf ' %s' "${opt_load_ca_id}"
+			[ $opt_preload_id ]   && printf ' %s' "${opt_preload_id}"
 			printf '%s\n' "'"
 			[ $opt_openvpn_pid ] && printf '%s\n' \
-				"    ${opt_openvpn_pid} \"${opt_tmp_dir}/easytls-server.pid\""
+				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
 
 			# easytls-cryptv2-client-connect.sh
 			[ $opt_openvpn_pid ] && {
-				printf '%s' '    client-connect'
-				printf ' %s' "'"
-				printf '%s' "\"${EASYTLS_CLICON_SH}\" -v"
-				printf ' %s' "$opt_hw_required"
-				printf ' %s' "\"-t=${opt_tmp_dir}\""
+				printf '%s'   'client-connect'
+				printf ' %s'  "'"
+				printf '%s'   "${EASYTLS_CLICON_SH} -v"
+				printf ' %s'  "$opt_hw_required"
+				printf ' %s'  "-t=${opt_tmp_dir}"
 				printf '%s\n' "'"
 				}
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
@@ -4525,7 +4536,7 @@ To cancel this inter-active menu at any time, press Control-C
 		printf '\n%s\n\n' '===================='
 		printf '%s\n\n' '* Configure OpenVPN to use easytls scripts'
 		printf '%s\n'   '  Add this to your OpenVPN Server config file:'
-		printf '\n    %s %s\n' 'config' "\"$EASYTLS_SRVSCRIPT_CFG\""
+		printf '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
 	fi
 	printf '\n%s\n' '* Easy-TLS Scripts configuration completed'
 	;;
