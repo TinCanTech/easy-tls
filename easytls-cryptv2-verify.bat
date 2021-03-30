@@ -14,6 +14,7 @@ SET SH_EXIT=9
 
 SET VERB=-v
 SET CA_DIR=/home/tct/git/tct/FULL_TEST/pki
+SET HASH_ALGO=--hash=SHA256
 SET CUST_GRP=-g=tincantech
 SET PID_FILE=-s=%WORK_DIR%/easytls-server.pid
 SET TMP_DIR=-t=%WORK_DIR%
@@ -21,7 +22,7 @@ SET TMP_DIR=-t=%WORK_DIR%
 ECHO * easytls-cryptv2-verify.bat * > %LOG%
 REM Run the script
 REM -c|--ca-path can be absolute or relative to WORK_DIR
-sh.exe easytls-cryptv2-verify.sh %VERB% -c=%CA_DIR% %CUST_GRP% %TMP_DIR% %PID_FILE% >> %LOG% 2>&1
+sh.exe easytls-cryptv2-verify.sh %VERB% -c=%CA_DIR% %HASH_ALGO% %CUST_GRP% %TMP_DIR% %PID_FILE% >> %LOG% 2>&1
 
 REM AOK
 IF ERRORLEVEL 0 SET SH_EXIT=0
