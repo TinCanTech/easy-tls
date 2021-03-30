@@ -1381,7 +1381,42 @@ status_easyrsa_renewed ()
 # List known TLS keys
 status_easytls_tlskeys ()
 {
-	print "Comming soon.."
+	#cat "$EASYTLS_KEY_INDEX"
+	#return 0
+
+	while read -r tlskey_serial cert_serial common_name sub_key
+	do
+		# Skip heading
+		[ "$tlskey_serial" = "#" ] && continue
+
+		# Validate - Can not open this key so these checks are minor
+		key_file="$EASYTLS_PKI/$common_name-tls-crypt-v2.key"
+		metadata_debug="$EASYTLS_MD_DIR/$common_name-tls-crypt-v2.metadata"
+		full_name="${common_name}-${sub_key}"
+		[ "$sub_key" = 'NOSUBKEY' ] || {
+			key_file="$EASYTLS_PKI/$full_name-tls-crypt-v2.key"
+			metadata_debug="$EASYTLS_MD_DIR/$full_name-tls-crypt-v2.metadata"
+			}
+		[ -f "$key_file" ] || printf '%s\t'   "  Missing key"
+		if  [ "$tlskey_serial" = '0000000000000000000000000000000000000000' ]
+		then
+			# Must be a server key with no metadata
+			# All server key tls-serial are only 40 chars, no need for SHA256
+			printf '%s\t'   "  Server"
+		else
+			[ -f "$metadata_debug" ] || printf '%s\t'   "Missing metadata"
+			printf '%s\t'   "    Client"
+		fi
+
+		printf '%s\t'   "Common-Name $common_name"
+		#printf '%s\t'   "tlskey-serial $tlskey_serial"
+		#printf '%s\t'   "cert-serial $cert_serial"
+		[ "$sub_key" = 'NOSUBKEY' ] || printf '%s\t' "sub-key $sub_key"
+		printf '\n'
+
+		# List
+		etls_valid_tlskey_list="$etls_valid_tlskey_list $tlskey_serial"
+	done < "$EASYTLS_KEY_INDEX"
 }
 
 # List disabled client keys
