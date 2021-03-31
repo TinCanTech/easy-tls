@@ -5591,7 +5591,7 @@ easytls_version ()
 ########################################
 # Invocation entry point:
 
-EASYTLS_VERSION="1.27a"
+EASYTLS_VERSION="1.27"
 
 # Be secure with a restrictive umask
 [ -z "$EASYTLS_NO_UMASK" ] && umask 077
