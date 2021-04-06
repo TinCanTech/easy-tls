@@ -204,7 +204,7 @@ do
 	;;
 	1)
 		# DISABLE CA verify
-		echo ">< >< >< >< >< DISABLE CA CERTIFICATE VERIFY >< >< >< >< ><"
+		printf '%s\n' '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
 		exit 0
 	;;
 	*)
