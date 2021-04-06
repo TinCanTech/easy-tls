@@ -59,7 +59,7 @@ Easy-TLS details:
 
     * OpenVPN TLS Crypt Version 2 keys ** Nice **
 
-    * Manage 'inline' files, including:
+    * Manage 'inline' files, including: OpenVPN --tls-crypt-V2
 
       * Easy-RSA3 x509 Public Key Infra-structure
       * OpenVPN specific TLS keys
@@ -72,39 +72,56 @@ Easy-TLS details:
       This is effectively a software configurable firewall for OpenVPN.
 
 
-easytls-cryptv2-verify.sh details:
+TLS-Crypt-v2 client key metadata details:
 
-  * EasyTLS-Crypt-v2 client key metadata
+  * This metadata field is constructed as follows:
 
-    This metadata field is constructed as follows:
+    1.  Four part field.
 
-    1.  TLS-Crypt-V2 key serial number.
-        A 32bit random padding string.
+        TLS-Crypt-V2 key serial number. (SHA256 or SHA1)
+        EG: 4504cc7595f802344e7200c11fc1586f06fe18d546e8343abbe2b53ee1edfa90
+
+        A 32bit random padding string. EG: 4d76a07e
+
         Easy-TLS identifier string: 'easytls'
-        EasyTLS metadata version string: "$EASYTLS_VERSION"
-        Four part field.
 
-    2   CA Fingerprint. (Formatted to one contiguous string, CA-Identity)
-        Server X509 certificate CommonName.
-        Two part field.
+        EasyTLS metadata version string: "$EASYTLS_VERSION". EG: 1.27
+
+        Example:
+        4504cc7595f802344e7200c11fc1586f06fe18d546e8343abbe2b53ee1edfa90-4d76a07e--easytls-1.27
+
+    2   Two part field.
+
+        CA Fingerprint. (Formatted to one contiguous string, CA-Identity)
+        EG: 2859809249AF76AADE8C585406380DF303A9C212AB91100A10D71B20319CA253
+
+        Server X509 certificate CommonName. EG: s01
+
+        Example:
+        2859809249AF76AADE8C585406380DF303A9C212AB91100A10D71B20319CA253-s01
 
     3.  Client X509 certificate serial-number.
+        EG: 1607AD45763A27B447F67578C1B815F2
 
     4.  Creation-date. (date +%s - "Seconds since...")
+        EG: 1617216408
 
     5.  User definable Custom-Group.
         This is a string which the user can use for identification:
-        eg. "CompanyName" (One contiguous string)
+        EG: "CompanyName" (One contiguous string)
 
     6.  Client X509 certificate CommonName.
+        EG: c09
 
     7.  TLS-CryptV2 key name.
         This allows clients to have an unlimited number of keys
         associated with their single X509 certificate.
+        EG: Home
 
     8.  Unused field.
 
     9.  Hardware-address-list.
+        EG: +EF1234567890+1234567890FE+
 
 
   * EasyTLS-Crypt-v2 disabled list
