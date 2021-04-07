@@ -34,23 +34,18 @@ help_text ()
   Options:
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
+  -c|--ca=<path>      Path to CA *REQUIRED*
   -t|--tmp-dir=<path> Temporary directory to load the client hardware list from.
   -s|--pid-file=<FILE>
                       The PID file for the openvpn server instance.
-  -a|--allow-no-check If the key has a hardware-address configured
-                      and the client did NOT use --push-peer-info
-                      then allow the connection.  Otherwise, keys with a
-                      hardware-address MUST use --push-peer-info.
-  -p|--push-required  Require all clients to use --push-peer-info.
-  -k|--key-required   Require all client keys to have a hardware-address.
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
-  1   - Disallow connection, pushed hwaddr does not match.
-  2   - Disallow connection, hwaddr required and not pushed.
-  3   - Disallow connection, hwaddr required and not keyed.
-  4   - Disallow connection, X509 certificate incorrect for this TLS-key.
-  5   - Disallow connection, hwaddr verification has not been configured.
+  1   - Disallow connection, Client cert not recognised.
+  2   - Disallow connection, CA PKI dir not defined. (REQUIRED)
+  3   - Disallow connection, CA cert not found.
+  4   - Disallow connection, index.txt not found.
+  5   - Disallow connection, Server PID file has not been configured.
   6   - Disallow connection, Server PID does not match daemon_pid.
   7   - Disallow connection, missing value to option.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
@@ -84,7 +79,7 @@ die ()
 fail_and_exit ()
 {
 	rm -f "$client_hwaddr_file"
-	if [ $CLICON_VERBOSE ]
+	if [ $EASYTLS_VERBOSE ]
 	then
 		printf "%s " "$easytls_msg"
 		[ -z "$success_msg" ] || printf "%s\n" "$success_msg"
@@ -136,7 +131,7 @@ deps ()
 #echo >> "${EASYTLS_tmp_dir}/easytls.env"
 
 	# CA_dir MUST be set with option: -c|--ca
-	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 22
+	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 2
 	TLS_dir="$CA_dir/easytls/data"
 
 	# CA required files
@@ -145,9 +140,9 @@ deps ()
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
-	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
+	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 3
 	help_note="This script requires an EasyRSA generated DB."
-	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
+	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 4
 
 
 	# Set default Server PID file if not set by command line
@@ -187,7 +182,7 @@ do
 	;;
 	-v|--verbose)
 		empty_ok=1
-		CLICON_VERBOSE=1
+		EASYTLS_VERBOSE=1
 	;;
 	-c|--ca)
 		CA_dir="$val"
@@ -204,16 +199,17 @@ do
 	;;
 	1)
 		# DISABLE CA verify
-		printf '%s\n' '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
+		[ $EASYTLS_VERBOSE ] && \
+			printf '%s\n' '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
 		exit 0
 	;;
 	*)
 		empty_ok=1
 		if [ -f "$opt" ]
 		then
-			print "Ignoring temp file: $opt"
+			[ $EASYTLS_VERBOSE ] && print "Ignoring temp file: $opt"
 		else
-			print "Ignoring unknown option: $opt"
+			[ $EASYTLS_VERBOSE ] && print "Ignoring unknown option: $opt"
 		fi
 	;;
 	esac
@@ -244,20 +240,22 @@ deps
 	# Verify the hwaddr file
 	if [ -f "$client_hwaddr_file" ]
 	then
-		# Client cert serial matches
+		# Client cert serial matches hwaddr file name
 		easytls_msg="${easytls_msg} ==> X509 serial matched"
 		connection_allowed
 	else
-		# cert serial does not match - ALWAYS fail
+		# cert serial does not match hwaddr file name
 		easytls_msg="${easytls_msg} ==> No hwaddr file"
 		if grep -q "$client_serial" "$index_txt"
 		then
 			easytls_msg="${easytls_msg} ==> Valid Client cert serial"
 			connection_allowed
-			printf '%s' '1 2 3 4 5 6 7 8 000000000000' > "$client_hwaddr_file"
+			# Create a simple hwaddr file for client-connect
+			printf '%s' '000000000000' > "$client_hwaddr_file"
 		else
+			# Cert serial not found in PKI index.txt
 			failure_msg="INVALID CLIENT CERTIFICATE SERIAL"
-			fail_and_exit "NEIN: $failure_msg" 99
+			fail_and_exit "NEIN: $failure_msg" 1
 		fi
 	fi
 
@@ -273,7 +271,7 @@ deps
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
 
 # All is well
-[ $CLICON_VERBOSE ] && \
+[ $EASYTLS_VERBOSE ] && \
 	printf "%s\n" "<EXOK> $easytls_msg $success_msg"
 
 exit 0
