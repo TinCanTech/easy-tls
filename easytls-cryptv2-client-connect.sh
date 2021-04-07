@@ -84,7 +84,7 @@ die ()
 fail_and_exit ()
 {
 	rm -f "$client_hwaddr_file"
-	if [ $CLICON_VERBOSE ]
+	if [ $EASYTLS_VERBOSE ]
 	then
 		printf "%s " "$easytls_msg"
 		[ -z "$success_msg" ] || printf "%s\n" "$success_msg"
@@ -188,7 +188,7 @@ do
 	;;
 	-v|--verbose)
 		empty_ok=1
-		CLICON_VERBOSE=1
+		EASYTLS_VERBOSE=1
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="$val"
@@ -212,9 +212,9 @@ do
 		empty_ok=1
 		if [ -f "$opt" ]
 		then
-			print "Ignoring temp file: $opt"
+			[ $EASYTLS_VERBOSE ] && print "Ignoring temp file: $opt"
 		else
-			print "Ignoring unknown option: $opt"
+			[ $EASYTLS_VERBOSE ] && print "Ignoring unknown option: $opt"
 		fi
 	;;
 	esac
@@ -294,7 +294,7 @@ fi
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
 
 # All is well
-[ $CLICON_VERBOSE ] && \
+[ $EASYTLS_VERBOSE ] && \
 	printf "%s\n" "<EXOK> $easytls_msg $success_msg"
 
 exit 0
