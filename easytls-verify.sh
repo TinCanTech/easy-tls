@@ -132,7 +132,6 @@ deps ()
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 2
-	TLS_dir="$CA_dir/easytls/data"
 
 	# CA required files
 	ca_cert="$CA_dir/ca.crt"
@@ -241,14 +240,14 @@ deps
 	if [ -f "$client_hwaddr_file" ]
 	then
 		# Client cert serial matches hwaddr file name
-		easytls_msg="${easytls_msg} ==> X509 serial matched"
+		success_msg=" ==> X509 serial matched"
 		connection_allowed
 	else
 		# cert serial does not match hwaddr file name
 		easytls_msg="${easytls_msg} ==> No hwaddr file"
 		if grep -q "$client_serial" "$index_txt"
 		then
-			easytls_msg="${easytls_msg} ==> Valid Client cert serial"
+			success_msg=" ==> Valid Client cert serial"
 			connection_allowed
 			# Create a simple hwaddr file for client-connect
 			printf '%s' '000000000000' > "$client_hwaddr_file"
