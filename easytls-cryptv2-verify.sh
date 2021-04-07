@@ -48,7 +48,7 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
-	if [ EASYTLS_VERBOSE ]
+	if [ $EASYTLS_VERBOSE ]
 	then
 		"$easytls_printf" "%s " "$status_msg"
 		[ -z "$success_msg" ] || "$easytls_printf" "%s " "$success_msg"
@@ -521,7 +521,7 @@ deps ()
 		then
 			server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 		else
-			[ EASYTLS_VERBOSE ] && "$easytls_printf" '%s\n' "No pid file."
+			[ $EASYTLS_VERBOSE ] && "$easytls_printf" '%s\n' "No pid file."
 		fi
 	fi
 } # => deps ()
@@ -614,7 +614,7 @@ do
 	;;
 	-v|--verbose)
 		empty_ok=1
-		status_verbose=1
+		EASYTLS_VERBOSE=1
 	;;
 	help|-h|-help|--help)
 		empty_ok=1
@@ -820,11 +820,11 @@ then
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
 	"$easytls_printf" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
 		die "Failed to write HW file"
-	[ EASYTLS_VERBOSE ] && print "HWADDR-file: $client_hw_list"
+	[ $EASYTLS_VERBOSE ] && print "HWADDR-file: $client_hw_list"
 else
 	# OpenVPN does not give the PID so it must be set via $server_pid_file
 	# In this case, assume hardware address verification is not required
-	[ EASYTLS_VERBOSE ] && \
+	[ $EASYTLS_VERBOSE ] && \
 		print "Hardware-address verification is not configured."
 fi
 
@@ -839,7 +839,7 @@ fi
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
 
 # All is well
-[ EASYTLS_VERBOSE ] && \
+[ $EASYTLS_VERBOSE ] && \
 	"$easytls_printf" "%s\n" "<EXOK> $status_msg $success_msg"
 
 exit 0
