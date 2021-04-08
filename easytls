@@ -4443,8 +4443,6 @@ interactive_scripts ()
 
 	# Choose Key
 	ia_question_help='
-To cancel this inter-active menu at any time, press Control-C
-
 * Available script which can be configured:'
 	ia_question_text='
   [1] TLS Crypt v2 Verify (easytls-cryptv2-verify.sh)
@@ -4456,9 +4454,9 @@ To cancel this inter-active menu at any time, press Control-C
 	case $ia_answer in
 	1)	# easytls-cryptv2-verify.sh
 
-		[ -f "$EASYTLS_VERIFY_SH" ] || {
+		[ -f "$EASYTLS_VERIFY_V2_SH" ] || {
 			help_note='Download from: https://github.com/TinCanTech/easy-tls'
-			die "Required script missing: $EASYTLS_VERIFY_SH"
+			die "Required script missing: $EASYTLS_VERIFY_V2_SH"
 			}
 
 		[ -f "$EASYTLS_CLICON_SH" ] || {
@@ -4512,6 +4510,12 @@ To cancel this inter-active menu at any time, press Control-C
 			[ $opt_openvpn_pid ] && printf '%s\n' \
 				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
 			[ $opt_openvpn_pid ] && {
+				printf '%s'   'tls-verify'
+				printf ' %s'  "'"
+				printf '%s'   "${EASYTLS_WIN_TV_BAT}"
+				printf '%s\n' "'"
+				}
+			[ $opt_openvpn_pid ] && {
 				printf '%s'   'client-connect'
 				printf ' %s'  "'"
 				printf '%s'   "${EASYTLS_WIN_CCON_BAT}"
@@ -4526,6 +4530,12 @@ To cancel this inter-active menu at any time, press Control-C
 			-e "s\`^SET HASH_ALGO=.*$\`SET HASH_ALGO=${opt_hashalgo}\`g" \
 			-e "s\`^SET CUST_GRP=.*$\`SET CUST_GRP=${opt_customg}\`g" \
 			"$EASYTLS_WIN_TC2V_BAT"
+
+		# sed easytls-verify.bat
+		sed -i \
+			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
+			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
+			"$EASYTLS_WIN_TV_BAT"
 
 		# sed easytls-cryptv2-client-connect.bat
 		sed -i \
@@ -4547,7 +4557,7 @@ To cancel this inter-active menu at any time, press Control-C
 			printf '%s\n' 'script-security 2'
 			printf '%s'   'tls-crypt-v2-verify'
 			printf ' %s'  "'"
-			printf '%s'   "$EASYTLS_VERIFY_SH -v"
+			printf '%s'   "$EASYTLS_VERIFY_V2_SH -v"
 			printf ' %s'  "-c=${opt_ca_path}"
 			[ $opt_hashalgo ]     && printf ' %s' "${opt_hashalgo}"
 			[ $opt_customg ]      && printf ' %s' "${opt_customg}"
@@ -4560,6 +4570,16 @@ To cancel this inter-active menu at any time, press Control-C
 			printf '%s\n' "'"
 			[ $opt_openvpn_pid ] && printf '%s\n' \
 				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
+
+			# easytls-verify.sh - Required for --tls-auth or --tls-crypt clients
+			[ $opt_openvpn_pid ] && {
+				printf '%s'   'tls-verify'
+				printf ' %s'  "'"
+				printf '%s'   "${EASYTLS_VERIFY_V1_SH} -v"
+				printf ' %s'  "-c=${opt_ca_path}"
+				printf ' %s'  "-t=${opt_tmp_dir}"
+				printf '%s\n' "'"
+				}
 
 			# easytls-cryptv2-client-connect.sh
 			[ $opt_openvpn_pid ] && {
@@ -5145,7 +5165,7 @@ interactive_x509_method ()
 # Set use of Openvpn PID for client connect srcipt
 interactive_openvpn_pid ()
 {
-	unset opt_hw_required
+	unset opt_openvpn_pid
 	default='Y'
 	ia_question_help="
 * Do you want to use the Easy-TLS client-connect script ?
@@ -5187,9 +5207,11 @@ interactive_hw_required ()
   [2] Medium - Require all clients to push a hwaddr.
   [3] High - Require all keys to have a hwaddr encrypted.
 
-  * Default: $default"
+   Leave this blank to use the default
+
+ * Default: $default"
 	ia_question_text='
-  Enter (y)es or (n)o:'
+  Enter your required level:'
 	while :
 	do
 		interactive_question
@@ -5533,12 +5555,14 @@ vars_setup()
 	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
-	set_var EASYTLS_VERIFY_SH       "$EASYTLS/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_VERIFY_V2_SH    "$EASYTLS/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_VERIFY_V1_SH    "$EASYTLS/easytls-verify.sh"
 	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-cryptv2-client-connect.sh"
 
-	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-cryptv2-script.conf"
+	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-script.conf"
 
 	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
+	set_var EASYTLS_WIN_TV_BAT      "$EASYTLS/easytls-verify.bat"
 	set_var EASYTLS_WIN_CCON_BAT    "$EASYTLS/easytls-cryptv2-client-connect.bat"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
