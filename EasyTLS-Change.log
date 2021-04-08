@@ -1,0 +1,15 @@
+https://github.com/TinCanTech/easy-tls
+  Change log:
+
+Version 1.28 (Development)
+  Introduce support for --tls-auth and --tls-crypt(v1) clients.
+  commit 4815f858d5af82696ff908cb09f8cbc86a5d022a
+
+Version 1.27 (Official release)
+* 2021-03-31
+  commit cd52aede5447df145528ca961b832fcb81d2d5ea
+
+Creation date
+* 2020-03-13
+  Initial commit
+
