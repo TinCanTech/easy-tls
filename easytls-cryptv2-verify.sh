@@ -675,9 +675,9 @@ deps
 	then
 		# Verify tlskey-serial is in index
 		"$easytls_grep" -q "$tlskey_serial" "$tlskey_serial_index" || {
-		failure_msg="TL-key is not recognised"
-		fail_and_exit "TLSKEY SERIAL ALIEN" 11
-		}
+			failure_msg="TLS-key is not recognised"
+			fail_and_exit "TLSKEY SERIAL ALIEN" 11
+			}
 
 		# HASH metadata sring without the tlskey-serial
 		md_hash="$("$easytls_printf" '%s' "$md_seed" | \
