@@ -6,7 +6,6 @@
 
 * Download [easytls](https://github.com/TinCanTech/easy-tls/blob/master/easytls) to your EasyRSA3 working directory.<br>
  `easytls` requires access to your PKI to verify and create keys.<br>
- `easytls` only needs access to your `private/ca.key` to generate your CA fingerprint.<br>
  It is not necessary to have a separate directory for `easytls`<br>
 
 * Download [easytls-cryptv2-verify.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
@@ -45,7 +44,7 @@ Please use the help:<br>
   ```
   (This is your formatted CA fingerprint)<br>
   <br>
-  If you have successfully got this far then you can move your `private/ca.key` to a safe place. <br>
+  If you have successfully got this far then you should move your `private/ca.key` to a safe place. <br>
   <br>
 * Check your configuration:
   ```
