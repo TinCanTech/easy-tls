@@ -98,12 +98,6 @@ get_ovpn_client_serial ()
 	printf '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
-# Get the client hardware address from env
-get_ovpn_client_hwaddr ()
-{
-	printf '%s' "$IV_HWADDR" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
-}
-
 # Allow connection
 connection_allowed ()
 {
@@ -126,10 +120,6 @@ init ()
 # Dependancies
 deps ()
 {
-
-#env >> "${EASYTLS_tmp_dir}/easytls.env"
-#echo >> "${EASYTLS_tmp_dir}/easytls.env"
-
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 2
 
@@ -229,42 +219,35 @@ deps
 	# Set Client certificate serial number from Openvpn env
 	client_serial="$(get_ovpn_client_serial)"
 
-
 	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 8
+	[ -n "$client_serial" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 8
 
+	# There will never be a hardware file because
+	# --tls-crypt-v2-verify is not triggered for this client
+	# --tls-crypt-v2, --tls-auth and --tls-crypt
+	# are mutually exclusive in client mode
 	# Set hwaddr file name
-	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
+	client_hwaddr_file="${EASYTLS_tmp_dir}/${client_serial}.${daemon_pid}"
 
-	# Verify the hwaddr file
-	if [ -f "$client_hwaddr_file" ]
+	# cert serial does not match hwaddr file name
+	if grep -q "$client_serial" "$index_txt"
 	then
-		# Client cert serial matches hwaddr file name
-		success_msg=" ==> X509 serial matched"
+		success_msg=" ==> Valid Client cert serial"
 		connection_allowed
+		# Create a simple hwaddr file for client-connect
+		# This implies that the client is not bound to a hwaddr
+		printf '%s' '000000000000' > "$client_hwaddr_file"
 	else
-		# cert serial does not match hwaddr file name
-		easytls_msg="${easytls_msg} ==> No hwaddr file"
-		if grep -q "$client_serial" "$index_txt"
-		then
-			success_msg=" ==> Valid Client cert serial"
-			connection_allowed
-			# Create a simple hwaddr file for client-connect
-			printf '%s' '000000000000' > "$client_hwaddr_file"
-		else
-			# Cert serial not found in PKI index.txt
-			failure_msg="INVALID CLIENT CERTIFICATE SERIAL"
-			fail_and_exit "NEIN: $failure_msg" 1
-		fi
+		# Cert serial not found in PKI index.txt
+		fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 	fi
-
 
 # Any failure_msg means fail_and_exit
 [ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
 
 # For DUBUG
-[ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
-	failure_msg="FORCE_ABSOLUTE_FAIL"
+[ "$FORCE_ABSOLUTE_FAIL" ] && \
+	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
 [ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
