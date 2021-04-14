@@ -229,7 +229,7 @@ deps
 	# Set hwaddr file name
 	client_hwaddr_file="${EASYTLS_tmp_dir}/${client_serial}.${daemon_pid}"
 
-	# cert serial does not match hwaddr file name
+	# Check cert serial is known by index.txt
 	if grep -q "$client_serial" "$index_txt"
 	then
 		success_msg=" ==> Valid Client cert serial"
