@@ -5483,6 +5483,32 @@ verify_wiscii_hash ()
 # EASYTLS SETUP Section
 #
 
+# Ensure required external binaries can be found
+# Don't wait for Easy-RSA3 to be patched because that is futile
+external_deps ()
+{
+	# Set the external binary names
+	easytls_openssl='openssl' # Checked by Easy-RSA3
+	easytls_awk='awk' # Checked by Easy-RSA3
+	easytls_cat='cat' # Checked by Easy-RSA3
+	easytls_cp='cp' # Checked by Easy-RSA3
+	easytls_date='date'
+	easytls_grep='grep'
+	#easytls_ls='ls' # Not used in Easy-TLS
+	easytls_mkdir='mkdir' # Checked by Easy-RSA3
+	easytls_mktemp='mktemp'
+	#easytls_mv='mv' # Not used in Easy-TLS
+	easytls_printf='printf' # Checked by Easy-RSA3
+	easytls_rm='rm' # Checked by Easy-RSA3
+	easytls_sed='sed'
+
+	# Check the ones Easy-RSA3 fails to..
+	$easytls_date             > /dev/null || die 'date error'
+	$easytls_grep --version   > /dev/null || die 'grep error'
+	$easytls_mktemp --version > /dev/null || die 'mktemp error'
+	$easytls_sed --version    > /dev/null || die 'sed error'
+}
+
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
@@ -5681,6 +5707,9 @@ while :; do
 
 	shift
 done
+
+# Verify binary dependecies are present
+external_deps
 
 # Intelligent env-var detection and auto-loading:
 vars_setup
