@@ -3,7 +3,7 @@
 # Copyright - negotiable
 copyright ()
 {
-cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # easytls-cryptv2-client-connect.sh -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
