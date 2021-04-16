@@ -3,7 +3,7 @@
 # Copyright - negotiable
 copyright ()
 {
-cat << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # tls-crypt-v2-verify.sh -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
@@ -147,6 +147,7 @@ help_text ()
   4   - Disallow connection, local/remote Custom Groups do not match.
   5   - Disallow connection, local/remote Identities do not match.
   6   - Disallow connection, invalid metadata_version field.
+  8   - Dissalow connection, failed to read metadata_file
   9   - BUG Disallow connection, general script failure.
   11  - ERROR Disallow connection, client key has invalid serial number.
   12  - ERROR Disallow connection, missing remote Identity.
@@ -189,7 +190,7 @@ fn_local_identity ()
 {
 	"$easytls_openssl" x509 \
 		-in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
-			sed -e 's/^.*=//g' -e 's/://g'
+			"$easytls_sed" -e 's/^.*=//g' -e 's/://g'
 }
 
 # Verify CRL
@@ -417,6 +418,19 @@ init ()
 	# Log message
 	status_msg="* Easy-TLS ==>"
 
+	# `metadata_file` must be set by openvpn
+	help_note="This script can ONLY be used by a running openvpn server."
+	[ -f "$OPENVPN_METADATA_FILE" ] || \
+		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
+	unset help_note
+
+	# Get metadata_string
+	metadata_string="$("$easytls_cat" "$OPENVPN_METADATA_FILE")"
+	[ -z "$metadata_string" ] && fail_and_exit "failed to read metadata_file" 8
+
+	# Populate metadata variables
+	metadata_string_to_vars $metadata_string
+
 	# X509 is disabled by default
 	# To enable use command line option:
 	# --v1|--via-crl   - client serial revokation via CRL grep (Default)
@@ -433,7 +447,11 @@ deps ()
 {
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 22
+
+	# Easy-TLS required files
 	TLS_dir="$CA_dir/easytls/data"
+	disabled_list="$TLS_dir/easytls-disabled-list.txt"
+	tlskey_serial_index="$TLS_dir/easytls-key-index.txt"
 
 	# CA required files
 	ca_cert="$CA_dir/ca.crt"
@@ -441,22 +459,14 @@ deps ()
 	crl_pem="$CA_dir/crl.pem"
 	index_txt="$CA_dir/index.txt"
 	openssl_cnf="$CA_dir/safessl-easyrsa.cnf"
-	disabled_list="$TLS_dir/easytls-disabled-list.txt"
-	tlskey_serial_index="$TLS_dir/easytls-key-index.txt"
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
 	help_note="This script requires external binaries."
-	if ! "$easytls_openssl" version > /dev/null; then
-		die "Missing openssl" 119; fi
-	if ! "$easytls_cat" --version   > /dev/null; then
-		die "Missing cat"     119; fi
-	if ! "$easytls_grep" -V         > /dev/null; then
+	if ! "$easytls_grep" --version  > /dev/null; then
 		die "Missing grep"    119; fi
-	if ! "$easytls_sed" --version   > /dev/null; then
-		die "Missing sed"     119; fi
 
 	if [ $use_cache_id ]
 	then
@@ -468,6 +478,12 @@ deps ()
 
 	if [ $use_x509 ]
 	then
+		# Verify openssl is present
+		if ! "$easytls_openssl" version > /dev/null; then
+			die "Missing openssl" 119; fi
+		if ! "$easytls_sed" --version   > /dev/null; then
+			die "Missing sed"     119; fi
+
 		# Only check these files if using x509
 		help_note="This script requires an EasyRSA generated CRL."
 		[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
@@ -478,22 +494,6 @@ deps ()
 		help_note="This script requires an EasyRSA generated PKI."
 		[ -f "$openssl_cnf" ] || die "Missing openssl config: $openssl_cnf" 26
 	fi
-
-	help_note="This script requires an EasyTLS generated disabled_list."
-	[ -f "$disabled_list" ] || \
-		die "Missing disabled list: $disabled_list" 27
-
-	# `metadata_file` must be set by openvpn
-	help_note="This script can ONLY be used by a running openvpn server."
-	[ -f "$OPENVPN_METADATA_FILE" ] || \
-		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
-	unset help_note
-
-	# Get metadata_string
-	metadata_string="$(cat "$OPENVPN_METADATA_FILE")"
-
-	# Populate metadata variables
-	metadata_string_to_vars $metadata_string
 
 	# Ensure that TLS expiry age is numeric
 	case $tlskey_max_age in
@@ -696,22 +696,31 @@ deps
 	if [ $tlskey_expire_age_sec -gt 0 ]
 	then
 		# current date
-		local_date_sec=$(date +%s)
+		local_date_sec="$(date +%s)"
+		case $local_date_sec in
+		''|*[!0-9]*) # Invalid value - date.exe is missing
+			# Exit script with error code 119 and disallow the connection
+			die "Invalid value for local_date_sec: $local_date_sec" 119
+		;;
+		*) # Valid value
+			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
 
-		# days since key creation
-		tlskey_age_sec=$(( local_date_sec - md_date ))
-		tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
+			# days since key creation
+			tlskey_age_sec=$(( local_date_sec - md_date ))
+			tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
 
-		# Check key_age is less than --tls-age
-		[ $tlskey_age_sec -lt $tlskey_expire_age_sec ] || {
-			max_age_msg="Max age: $tlskey_max_age days"
-			key_age_msg="Key age: $tlskey_age_day days"
-			failure_msg="Key expired: $max_age_msg $key_age_msg"
-			fail_and_exit "TLSKEY EXPIRED" 3
-			}
+			# Check key_age is less than --tls-age
+			[ $tlskey_age_sec -lt $tlskey_expire_age_sec ] || {
+				max_age_msg="Max age: $tlskey_max_age days"
+				key_age_msg="Key age: $tlskey_age_day days"
+				failure_msg="Key expired: $max_age_msg $key_age_msg"
+				fail_and_exit "TLSKEY EXPIRED" 3
+				}
 
-		# Success message
-		success_msg="$success_msg Key age $tlskey_age_day days OK ==>"
+			# Success message
+			success_msg="$success_msg Key age $tlskey_age_day days OK ==>"
+		;;
+		esac
 	fi
 
 # Disabled list
@@ -720,6 +729,10 @@ deps
 	# Use --disable-list to disable this check
 	if [ $use_disable_list ]
 	then
+		help_note="This script requires an EasyTLS generated disabled_list."
+		[ -f "$disabled_list" ] || \
+			die "Missing disabled list: $disabled_list" 27
+
 		# Search the disabled_list for client serial number
 		if "$easytls_grep" -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
 		then
@@ -743,7 +756,7 @@ else
 	# Verify CA cert is valid and/or set the CA identity
 	if [ $use_cache_id ]
 	then
-		local_identity="$(cat "$ca_identity_file")"
+		local_identity="$("$easytls_cat" "$ca_identity_file")"
 	elif [ -n "$preload_cache_id" ]
 	then
 		local_identity="$preload_cache_id"
@@ -815,7 +828,7 @@ fi # => use_x509 ()
 # Need to confirm temp dir location
 if [ -f "$server_pid_file" ]
 then
-	daemon_pid="$(cat "$server_pid_file")"
+	daemon_pid="$("$easytls_cat" "$server_pid_file")"
 	client_hw_list="$EASYTLS_tmp_dir/$md_serial.$daemon_pid"
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
 	"$easytls_printf" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
