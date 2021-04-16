@@ -405,7 +405,7 @@ init ()
 	tlskey_max_age=$((365*5))
 
 	# From openvpn server
-	openvpn_metadata_file="$metadata_file"
+	OPENVPN_METADATA_FILE="$metadata_file"
 
 	# Required binaries
 	easytls_openssl="openssl"
@@ -485,12 +485,12 @@ deps ()
 
 	# `metadata_file` must be set by openvpn
 	help_note="This script can ONLY be used by a running openvpn server."
-	[ -f "$openvpn_metadata_file" ] || \
-		die "Missing: openvpn_metadata_file: $openvpn_metadata_file" 28
+	[ -f "$OPENVPN_METADATA_FILE" ] || \
+		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
 	unset help_note
 
 	# Get metadata_string
-	metadata_string="$(cat "$openvpn_metadata_file")"
+	metadata_string="$(cat "$OPENVPN_METADATA_FILE")"
 
 	# Populate metadata variables
 	metadata_string_to_vars $metadata_string
