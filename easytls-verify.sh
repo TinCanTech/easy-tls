@@ -35,6 +35,7 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
+  -x|--x509           Check X509 certificate validity
   -t|--tmp-dir=<path> Temporary directory to load the client hardware list from.
   -s|--pid-file=<FILE>
                       The PID file for the openvpn server instance.
@@ -42,14 +43,15 @@ help_text ()
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
   1   - Disallow connection, Client cert not recognised.
-  2   - Disallow connection, CA PKI dir not defined. (REQUIRED)
-  3   - Disallow connection, CA cert not found.
-  4   - Disallow connection, index.txt not found.
-  5   - Disallow connection, Server PID file has not been configured.
-  6   - Disallow connection, Server PID does not match daemon_pid.
-  7   - Disallow connection, missing value to option.
-  8   - Disallow connection, missing X509 client cert serial. (BUG)
+  2   - Disallow connection, Client cert revoked.
+  3   - Disallow connection, CA PKI dir not defined. (REQUIRED)
+  4   - Disallow connection, CA cert not found.
+  5   - Disallow connection, index.txt not found.
+  6   - Disallow connection, Server PID file has not been configured.
+  7   - Disallow connection, Server PID does not match daemon_pid.
+  8   - Disallow connection, missing value to option.
   9   - Disallow connection, unexpected failure. (BUG)
+  11  - Disallow connection, missing X509 client cert serial. (BUG)
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -121,7 +123,7 @@ init ()
 deps ()
 {
 	# CA_dir MUST be set with option: -c|--ca
-	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 2
+	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 3
 
 	# CA required files
 	ca_cert="$CA_dir/ca.crt"
@@ -129,9 +131,9 @@ deps ()
 
 	# Ensure we have all the necessary files
 	help_note="This script requires an EasyRSA generated CA."
-	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 3
+	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 4
 	help_note="This script requires an EasyRSA generated DB."
-	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 4
+	[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 5
 
 
 	# Set default Server PID file if not set by command line
@@ -144,10 +146,10 @@ deps ()
 		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
 		# PID file MUST match daemon PID
 		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
-			fail_and_exit "SERVER PID MISMATCH" 6
+			fail_and_exit "SERVER PID MISMATCH" 7
 	else
 		# The Server is not configured for easytls-cryptv2-client-connect.sh
-		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 5
+		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 6
 	fi
 }
 
@@ -175,6 +177,10 @@ do
 	;;
 	-c|--ca)
 		CA_dir="$val"
+	;;
+	-x|--x509)
+		empty_ok=1
+		x509_check=1
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="$val"
@@ -205,7 +211,7 @@ do
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		die "Missing value to option: $opt" 7
+		die "Missing value to option: $opt" 8
 	fi
 	shift
 done
@@ -220,7 +226,7 @@ deps
 	client_serial="$(get_ovpn_client_serial)"
 
 	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 8
+	[ -n "$client_serial" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
 	# There will never be a hardware file because
 	# --tls-crypt-v2-verify is not triggered for this client
@@ -230,17 +236,34 @@ deps
 	client_hwaddr_file="${EASYTLS_tmp_dir}/${client_serial}.${daemon_pid}"
 
 	# Check cert serial is known by index.txt
-	if grep -q "$client_serial" "$index_txt"
+	search_serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
+	search_valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
+	if grep -q "${search_serial}" "$index_txt"
 	then
-		success_msg=" ==> Valid Client cert serial"
-		connection_allowed
-		# Create a simple hwaddr file for client-connect
-		# This implies that the client is not bound to a hwaddr
-		printf '%s' '000000000000' > "$client_hwaddr_file"
+		if [ $x509_check ]
+		then
+			if grep -q "${search_valids}" "$index_txt"
+			then
+				# Valid Cert serial found in PKI index.txt
+				success_msg=" ==> Valid Client cert serial"
+			else
+				fail_and_exit "CLIENT CERTIFICATE IS REVOKED" 2
+			fi
+		else
+			# Cert serial found in PKI index.txt
+			success_msg=" ==> Recognised Client cert serial"
+		fi
 	else
 		# Cert serial not found in PKI index.txt
 		fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 	fi
+
+	# Allow this connection
+	connection_allowed
+
+	# Create a simple hwaddr file for client-connect
+	# This implies that the client is not bound to a hwaddr
+	printf '%s' '000000000000' > "$client_hwaddr_file"
 
 # Any failure_msg means fail_and_exit
 [ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
