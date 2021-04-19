@@ -228,8 +228,8 @@ deps
 	# Verify Client certificate serial number
 	[ -n "$client_serial" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
-	# There will never be a hardware file because
-	# --tls-crypt-v2-verify is not triggered for this client
+	# There will ONLY be a hardware file
+	# if the client does have a --tls-crypt-v2 key
 	# --tls-crypt-v2, --tls-auth and --tls-crypt
 	# are mutually exclusive in client mode
 	# Set hwaddr file name
@@ -261,9 +261,11 @@ deps
 	# Allow this connection
 	connection_allowed
 
-	# Create a simple hwaddr file for client-connect
+	# If there is no hwaddr file then
+	# create a simple hwaddr file for client-connect
 	# This implies that the client is not bound to a hwaddr
-	printf '%s' '000000000000' > "$client_hwaddr_file"
+	[ -f "$client_hwaddr_file" ] || \
+		printf '%s' '000000000000' > "$client_hwaddr_file"
 
 # Any failure_msg means fail_and_exit
 [ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
