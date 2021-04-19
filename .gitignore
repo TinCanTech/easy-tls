@@ -11,3 +11,4 @@ safessl-easyrsa.cnf
 openvpn
 test/*
 pki/*
+sc
