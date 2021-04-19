@@ -2,6 +2,8 @@ https://github.com/TinCanTech/easy-tls
   Change log:
 
 Version 1.28 (Development)
+  Add an X509 style check for certificate revokation to --tls-verify
+  Commit 38af6f4d23ed4f5eb7afc2356dc42f826af9a35b
   Introduce support for --tls-auth and --tls-crypt(v1) clients.
   commit 4815f858d5af82696ff908cb09f8cbc86a5d022a
 
