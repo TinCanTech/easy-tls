@@ -3335,6 +3335,12 @@ disabled_list_manager ()
 		notice "disabled-list rehash successful."
 		return 0
 	;;
+	enable|disable)
+		: # Allow
+	;;
+	*)
+		die "disabled_list_manager - Invalid action: $action"
+	;;
 	esac
 
 	verify_tls_init
@@ -3656,6 +3662,9 @@ interactive_build ()
 						'  * TLS-Crypt-V2 Key built. Inline-file not created.'
 					break
 				;;
+				*)
+					: # Ignore
+				;;
 			esac
 		done
 
@@ -3766,6 +3775,9 @@ interactive_build ()
 					printf '\n%s\n' \
 						'  * TLS-Crypt-V2 Key built. Inline-file not created.'
 					break
+				;;
+				*)
+					: # Ignore
 				;;
 			esac
 		done
@@ -4056,6 +4068,9 @@ interactive_remove ()
 				N|n|No|no|NO)
 					break
 				;;
+				*)
+					: # Ignore
+				;;
 			esac
 		done
 
@@ -4184,6 +4199,9 @@ interactive_remove ()
 				;;
 				N|n|No|no|NO)
 					break
+				;;
+				*)
+					: # Ignore
 				;;
 			esac
 		done
@@ -4711,6 +4729,9 @@ interactive_key_direction ()
 				key_direction="$ia_answer"
 				break
 			;;
+			*)
+				: # Ignore
+			;;
 		esac
 	done
 	cmd_line="${cmd_line} $key_direction"
@@ -4739,6 +4760,9 @@ interactive_opt_nokey ()
 				opt_nokey='nokey'
 				cmd_line="${cmd_line} nokey"
 				break
+			;;
+			*)
+				: # Ignore
 			;;
 		esac
 	done
@@ -4769,6 +4793,9 @@ interactive_opt_add_dh ()
 			;;
 			N|n|No|no|NO)
 				break
+			;;
+			*)
+				: # Ignore
 			;;
 		esac
 	done
@@ -4831,6 +4858,9 @@ interactive_opt_no_md ()
 				cmd_line="${cmd_line} no-md"
 				break
 			;;
+			*)
+				: # Ignore
+			;;
 		esac
 	done
 }
@@ -4859,6 +4889,9 @@ interactive_opt_add_hw ()
 			;;
 			N|n|No|no)
 				break
+			;;
+			*)
+				: # Ignore
 			;;
 		esac
 	done
@@ -5012,6 +5045,9 @@ interactive_disabled_list ()
 			N|n|No|no|NO)
 				opt_disable_list="-d"
 				break
+			;;
+			*)
+				: # Ignore
 			;;
 		esac
 	done
@@ -5187,6 +5223,9 @@ interactive_openvpn_pid ()
 			N|n|No|no|NO)
 				break
 			;;
+			*)
+				: # Ignore
+			;;
 		esac
 	done
 
@@ -5231,6 +5270,9 @@ interactive_hw_required ()
 			3)
 				opt_hw_required='-k'
 				break
+			;;
+			*)
+				: # Ignore
 			;;
 		esac
 	done
