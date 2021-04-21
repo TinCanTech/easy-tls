@@ -1167,7 +1167,7 @@ status ()
 # Format status output from Easy-RSA
 status_easyrsa_output ()
 {
-	awk '{
+	"$EASYTLS_AWK" '{
 		if (NF == 4)
 		print "  Common-Name " $1 "\t  X509-Serial " $2 "\t  Sub-key " $4
 		else
@@ -1178,7 +1178,7 @@ status_easyrsa_output ()
 # Format status output from Easy-TLS
 status_easytls_output ()
 {
-	awk '{
+	"$EASYTLS_AWK" '{
 		if ( $4 == "NOSUBKEY" )
 		print "  Common-Name " $3 "\t  X509-Serial " $2
 		else
@@ -1223,7 +1223,7 @@ status_invalid_inline_list ()
 status_easyrsa_valid ()
 {
 	[ -f "$EASYRSA_INDEX" ] || return 0
-	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|awk '{print $3}')"
+	ersa_valid_serial_list="$(grep '^V' "$EASYRSA_INDEX"|"$EASYTLS_AWK" '{print $3}')"
 	for i in $ersa_valid_serial_list
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
@@ -1236,7 +1236,7 @@ status_easyrsa_valid ()
 status_easyrsa_revoked ()
 {
 	[ -f "$EASYRSA_INDEX" ] || return 0
-	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX" | awk '{print $4}')"
+	ersa_revoked_serial_list="$(grep '^R' "$EASYRSA_INDEX" | "$EASYTLS_AWK" '{print $4}')"
 	for i in $ersa_revoked_serial_list
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
@@ -1452,25 +1452,25 @@ inline_expire_date ()
 # Get a list of commonNames from inline-index
 #inline_index_common_name_list ()
 #{
-#	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
+#	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
 #}
 
 # Get a list of serial_numbers from inline-index
 inline_index_serial_number_list ()
 {
-	awk '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
 # Get a list of inline hashes from inline-index
 inline_index_ilhash_number_list ()
 {
-	awk '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
 }
 
 # Get a list of Common_name + Sub-key name from inline-index
 inline_index_common_name_sub_name_list ()
 {
-	awk '{if($1 ~ /[^#]/)
+	"$EASYTLS_AWK" '{if($1 ~ /[^#]/)
 		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
 		 }' "$EASYTLS_INLINE_INDEX"
 }
@@ -1759,10 +1759,10 @@ verify_inline_hash ()
 	# partially renewed certs to be completely renewed by revoking the old cert"
 	# EasyTLS can work with that
 	#grep "^${name}[[:blank:]].*$" \
-	#	"$EASYTLS_INLINE_INDEX" | awk '{print $2}'
+	#	"$EASYTLS_INLINE_INDEX" | "$EASYTLS_AWK" '{print $2}'
 
 	#script="{if(\$1 ~ /^${name}\$/) print \$2}"
-	#awk "$script" "$EASYTLS_INLINE_INDEX"
+	#"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	#unset script
 #}
 
@@ -1771,7 +1771,7 @@ verify_inline_hash ()
 #{
 #	Target_File="${1:-"$EASYTLS_INLINE_INDEX"}"
 #	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
-#	awk -P "$script" "$Target_File"
+#	"$EASYTLS_AWK" -P "$script" "$Target_File"
 #	unset script
 #}
 
@@ -1779,7 +1779,7 @@ verify_inline_hash ()
 inline_index_ilhash_to_common_name ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$3}"
-	awk "$script" "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
 
@@ -1787,7 +1787,7 @@ inline_index_ilhash_to_common_name ()
 inline_index_ilhash_to_sub_name ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$4}"
-	awk "$script" "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
 
@@ -1795,7 +1795,7 @@ inline_index_ilhash_to_sub_name ()
 inline_index_ilhash_to_serial ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$2}"
-	awk "$script" "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 }
 
@@ -1996,7 +1996,7 @@ inline_index_rebuild ()
 		# There are two Valid record in openssl index.txt
 		# with the same CommonName
 		# Mitigate this disaster here
-		#name="$(printf "%s" "$i" | awk 1 ORS=' ')"
+		#name="$(printf "%s" "$i" | "$EASYTLS_AWK" 1 ORS=' ')"
 		#name="${name%% *}"
 
 		inline_file="$EASYTLS_PKI/$i.inline"
@@ -2252,7 +2252,7 @@ tls_crypt_v2_serial_number ()
 tlskey_index_full_name_to_tls_serial ()
 {
 	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$1}"
-	awk "$script" "$EASYTLS_KEY_INDEX"
+	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 }
 
@@ -2260,7 +2260,7 @@ tlskey_index_full_name_to_tls_serial ()
 tlskey_index_full_name_to_x509_serial ()
 {
 	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$2}"
-	awk "$script" "$EASYTLS_KEY_INDEX"
+	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 }
 
@@ -2490,7 +2490,7 @@ inline_renew ()
 # Get current inline key direction
 inline_renew_key_direction ()
 {
-	grep '^key-direction [01]$' "$inline_file" | awk '{print $2}'
+	grep '^key-direction [01]$' "$inline_file" | "$EASYTLS_AWK" '{print $2}'
 }
 
 # Create inline credentials file from Easy-RSA PKI
@@ -5531,7 +5531,7 @@ external_deps ()
 {
 	# Set the external binary names
 	easytls_openssl='openssl' # Checked by Easy-RSA3
-	easytls_awk='awk' # Checked by Easy-RSA3
+	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	easytls_cat='cat' # Checked by Easy-RSA3
 	easytls_cp='cp' # Checked by Easy-RSA3
 	easytls_date='date'
