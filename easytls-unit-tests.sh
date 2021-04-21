@@ -75,7 +75,6 @@ keyUsage = digitalSignature
 build_vars ()
 {
 	{
-	# openssl did not break this stuff diliberately, "of course".
 	# NEVER use '/CN=' in these fields
 		print ' set_var EASYRSA_RAND_SN "no"'
 		print ' set_var EASYRSA_DN "org"'
