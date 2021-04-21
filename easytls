@@ -150,9 +150,9 @@ cmd_help()
       Save the CA-Identity to easytls/easytls-ca-identity.txt
       CA-Identity is the Hex ONLY value of the CA finger print.
       This can then by used by easytls-cryptv2-verify.sh as a time-saver
-      by not needing to load openssl to generate the CA fingerprint.
+      by not needing to load OpenSSL to generate the CA fingerprint.
       Combining this with 'easytls-cryptv2-verify.sh --verify-via-index',
-      openssl binary never needs to be loaded by easytls-cryptv2-verify.sh
+      OpenSSL binary never needs to be loaded by easytls-cryptv2-verify.sh
       See EasyTLS Howto for an example." ;;
 		s|status) text="
   status [ cmd-opts ]
@@ -1192,13 +1192,13 @@ status_cn ()
 	sed -e 's`^.*/CN=``g' -e 's`/.*$``g'
 }
 
-# Extract Valid records from openssl index.txt by crt_serial
+# Extract Valid records from OpenSSL index.txt by crt_serial
 status_valid_extract_cn ()
 {
 	grep "^V.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
 }
 
-# Extract Revoked records from openssl index.txt by crt_serial
+# Extract Revoked records from OpenSSL index.txt by crt_serial
 status_revoked_extract_cn ()
 {
 	grep "^R.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
@@ -1815,7 +1815,7 @@ inline_index_search_inline_hash ()
 #		grep -c "[[:blank:]]${name}[[:blank:]]"
 #}
 
-# Dragon be here ! - Extract CN from openssl index.txt
+# Dragon be here ! - Extract CN from OpenSSL index.txt
 #inline_index_openssl_valid_cn_list ()
 #{
 #	grep '^V.*$' "$EASYRSA_INDEX" | \
@@ -1836,7 +1836,7 @@ inline_crt_serial ()
 	inline_serial="${inline_serial##*serial: }"
 }
 
-# Get and format openssl serial number output
+# Get and format OpenSSL serial number output
 openssl_crt_serial ()
 {
 	# get the serial number of the certificate -> serial=XXXX
@@ -1845,7 +1845,7 @@ openssl_crt_serial ()
 	crt_serial=${crt_serial##*=}
 }
 
-# Extract the CommonName from openssl -subject
+# Extract the CommonName from OpenSSL -subject
 openssl_crt_cn ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
@@ -1963,7 +1963,7 @@ inline_index_rebuild ()
 	cp "$EASYTLS_IL_INDEX_HASH" "$EASYTLS_IL_INDEX_HASH.backup" || \
 		die "Failed to backup: $EASYTLS_IL_INDEX_HASH"
 
-	# Check openssl index.txt
+	# Check OpenSSL index.txt
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
 
 	# Flag for functions which need to know the index is being rebuilt
@@ -1993,7 +1993,7 @@ inline_index_rebuild ()
 		# THIS CAN GO
 		# If the name is not a single word then the certificate
 		# has been renewed in EasyRSA, which means:
-		# There are two Valid record in openssl index.txt
+		# There are two Valid record in OpenSSL index.txt
 		# with the same CommonName
 		# Mitigate this disaster here
 		#name="$(printf "%s" "$i" | "$EASYTLS_AWK" 1 ORS=' ')"
@@ -2221,7 +2221,7 @@ tls_crypt_v2_serial_number ()
 	metadata_padding="$("$EASYRSA_OPENSSL" rand -hex 4)"
 	metadata="${metadata_padding}--${metadata}"
 
-	# What ever openssl says ..
+	# What ever OpenSSL says ..
 	md_hash="$(printf '%s' "$metadata"|"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 
 	# Assume it is a valid HASH
@@ -2550,7 +2550,7 @@ inline_base ()
 		unset help_note
 	fi
 
-	# get the serial number of the certificate from openssl
+	# get the serial number of the certificate from OpenSSL
 	crt_serial=""
 	openssl_crt_serial
 
@@ -2979,7 +2979,7 @@ Missing file: $srv_cert"
 
 	[ -f "$key_file" ] && die "Server file already exists: $key_file"
 
-	# get the serial number of the certificate from openssl
+	# get the serial number of the certificate from OpenSSL
 	crt_file="$srv_cert"
 	crt_serial=""
 	openssl_crt_serial
@@ -3147,10 +3147,10 @@ b64_enc_metadata ()
 	#     "Random padding" and "$EASYTLS_VERSION" are non-functional
 	#
 	# 2   CA Identity
-	#     `openssl output`; Drop decription and remove colons ':' (Hex only field)
+	#     `OpenSSL output`; Drop decription and remove colons ':' (Hex only field)
 	#
 	# 3.  Client certificate serial
-	#     `openssl output`; Drop the 'serial=' (Hex only field)
+	#     `OpenSSL output`; Drop the 'serial=' (Hex only field)
 	#
 	# 4.  Creation date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
@@ -3179,7 +3179,7 @@ b64_enc_metadata ()
 	# Append Server name to CA-ID
 	ca_identity="$ca_identity-$srv_name"
 
-	# get the serial number of the certificate from openssl
+	# get the serial number of the certificate from OpenSSL
 	crt_file="$cli_cert"
 	crt_serial=""
 	openssl_crt_serial
@@ -3352,7 +3352,7 @@ disabled_list_manager ()
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
 
-	# get the serial number of the certificate from openssl
+	# get the serial number of the certificate from OpenSSL
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	crt_serial=""
 	openssl_crt_serial
@@ -5091,8 +5091,8 @@ interactive_x509_method ()
   and only do TLS verification.  X509 is then handled by OpenVPN.'
 	ia_question_text='
   [0] Do not use X509 for TLS key verification (default)
-  [1] Verify via CRL:   Verify your cert. using openssl crl
-  [2] Verify via CA:    Verify your cert. using openssl ca (DOES NOT WORK)
+  [1] Verify via CRL:   Verify your cert. using OpenSSL crl
+  [2] Verify via CA:    Verify your cert. using OpenSSL ca (DOES NOT WORK)
   [3] Verify via Index: Verify your cert. by searching your current CRL
 
   Select the X509 method to use or leave blank for default:'
@@ -5380,7 +5380,7 @@ generate_wiscii_hash ()
 			#warn "create_master_hash missing: $inline_file"
 			continue
 			}
-		inline_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$inline_file")"
+		inline_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$inline_file")"
 		inline_hash="${inline_hash%% *}"
 
 		# Append hash to seed
@@ -5389,7 +5389,7 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_INLINE_INDEX"
 
 	# Hash2 the inline-files seed
-	inline_hash2="$(printf '%s' "$inline_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
+	inline_hash2="$(printf '%s' "$inline_seed" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	inline_seed2="${inline_hash2%% *}"
 
 	# Hash all tls-keys
@@ -5397,7 +5397,7 @@ generate_wiscii_hash ()
 	tlskey_file="$EASYTLS_PKI/tls-auth.key"
 	if [ -f "$tlskey_file" ]
 	then
-		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
+		tlskey_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 		tlskey_seed="${tlskey_seed}${tlskey_hash}"
 	else
@@ -5408,7 +5408,7 @@ generate_wiscii_hash ()
 	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
 	if [ -f "$tlskey_file" ]
 	then
-		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
+		tlskey_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 		tlskey_seed="${tlskey_seed}${tlskey_hash}"
 	else
@@ -5434,7 +5434,7 @@ generate_wiscii_hash ()
 			#warn "create_master_hash missing: $tlskey_file"
 			continue
 			}
-		tlskey_hash="$(openssl ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
+		tlskey_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$tlskey_file")"
 		tlskey_hash="${tlskey_hash%% *}"
 
 		# Append hash to seed
@@ -5443,7 +5443,7 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_KEY_INDEX"
 
 	# Hash2 the tls-keys seed
-	tlskey_hash2="$(printf '%s' "$tlskey_seed" | openssl ${EASYTLS_HASH_ALGO} -r)"
+	tlskey_hash2="$(printf '%s' "$tlskey_seed" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	tlskey_seed2="${tlskey_hash2%% *}"
 
 	# Include config hash
@@ -5451,7 +5451,7 @@ generate_wiscii_hash ()
 
 	# master a.k.a. wiscii hash
 	wiscii_seed2="${config_file_hash}${tlskey_seed2}${inline_seed2}"
-	wiscii_hash2="$(printf '%s' "$wiscii_seed2" | openssl ${EASYTLS_HASH_ALGO} -r)"
+	wiscii_hash2="$(printf '%s' "$wiscii_seed2" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	counted_wiscii="${wiscii_hash2%% *}"
 }
 
@@ -5530,7 +5530,7 @@ verify_wiscii_hash ()
 external_deps ()
 {
 	# Set the external binary names
-	easytls_openssl='openssl' # Checked by Easy-RSA3
+	#easytls_openssl='openssl' # Checked by Easy-RSA3
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	easytls_cat='cat' # Checked by Easy-RSA3
 	easytls_cp='cp' # Checked by Easy-RSA3
