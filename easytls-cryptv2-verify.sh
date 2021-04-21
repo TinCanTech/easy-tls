@@ -25,8 +25,8 @@ copyright ()
 #   disabled list
 #   Client certificate serial number
 #     * via certificate revokation list (Default)
-#     * via `openssl ca` (Not recommended)
-#     * via openssl index.txt (Preferred)
+#     * via `OpenSSL ca` (Not recommended)
+#     * via OpenSSL index.txt (Preferred)
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
@@ -129,10 +129,10 @@ help_text ()
                       (Required only if easytls-cryptv2-client-connect.sh is used)
   --v1|--via-crl      Do X509 certificate checks via x509_method 1, CRL check.
   --v2|--via-ca       Do X509 certificate checks via x509_method 2,
-                      Use `openssl ca` commands.  NOT RECOMMENDED
+                      Use `OpenSSL ca` commands.  NOT RECOMMENDED
   --v3|--via-index    Do X509 certificate checks via x509_method 3,
-                      Search openssl index.txt  PREFERRED
-                      This method does not require loading the openssl binary.
+                      Search OpenSSL index.txt  PREFERRED
+                      This method does not require loading the OpenSSL binary.
   -a|--cache-id       Use the saved CA-Identity from EasyTLS.
   -p|--preload-id=<CA-ID>
                       Preload the CA-Identity when calling the script.
@@ -182,13 +182,13 @@ help_text ()
 # Verify CA
 verify_ca ()
 {
-	"$easytls_openssl" x509 -in "$ca_cert" -noout
+	"$EASYTLS_OPENSSL" x509 -in "$ca_cert" -noout
 }
 
 # Local identity
 fn_local_identity ()
 {
-	"$easytls_openssl" x509 \
+	"$EASYTLS_OPENSSL" x509 \
 		-in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
 			"$easytls_sed" -e 's/^.*=//g' -e 's/://g'
 }
@@ -196,13 +196,13 @@ fn_local_identity ()
 # Verify CRL
 verify_crl ()
 {
-	"$easytls_openssl" crl -in "$crl_pem" -noout
+	"$EASYTLS_OPENSSL" crl -in "$crl_pem" -noout
 }
 
 # Decode CRL
 fn_read_crl ()
 {
-	"$easytls_openssl" crl -in "$crl_pem" -noout -text
+	"$EASYTLS_OPENSSL" crl -in "$crl_pem" -noout -text
 }
 
 # Search CRL for client cert serial number
@@ -254,7 +254,7 @@ serial_status_via_crl ()
 # Check metadata client certificate serial number against CA
 serial_status_via_ca ()
 {
-	# This is non-functional until openssl is fixed
+	# This is non-functional until OpenSSL is fixed
 	verify_openssl_serial_status
 
 	# Get serial status via CA
@@ -279,11 +279,11 @@ serial_status_via_ca ()
 	esac
 }
 
-# Use openssl to return certificate serial number status
+# Use OpenSSL to return certificate serial number status
 openssl_serial_status ()
 {
-	# openssl appears to always exit with error - but here I do not care
-	"$easytls_openssl" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	# OpenSSL appears to always exit with error - but here I do not care
+	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$md_serial" 2>&1
 }
 
@@ -294,14 +294,14 @@ capture_serial_status ()
 		"$easytls_grep" '^.*=.*$'
 }
 
-# Verify openssl serial status returns ok
+# Verify OpenSSL serial status returns ok
 verify_openssl_serial_status ()
 {
 	return 0 # Disable this `return` if you want to test
-	# openssl appears to always exit with error - have not solved this
-	"$easytls_openssl" ca -cert "$ca_cert" -config "$openssl_cnf" \
+	# OpenSSL appears to always exit with error - have not solved this
+	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
 		-status "$md_serial" || \
-		die "openssl returned an error exit code" 101
+		die "OpenSSL returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
 : << MAN_OPENSSL_CA
@@ -409,7 +409,7 @@ init ()
 	OPENVPN_METADATA_FILE="$metadata_file"
 
 	# Required binaries
-	easytls_openssl="openssl"
+	EASYTLS_OPENSSL="openssl"
 	easytls_cat="cat"
 	easytls_grep="grep"
 	easytls_sed="sed"
@@ -434,7 +434,7 @@ init ()
 	# X509 is disabled by default
 	# To enable use command line option:
 	# --v1|--via-crl   - client serial revokation via CRL grep (Default)
-	# --v2|--via-ca    - client serial revokation via openssl ca command (Broken)
+	# --v2|--via-ca    - client serial revokation via OpenSSL ca command (Broken)
 	# --v3|--via-index - client serial revokation via index.txt grep (Preferred)
 	x509_method=0
 
@@ -478,8 +478,8 @@ deps ()
 
 	if [ $use_x509 ]
 	then
-		# Verify openssl is present
-		if ! "$easytls_openssl" version > /dev/null; then
+		# Verify OpenSSL is present
+		if ! "$EASYTLS_OPENSSL" version > /dev/null; then
 			die "Missing openssl" 119; fi
 		if ! "$easytls_sed" --version   > /dev/null; then
 			die "Missing sed"     119; fi
@@ -492,7 +492,7 @@ deps ()
 		[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
 
 		help_note="This script requires an EasyRSA generated PKI."
-		[ -f "$openssl_cnf" ] || die "Missing openssl config: $openssl_cnf" 26
+		[ -f "$openssl_cnf" ] || die "Missing OpenSSL config: $openssl_cnf" 26
 	fi
 
 	# Ensure that TLS expiry age is numeric
@@ -681,7 +681,7 @@ deps
 
 		# HASH metadata sring without the tlskey-serial
 		md_hash="$("$easytls_printf" '%s' "$md_seed" | \
-			"$easytls_openssl" ${EASYTLS_HASH_ALGO} -r)"
+			"$EASYTLS_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
@@ -804,17 +804,17 @@ else
 		# Method 2
 		# Check metadata client certificate serial number against CA
 
-		# Due to openssl being "what it is", it is not possible to
-		# reliably verify the 'openssl ca $cmd'
+		# Due to OpenSSL being "what it is", it is not possible to
+		# reliably verify the 'OpenSSL ca $cmd'
 
 		# Verify via CA
 		serial_status_via_ca
 	;;
 	3)
 		# Method 3
-		# Search openssl index.txt for client serial number
+		# Search OpenSSL index.txt for client serial number
 		# and return Valid, Revoked or not Known status
-		# openssl is never loaded for this check
+		# OpenSSL is never loaded for this check
 		serial_status_via_pki_index
 	;;
 	*)
