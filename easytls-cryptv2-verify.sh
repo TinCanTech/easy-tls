@@ -32,7 +32,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
 # This is here to catch "print" statements
-# Wrapper around printf - clobber print since it's not POSIX anyway
+# Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
 print() { "$easytls_printf" "%s\n" "$1"; }
 
@@ -433,9 +433,9 @@ init ()
 
 	# X509 is disabled by default
 	# To enable use command line option:
-	# --v1|--via-crl   - client serial revokation via CRL grep (Default)
+	# --v1|--via-crl   - client serial revokation via CRL search (Default)
 	# --v2|--via-ca    - client serial revokation via OpenSSL ca command (Broken)
-	# --v3|--via-index - client serial revokation via index.txt grep (Preferred)
+	# --v3|--via-index - client serial revokation via index.txt search (Preferred)
 	x509_method=0
 
 	# Enable disable list by default
