@@ -5538,7 +5538,7 @@ external_deps ()
 	EASYTLS_GREP='grep'
 	#easytls_ls='ls' # Not used in Easy-TLS
 	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
-	easytls_mktemp='mktemp'
+	EASYTLS_MKTEMP='mktemp'
 	#easytls_mv='mv' # Not used in Easy-TLS
 	easytls_printf='printf' # Checked by Easy-RSA3
 	easytls_rm='rm' # Checked by Easy-RSA3
@@ -5547,7 +5547,7 @@ external_deps ()
 	# Check the ones Easy-RSA3 fails to..
 	"$EASYTLS_DATE"             > /dev/null || die 'Missing file: date'
 	"$EASYTLS_GREP" --version   > /dev/null || die 'Missing file: grep'
-	$easytls_mktemp --version > /dev/null || die 'mktemp error'
+	"$EASYTLS_MKTEMP" --version > /dev/null || die 'Missing file: mktemp'
 	$easytls_sed --version    > /dev/null || die 'sed error'
 }
 
@@ -5652,7 +5652,7 @@ vars_setup()
 # mktemp return temp_dir name
 mktemp_make_temp ()
 {
-	mktemp -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX"
+	"$EASYTLS_MKTEMP" -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX"
 } # => mktemp_make_temp ()
 
 # variable assignment by indirection when undefined; merely exports
