@@ -423,7 +423,7 @@ error_msg ()
 # remove temp files and do terminal cleanups
 cleanup()
 {
-	[ -z "$EASYRSA_TEMP_DIR_session" ] || rm -rf "$EASYRSA_TEMP_DIR_session"
+	[ -z "$EASYRSA_TEMP_DIR_session" ] || "$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
 } # => cleanup()
@@ -881,7 +881,7 @@ init_tls ()
 		die "Fix your folder name: $EASYTLS_PKI"
 	fi
 
-	# If EASYTLS_PKI exists, confirm before we rm -rf
+	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
 	if [ -d "$EASYTLS_PKI" ]; then
 		confirm "Confirm removal: " "yes" "
@@ -890,7 +890,7 @@ WARNING!!!
 You are about to remove the EASYTLS_PKI at: $EASYTLS_PKI
 and initialize a fresh TLS PKI here."
 		# now remove it:
-		rm -rf "$EASYTLS_PKI" \
+		"$EASYTLS_RM" -rf "$EASYTLS_PKI" \
 		|| die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
@@ -1914,7 +1914,7 @@ remove_inline ()
 	# Confirm remove
 	confirm  "Remove inline file ? " "yes" "Remove: $inline_file"
 
-	rm "$inline_file" || die "Failed to remove: $inline_file"
+	"$EASYTLS_RM" "$inline_file" || die "Failed to remove: $inline_file"
 
 	# Update the index first
 	inline_index_update del || die "Failed to update inline-index"
@@ -2060,10 +2060,10 @@ inline_index_rebuild ()
 inline_index_rebuild_reset ()
 {
 	"$EASYTLS_CP" -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
-	rm -f "$EASYTLS_INLINE_INDEX.backup"
+	"$EASYTLS_RM" -f "$EASYTLS_INLINE_INDEX.backup"
 
 	"$EASYTLS_CP" -f "$EASYTLS_IL_INDEX_HASH.backup" "$EASYTLS_IL_INDEX_HASH"
-	rm -f "$EASYTLS_IL_INDEX_HASH.backup"
+	"$EASYTLS_RM" -f "$EASYTLS_IL_INDEX_HASH.backup"
 
 	die "Inline index rebuild failed."
 }
@@ -2340,9 +2340,9 @@ remove_tlskey ()
 	# Update the index
 	tlskey_index_update del || die "Failed to update inline-index"
 
-	rm "$tlskey_file" || die "Failed to remove: $tlskey_file"
+	"$EASYTLS_RM" "$tlskey_file" || die "Failed to remove: $tlskey_file"
 	[ -f "$metadata_file" ] && {
-		rm "$metadata_file" || die "Failed to remove: $metadata_file"
+		"$EASYTLS_RM" "$metadata_file" || die "Failed to remove: $metadata_file"
 		}
 
 	[ ! $silent_remove ] && notice "TLS-Crypt-V2 key removed: $tlskey_file"
@@ -2482,7 +2482,7 @@ inline_renew ()
 	esac
 
 	# Renew successful, remove the backup
-	rm -f "$inline_file.backup"
+	"$EASYTLS_RM" -f "$inline_file.backup"
 
 	notice "Inline $inline_type file renewed: $inline_file"
 } # => inline_renew ()
@@ -2557,7 +2557,7 @@ inline_base ()
 	# Check .inline file does not exist
 	if [ "$EASYTLS_BATCH" ]
 	then
-		rm -f "$inline_file"
+		"$EASYTLS_RM" -f "$inline_file"
 	else
 		[ -f "$inline_file" ] && {
 			error_msg "Inline file exists: $inline_file"
@@ -4293,7 +4293,7 @@ interactive_remove ()
 		# Enable internal batch_mode
 		batch_mode=1
 
-		rm "$key_file" || {
+		"$EASYTLS_RM" "$key_file" || {
 			error_msg '**Remove TLS-Crypt key failed'
 			return 1
 			}
@@ -4320,7 +4320,7 @@ interactive_remove ()
 		# Enable internal batch_mode
 		batch_mode=1
 
-		rm "$key_file" || {
+		"$EASYTLS_RM" "$key_file" || {
 			error_msg '**Remove TLS-Auth key failed'
 			return 1
 			}
@@ -5541,7 +5541,7 @@ external_deps ()
 	EASYTLS_MKTEMP='mktemp'
 	#easytls_mv='mv' # Not used in Easy-TLS
 	easytls_printf='printf' # Checked by Easy-RSA3
-	easytls_rm='rm' # Checked by Easy-RSA3
+	EASYTLS_RM='rm' # Checked by Easy-RSA3
 	EASYTLS_SED='sed'
 
 	# Check the ones Easy-RSA3 fails to..
@@ -5644,7 +5644,7 @@ vars_setup()
 				die "Cannot create $EASYRSA_TEMP_DIR"
 
 			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
-			rm -rf "$EASYRSA_TEMP_DIR"
+			"$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR"
 		fi
 	fi
 } # vars_setup()
