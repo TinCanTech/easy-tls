@@ -208,15 +208,15 @@ cmd_help()
       raise an issue https://github.com/TinCanTech/easy-tls/issues" ;;
 		ix|inline-expire) text="
   inline-expire <filename_base>
-      Display inline expiry date for <filename_base>"
+      Display inline expiry Date for <filename_base>"
 			opts="
-        If no <filename_base> is given then list all inline expiry dates" ;;
+        If no <filename_base> is given then list all inline expiry Dates" ;;
 		cx|cert-expire) text="
   cert-expire <filename_base> | <ca>
-      Display certificate expiry date for <filename_base>"
+      Display certificate expiry Date for <filename_base>"
 			opts="
         If <filename_base> is 'ca' then show ca.crt expiry
-        If no <filename_base> is given then list all certificate expiry dates" ;;
+        If no <filename_base> is given then list all certificate expiry Dates" ;;
 		d|disable) text="
   d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
@@ -1350,7 +1350,7 @@ status_easyrsa_renewed ()
 
 		if [ "$inline_serial" = "$crt_serial" ]
 		then
-			# serial match, inline is upto date
+			# serial match, inline is upto Date
 			:
 		else
 			# serial mismatch, cert has been renewed in EasyRSA
@@ -1475,7 +1475,7 @@ inline_index_common_name_sub_name_list ()
 		 }' "$EASYTLS_INLINE_INDEX"
 }
 
-# Get x509 certificate expiry date
+# Get x509 certificate expiry Date
 cert_expire ()
 {
 	name="$1"
@@ -1510,7 +1510,7 @@ cert_expire ()
 	fi
 } # => cert_expire ()
 
-# Get inline certificate expiry date
+# Get inline certificate expiry Date
 inline_expire ()
 {
 	name="$1"
@@ -2793,12 +2793,12 @@ inline_tls_crypt_v2 ()
 		# Drop x509 cert-serial
 		metadata_string="${metadata_string#* }"
 
-		# Set creation date
+		# Set creation Date
 		MD_date_sec="${metadata_string%% *}"
-		MD_date="$(date --date=@${MD_date_sec} +%F)" 2>/dev/null || {
-			MD_date="$(date -u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
+		MD_date="$("$EASYTLS_DATE" --date=@${MD_date_sec} +%F)" 2>/dev/null || {
+			MD_date="$("$EASYTLS_DATE" -u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
 			}
-		# Drop date
+		# Drop Date
 		metadata_string="${metadata_string#* }"
 
 		# Set custom-group
@@ -2851,7 +2851,7 @@ inline_tls_crypt_v2 ()
 		[ $no_metadata ] || {
 			printf '%s\n' "# CA serial: $ca_serial"
 			printf '%s\n' "# tlskey-serial: $tlskey_serial"
-			printf '%s\n' "# Creation date: $MD_date"
+			printf '%s\n' "# Creation Date: $MD_date"
 			printf '%s\n' "# Custom-Group: $MD_cgroup"
 			printf '%s\n' "# Server Common Name: $srv_name"
 			printf '%s\n' "# Client Common Name: $MD_cn"
@@ -3152,7 +3152,7 @@ b64_enc_metadata ()
 	# 3.  Client certificate serial
 	#     `OpenSSL output`; Drop the 'serial=' (Hex only field)
 	#
-	# 4.  Creation date of this key:
+	# 4.  Creation Date of this key:
 	#     %s     seconds since 1970-01-01 00:00:00 UTC
 	#
 	# 5.  Custom Group string
@@ -3184,8 +3184,8 @@ b64_enc_metadata ()
 	crt_serial=""
 	openssl_crt_serial
 
-	# Set creation date
-	key_date="$(date +%s)"
+	# Set creation Date
+	key_date="$("$EASYTLS_DATE" +%s)"
 
 	# Build metadata
 	metadata="$metadata_version $ca_identity $crt_serial $key_date"
@@ -3330,7 +3330,7 @@ disabled_list_manager ()
 	# Allow the list to be rehashed before verify_tls_init
 	case $action in
 	rehash)
-		# This needs more work to recreate the date stamps.
+		# This needs more work to recreate the Date stamps.
 		disabled_list_update_and_hash || die "Failed to rehash disabled-list."
 		notice "disabled-list rehash successful."
 		return 0
@@ -5534,7 +5534,7 @@ external_deps ()
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
 	EASYTLS_CP='cp' # Checked by Easy-RSA3
-	easytls_date='date'
+	EASYTLS_DATE='date'
 	easytls_grep='grep'
 	#easytls_ls='ls' # Not used in Easy-TLS
 	easytls_mkdir='mkdir' # Checked by Easy-RSA3
@@ -5545,7 +5545,7 @@ external_deps ()
 	easytls_sed='sed'
 
 	# Check the ones Easy-RSA3 fails to..
-	$easytls_date             > /dev/null || die 'date error'
+	"$EASYTLS_DATE"             > /dev/null || die 'Missing file: date'
 	$easytls_grep --version   > /dev/null || die 'grep error'
 	$easytls_mktemp --version > /dev/null || die 'mktemp error'
 	$easytls_sed --version    > /dev/null || die 'sed error'
