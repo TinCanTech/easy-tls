@@ -1956,11 +1956,11 @@ inline_index_rebuild ()
 		"WARNING: You are about to rebuild easytls-index.txt"
 
 	# Backup current easytls-inline-index.txt
-	cp "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup" || \
+	"$EASYTLS_CP" "$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_INDEX.backup" || \
 		die "Failed to backup: $EASYTLS_INLINE_INDEX"
 
 	# Backup current easytls-inline-index.hash.backup
-	cp "$EASYTLS_IL_INDEX_HASH" "$EASYTLS_IL_INDEX_HASH.backup" || \
+	"$EASYTLS_CP" "$EASYTLS_IL_INDEX_HASH" "$EASYTLS_IL_INDEX_HASH.backup" || \
 		die "Failed to backup: $EASYTLS_IL_INDEX_HASH"
 
 	# Check OpenSSL index.txt
@@ -2059,10 +2059,10 @@ inline_index_rebuild ()
 
 inline_index_rebuild_reset ()
 {
-	cp -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
+	"$EASYTLS_CP" -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
 	rm -f "$EASYTLS_INLINE_INDEX.backup"
 
-	cp -f "$EASYTLS_IL_INDEX_HASH.backup" "$EASYTLS_IL_INDEX_HASH"
+	"$EASYTLS_CP" -f "$EASYTLS_IL_INDEX_HASH.backup" "$EASYTLS_IL_INDEX_HASH"
 	rm -f "$EASYTLS_IL_INDEX_HASH.backup"
 
 	die "Inline index rebuild failed."
@@ -2448,7 +2448,7 @@ inline_renew ()
 	# Make a backup of inline file incase renew fails
 	[ -f "$inline_file.backup" ] && \
 		die "Backup already exists: $inline_file.backup"
-	cp "$inline_file" "$inline_file.backup" || \
+	"$EASYTLS_CP" "$inline_file" "$inline_file.backup" || \
 		die "Unable to create backup: $inline_file.backup"
 
 	# Remove the old .inline file
@@ -5307,13 +5307,13 @@ import_key ()
 	tls-auth)
 		dest_key="$EASYTLS_PKI/tls-auth.key"
 		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		cp "$key_file" "$dest_key" || \
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
 			die "Failed to import file: $key_file"
 		;;
 	tls-crypt)
 		dest_key="$EASYTLS_PKI/tls-crypt.key"
 		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		cp "$key_file" "$dest_key" || \
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
 			die "Failed to import file: $key_file"
 		;;
 	tls-crypt-v2)
@@ -5335,7 +5335,7 @@ import_key ()
 
 		dest_key="$EASYTLS_PKI/$actual_cert_CN-tls-crypt-v2.key"
 		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		cp "$key_file" "$dest_key" || \
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
 			die "Failed to import file: $key_file"
 		;;
 	*)
@@ -5533,7 +5533,7 @@ external_deps ()
 	#easytls_openssl='openssl' # Checked by Easy-RSA3
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
-	easytls_cp='cp' # Checked by Easy-RSA3
+	EASYTLS_CP='cp' # Checked by Easy-RSA3
 	easytls_date='date'
 	easytls_grep='grep'
 	#easytls_ls='ls' # Not used in Easy-TLS
