@@ -57,23 +57,23 @@ help_text ()
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
 '
-	printf "%s\n" "$help_msg"
+	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
 	exit 253
 }
 
-# Wrapper around printf - clobber print since it's not POSIX anyway
+# Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { printf "%s\n" "$1"; }
+print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
 
 # Exit on error
 die ()
 {
-	rm -f "$client_hwaddr_file"
-	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
-	printf "\n%s\n" "ERROR: $1"
-	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+	"$EASYTLS_RM" -f "$client_hwaddr_file"
+	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
+	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
+	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-255}"
 }
 
@@ -83,13 +83,13 @@ fail_and_exit ()
 	rm -f "$client_hwaddr_file"
 	if [ $EASYTLS_VERBOSE ]
 	then
-		printf "%s " "$easytls_msg"
-		[ -z "$success_msg" ] || printf "%s\n" "$success_msg"
-		printf "%s\n%s\n" "$failure_msg $common_name" "$1"
+		"$EASYTLS_PRINTF" "%s " "$easytls_msg"
+		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$success_msg"
+		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $common_name" "$1"
 
-		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
+		"$EASYTLS_PRINTF" "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -97,7 +97,7 @@ fail_and_exit ()
 # Get the client certificate serial number from env
 get_ovpn_client_serial ()
 {
-	printf '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
@@ -114,6 +114,11 @@ init ()
 
 	# Defaults
 	EASYTLS_tmp_dir="/tmp"
+	EASYTLS_CAT='cat'
+	EASYTLS_GREP='grep'
+	EASYTLS_PRINTF='printf'
+	EASYTLS_SED='sed'
+	EASYTLS_RM='rm'
 
 	# Log message
 	easytls_msg="* EasyTLS-verify"
@@ -143,12 +148,13 @@ deps ()
 	# Verify Server PID file - daemon_pid is from Openvpn env
 	if [ -f "$EASYTLS_server_pid_file" ]
 	then
-		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
+		EASYTLS_server_pid="$("$EASYTLS_CAT" "$EASYTLS_server_pid_file")"
+		[ -z "$EASYTLS_server_pid" ] && die "Failed to read pid file"
 		# PID file MUST match daemon PID
 		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
 			fail_and_exit "SERVER PID MISMATCH" 7
 	else
-		# The Server is not configured for easytls-cryptv2-client-connect.sh
+		# The Server is not configured for easytls-verify.sh
 		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 6
 	fi
 }
@@ -195,7 +201,7 @@ do
 	1)
 		# DISABLE CA verify
 		[ $EASYTLS_VERBOSE ] && \
-			printf '%s\n' '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
+			"$EASYTLS_PRINTF" '%s\n' '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
 		exit 0
 	;;
 	*)
@@ -238,11 +244,11 @@ deps
 	# Check cert serial is known by index.txt
 	search_serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
 	search_valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
-	if grep -q "${search_serial}" "$index_txt"
+	if "$EASYTLS_GREP" -q "${search_serial}" "$index_txt"
 	then
 		if [ $x509_check ]
 		then
-			if grep -q "${search_valids}" "$index_txt"
+			if "$EASYTLS_GREP" -q "${search_valids}" "$index_txt"
 			then
 				# Valid Cert serial found in PKI index.txt
 				success_msg=" ==> Valid Client cert serial"
@@ -254,6 +260,7 @@ deps
 			success_msg=" ==> Recognised Client cert serial"
 		fi
 	else
+		"$EASYTLS_GREP" --version > /dev/null || die "Cannot find grep"
 		# Cert serial not found in PKI index.txt
 		fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 	fi
@@ -265,7 +272,7 @@ deps
 	# create a simple hwaddr file for client-connect
 	# This implies that the client is not bound to a hwaddr
 	[ -f "$client_hwaddr_file" ] || \
-		printf '%s' '000000000000' > "$client_hwaddr_file"
+		"$EASYTLS_PRINTF" '%s' '000000000000' > "$client_hwaddr_file"
 
 # Any failure_msg means fail_and_exit
 [ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
@@ -279,6 +286,6 @@ deps
 
 # All is well
 [ $EASYTLS_VERBOSE ] && \
-	printf "%s\n" "<EXOK> $easytls_msg $success_msg"
+	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $easytls_msg $success_msg"
 
 exit 0
