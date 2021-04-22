@@ -60,39 +60,39 @@ help_text ()
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
 '
-	printf "%s\n" "$help_msg"
+	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
 	exit 253
 }
 
-# Wrapper around printf - clobber print since it's not POSIX anyway
+# Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { printf "%s\n" "$1"; }
+print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
 
 # Exit on error
 die ()
 {
-	rm -f "$client_hwaddr_file"
-	[ -n "$help_note" ] && printf "\n%s\n" "$help_note"
-	printf "\n%s\n" "ERROR: $1"
-	printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+	"$EASYTLS_RM" -f "$client_hwaddr_file"
+	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
+	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
+	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-255}"
 }
 
 # easytls-cryptv2-client-connect failure, not an error.
 fail_and_exit ()
 {
-	rm -f "$client_hwaddr_file"
+	"$EASYTLS_RM" -f "$client_hwaddr_file"
 	if [ $EASYTLS_VERBOSE ]
 	then
-		printf "%s " "$easytls_msg"
-		[ -z "$success_msg" ] || printf "%s\n" "$success_msg"
-		printf "%s\n%s\n" "$failure_msg $common_name" "$1"
+		"$EASYTLS_PRINTF" "%s " "$easytls_msg"
+		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$success_msg"
+		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $common_name" "$1"
 
-		printf "%s\n" "https://github.com/TinCanTech/easy-tls"
+		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		printf "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
+		"$EASYTLS_PRINTF" "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -100,19 +100,19 @@ fail_and_exit ()
 # Get the client certificate serial number from env
 get_ovpn_client_serial ()
 {
-	printf '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | "$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Get the client hardware address from env
 get_ovpn_client_hwaddr ()
 {
-	printf '%s' "$IV_HWADDR" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$IV_HWADDR" | "$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
 connection_allowed ()
 {
-	rm -f "$client_hwaddr_file"
+	"$EASYTLS_RM" -f "$client_hwaddr_file"
 	absolute_fail=0
 }
 
@@ -123,7 +123,14 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_tmp_dir="/tmp"
+	EASYTLS_tmp_dir='/tmp'
+	EASYTLS_CAT='cat'
+	EASYTLS_GREP='grep'
+	EASYTLS_PRINTF='printf'
+	EASYTLS_SED='sed'
+	EASYTLS_RM='rm'
+	# This is the best place to check
+	"$EASYTLS_SED" --version > /dev/null || die 'Missing file: sed'
 
 	# Log message
 	easytls_msg="* EasyTLS-cryptv2-client-connect"
@@ -139,7 +146,8 @@ deps ()
 	# Verify Server PID file - daemon_pid is from Openvpn env
 	if [ -f "$EASYTLS_server_pid_file" ]
 	then
-		EASYTLS_server_pid="$(cat $EASYTLS_server_pid_file)"
+		EASYTLS_server_pid="$("$EASYTLS_CAT" $EASYTLS_server_pid_file)"
+		[ -z "$EASYTLS_server_pid" ] && die "Failed to read pid file"
 		# PID file MUST match daemon PID
 		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
 			fail_and_exit "SERVER PID MISMATCH" 6
@@ -230,7 +238,7 @@ done
 deps
 
 # Set only for NO keyed hwaddr
-if grep -q '000000000000' "$client_hwaddr_file"
+if "$EASYTLS_GREP" -q '000000000000' "$client_hwaddr_file"
 then
 	key_hwaddr_missing=1
 fi
@@ -271,12 +279,13 @@ else
 		fi
 	else
 		# hwaddr is pushed
-		if grep -q "$push_hwaddr" "$client_hwaddr_file"
+		if "$EASYTLS_GREP" -q "$push_hwaddr" "$client_hwaddr_file"
 		then
 			# MATCH!
 			success_msg="==> hwaddr $push_hwaddr pushed and matched!"
 			connection_allowed
 		else
+			"$EASYTLS_GREP" --version > /dev/null || die 'Missing file: grep'
 			# push does not match key hwaddr
 			fail_and_exit "HWADDR MISMATCH" 1
 		fi
@@ -295,6 +304,6 @@ fi
 
 # All is well
 [ $EASYTLS_VERBOSE ] && \
-	printf "%s\n" "<EXOK> $easytls_msg $success_msg"
+	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $easytls_msg $success_msg"
 
 exit 0
