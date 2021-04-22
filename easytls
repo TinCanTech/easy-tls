@@ -596,7 +596,7 @@ easytls_config ()
 		;;
 		'')
 			# Show config
-			cat "$EASYTLS_CONFIG_FILE"
+			"$EASYTLS_CAT" "$EASYTLS_CONFIG_FILE"
 			return 0
 		;;
 		*)
@@ -778,7 +778,7 @@ config_verify_hash ()
 	[ $verify_file_hash_disabled ] && return 0
 	[ $EASYTLS_TRAVIS_CI ] && return 0
 	# Read the saved hash
-	config_saved_hash="$(cat "$EASYTLS_CONFIG_HASH")"
+	config_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
@@ -1381,7 +1381,7 @@ status_easyrsa_renewed ()
 # List known TLS keys
 status_easytls_tlskeys ()
 {
-	#cat "$EASYTLS_KEY_INDEX"
+	#"$EASYTLS_CAT" "$EASYTLS_KEY_INDEX"
 	#return 0
 
 	while read -r tlskey_serial cert_serial common_name sub_key
@@ -1422,7 +1422,7 @@ status_easytls_tlskeys ()
 # List disabled client keys
 status_disabled_list()
 {
-	cat "$EASYTLS_DISABLED_LIST"
+	"$EASYTLS_CAT" "$EASYTLS_DISABLED_LIST"
 }
 
 # Verify certificate purpose
@@ -1636,7 +1636,7 @@ inline_index_verify_hash ()
 		}
 
 	# Read the saved hash
-	inline_index_saved_hash="$(cat "$EASYTLS_IL_INDEX_HASH")"
+	inline_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_IL_INDEX_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
@@ -1878,7 +1878,7 @@ inline_show ()
 	verify_inline_hash || die "Failed HASH: $inline_file"
 
 	# Copy inline to stdout
-	cat "$inline_file" || die "Failed to open: $inline_file"
+	"$EASYTLS_CAT" "$inline_file" || die "Failed to open: $inline_file"
 } # => inline_show ()
 
 # Remove .inline file
@@ -2156,7 +2156,7 @@ tlskey_index_verify_hash ()
 		}
 
 	# Read the saved hash
-	tlskey_index_saved_hash="$(cat "$EASYTLS_KEY_HASH")"
+	tlskey_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_KEY_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_KEY_INDEX" || {
@@ -2573,7 +2573,7 @@ inline_base ()
 		printf '%s\n' "# X509 serial: $crt_serial"
 		printf '%s\n' ""
 		printf '%s\n' "<cert>"
-		cat "$crt_file"
+		"$EASYTLS_CAT" "$crt_file"
 		printf '%s\n' "</cert>"
 		printf '%s\n' ""
 		printf '%s\n' "<key>"
@@ -2583,20 +2583,20 @@ inline_base ()
 			printf '%s\n' \
 			' * Replace this line with your complete x509 key file *'
 		else
-			cat "$key_file"
+			"$EASYTLS_CAT" "$key_file"
 		fi
 
 		printf '%s\n' "</key>"
 		printf '%s\n' ""
 		printf '%s\n' "<ca>"
-		cat "$ca_file"
+		"$EASYTLS_CAT" "$ca_file"
 		printf '%s\n' "</ca>"
 		printf '%s\n' ""
 
 		if [ "$inline_dh_file" ]
 		then
 			printf '%s\n' "<dh>"
-			cat "$EASYRSA_DH_FILE"
+			"$EASYTLS_CAT" "$EASYRSA_DH_FILE"
 			printf '%s\n' "</dh>"
 			printf '%s\n' ""
 		fi
@@ -2661,7 +2661,7 @@ inline_tls_auth ()
 		printf "%s\n" "key-direction $key_direction"
 		printf "%s\n" ""
 		printf "%s\n" "<tls-auth>"
-		cat "$tls_auth_key"
+		"$EASYTLS_CAT" "$tls_auth_key"
 		printf "%s\n" "</tls-auth>"
 		printf "%s\n" ""
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
@@ -2709,7 +2709,7 @@ inline_tls_crypt_v1 ()
 	{	printf "%s\n" "# TLS crypt"
 		printf "%s\n" ""
 		printf "%s\n" "<tls-crypt>"
-		cat "$tls_file"
+		"$EASYTLS_CAT" "$tls_file"
 		printf "%s\n" "</tls-crypt>"
 		printf "%s\n" ""
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
@@ -2775,7 +2775,7 @@ inline_tls_crypt_v2 ()
 		# Must be a client
 		[ -f "$metadata_file" ] || die "Missing metadata_file: $metadata_file"
 		# Get metadata
-		metadata_string="$(cat "$metadata_file")"
+		metadata_string="$("$EASYTLS_CAT" "$metadata_file")"
 
 		# Extract tlskey-serial
 		tlskey_serial="${metadata_string%%-*}"
@@ -2873,7 +2873,7 @@ inline_tls_crypt_v2 ()
 			printf "%s\n" ""
 			}
 		printf "%s\n" "<tls-crypt-v2>"
-		cat "$tls_file"
+		"$EASYTLS_CAT" "$tls_file"
 		printf "%s\n" "</tls-crypt-v2>"
 		printf "%s\n" ""
 	} >> "$inline_file" || die "Failed to create inline file: $inline_file"
@@ -3480,7 +3480,7 @@ disabled_list_verify_hash ()
 	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
 
 	# Read the saved hash
-	disabled_list_saved_hash="$(cat "$EASYTLS_DISABLED_HASH")"
+	disabled_list_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_DISABLED_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
@@ -5447,7 +5447,7 @@ generate_wiscii_hash ()
 	tlskey_seed2="${tlskey_hash2%% *}"
 
 	# Include config hash
-	config_file_hash="$(cat "$EASYTLS_CONFIG_HASH")"
+	config_file_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
 
 	# master a.k.a. wiscii hash
 	wiscii_seed2="${config_file_hash}${tlskey_seed2}${inline_seed2}"
@@ -5461,7 +5461,7 @@ save_wiscii_hash ()
 	[ $EASYTLS_TRAVIS_CI ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
-		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
+		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
 	else
 		bottled_wiscii=""
 	fi
@@ -5499,7 +5499,7 @@ verify_wiscii_hash ()
 	[ $EASYTLS_TRAVIS_CI ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
-		bottled_wiscii="$(cat "$EASYTLS_WISCII_HASH")"
+		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
 	else
 		bottled_wiscii=""
 	fi
@@ -5532,7 +5532,7 @@ external_deps ()
 	# Set the external binary names
 	#easytls_openssl='openssl' # Checked by Easy-RSA3
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
-	easytls_cat='cat' # Checked by Easy-RSA3
+	EASYTLS_CAT='cat' # Checked by Easy-RSA3
 	easytls_cp='cp' # Checked by Easy-RSA3
 	easytls_date='date'
 	easytls_grep='grep'
