@@ -675,7 +675,7 @@ config_update ()
 		}
 
 	# Replace the pattern
-	sed -i \
+	"$EASYTLS_SED" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 	"$EASYTLS_CONFIG_FILE" || {
 		error_msg "config_update - replace error"
@@ -1189,7 +1189,7 @@ status_easytls_output ()
 # Format status CN
 status_cn ()
 {
-	sed -e 's`^.*/CN=``g' -e 's`/.*$``g'
+	"$EASYTLS_SED" -e 's`^.*/CN=``g' -e 's`/.*$``g'
 }
 
 # Extract Valid records from OpenSSL index.txt by crt_serial
@@ -1253,7 +1253,7 @@ status_easytls_inline ()
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 	[ $silent_status ] || \
-		sed /^#/d "$EASYTLS_INLINE_INDEX" | status_easytls_output
+		"$EASYTLS_SED" /^#/d "$EASYTLS_INLINE_INDEX" | status_easytls_output
 } # => status_easytls_valid ()
 
 # Print Revoked certs from Easy-TLS
@@ -1598,7 +1598,7 @@ inline_index_update ()
 		easytls_verbose "  DEL: $old_record"
 
 		# Remove old record
-		sed -i -e "/^${old_record}.*$/d" "$EASYTLS_INLINE_INDEX" || {
+		"$EASYTLS_SED" -i -e "/^${old_record}.*$/d" "$EASYTLS_INLINE_INDEX" || {
 			error_msg "inline_index_update del: Failed write"
 			return 1
 			}
@@ -1819,7 +1819,7 @@ inline_index_search_inline_hash ()
 #inline_index_openssl_valid_cn_list ()
 #{
 #	"$EASYTLS_GREP" '^V.*$' "$EASYRSA_INDEX" | \
-#		sed -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
+#		"$EASYTLS_SED" -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
 #}
 
 # Get common_name from inline file
@@ -1851,7 +1851,7 @@ openssl_crt_cn ()
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
 		-noout -subject -nameopt sep_multiline | \
 		"$EASYTLS_GREP" '^[[:blank:]]*CN=.*$' | \
-		sed 's/^[[:blank:]]*CN=//g'
+		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
 }
 
 # Check inline hash and Copy inline to stdout
@@ -2117,7 +2117,7 @@ tlskey_index_update ()
 			}
 
 		# Remove old record
-		sed -i -e "/^${old_record}.*$/d" "$EASYTLS_KEY_INDEX" || {
+		"$EASYTLS_SED" -i -e "/^${old_record}.*$/d" "$EASYTLS_KEY_INDEX" || {
 			error_msg "tlskey_index_update del: Failed write"
 			return 1
 			}
@@ -3122,7 +3122,7 @@ build_tls_crypt_v2_client ()
 hw_addr_hex_check ()
 {
 	temp_hw_addr="$(printf '%s' "$1" | \
-		sed -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
+		"$EASYTLS_SED" -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
 
 	[ 12 -eq ${#temp_hw_addr} ] || {
 		help_note="Hardware Address must be 12 digits exactly!"
@@ -3270,7 +3270,7 @@ fn_ca_fingerprint ()
 # Collect CA Identity
 fn_ca_identity ()
 {
-	printf '%s' "$ca_fingerprint" | sed -e 's/^.*=//g' -e 's/://g'
+	printf '%s' "$ca_fingerprint" | "$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
 }
 
 # Save metadata
@@ -3406,7 +3406,7 @@ disabled_list_manager ()
 	enable) # Remove serial number from the disabled-list
 		if [ $is_disabled ]
 		then
-			sed -i "/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
+			"$EASYTLS_SED" -i "/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
 				"$EASYTLS_DISABLED_LIST" || {
 					error_msg "Failed to update disabled-list"
 					exit 99
@@ -3454,7 +3454,7 @@ disabled_list_update_and_hash ()
 {
 	# Update time-stamp
 	update_text="# Updated: $(date) -- $action: $name"
-	sed -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || {
+	"$EASYTLS_SED" -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || {
 		error_msg "disabled_list_update_and_hash - Failed sed"
 		return 1
 		}
@@ -4541,22 +4541,22 @@ interactive_scripts ()
 				}
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
 
-		# sed easytls-cryptv2-verify.bat
-		sed -i \
+		# Write easytls-cryptv2-verify.bat
+		"$EASYTLS_SED" -i \
 			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
 			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
 			-e "s\`^SET HASH_ALGO=.*$\`SET HASH_ALGO=${opt_hashalgo}\`g" \
 			-e "s\`^SET CUST_GRP=.*$\`SET CUST_GRP=${opt_customg}\`g" \
 			"$EASYTLS_WIN_TC2V_BAT"
 
-		# sed easytls-verify.bat
-		sed -i \
+		# Write easytls-verify.bat
+		"$EASYTLS_SED" -i \
 			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
 			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
 			"$EASYTLS_WIN_TV_BAT"
 
-		# sed easytls-cryptv2-client-connect.bat
-		sed -i \
+		# Write easytls-cryptv2-client-connect.bat
+		"$EASYTLS_SED" -i \
 			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
 			-e "s\`^SET HWADDR_REQ=.*$\`SET HWADDR_REQ=${opt_hw_required}\`g" \
 			"$EASYTLS_WIN_CCON_BAT"
@@ -5542,13 +5542,13 @@ external_deps ()
 	#easytls_mv='mv' # Not used in Easy-TLS
 	easytls_printf='printf' # Checked by Easy-RSA3
 	easytls_rm='rm' # Checked by Easy-RSA3
-	easytls_sed='sed'
+	EASYTLS_SED='sed'
 
 	# Check the ones Easy-RSA3 fails to..
 	"$EASYTLS_DATE"             > /dev/null || die 'Missing file: date'
 	"$EASYTLS_GREP" --version   > /dev/null || die 'Missing file: grep'
 	"$EASYTLS_MKTEMP" --version > /dev/null || die 'Missing file: mktemp'
-	$easytls_sed --version    > /dev/null || die 'sed error'
+	"$EASYTLS_SED" --version    > /dev/null || die 'Missing file: sed'
 }
 
 # vars setup
