@@ -898,13 +898,13 @@ and initialize a fresh TLS PKI here."
 	EASYTLS_HASH_ALGO="${1:-SHA256}"
 
 	# Create easytls dir in EasyRSA-PKI dir
-	mkdir -p "$EASYTLS_PKI" || die "Failed to create easytls dir"
+	"$EASYTLS_MKDIR" -p "$EASYTLS_PKI" || die "Failed to create easytls dir"
 
 	# Create data dir in easytls dir
-	mkdir -p "$EASYTLS_DATA_DIR" || die "Failed to create data dir"
+	"$EASYTLS_MKDIR" -p "$EASYTLS_DATA_DIR" || die "Failed to create data dir"
 
 	# Create metadata dir in easytls dir
-	mkdir -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir"
+	"$EASYTLS_MKDIR" -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir"
 
 	# Create inline-index
 	head_text="# EasyTLS inline-index - Created: $(date)"
@@ -5537,7 +5537,7 @@ external_deps ()
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
 	#easytls_ls='ls' # Not used in Easy-TLS
-	easytls_mkdir='mkdir' # Checked by Easy-RSA3
+	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
 	easytls_mktemp='mktemp'
 	#easytls_mv='mv' # Not used in Easy-TLS
 	easytls_printf='printf' # Checked by Easy-RSA3
@@ -5640,7 +5640,7 @@ vars_setup()
 			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
 		else
 			# Directory does not exist then we have not run init-pki
-			mkdir -p "$EASYRSA_TEMP_DIR" || \
+			"$EASYTLS_MKDIR" -p "$EASYRSA_TEMP_DIR" || \
 				die "Cannot create $EASYRSA_TEMP_DIR"
 
 			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
