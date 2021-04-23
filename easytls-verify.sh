@@ -97,7 +97,7 @@ fail_and_exit ()
 # Get the client certificate serial number from env
 get_ovpn_client_serial ()
 {
-	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | sed -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | "$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
@@ -196,7 +196,7 @@ do
 	;;
 	0)
 		empty_ok=1
-		cert_depth="0"
+		# cert_depth="0" # Currently not used
 	;;
 	1)
 		# DISABLE CA verify
