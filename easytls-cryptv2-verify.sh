@@ -25,7 +25,7 @@ copyright ()
 #   disabled list
 #   Client certificate serial number
 #     * via certificate revokation list (Default)
-#     * via `OpenSSL ca` (Not recommended)
+#     * via OpenSSL CA (Not recommended)
 #     * via OpenSSL index.txt (Preferred)
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
