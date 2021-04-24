@@ -408,7 +408,6 @@ init ()
 	# From openvpn server
 	OPENVPN_METADATA_FILE="$metadata_file"
 	OPENVPN_DAEMON_PID="$daemon_pid"
-	printf '\n\n\n%s\n\n\n' "OPENVPN_DAEMON_PID: $OPENVPN_DAEMON_PID"
 
 	# Required binaries
 	EASYTLS_OPENSSL="openssl"
