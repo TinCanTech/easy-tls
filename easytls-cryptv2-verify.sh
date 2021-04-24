@@ -34,14 +34,14 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # This is here to catch "print" statements
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { "$easytls_printf" "%s\n" "$1"; }
+print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
 
 # Exit on error
 die ()
 {
-	[ -n "$help_note" ] && "$easytls_printf" "\n%s\n" "$help_note"
-	"$easytls_printf" "\n%s\n" "ERROR: $1"
-	"$easytls_printf" "%s\n" "https://github.com/TinCanTech/easy-tls"
+	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
+	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
+	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	exit "${2:-255}"
 }
 
@@ -50,54 +50,54 @@ fail_and_exit ()
 {
 	if [ $EASYTLS_VERBOSE ]
 	then
-		"$easytls_printf" "%s " "$status_msg"
-		[ -z "$success_msg" ] || "$easytls_printf" "%s " "$success_msg"
-		"$easytls_printf" "%s\n%s\n" "$failure_msg $md_name" "$1"
+		"$EASYTLS_PRINTF" "%s " "$status_msg"
+		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s " "$success_msg"
+		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $md_name" "$1"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> version       local: $local_easytls"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> version      remote: $md_easytls"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> custom_group  local: $local_custom_g"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> custom_group remote: $md_custom_g"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> identity      local: $local_identity"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> identity     remote: $md_identity"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> X509 serial  remote: $md_serial"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> name         remote: $md_name"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> TLSK serial  remote: $tlskey_serial"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> sub-key      remote: $md_subkey"
 
-		"$easytls_printf" "%s\n" \
+		"$EASYTLS_PRINTF" "%s\n" \
 			"* ==> date         remote: $md_date"
 
-		[ $2 -eq 1 ] && "$easytls_printf" "%s\n" \
+		[ $2 -eq 1 ] && "$EASYTLS_PRINTF" "%s\n" \
 			"* ==> Client serial status: revoked"
 
-		[ $2 -eq 2 ] && "$easytls_printf" "%s\n" \
+		[ $2 -eq 2 ] && "$EASYTLS_PRINTF" "%s\n" \
 			"* ==> Client serial status: disabled"
 
-		[ -n "$help_note" ] && "$easytls_printf" "%s\n" "$help_note"
+		[ -n "$help_note" ] && "$EASYTLS_PRINTF" "%s\n" "$help_note"
 
-		"$easytls_printf" "%s\n" "https://github.com/TinCanTech/easy-tls"
+		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
-		"$easytls_printf" "%s %s %s %s\n" "$status_msg" \
+		"$EASYTLS_PRINTF" "%s %s %s %s\n" "$status_msg" \
 			"$success_msg" "$failure_msg" "$md_name"
 	fi
 	exit "${2:-254}"
@@ -173,7 +173,7 @@ help_text ()
   254 - BUG Disallow connection, fail_and_exit exited with default error code.
   255 - BUG Disallow connection, die exited with default error code.
 '
-	"$easytls_printf" "%s\n" "$help_msg"
+	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
 	exit 253
@@ -190,7 +190,7 @@ fn_local_identity ()
 {
 	"$EASYTLS_OPENSSL" x509 \
 		-in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
-			"$easytls_sed" -e 's/^.*=//g' -e 's/://g'
+			"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
 }
 
 # Verify CRL
@@ -208,14 +208,14 @@ fn_read_crl ()
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	"$easytls_printf" "%s\n" "$crl_text" | \
-		"$easytls_grep" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
+	"$EASYTLS_PRINTF" "%s\n" "$crl_text" | \
+		"$EASYTLS_GREP" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
 }
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	"$easytls_grep" -c \
+	"$EASYTLS_GREP" -c \
 		"^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
 		"$index_txt"
 }
@@ -290,8 +290,8 @@ openssl_serial_status ()
 # Capture serial status
 capture_serial_status ()
 {
-	"$easytls_printf" "%s\n" "$client_cert_serno_status" | \
-		"$easytls_grep" '^.*=.*$'
+	"$EASYTLS_PRINTF" "%s\n" "$client_cert_serno_status" | \
+		"$EASYTLS_GREP" '^.*=.*$'
 }
 
 # Verify OpenSSL serial status returns ok
@@ -343,7 +343,7 @@ serial_status_via_pki_index ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_valid_pki_index ()
 {
-	"$easytls_grep" -c \
+	"$EASYTLS_GREP" -c \
 	"^V.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
 		"$index_txt"
 }
@@ -351,7 +351,7 @@ fn_search_valid_pki_index ()
 # Final check: Search index.txt for Revoked client cert serial number
 fn_search_revoked_pki_index ()
 {
-	"$easytls_grep" -c \
+	"$EASYTLS_GREP" -c \
 	"^R.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
 		"$index_txt"
 }
@@ -407,13 +407,15 @@ init ()
 
 	# From openvpn server
 	OPENVPN_METADATA_FILE="$metadata_file"
+	OPENVPN_DAEMON_PID="$daemon_pid"
+	printf '\n\n\n%s\n\n\n' "OPENVPN_DAEMON_PID: $OPENVPN_DAEMON_PID"
 
 	# Required binaries
 	EASYTLS_OPENSSL="openssl"
-	easytls_cat="cat"
-	easytls_grep="grep"
-	easytls_sed="sed"
-	easytls_printf="printf"
+	EASYTLS_CAT="cat"
+	EASYTLS_GREP="grep"
+	EASYTLS_SED="sed"
+	EASYTLS_PRINTF="printf"
 
 	# Log message
 	status_msg="* Easy-TLS ==>"
@@ -425,7 +427,7 @@ init ()
 	unset help_note
 
 	# Get metadata_string
-	metadata_string="$("$easytls_cat" "$OPENVPN_METADATA_FILE")"
+	metadata_string="$("$EASYTLS_CAT" "$OPENVPN_METADATA_FILE")"
 	[ -z "$metadata_string" ] && fail_and_exit "failed to read metadata_file" 8
 
 	# Populate metadata variables
@@ -465,7 +467,7 @@ deps ()
 	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
 
 	help_note="This script requires external binaries."
-	if ! "$easytls_grep" --version  > /dev/null; then
+	if ! "$EASYTLS_GREP" --version  > /dev/null; then
 		die "Missing grep"    119; fi
 
 	if [ $use_cache_id ]
@@ -481,7 +483,7 @@ deps ()
 		# Verify OpenSSL is present
 		if ! "$EASYTLS_OPENSSL" version > /dev/null; then
 			die "Missing openssl" 119; fi
-		if ! "$easytls_sed" --version   > /dev/null; then
+		if ! "$EASYTLS_SED" --version   > /dev/null; then
 			die "Missing sed"     119; fi
 
 		# Only check these files if using x509
@@ -521,7 +523,7 @@ deps ()
 		then
 			server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
 		else
-			[ $EASYTLS_VERBOSE ] && "$easytls_printf" '%s\n' "No pid file."
+			[ $EASYTLS_VERBOSE ] && "$EASYTLS_PRINTF" '%s\n' "No pid file."
 		fi
 	fi
 } # => deps ()
@@ -674,13 +676,13 @@ deps
 	if [ $VERIFY_hash ]
 	then
 		# Verify tlskey-serial is in index
-		"$easytls_grep" -q "$tlskey_serial" "$tlskey_serial_index" || {
+		"$EASYTLS_GREP" -q "$tlskey_serial" "$tlskey_serial_index" || {
 			failure_msg="TLS-key is not recognised"
 			fail_and_exit "TLSKEY SERIAL ALIEN" 11
 			}
 
 		# HASH metadata sring without the tlskey-serial
-		md_hash="$("$easytls_printf" '%s' "$md_seed" | \
+		md_hash="$("$EASYTLS_PRINTF" '%s' "$md_seed" | \
 			"$EASYTLS_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
 		[ "$md_hash" = "$tlskey_serial" ] || {
@@ -734,7 +736,7 @@ deps
 			die "Missing disabled list: $disabled_list" 27
 
 		# Search the disabled_list for client serial number
-		if "$easytls_grep" -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
+		if "$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
 		then
 			# Client is disabled
 			failure_msg="client serial number is disabled: $md_serial"
@@ -756,7 +758,7 @@ else
 	# Verify CA cert is valid and/or set the CA identity
 	if [ $use_cache_id ]
 	then
-		local_identity="$("$easytls_cat" "$ca_identity_file")"
+		local_identity="$("$EASYTLS_CAT" "$ca_identity_file")"
 	elif [ -n "$preload_cache_id" ]
 	then
 		local_identity="$preload_cache_id"
@@ -828,10 +830,10 @@ fi # => use_x509 ()
 # Need to confirm temp dir location
 if [ -f "$server_pid_file" ]
 then
-	daemon_pid="$("$easytls_cat" "$server_pid_file")"
+	daemon_pid="$("$EASYTLS_CAT" "$server_pid_file")"
 	client_hw_list="$EASYTLS_tmp_dir/$md_serial.$daemon_pid"
 	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
-	"$easytls_printf" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
+	"$EASYTLS_PRINTF" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
 		die "Failed to write HW file"
 	[ $EASYTLS_VERBOSE ] && print "HWADDR-file: $client_hw_list"
 else
@@ -853,6 +855,6 @@ fi
 
 # All is well
 [ $EASYTLS_VERBOSE ] && \
-	"$easytls_printf" "%s\n" "<EXOK> $status_msg $success_msg"
+	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $status_msg $success_msg"
 
 exit 0
