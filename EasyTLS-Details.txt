@@ -9,10 +9,10 @@ Introduction:
 
   The second focus of Easy-TLS is to provide TLS-Crypt-V2 key metadata
   which conforms to the original format as described by syzzer.
-    For full details see:
+
+  * For full details see:
     https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
     (syzzer's work)
-
 
   The third focus is to provide server side scripts to interogate the
   TLS-crypt-v2 metadata and provide options to manage client connections.
