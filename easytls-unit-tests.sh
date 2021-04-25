@@ -121,7 +121,7 @@ else
 		export OPENVPN_CMD=/usr/sbin/openvpn
 	fi
 fi
-[ -f "$OPENVPN_CMD" ] || die "Cannot find: $OPENVPN_CMD"
+[ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
 
 
 export EASYRSA_CERT_RENEW=1000
