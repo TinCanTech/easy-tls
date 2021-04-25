@@ -9,7 +9,10 @@ Introduction:
 
   The second focus of Easy-TLS is to provide TLS-Crypt-V2 key metadata
   which conforms to the original format as described by syzzer.
-  (See full details below)
+    For full details see:
+    https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+    (syzzer's work)
+
 
   The third focus is to provide server side scripts to interogate the
   TLS-crypt-v2 metadata and provide options to manage client connections.
@@ -21,10 +24,6 @@ Overview:
   * OpenVPN '--tls-crypt-v2' keys and '--tls-crypt-v2-verify' script.
 
     These are new keys and a new script hook for OpenVPN.
-
-    For full details see:
-    https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
-    (syzzer's work)
 
 
   * Usage:
@@ -124,48 +123,49 @@ TLS-Crypt-v2 client key metadata details:
         EG: +EF1234567890+1234567890FE+
 
 
-  * EasyTLS-Crypt-v2 disabled list
+EasyTLS verification scripts:
 
-    Use this list to temporarily drop specific client connections.
+  * easytls-cryptv2-verify.sh (OpenVPN --tls-crypt-v2-verify)
 
+      Verify TLS-Crypt-V2 key metadata:
+      Key age, key serial number, key status (enabled/disabled), Custom-Group.
+      Optional X509 certificate checks. (Details below)
 
-  * EasyTLS-Crypt-v2 verification scripts:
+  * easytls-verify.sh (OpenVPN --tls-verify)
 
-    'easytls-cryptv2-verify.sh' will verify the key metadata.
+      Full TLS layer verification stage. 
 
-    'easytls-cryptv2-client-connect.sh' will verify the client hardware-address.
+  * easytls-cryptv2-client-connect.sh (OpenVPN --client-connect)
+
+      Verify client hardware-address.
+
 
   * Optional X509 verification methods:
 
-    1. Verify via CRL (Default)
+    1. Verify via CRL --via-crl
 
        The CRL is searched for client serial number and the client 
        connection is dropped if the client is found to be revoked.
-       This is the default method which conforms to syzzers original
+       This is the default method and conforms to syzzers original
        specification.
 
-    2. Verify via CA --verify-via-ca (Not recommended)
+    2. Verify via CA --via-ca (Not enabled)
 
-       The client serial number status is verified via `openssl ca`
-       This method works but is not recommended by OpenSSL.
+       The client serial number status is verified via OpenSSL CA.
+       This method does not work because OpenSSL returns an inorrect
+       status code.
 
-    3. Verify via openssl index.txt --verify-via-index (Preferred)
+    3. Verify via openssl index.txt --via-index (Preferred)
 
-       The client serial number status is verified via the openssl
+       The client serial number status is verified via the OpenSSL
        index.txt file.
 
-       Combining this with:
-       * EasyTLS 'save-id' command, to save a file containing the
-         CA fingerprint: 'easytls/easytls-ca-identity.txt'
-       * tls-crypt-v2-verify --cache-id option, which uses the file above
-         instead of loading openssl to generate the CA fingerprint.
-       Then tls-crypt-v2-verify.sh *never* has to load the openssl binary;
-       For some minor performance gain on a busy server.
-
+       Option --cache-id reads the CA Identity file from disk,
+       instead of loading openssl to generate the CA fingerprint.
+       
        Option --preload-cache-id="CA_ID" allows the server config to load
        the CA Identity from the command line as a parameter, eliminating
-       the need to read the CA Identity file from disk, repeatedly,
-       and may be even faster than using --cache-id.
+       the need to read the CA Identity file from disk, repeatedly.
 
        CA Identity is the openssl output for the CA fingerprint formatted
        to one contiguous string:
@@ -189,24 +189,3 @@ Note about exit codes:
   OpenVPN --log does not accept data from scripts under Windows
   so the exit codes are absolutely necessary to debug errors.
 
-
-Howto resolve issues with Invalid .inline files:
-
-  If you receive a message informing you that you have "Revoked certs"
-  then simply use './easytls inline-remove <filename-base>'
-  This will delete the offending file and keep the EasyTLS index up-to-date.
-  Invalid files are caused by x509 certificates which have been revoked.
-  The .inline file is of no further value if the certificate has been revoked.
-
-  If you receive a message informing you that you have "Renewed certs"
-  then simply use './easytls inline-renew <filename-base>'
-  This will delete the offending file and keep the EasyTLS index up-to-date
-  and then recreate a new .inline file from the renewed certificate
-  and keep the EasyTLS index up-to-date.
-
-
-Howto resolve issues with the EasyTLS inline-index:
-
-  In the unlikely event that something does go wrong with the EasyTLS Inline Index
-  then simply use './easytls inline-index-rebuild'
-  EasyTLS will attempt to rebuild your index.  (Please report issues on github)

@@ -32,19 +32,12 @@ Please use the help:<br>
   Default hash is SHA256 but Easy-TLS allows for use of SHA1<br>
   Easy-TLS optional use of SHA1 is not considered to be a security risk.<br>
   <br>
+  This will also create your CA-Identity file and `ca.id` configuration record.<br>
+  <br>
 * Status:
   ```
   ./easytls status
   ```
-  Use `help` now.<br>
-  <br>
-* Create your CA-Identity file:
-  ```
-  ./easytls save-id
-  ```
-  (This is your formatted CA fingerprint)<br>
-  <br>
-  If you have successfully got this far then you should move your `private/ca.key` to a safe place. <br>
   <br>
 * Check your configuration:
   ```
@@ -65,4 +58,20 @@ Please use the help:<br>
   and inlining all the required files for a credentials only OpenVPN inline configuration file.<br>
   <br>
   All commands are then shown before the command is completed by the script.
+
+
+### Howto resolve issues with Invalid .inline files:
+
+  If you receive a message informing you that you have "Revoked certs" or<br>
+  "Renewed certs" then simply use './easytls inline-remove <filename-base>'<br>
+  This will delete the offending Inline file and keep the EasyTLS index up-to-date.<br>
+  Invalid files are caused by x509 certificates which have been revoked.<br>
+  The Inline file is of no further value once the certificate has been revoked.<br>
+
+
+### Howto resolve issues with the EasyTLS inline-index:
+
+  In the unlikely event that something does go wrong with the EasyTLS Inline Index
+  then simply use './easytls inline-index-rebuild'
+  EasyTLS will attempt to rebuild your index.  (Please report issues on github)
 
