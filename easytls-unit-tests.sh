@@ -95,6 +95,7 @@ build_vars ()
 } # => build_vars ()
 
 # hmm ..
+PATH=/usr/bin:/bin:./:/usr/local/bin:/usr/sbin
 
 build_easyrsa
 
@@ -112,7 +113,7 @@ WORK_DIR="$(pwd)"
 
 if [ $OS ]
 then
-	export OPENVPN_CMD="C:/PROGRA~1/OpenVPN/bin/openvpn.exe"
+	export OPENVPN_CMD="./openvpn.exe"
 else
 	if [ -f ./openvpn ]
 	then
@@ -122,7 +123,6 @@ else
 	fi
 fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
-
 
 export EASYRSA_CERT_RENEW=1000
 
