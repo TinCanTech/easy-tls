@@ -1032,7 +1032,7 @@ generate_file_hash ()
 		error_msg "generate_file_hash - Hashing error: $generated_hash"
 		return 1
 		}
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\+$' || {
+	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\{40,64\}$' || {
 		error_msg "generate_file_hash - Invalid hash: $generated_hash"
 		return 1
 		}
