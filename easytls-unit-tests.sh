@@ -148,7 +148,7 @@ do
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
-	for i in "init-pki" "build-ca nopass" \
+	for i in "init-pki" "ls -l $EASYRSA_PKI" "build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
 		"build-client-full c01 nopass" \
