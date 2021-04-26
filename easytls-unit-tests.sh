@@ -134,6 +134,7 @@ do
 	ETLS_DIR="${PKI_DIR}/easytls"
 	DBUG_DIR="${ETLS_DIR}/metadata"
 	export EASYRSA_PKI="$PKI_DIR"
+	print "EASYRSA_PKI: $EASYRSA_PKI"
 
 	# Build vars, used by all remaining loops
 	#[ $loops -eq 2 ] && exit 99
@@ -164,6 +165,7 @@ do
 		## EOL
 	do
 		print "============================================================"
+		print "$EASYRSA_CMD $EASYRSA_OPTS $i"
 		"$EASYRSA_CMD" $EASYRSA_OPTS $i || fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
 	done
 

@@ -17,5 +17,7 @@ if %PROCESSOR_ARCHITECTURE% == x86 (
 curl -LO https://raw.githubusercontent.com/TinCanTech/easyrsa-plus/master/easyrsa3/easyrsa
 
 SET PATH=%PATH%;.\
+SET HOME=%PATH%
+SET ENV=/disable-env
 SET SHALLOW=1
 sh.exe easytls-unit-tests.sh
