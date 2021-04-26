@@ -94,8 +94,7 @@ build_vars ()
 	} > vars
 } # => build_vars ()
 
-# hmm ..
-PATH=/usr/bin:/bin:./:/usr/local/bin:/usr/sbin
+echo '===[  Easy-TLS Unit Tests ]==='
 
 build_easyrsa
 
