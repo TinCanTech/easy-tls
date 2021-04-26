@@ -3162,10 +3162,11 @@ hw_addr_hex_check ()
 		help_note="Hardware Address must be 12 digits exactly!"
 		return 1
 		}
-	"$EASYTLS_PRINTF" '%s\n' "$temp_hw_addr" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\{12\}$' || {
-		help_note="Hardware Address must be hexidecimal digits!"
-		return 1
-		}
+	"$EASYTLS_PRINTF" '%s\n' "$temp_hw_addr" | \
+		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
+			help_note="Hardware Address must be hexidecimal digits!"
+			return 1
+			}
 	export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
 	return 0
 }
