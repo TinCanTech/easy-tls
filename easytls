@@ -1029,7 +1029,7 @@ generate_file_hash ()
 
 	# Test it
 	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '[[:blank:][:punct:]]' && {
-		error_msg "generate_file_hash - Invalid hash: $generated_hash"
+		error_msg "generate_file_hash - Hashing error: $generated_hash"
 		return 1
 		}
 	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\+$' || {
