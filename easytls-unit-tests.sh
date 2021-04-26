@@ -133,6 +133,7 @@ do
 	PKI_DIR="${WORK_DIR}/et-tdir${loops}"
 	ETLS_DIR="${PKI_DIR}/easytls"
 	DBUG_DIR="${ETLS_DIR}/metadata"
+	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
 	print "EASYRSA_PKI: $EASYRSA_PKI"
 
