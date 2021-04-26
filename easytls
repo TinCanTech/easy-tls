@@ -2245,14 +2245,31 @@ tls_crypt_v2_serial_number ()
 	generated_hash="${md_hash%% *}"
 
 	# Test it
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '[[:blank:][:punct:]]' && {
-		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
+	"$EASYTLS_PRINTF" '%s' "$generated_hash" | \
+		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
+			error_msg "tls_crypt_v2_serial_number - Hashing error: $generated_hash"
+			return 1
+			}
+	hash_size=${#generated_hash}
+
+	case ${EASYTLS_HASH_ALGO} in
+	SHA1)
+		[ $hash_size -eq 40 ] || {
+			error_msg "tls_crypt_v2_serial_number - Hash size: $generated_hash"
+			return 1
+			}
+	;;
+	SHA256)
+		[ $hash_size -eq 64 ] || {
+			error_msg "tls_crypt_v2_serial_number - Hash size: $generated_hash"
+			return 1
+			}
+	;;
+	*)
+		error_msg "tls_crypt_v2_serial_number - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
-		}
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\+$' || {
-		error_msg "tls_crypt_v2_serial_number - Invalid hash: $generated_hash"
-		return 1
-		}
+	;;
+	esac
 
 	# Check for duplicate
 	"$EASYTLS_GREP" -q "^${generated_hash}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
