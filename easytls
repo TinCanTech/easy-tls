@@ -5491,14 +5491,31 @@ save_wiscii_hash ()
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
-	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" | "$EASYTLS_GREP" -q '[[:blank:][:punct:]]' && {
-		error_msg "save_wiscii_hash - Invalid hash: $counted_wiscii"
+	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" | \
+		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
+			error_msg "save_wiscii_hash - Hashing error: $counted_wiscii"
+			return 1
+			}
+	hash_size=${#counted_wiscii}
+
+	case ${EASYTLS_HASH_ALGO} in
+	SHA1)
+		[ $hash_size -eq 40 ] || {
+			error_msg "save_wiscii_hash - SHA1 size: $counted_wiscii"
+			return 1
+			}
+	;;
+	SHA256)
+		[ $hash_size -eq 64 ] || {
+			error_msg "save_wiscii_hash - SHA256 size: $counted_wiscii"
+			return 1
+			}
+	;;
+	*)
+		error_msg "save_wiscii_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
-		}
-	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\+$' || {
-		error_msg "save_wiscii_hash - Invalid hash: $counted_wiscii"
-		return 1
-		}
+	;;
+	esac
 
 	# Save it
 	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || {
