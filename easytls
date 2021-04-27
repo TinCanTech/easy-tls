@@ -776,7 +776,7 @@ config_use ()
 config_verify_hash ()
 {
 	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_TRAVIS_CI ] && return 0
+	[ $EASYTLS_REMOTE_CI ] && return 0
 	# Read the saved hash
 	config_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
 
@@ -802,6 +802,9 @@ config_verify_hash ()
 # Hash config-file
 config_save_hash ()
 {
+	[ $verify_file_hash_disabled ] && return 0
+	[ $EASYTLS_REMOTE_CI ] && return 0
+
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
 		error_msg "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
@@ -969,9 +972,9 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ $EASYTLS_TRAVIS_CI ] && return 0
 	[ $auto_check_disabled ] && return 0
 	[ $status_disabled_auto_check ] && return 0
+	[ $EASYTLS_REMOTE_CI ] && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
@@ -5633,7 +5636,8 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
-	[ $EASYTLS_TRAVIS_CI ] && return 0
+	[ $verify_file_hash_disabled ] && return 0
+	[ $EASYTLS_REMOTE_CI ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
@@ -5668,7 +5672,7 @@ save_wiscii_hash ()
 verify_wiscii_hash ()
 {
 	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_TRAVIS_CI ] && return 0
+	[ $EASYTLS_REMOTE_CI ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"

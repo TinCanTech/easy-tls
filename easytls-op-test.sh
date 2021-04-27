@@ -38,7 +38,7 @@ else
 	exit 73
 fi
 
-	export EASYTLS_TRAVIS_CI=1
+	export EASYTLS_REMOTE_CI=1
 	export SHALLOW=1
 	export Skip_wiscii_hash=1
 	export EASYTLS_OPENVPN="./openvpn"

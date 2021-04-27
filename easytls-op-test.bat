@@ -19,5 +19,6 @@ curl -LO https://raw.githubusercontent.com/TinCanTech/easyrsa-plus/master/easyrs
 SET PATH=%PATH%;.\
 SET HOME=%PATH%
 SET ENV=/disable-env
+SET EASYTLS_REMOTE_CI=1
 SET SHALLOW=1
 sh.exe easytls-unit-tests.sh
