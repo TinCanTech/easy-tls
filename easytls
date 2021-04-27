@@ -1012,7 +1012,7 @@ easytls_auto_check ()
 	easytls_verbose "auto-check complete."
 } # => easytls_auto_check ()
 
-# Generate SHA1 file hash
+# Generate file hash
 generate_file_hash ()
 {
 	# Test for file
@@ -1024,39 +1024,71 @@ generate_file_hash ()
 	# hash the file
 	openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
 
-	# only need hash
+	# Only need hash - Valid generated_hash is returned
 	generated_hash="${openssl_hash%% *}"
 
-	# Test it
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "generate_file_hash - Hashing error: $generated_hash"
+	# Clean up
+	unset openssl_hash
+
+	# Verify hash
+	verify_hash "$generated_hash" || {
+		error_msg "generate_file_hash - Hash failed: $generated_hash"
+		unset generated_hash
+		return 1
+		}
+} # => generate_file_hash ()
+
+# Verify any hash succeeded
+verify_hash ()
+{
+	# Local var
+	test_hash="$1"
+
+	# Verify hash is hex only
+	# Any error will contain non-hex chars (hopefully)
+	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
+			error_msg "verify_hash - !Hex: $test_hash"
 			return 1
 			}
-	hash_size=${#generated_hash}
 
+	# Set length
+	test_size=${#test_hash}
+
+	# Verify length
 	case ${EASYTLS_HASH_ALGO} in
 	SHA1)
-		[ $hash_size -eq 40 ] || {
-			error_msg "generate_file_hash - Hash size: $generated_hash"
+		[ $test_size -eq 40 ] || {
+			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
+			return 1
+			}
+		# Test for empty input
+		forbidden=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
+		[ $test_hash = $forbidden ] && {
+			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
 			return 1
 			}
 	;;
 	SHA256)
-		[ $hash_size -eq 64 ] || {
-			error_msg "generate_file_hash - Hash size: $generated_hash"
+		[ $test_size -eq 64 ] || {
+			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
+			return 1
+			}
+		# Test for empty input
+		forbidden=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
+		[ $test_hash = $forbidden ] && {
+			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
 			return 1
 			}
 	;;
 	*)
-		error_msg "generate_file_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
 	;;
 	esac
 
-	# Hash OK
-	return 0
-} # => generate_file_hash ()
+	# Clean up
+	unset test_hash test_size forbidden
+} # => verify_hash ()
 
 
 
@@ -2260,32 +2292,12 @@ tls_crypt_v2_serial_number ()
 	# Assume it is a valid HASH
 	generated_hash="${md_hash%% *}"
 
-	# Test it
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "tls_crypt_v2_serial_number - Hashing error: $generated_hash"
-			return 1
-			}
-	hash_size=${#generated_hash}
-
-	case ${EASYTLS_HASH_ALGO} in
-	SHA1)
-		[ $hash_size -eq 40 ] || {
-			error_msg "tls_crypt_v2_serial_number - Hash size: $generated_hash"
-			return 1
-			}
-	;;
-	SHA256)
-		[ $hash_size -eq 64 ] || {
-			error_msg "tls_crypt_v2_serial_number - Hash size: $generated_hash"
-			return 1
-			}
-	;;
-	*)
-		error_msg "tls_crypt_v2_serial_number - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+	# Verify hash
+	verify_hash "$generated_hash" || {
+		error_msg "tls_crypt_v2_serial_number - Hash failed: $generated_hash"
+		unset generated_hash
 		return 1
-	;;
-	esac
+		}
 
 	# Check for duplicate
 	"$EASYTLS_GREP" -q "^${generated_hash}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
@@ -2407,7 +2419,12 @@ remove_tlskey ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Verify this tlskey-serial
-	verify_tlskey_serial || die "verify_tlskey_serial: failed"
+	#verify_tlskey_serial || die "verify_tlskey_serial: failed"
+	verify_hash "$tlskey_serial" || {
+		error_msg "remove_tlskey - tlskey_serial failed: $tlskey_serial"
+		unset tlskey_serial
+		return 1
+		}
 
 	# Get tlskey serial number from tlskey-index
 	cert_serial="$(tlskey_index_full_name_to_x509_serial)"
@@ -3506,31 +3523,11 @@ disabled_list_manager ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Test it
-	"$EASYTLS_PRINTF" '%s' "$tlskey_serial" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "disabled_list_manager - tlskey_serial: $tlskey_serial"
-			return 1
-			}
-	hash_size=${#tlskey_serial}
-
-	case ${EASYTLS_HASH_ALGO} in
-	SHA1)
-		[ $hash_size -eq 40 ] || {
-			error_msg "disabled_list_manager - tlskey_serial size: $tlskey_serial"
-			return 1
-			}
-	;;
-	SHA256)
-		[ $hash_size -eq 64 ] || {
-			error_msg "disabled_list_manager - tlskey_serial size: $tlskey_serial"
-			return 1
-			}
-	;;
-	*)
-		error_msg "disabled_list_manager - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+	verify_hash "$tlskey_serial" || {
+		error_msg "disabled_list_manager - tlskey_serial failed: $tlskey_serial"
+		unset tlskey_serial
 		return 1
-	;;
-	esac
+		}
 
 	# Check disabled-list for this tlskey-serial
 	if "$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$EASYTLS_DISABLED_LIST"
@@ -5652,31 +5649,11 @@ save_wiscii_hash ()
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
-	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "save_wiscii_hash - Hashing error: $counted_wiscii"
-			return 1
-			}
-	hash_size=${#counted_wiscii}
-
-	case ${EASYTLS_HASH_ALGO} in
-	SHA1)
-		[ $hash_size -eq 40 ] || {
-			error_msg "save_wiscii_hash - SHA1 size: $counted_wiscii"
-			return 1
-			}
-	;;
-	SHA256)
-		[ $hash_size -eq 64 ] || {
-			error_msg "save_wiscii_hash - SHA256 size: $counted_wiscii"
-			return 1
-			}
-	;;
-	*)
-		error_msg "save_wiscii_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+	verify_hash "$counted_wiscii" || {
+		error_msg "save_wiscii_hash - counted_wiscii failed: $counted_wiscii"
+		unset tlskey_serial
 		return 1
-	;;
-	esac
+		}
 
 	# Save it
 	"$EASYTLS_PRINTF" '%s' "$counted_wiscii" > "$EASYTLS_WISCII_HASH" || {
