@@ -695,14 +695,22 @@ config_use ()
 		return 0
 		}
 
-	# If the config file exists then the hash must exist
-	[ -f "$EASYTLS_CONFIG_HASH" ] || {
-		error_msg "config_verify_hash - Missing Config Hash: $EASYTLS_CONFIG_HASH"
-		return 1
-		}
-
-	# Clear config errors
-	unset config_error
+	# The config hash may be disabled
+	[ $verify_file_hash_disabled ] && config_hash_disabled=1
+	[ $EASYTLS_REMOTE_CI ] && config_hash_disabled=1
+	
+	# Check for config hash
+	if [ $config_hash_disabled ] 
+	then
+		# Ignore the missing hash
+		unset config_hash_disabled
+	else
+		# If the config file exists then the hash must exist
+		[ -f "$EASYTLS_CONFIG_HASH" ] || {
+			error_msg "config_use - Missing Config Hash: $EASYTLS_CONFIG_HASH"
+			return 1
+			}
+	fi
 
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
@@ -856,7 +864,6 @@ verify_tls_init ()
 	{
 		[ -d "$EASYTLS_PKI" ] && \
 		[ -f "$EASYTLS_CONFIG_FILE" ] && \
-		[ -f "$EASYTLS_CONFIG_HASH" ] && \
 		[ -f "$EASYTLS_INLINE_INDEX" ] && \
 		[ -f "$EASYTLS_IL_INDEX_HASH" ] && \
 		[ -f "$EASYTLS_KEY_INDEX" ] && \
