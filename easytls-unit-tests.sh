@@ -236,10 +236,10 @@ do
 		#[ "$test_cmd" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
 		#[ "$test_cmd" = "Planned break" ] && echo "Planned break" && continue
 
-		if [ "$test_cmd" = "remove-inline s01" ]
-		then
-			cat "${ETLS_DIR}/s01.inline"
-		fi
+		#if [ "$test_cmd" = "remove-inline s01" ]
+		#then
+		#	cat "${ETLS_DIR}/s01.inline"
+		#fi
 
 		"$EASYTLS_CMD" $EASYTLS_OPTS $test_cmd || \
 		fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
