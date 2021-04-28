@@ -12,6 +12,7 @@ CD %WORK_DIR%
 SET LOG=%WORK_DIR%/easytls-verify.log
 SET SH_EXIT=9
 
+SET DEPTH=%1
 SET VERB=-v
 SET X509=
 SET CA_DIR=/home/tct/git/tct/FULL_TEST/pki
@@ -21,7 +22,7 @@ SET TMP_DIR=-t=%WORK_DIR%
 ECHO * easytls-verify.bat * > %LOG%
 REM Run the script
 REM -c|--ca-path can be absolute or relative to WORK_DIR
-sh.exe easytls-verify.sh %VERB% %X509% -c=%CA_DIR% %TMP_DIR% %PID_FILE% >> %LOG% 2>&1
+sh.exe easytls-verify.sh %VERB% %X509% -c=%CA_DIR% %TMP_DIR% %PID_FILE% %DEPTH% >> %LOG% 2>&1
 
 REM AOK
 IF ERRORLEVEL 0 SET SH_EXIT=0
