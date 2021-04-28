@@ -3030,8 +3030,9 @@ inline_tls_crypt_v2 ()
 					"$EASYTLS_PRINTF" '%s\n' "Closed"
 				fi
 			fi
-			"$EASYTLS_PRINTF" "%s\n" ""
 			}
+		[ "$cert_purpose" = 'Client' ] && \
+			"$EASYTLS_PRINTF" "\n%s\n\n" "push-peer-info"
 		"$EASYTLS_PRINTF" "%s\n" "<tls-crypt-v2>"
 		"$EASYTLS_CAT" "$tls_key"
 		"$EASYTLS_PRINTF" "%s\n" "</tls-crypt-v2>"
