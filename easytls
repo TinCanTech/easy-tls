@@ -1060,7 +1060,22 @@ generate_file_hash ()
 		}
 } # => generate_file_hash ()
 
-# Verify any hash succeeded
+# Verify file hash Match
+match_file_hash ()
+{
+	old_hash=$1
+	verify_valid_hash $old_hash
+	new_hash=$2
+	verify_valid_hash $new_hash
+
+	[ $old_hash = $new_hash ] || {
+		error_msg "match_file_hash: match failed"
+		return 1
+		}
+	unset old_hash new_hash
+} # => match_file_hash ()
+
+# Verify valid hash
 verify_valid_hash ()
 {
 	# Local var
@@ -1733,7 +1748,7 @@ inline_index_verify_hash ()
 
 	easytls_verbose "Inline-index hash check OK"
 	return 0
-}
+} # => inline_index_verify_hash ()
 
 # Save new inline-index hash
 inline_index_save_hash ()
@@ -3688,7 +3703,7 @@ disabled_list_verify_hash ()
 	disabled_list_current_hash="$generated_hash"
 
 	# Verify hash match
-	[ "$disabled_list_current_hash" = "$disabled_list_saved_hash" ] || {
+	match_file_hash $disabled_list_current_hash $disabled_list_saved_hash || {
 		error_msg "disabled_list_verify_hash: Verify hash match failed"
 		return 1
 		}
