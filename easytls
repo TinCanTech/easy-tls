@@ -793,7 +793,7 @@ config_verify_hash ()
 	config_current_hash="$generated_hash"
 
 	# Verify hash match
-	[ "$config_saved_hash" = "$config_current_hash" ] || {
+	match_file_hash $config_saved_hash $config_current_hash || {
 		error_msg "config_verify_hash - Verify hash match failed."
 		return 1
 		}
