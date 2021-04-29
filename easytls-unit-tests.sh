@@ -109,7 +109,8 @@ TLSCV2V_OPTS="-v"
 
 WORK_DIR="$(pwd)"
 
-[ $EASYTLS_REMOTE_CI ] && export file_hash_disabled=1
+[ $EASYTLS_REMOTE_CI ] && export file_hash_disabled=1 && \
+	printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
 
 if [ $OS ]
 then
