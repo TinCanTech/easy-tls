@@ -2252,12 +2252,6 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
-	# This can go .. use verify_init_tls correctly
-	[ -f "$EASYTLS_KEY_HASH" ] || {
-		error_msg "tlskey_index_verify_index_hash - Missing index file."
-		return 1
-		}
-
 	# Read the saved hash
 	tlskey_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_KEY_HASH")"
 
@@ -2271,7 +2265,7 @@ tlskey_index_verify_hash ()
 	tlskey_index_current_hash="$generated_hash"
 
 	# Verify hash match
-	[ "$tlskey_index_saved_hash" = "$tlskey_index_current_hash" ] || {
+	match_file_hash $tlskey_index_saved_hash $tlskey_index_current_hash || {
 		error_msg "tlskey_index_verify_hash - Verify hash match"
 		error_msg "tlskey_index_saved_hash: $tlskey_index_saved_hash"
 		error_msg "tlskey_index_current_hash: $tlskey_index_current_hash"
