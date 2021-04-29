@@ -695,23 +695,6 @@ config_use ()
 		return 0
 		}
 
-	# The config hash may be disabled
-	[ $verify_file_hash_disabled ] && config_hash_disabled=1
-	[ $EASYTLS_REMOTE_CI ] && config_hash_disabled=1
-	
-	# Check for config hash
-	if [ $config_hash_disabled ] 
-	then
-		# Ignore the missing hash
-		unset config_hash_disabled
-	else
-		# If the config file exists then the hash must exist
-		[ -f "$EASYTLS_CONFIG_HASH" ] || {
-			error_msg "config_use - Missing Config Hash: $EASYTLS_CONFIG_HASH"
-			return 1
-			}
-	fi
-
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
@@ -768,6 +751,20 @@ config_use ()
 	# Set default hash.algorithm
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
+	# Set fixed hash
+	case ${EASYTLS_HASH_ALGO} in
+	SHA1)
+	fixed_hash=1111111111111111111111111111111111111111
+	;;
+	SHA256)
+	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
+	;;
+	*)
+		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+		return 1
+	;;
+	esac
+
 	# Verify the Config hash
 	config_verify_hash || {
 		error_msg "Config file hash failed."
@@ -783,8 +780,6 @@ config_use ()
 # Verify the config-file hash
 config_verify_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_REMOTE_CI ] && return 0
 	# Read the saved hash
 	config_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
 
@@ -810,9 +805,6 @@ config_verify_hash ()
 # Hash config-file
 config_save_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_REMOTE_CI ] && return 0
-
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
 		error_msg "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
@@ -916,6 +908,35 @@ and initialize a fresh TLS PKI here."
 	# Create metadata dir in easytls dir
 	"$EASYTLS_MKDIR" -p "$EASYTLS_MD_DIR" || die "Failed to create metadata dir"
 
+	# Create config-file
+	{
+		#"$EASYTLS_PRINTF" '%s\n' "batch.mode = off"
+		"$EASYTLS_PRINTF" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
+		"$EASYTLS_PRINTF" '%s\n' "ca.id = "
+		"$EASYTLS_PRINTF" '%s\n' "custom.group = "
+		"$EASYTLS_PRINTF" '%s\n' "auto.check = on"
+		"$EASYTLS_PRINTF" '%s\n' "inline.metadata = on"
+		"$EASYTLS_PRINTF" '%s\n' "inline.hardware = off"
+		"$EASYTLS_PRINTF" '%s\n' "custom.openvpn = "
+	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
+
+	# Set fixed hash
+	case ${EASYTLS_HASH_ALGO} in
+	SHA1)
+	fixed_hash=1111111111111111111111111111111111111111
+	;;
+	SHA256)
+	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
+	;;
+	*)
+		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+		return 1
+	;;
+	esac
+
+	# Save config-file hash
+	config_save_hash || die "Failed to hash config-file"
+
 	# Create inline-index
 	head_text="# EasyTLS inline-index - Created: $(date)"
 	head_text="$head_text - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
@@ -933,21 +954,6 @@ and initialize a fresh TLS PKI here."
 
 	# Save tlskey-index hash
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
-
-	# Create config-file
-	{
-		#"$EASYTLS_PRINTF" '%s\n' "batch.mode = off"
-		"$EASYTLS_PRINTF" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
-		"$EASYTLS_PRINTF" '%s\n' "ca.id = "
-		"$EASYTLS_PRINTF" '%s\n' "custom.group = "
-		"$EASYTLS_PRINTF" '%s\n' "auto.check = on"
-		"$EASYTLS_PRINTF" '%s\n' "inline.metadata = on"
-		"$EASYTLS_PRINTF" '%s\n' "inline.hardware = off"
-		"$EASYTLS_PRINTF" '%s\n' "custom.openvpn = "
-	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
-
-	# Save config-file hash
-	config_save_hash || die "Failed to hash config-file"
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	EASYTLS_INIT=1
@@ -1025,6 +1031,12 @@ easytls_auto_check ()
 # Generate file hash
 generate_file_hash ()
 {
+	# Fixed Hash - If file hashing is disabled
+	[ ! $force_hash ] && [ $file_hash_disabled ] && {
+		generated_hash=$fixed_hash
+		return
+	}
+
 	# Test for file
 	[ -f "$1" ] || {
 		error_msg "generate_file_hash - Missing file: $1"
@@ -1041,7 +1053,7 @@ generate_file_hash ()
 	unset openssl_hash
 
 	# Verify hash
-	verify_hash "$generated_hash" || {
+	verify_valid_hash "$generated_hash" || {
 		error_msg "generate_file_hash - Hash failed: $generated_hash"
 		unset generated_hash
 		return 1
@@ -1049,7 +1061,7 @@ generate_file_hash ()
 } # => generate_file_hash ()
 
 # Verify any hash succeeded
-verify_hash ()
+verify_valid_hash ()
 {
 	# Local var
 	test_hash="$1"
@@ -1098,7 +1110,7 @@ verify_hash ()
 
 	# Clean up
 	unset test_hash test_size forbidden
-} # => verify_hash ()
+} # => verify_valid_hash ()
 
 
 
@@ -1350,7 +1362,8 @@ status_easytls_invalid ()
 			# Append '-$sub_name' to inline file name
 			inline_file="$EASYTLS_PKI/$name-$sub_name.inline"
 		fi
-		[ -f "$inline_file" ] || die "Missing inline_file: $inline_file ?"
+		[ -f "$inline_file" ] || \
+			die "status_easytls_invalid - Missing inline_file: $inline_file ?"
 
 		inline_serial="$(inline_index_ilhash_to_serial)"
 
@@ -1621,10 +1634,12 @@ inline_index_update ()
 		#	die "Do not allow a HASH here: inline_index_update add"
 
 		# Create new inline file HASH
+		force_hash=1
 		generate_file_hash "$inline_file" || {
 			error_msg "inline_index_update add: Failed to hash: $inline_file"
 			return 1
 			}
+		unset force_hash
 
 		# Set new inline file HASH
 		current_inline_hash="$generated_hash"
@@ -1691,8 +1706,6 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-
 	# If the inline-index does not exist then TLS has not been initialised
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
 
@@ -1777,9 +1790,11 @@ verify_inline_hash ()
 	#easytls_verbose "inline_file: $inline_file"
 
 	# generate current file HASH
+	force_hash=1
 	generate_file_hash "$inline_file" || \
 		die "verify_inline_hash: Failed to hash: $inline_file"
 	real_hash="$generated_hash"
+	unset force_hash
 	#easytls_verbose "real_hash: $generated_hash"
 
 	# Search for current HASH
@@ -2222,8 +2237,6 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-
 	# This can go .. use verify_init_tls correctly
 	[ -f "$EASYTLS_KEY_HASH" ] || {
 		error_msg "tlskey_index_verify_index_hash - Missing index file."
@@ -2303,7 +2316,7 @@ tls_crypt_v2_serial_number ()
 	generated_hash="${md_hash%% *}"
 
 	# Verify hash
-	verify_hash "$generated_hash" || {
+	verify_valid_hash "$generated_hash" || {
 		error_msg "tls_crypt_v2_serial_number - Hash failed: $generated_hash"
 		unset generated_hash
 		return 1
@@ -2340,11 +2353,11 @@ tlskey_index_full_name_to_x509_serial ()
 verify_cert_serial ()
 {
 	# Test it
-	"$EASYTLS_PRINTF" '%s' "$cert_serial" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "verify_cert_serial - cert_serial hex error: $cert_serial"
+	[ "$cert_serial" = "${cert_serial%[!0123456789abcdefABCDEF]*}" ] || {
+			error_msg "verify_cert_serial - !Hex: $cert_serial"
 			return 1
 			}
+
 	hash_size=${#cert_serial}
 
 	case ${EASYRSA_RAND_SN} in
@@ -2371,11 +2384,11 @@ verify_cert_serial ()
 verify_tlskey_serial ()
 {
 	# Test it
-	"$EASYTLS_PRINTF" '%s' "$tlskey_serial" | \
-		"$EASYTLS_GREP" -q '[^[:xdigit:]]' && {
-			error_msg "verify_tlskey_serial - tlskey_serial error: $tlskey_serial"
+	[ "$tlskey_serial" = "${tlskey_serial%[!0123456789abcdefABCDEF]*}" ] || {
+			error_msg "verify_tlskey_serial - !Hex: $tlskey_serial"
 			return 1
 			}
+
 	hash_size=${#tlskey_serial}
 
 	case ${EASYTLS_HASH_ALGO} in
@@ -2430,7 +2443,7 @@ remove_tlskey ()
 
 	# Verify this tlskey-serial
 	#verify_tlskey_serial || die "verify_tlskey_serial: failed"
-	verify_hash "$tlskey_serial" || {
+	verify_valid_hash "$tlskey_serial" || {
 		error_msg "remove_tlskey - tlskey_serial failed: $tlskey_serial"
 		unset tlskey_serial
 		return 1
@@ -3534,7 +3547,7 @@ disabled_list_manager ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Test it
-	verify_hash "$tlskey_serial" || {
+	verify_valid_hash "$tlskey_serial" || {
 		error_msg "disabled_list_manager - tlskey_serial failed: $tlskey_serial"
 		unset tlskey_serial
 		return 1
@@ -3659,8 +3672,6 @@ disabled_list_update_and_hash ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-
 	# Missing disabled-list hash is ok for rehash ?
 	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
 
@@ -5546,6 +5557,12 @@ generate_wiscii_hash ()
 	counted_wiscii='00'
 	[ -f "$EASYTLS_INLINE_INDEX" ] && [ -f "$EASYTLS_KEY_INDEX" ] || return 0
 
+	# Fixed Hash - If file hashing is disabled
+	[ $file_hash_disabled ] && {
+		counted_wiscii=$fixed_hash
+		return
+		}
+
 	# Clear accumulators
 	unset inline_seed
 	unset tlskey_seed
@@ -5644,8 +5661,7 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_REMOTE_CI ] && return 0
+
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
@@ -5661,7 +5677,7 @@ save_wiscii_hash ()
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
-	verify_hash "$counted_wiscii" || {
+	verify_valid_hash "$counted_wiscii" || {
 		error_msg "save_wiscii_hash - counted_wiscii failed: $counted_wiscii"
 		unset tlskey_serial
 		return 1
@@ -5679,8 +5695,6 @@ save_wiscii_hash ()
 # Verify wiscii hash
 verify_wiscii_hash ()
 {
-	[ $verify_file_hash_disabled ] && return 0
-	[ $EASYTLS_REMOTE_CI ] && return 0
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
 		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
@@ -5925,7 +5939,7 @@ while :; do
 	;;
 	-y|--why-disable-file-hash)
 		empty_ok=1
-		verify_file_hash_disabled=1
+		file_hash_disabled=1
 	;;
 	*)
 		break ;;
@@ -5955,16 +5969,6 @@ trap "exit 3" 3
 trap "exit 6" 6
 trap "exit 14" 15
 
-# Load config options - Does not change command line options
-config_use || die "Config error"
-
-# Verify me!
-verify_wiscii_hash || {
-	help_note='
- * Some files have been manually altered, restore the changes to continue..'
-	die "Master hash check failed"
-	}
-
 # determine how we were called, then hand off to the function responsible
 cmd="$1"
 [ -n "$1" ] && shift # scrape off command
@@ -5992,6 +5996,16 @@ case "$cmd" in
 	help_note="Use './easytls init' to initialise TLS."
 	[ $EASYTLS_not_init ] && die 'Easy-TLS has not been initialised'
 	unset help_note
+
+	# Load config options - Does not change command line options
+	config_use || die "Config error"
+
+	# Verify me!
+	verify_wiscii_hash || {
+		help_note='
+ * Some files have been manually altered, restore the changes to continue..'
+		die "Master hash check failed"
+		}
 
 	# Everything else
 	case "$cmd" in

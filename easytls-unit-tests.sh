@@ -109,6 +109,7 @@ TLSCV2V_OPTS="-v"
 
 WORK_DIR="$(pwd)"
 
+[ $EASYTLS_REMOTE_CI ] && export file_hash_disabled=1
 
 if [ $OS ]
 then
@@ -143,7 +144,7 @@ do
 	#[ $loops -eq 3 ] && exit 99
 	[ $loops -eq 3 ] && {
 		export EASYRSA_RAND_SN="yes"
-		EASYTLS_OPTS="--verbose --batch --no-auto-check"
+		#EASYTLS_OPTS="--verbose --batch --no-auto-check"
 		TLSCV2V_OPTS="-v --hash=SHA1"
 		}
 
@@ -224,7 +225,7 @@ do
 	do
 		test_cmd="$i"
 		[ $loops -eq 2 ] && [ "$test_cmd" = "init-tls" ] && \
-			EASYTLS_OPTS="--verbose --batch --no-auto-check -y"
+			EASYTLS_OPTS="--verbose --batch --no-auto-check" ### "-y"
 		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && {
 			test_cmd="$test_cmd SHA1"
 			EASYTLS_OPTS="--verbose --batch --no-auto-check"
