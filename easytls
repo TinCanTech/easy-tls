@@ -5718,7 +5718,7 @@ verify_wiscii_hash ()
 	[ "$counted_wiscii" = '00' ] && return 0
 
 	# hash match or error
-	[ "$counted_wiscii" = "$bottled_wiscii" ] || {
+	match_file_hash $bottled_wiscii $counted_wiscii || {
 		error_msg "bottled_wiscii: $bottled_wiscii"
 		error_msg "counted_wiscii: $counted_wiscii"
 		return 1
