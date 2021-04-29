@@ -1740,8 +1740,9 @@ inline_index_verify_hash ()
 		}
 
 	inline_index_current_hash="$generated_hash"
+
 	# Verify hash match
-	[ "$inline_index_saved_hash" = "$inline_index_current_hash" ] || {
+	match_file_hash $inline_index_saved_hash $inline_index_current_hash || {
 		error_msg "inline_index_verify_hash - Verify hash match"
 		return 1
 		}
