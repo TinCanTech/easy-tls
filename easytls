@@ -831,14 +831,14 @@ config_save_hash ()
 # Verify Openvpn is available
 verify_openvpn ()
 {
-	# Find openvpn or openvpn.exe
-	help_note="See ./easytls help options - Option: --openvpn"
-
 	# extract openvpn version
 	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
 	case "${openvpn_version%% *}" in
 		OpenVPN) : ;;
-		*) die "Missing or invalid OpenVPN" ;;
+		*)
+			help_note="See ./easytls help options - Option: --openvpn"
+			die "Missing or invalid OpenVPN"
+		;;
 	esac
 
 	openvpn_version="${openvpn_version#OpenVPN }"
@@ -1105,7 +1105,7 @@ verify_valid_hash ()
 
 	# Verify length
 	[ $test_length -eq $fixed_length ] || {
-		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
+		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_length"
 		return 1
 		}
 
@@ -5556,8 +5556,10 @@ import_key ()
 generate_wiscii_hash ()
 {
 	# If TLS has not been initialised then bail-out, use '00' to indicate this
-	counted_wiscii='00'
-	[ -f "$EASYTLS_INLINE_INDEX" ] && [ -f "$EASYTLS_KEY_INDEX" ] || return 0
+	[ -f "$EASYTLS_CONFIG_FILE" ] || {
+		counted_wiscii='00'
+		return 0
+		}
 
 	# Fixed Hash - If file hashing is disabled
 	[ $file_hash_disabled ] && {
@@ -5566,8 +5568,7 @@ generate_wiscii_hash ()
 		}
 
 	# Clear accumulators
-	unset inline_seed
-	unset tlskey_seed
+	unset inline_seed tlskey_seed wiscii_seed2
 
 	# Hash all inline-files
 	while read -r inline_hash inline_serial CN sub_key tlskey_serial
@@ -5594,8 +5595,12 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_INLINE_INDEX"
 
 	# Hash2 the inline-files seed
-	inline_hash2="$("$EASYTLS_PRINTF" '%s' "$inline_seed" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
+	inline_hash2="$("$EASYTLS_PRINTF" '%s' "$inline_seed" | \
+		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	inline_seed2="${inline_hash2%% *}"
+
+	# Build Master seed
+	wiscii_seed2=${wiscii_seed2}${inline_seed2}
 
 	# Hash all tls-keys
 	# tls-auth.key
@@ -5610,6 +5615,7 @@ generate_wiscii_hash ()
 		:
 	fi
 
+	# tls-crypt.key
 	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
 	if [ -f "$tlskey_file" ]
 	then
@@ -5648,15 +5654,22 @@ generate_wiscii_hash ()
 	done < "$EASYTLS_KEY_INDEX"
 
 	# Hash2 the tls-keys seed
-	tlskey_hash2="$("$EASYTLS_PRINTF" '%s' "$tlskey_seed" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
+	tlskey_hash2="$("$EASYTLS_PRINTF" '%s' "$tlskey_seed" | \
+		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	tlskey_seed2="${tlskey_hash2%% *}"
 
-	# Include config hash
+	# Build Master seed
+	wiscii_seed2=${wiscii_seed2}${tlskey_seed2}
+
+	# Include other file hashes
 	config_file_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
+	wiscii_seed2=${wiscii_seed2}${config_file_hash}
+	disabled_list_file_hash="$("$EASYTLS_CAT" "$EASYTLS_DISABLED_HASH")"
+	wiscii_seed2=${wiscii_seed2}${disabled_list_file_hash}
 
 	# master a.k.a. wiscii hash
-	wiscii_seed2="${config_file_hash}${tlskey_seed2}${inline_seed2}"
-	wiscii_hash2="$("$EASYTLS_PRINTF" '%s' "$wiscii_seed2" | "$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
+	wiscii_hash2="$("$EASYTLS_PRINTF" '%s' "$wiscii_seed2" | \
+		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	counted_wiscii="${wiscii_hash2%% *}"
 }
 
@@ -5681,7 +5694,6 @@ save_wiscii_hash ()
 	# Test it here Only!
 	verify_valid_hash "$counted_wiscii" || {
 		error_msg "save_wiscii_hash - counted_wiscii failed: $counted_wiscii"
-		unset tlskey_serial
 		return 1
 		}
 
@@ -5730,16 +5742,18 @@ verify_wiscii_hash ()
 external_deps ()
 {
 	# Set the external binary names
-	#easytls_openssl='openssl' # Checked by Easy-RSA3
+	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.
+	#EASYTLS_OPENVPN='openvpn' # Set in config_use()
+
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
 	EASYTLS_CP='cp' # Checked by Easy-RSA3
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
-	#easytls_ls='ls' # Not used in Easy-TLS
+	#EASYTLS_LS='ls' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
 	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
 	EASYTLS_MKTEMP='mktemp'
-	#easytls_mv='mv' # Not used in Easy-TLS
+	#EASYTLS_MV='mv' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
 	EASYTLS_PRINTF='printf' # Checked by Easy-RSA3
 	EASYTLS_RM='rm' # Checked by Easy-RSA3
 	EASYTLS_SED='sed'
