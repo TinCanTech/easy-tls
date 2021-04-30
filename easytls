@@ -832,16 +832,17 @@ config_save_hash ()
 verify_openvpn ()
 {
 	# extract openvpn version
-	openvpn_version="$("$EASYTLS_OPENVPN" --version)"
-	case "${openvpn_version%% *}" in
+	openvpn_full_version="$("$EASYTLS_OPENVPN" --version)"
+	openvpn_version="${openvpn_full_version%% *}"
+	case "$openvpn_version" in
 		OpenVPN) : ;;
 		*)
 			help_note="See ./easytls help options - Option: --openvpn"
-			die "Missing or invalid OpenVPN"
+			die "Missing or invalid OpenVPN: $openvpn_version"
 		;;
 	esac
 
-	openvpn_version="${openvpn_version#OpenVPN }"
+	openvpn_version="${openvpn_full_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
 	openvpn_version="${openvpn_version%_*}"
 	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
