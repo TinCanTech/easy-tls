@@ -755,9 +755,13 @@ config_use ()
 	case ${EASYTLS_HASH_ALGO} in
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
+	fixed_length=40
+	forbidden_hash=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
+	fixed_length=64
+	forbidden_hash=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
 	;;
 	*)
 		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
@@ -924,9 +928,11 @@ and initialize a fresh TLS PKI here."
 	case ${EASYTLS_HASH_ALGO} in
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
+	fixed_length=40
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
+	fixed_length=64
 	;;
 	*)
 		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
@@ -1091,42 +1097,22 @@ verify_valid_hash ()
 			}
 
 	# Set length
-	test_size=${#test_hash}
+	test_length=${#test_hash}
 
 	# Verify length
-	case ${EASYTLS_HASH_ALGO} in
-	SHA1)
-		[ $test_size -eq 40 ] || {
-			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
-			return 1
-			}
-		# Test for empty input
-		forbidden=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
-		[ $test_hash = $forbidden ] && {
-			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
-			return 1
-			}
-	;;
-	SHA256)
-		[ $test_size -eq 64 ] || {
-			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
-			return 1
-			}
-		# Test for empty input
-		forbidden=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
-		[ $test_hash = $forbidden ] && {
-			error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
-			return 1
-			}
-	;;
-	*)
-		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+	[ $test_length -eq $fixed_length ] || {
+		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_size"
 		return 1
-	;;
-	esac
+		}
+
+	# Test for empty input hash
+	[ $test_hash = $forbidden_hash ] && {
+		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
+		return 1
+		}
 
 	# Clean up
-	unset test_hash test_size forbidden
+	unset test_hash test_length
 } # => verify_valid_hash ()
 
 
