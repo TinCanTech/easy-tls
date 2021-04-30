@@ -355,7 +355,7 @@ Easy-TLS abbreviations:
   disable                       - d
   enable                        - e
   disabled-list-rehash          - No abbreviation'
-}
+} # => opt_abbreviations ()
 
 # Option abbreviations
 opt_config ()
@@ -391,18 +391,18 @@ Easy-TLS configurable options:
   ih|inline.hardware on|off
      Include metadata hardware-addresses in metadata for inline file
      Toggle inline-file hardware-address metadata on|off.'
-}
+} #=> opt_config ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
-print()
+print ()
 {
 	[ "$EASYTLS_SILENT" ] && return
 	"$EASYTLS_PRINTF" "%s\n" "$*"
-}
+} # => print ()
 
 # Exit fatally with a message to stderr
 # present even with EASYTLS_BATCH as these are fatal problems
-die()
+die ()
 {
 	easytls_version
 	print "
@@ -412,43 +412,44 @@ ${help_note:-No extra help is configured}
 
 $1" 1>&2
 	exit "${2:-1}"
-} # => die()
+} # => die ()
 
 # Specific error messages from sub-functions which do not use die()
 error_msg ()
 {
 	print "ERROR: $1"
-}
+} # => error_msg ()
 
 # remove temp files and do terminal cleanups
-cleanup()
+cleanup ()
 {
-	[ -z "$EASYRSA_TEMP_DIR_session" ] || "$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR_session"
+	[ -z "$EASYRSA_TEMP_DIR_session" ] || \
+		"$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR_session"
 	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
-} # => cleanup()
+} # => cleanup ()
 
 # non-fatal warning output
-warn()
+warn ()
 {
 	[ "$EASYTLS_SILENT" ] && return
 		print "
 WARNING:
   $1
 " 1>&2
-} # => warn()
+} # => warn ()
 
 # informational notices to stdout
-notice()
+notice ()
 {
 	[ "$EASYTLS_SILENT" ] && return
 		print "
 $1"
-} # => notice()
+} # => notice ()
 
 # intent confirmation helper func
 # returns without prompting in EASYTLS_BATCH
-confirm()
+confirm ()
 {
 	[ "$batch_mode" ] && return
 	[ "$EASYTLS_BATCH" ] && return
@@ -465,13 +466,13 @@ $msg
 	[ "$input" = "$value" ] && return
 	notice "Aborting without confirmation."
 	exit 9
-} # => confirm()
+} # => confirm ()
 
-vars_source_check() {
+vars_source_check () {
 	# Check for defined EASYRSA_PKI
 	[ -n "$EASYRSA_PKI" ] || die "\
 EASYRSA_PKI env-var undefined"
-} # => vars_source_check()
+} # => vars_source_check ()
 
 # Basic sanity-check of PKI init and complain if missing
 verify_pki_init () {
@@ -498,7 +499,7 @@ Easy-RSA error:
 Missing expected directory: $i (perhaps you need to run init-pki?)
 $help_note"
 	done
-} # => verify_pki_init()
+} # => verify_pki_init ()
 
 # Verify core CA files present
 verify_ca_init () {
@@ -541,7 +542,7 @@ $help_note"
 	# explicitly return success for callers
 	return 0
 
-} # => verify_ca_init()
+} # => verify_ca_init ()
 
 
 
@@ -558,7 +559,7 @@ easytls_verbose ()
 	verbose_message="$*"
 	[ -z "$verbose_message" ] && print "" && return 0
 	print "* $verbose_message"
-}
+} # => easytls_verbose ()
 
 # Configurable options
 easytls_config ()
@@ -669,18 +670,19 @@ easytls_config ()
 config_update ()
 {
 	# Find the pattern
-	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" "$EASYTLS_CONFIG_FILE" || {
-		error_msg "config_update - input error"
-		return 1
-		}
+	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"$EASYTLS_CONFIG_FILE" || {
+			error_msg "config_update - input error"
+			return 1
+			}
 
 	# Replace the pattern
 	"$EASYTLS_SED" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
-	"$EASYTLS_CONFIG_FILE" || {
-		error_msg "config_update - replace error"
-		return 1
-		}
+		"$EASYTLS_CONFIG_FILE" || {
+			error_msg "config_update - replace error"
+			return 1
+			}
 
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 	return 0
@@ -930,10 +932,12 @@ and initialize a fresh TLS PKI here."
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
+	forbidden_hash=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
 	fixed_length=64
+	forbidden_hash=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
 	;;
 	*)
 		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
@@ -947,8 +951,8 @@ and initialize a fresh TLS PKI here."
 	# Create inline-index
 	head_text="# EasyTLS inline-index - Created: $(date)"
 	head_text="$head_text - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
-	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" \
-		|| die "Failed to create inline-index"
+	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" || \
+		die "Failed to create inline-index"
 
 	# Save inline-index hash
 	inline_index_save_hash || die "Failed to hash inline-index"
@@ -956,8 +960,8 @@ and initialize a fresh TLS PKI here."
 	# Create tlskey-index
 	head_text="# EasyTLS tlskey-index - Created: $(date)"
 	head_text="$head_text - tlskey-serial|cert-serial|CN|sub-key"
-	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_KEY_INDEX" \
-		|| die "Failed to create tlskey-index"
+	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_KEY_INDEX" || \
+		die "Failed to create tlskey-index"
 
 	# Save tlskey-index hash
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
@@ -969,14 +973,15 @@ and initialize a fresh TLS PKI here."
 
 	# Create disabled-list
 	head_text="# EastTLS disabled-list - Created: $(date)"
-	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" \
-		|| die "Failed to create disabled-list"
+	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_DISABLED_LIST" || \
+		die "Failed to create disabled-list"
 
 	# Save disabled-list hash
 	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
 	# Create empty master hash
-	"$EASYTLS_PRINTF" '%s' "" > "$EASYTLS_WISCII_HASH" || die "Create master-hash failed"
+	"$EASYTLS_PRINTF" '%s' "" > "$EASYTLS_WISCII_HASH" || \
+		die "Create master-hash failed"
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
@@ -1010,14 +1015,12 @@ easytls_auto_check ()
 
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
-	# Temporarily disable
 	status invalid || die "inline_auto_check: status invalid error"
 	[ $revoked_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
-	# Temporarily disable
 	status renewed || die "inline_auto_check: status renewed error"
 	[ $renewed_mismatch_count -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
@@ -1202,15 +1205,10 @@ status ()
 	[ -z "$ersa_revoked_serial_list" ] && \
 		print "  No Revoked X509 certificates found"
 
-	#verify_tls_init
-
 	print "Easy-TLS: Known inline files:"
 	status_easytls_inline
 	[ -z "$etls_valid_serial_list" ] && \
 		print "  No inline files found"
-
-	#print "Easy-TLS: Revoked inline files:"
-	#status_easytls_revoked
 
 	print "Easy-TLS: Invalid inline files:"
 	revoked_mismatch_count=0
@@ -1252,7 +1250,7 @@ status_easyrsa_output ()
 		else
 		print "  Common-Name " $1 "\t  X509-Serial " $2
 		}'
-}
+} # => status_easyrsa_output ()
 
 # Format status output from Easy-TLS
 status_easytls_output ()
@@ -1263,46 +1261,49 @@ status_easytls_output ()
 		else
 		print "  Common-Name " $3 "\t  X509-Serial " $2 "\t  Sub-key " $4
 		}'
-}
+} # => status_easytls_output ()
 
 # Format status CN
 status_cn ()
 {
 	"$EASYTLS_SED" -e 's`^.*/CN=``g' -e 's`/.*$``g'
-}
+} # => status_cn ()
 
 # Extract Valid records from OpenSSL index.txt by crt_serial
 status_valid_extract_cn ()
 {
 	"$EASYTLS_GREP" "^V.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
-}
+} # => status_valid_extract_cn ()
 
 # Extract Revoked records from OpenSSL index.txt by crt_serial
 status_revoked_extract_cn ()
 {
 	"$EASYTLS_GREP" "^R.*[[:blank:]]${i}[[:blank:]]" "$EASYRSA_INDEX" | status_cn
-}
+} # => status_revoked_extract_cn ()
 
 # Search ersa revoked serial list for etls valid serial
 status_search_revoked_serial_list()
 {
 	"$EASYTLS_PRINTF" '%s\n' "$ersa_revoked_serial_list" | \
 		"$EASYTLS_GREP" -c "^${inline_serial}$"
-}
+} # => status_search_revoked_serial_list()
 
 # List the invalid inline file record by serial number
 # Do not terminate regex with $ because we need to allow for subs
 status_invalid_inline_list ()
 {
-	"$EASYTLS_GREP" "^${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
+	"$EASYTLS_GREP" \
+		"^${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
 		"$EASYTLS_INLINE_INDEX" | status_easytls_output
-}
+} # => status_invalid_inline_list ()
 
 # Print Valid certs from Easy-RSA
 status_easyrsa_valid ()
 {
 	[ -f "$EASYRSA_INDEX" ] || return 0
-	ersa_valid_serial_list="$("$EASYTLS_GREP" '^V' "$EASYRSA_INDEX"|"$EASYTLS_AWK" '{print $3}')"
+	ersa_valid_serial_list="$("$EASYTLS_GREP" '^V' "$EASYRSA_INDEX" | \
+		"$EASYTLS_AWK" '{print $3}')"
+
 	for i in $ersa_valid_serial_list
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
@@ -1315,7 +1316,9 @@ status_easyrsa_valid ()
 status_easyrsa_revoked ()
 {
 	[ -f "$EASYRSA_INDEX" ] || return 0
-	ersa_revoked_serial_list="$("$EASYTLS_GREP" '^R' "$EASYRSA_INDEX" | "$EASYTLS_AWK" '{print $4}')"
+	ersa_revoked_serial_list="$("$EASYTLS_GREP" '^R' "$EASYRSA_INDEX" | \
+		"$EASYTLS_AWK" '{print $4}')"
+
 	for i in $ersa_revoked_serial_list
 	do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
@@ -1333,22 +1336,11 @@ status_easytls_inline ()
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 	[ $silent_status ] || \
 		"$EASYTLS_SED" /^#/d "$EASYTLS_INLINE_INDEX" | status_easytls_output
-} # => status_easytls_valid ()
-
-# Print Revoked certs from Easy-TLS
-status_easytls_revoked ()
-{
-	print "  Easy-TLS does not Revoke certificates."
-	print "  If the certificate has been revoked in Easy-RSA then use:"
-	print "  'inline-remove <filename_base>' to delete the inline file."
-} # => status_easytls_revoked ()
+} # => status_easytls_inline ()
 
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
-	# Temporarily disable
-	#return 0
-
 	[ $index_rebuild ] && [ -z "$etls_valid_il_hash_list" ] && \
 		die "empty etls_valid_il_hash_list"
 
@@ -1384,7 +1376,7 @@ status_easytls_invalid ()
 		mismatches="$(status_search_revoked_serial_list)"
 		case $mismatches in
 		0)
-		# No mismatches found
+			# No mismatches found
 			:
 		;;
 		1)
@@ -1403,9 +1395,6 @@ status_easytls_invalid ()
 # Print Renewed certs from Easy-RSA if they are inlined
 status_easyrsa_renewed ()
 {
-	# Temporarily disable
-	#return 0
-
 	renewed_mismatch_count=0
 	# REMEMBER: If there is no inline file for a cert
 	# then EasyTLS does not care if the cert is renewed
@@ -1461,9 +1450,6 @@ status_easyrsa_renewed ()
 # List known TLS keys
 status_easytls_tlskeys ()
 {
-	#"$EASYTLS_CAT" "$EASYTLS_KEY_INDEX"
-	#return 0
-
 	while read -r tlskey_serial cert_serial common_name sub_key
 	do
 		# Skip heading
@@ -1472,47 +1458,45 @@ status_easytls_tlskeys ()
 		# Validate - Can not open this key so these checks are minor
 		key_file="$EASYTLS_PKI/$common_name-tls-crypt-v2.key"
 		metadata_debug="$EASYTLS_MD_DIR/$common_name-tls-crypt-v2.metadata"
-		full_name="${common_name}-${sub_key}"
+
 		[ "$sub_key" = 'NOSUBKEY' ] || {
-			key_file="$EASYTLS_PKI/$full_name-tls-crypt-v2.key"
-			metadata_debug="$EASYTLS_MD_DIR/$full_name-tls-crypt-v2.metadata"
+			full_name="${common_name}-${sub_key}"
+			key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+			metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 			}
+
 		[ -f "$key_file" ] || "$EASYTLS_PRINTF" '%s\t'   "  Missing key"
+
 		if  [ "$tlskey_serial" = '0000000000000000000000000000000000000000' ]
 		then
 			# Must be a server key with no metadata
 			# All server key tls-serial are only 40 chars, no need for SHA256
 			"$EASYTLS_PRINTF" '%s\t'   "  Server"
 		else
-			[ -f "$metadata_debug" ] || "$EASYTLS_PRINTF" '%s\t'   "Missing metadata"
+			[ -f "$metadata_debug" ] || \
+				"$EASYTLS_PRINTF" '%s\t'   "Missing metadata"
 			"$EASYTLS_PRINTF" '%s\t'   "    Client"
 		fi
 
 		"$EASYTLS_PRINTF" '%s\t'   "Common-Name $common_name"
-		#"$EASYTLS_PRINTF" '%s\t'   "tlskey-serial $tlskey_serial"
-		#"$EASYTLS_PRINTF" '%s\t'   "cert-serial $cert_serial"
 		[ "$sub_key" = 'NOSUBKEY' ] || "$EASYTLS_PRINTF" '%s\t' "sub-key $sub_key"
 		"$EASYTLS_PRINTF" '\n'
 
 		# List
 		etls_valid_tlskey_list="$etls_valid_tlskey_list $tlskey_serial"
 	done < "$EASYTLS_KEY_INDEX"
-}
+} # => status_easytls_tlskeys ()
 
 # List disabled client keys
-status_disabled_list()
+status_disabled_list ()
 {
 	"$EASYTLS_CAT" "$EASYTLS_DISABLED_LIST"
-}
+} # => status_disabled_list ()
 
 # Verify certificate purpose
 verify_cert_purpose ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose | "$EASYTLS_GREP" -q "$2"
-
-	#Purpose="${2#?}"
-	#"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose | \
-	#	"$EASYTLS_GREP" -q "SSL .${Purpose} : Yes"
 } # => verify_cert_purpose ()
 
 # Cut to only certificate enddate
@@ -1529,23 +1513,17 @@ inline_expire_date ()
 	inline_expire="${inline_expire##*: }"
 } # => inline_expire_date ()
 
-# Get a list of commonNames from inline-index
-#inline_index_common_name_list ()
-#{
-#	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
-#}
-
 # Get a list of serial_numbers from inline-index
 inline_index_serial_number_list ()
 {
 	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $2 " "}' "$EASYTLS_INLINE_INDEX"
-}
+} # => inline_index_serial_number_list ()
 
 # Get a list of inline hashes from inline-index
 inline_index_ilhash_number_list ()
 {
 	"$EASYTLS_AWK" '{if ($1 ~ /[^#]/) print $1 " "}' "$EASYTLS_INLINE_INDEX"
-}
+} # => inline_index_ilhash_number_list ()
 
 # Get a list of Common_name + Sub-key name from inline-index
 inline_index_common_name_sub_name_list ()
@@ -1553,7 +1531,7 @@ inline_index_common_name_sub_name_list ()
 	"$EASYTLS_AWK" '{if($1 ~ /[^#]/)
 		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
 		 }' "$EASYTLS_INLINE_INDEX"
-}
+} # => inline_index_common_name_sub_name_list ()
 
 # Get x509 certificate expiry Date
 cert_expire ()
@@ -1595,8 +1573,6 @@ inline_expire ()
 {
 	name="$1"
 
-	#verify_tls_init
-
 	if [ -n "$name" ]
 	then
 		inline_file="$EASYTLS_PKI/$name.inline"
@@ -1621,8 +1597,6 @@ inline_index_update ()
 {
 	update_index_action="$1"
 
-	#verify_tls_init
-
 	# Verify inline-index Hash
 	inline_index_verify_hash || {
 		error_msg "inline-index is corrupt"
@@ -1635,11 +1609,6 @@ inline_index_update ()
 		# Inline serial
 		inline_serial=""
 		inline_crt_serial
-
-		# If this HASH is set then another function is responsible for it
-		# TODO: Is this necessary, maybe for rebuilding inline-index ?
-		#[ "$inline_hash" ] && \
-		#	die "Do not allow a HASH here: inline_index_update add"
 
 		# Create new inline file HASH
 		force_hash=1
@@ -1755,14 +1724,15 @@ inline_index_save_hash ()
 
 	inline_index_current_hash="$generated_hash"
 	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$inline_index_current_hash" > "$EASYTLS_IL_INDEX_HASH" || {
-		error_msg "inline_index_save_hash - Save the current hash"
-		return 1
-		}
+	"$EASYTLS_PRINTF" '%s' "$inline_index_current_hash" > \
+		"$EASYTLS_IL_INDEX_HASH" || {
+			error_msg "inline_index_save_hash - Save the current hash"
+			return 1
+			}
 
 	easytls_verbose "Inline-index hash save OK"
 	return 0
-}
+} # => inline_index_save_hash ()
 
 # Check inline-file hash
 verify_inline_hash ()
@@ -1773,7 +1743,6 @@ verify_inline_hash ()
 
 	[ -z "$name" ] && \
 		die "verify_inline_hash: Missing value: name"
-	#easytls_verbose "name: $name"
 
 	# May not require this
 	#[ -z "$crt_serial" ] && \
@@ -1782,13 +1751,11 @@ verify_inline_hash ()
 	# Must have inline_serial
 	[ -z "$inline_serial" ] && \
 		die "verify_inline_hash: Missing value: inline_serial"
-	#easytls_verbose "inline_serial: $inline_serial"
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
 	[ -n "$inline_hash" ] && \
 		die "verify_inline_hash: Found value: inline_hash $inline_hash"
-	#easytls_verbose "inline_hash: $inline_hash"
 
 	# Already have inline_serial so this file MUST exist so remove test
 	# Not so during an index rebuild
@@ -1796,7 +1763,6 @@ verify_inline_hash ()
 		die "verify_inline_hash: Missing value: inline_file"
 	[ -f "$inline_file" ] || \
 		die "verify_inline_hash: Missing file: $inline_file"
-	#easytls_verbose "inline_file: $inline_file"
 
 	# generate current file HASH
 	force_hash=1
@@ -1804,10 +1770,6 @@ verify_inline_hash ()
 		die "verify_inline_hash: Failed to hash: $inline_file"
 	real_hash="$generated_hash"
 	unset force_hash
-	#easytls_verbose "real_hash: $generated_hash"
-
-	# Search for current HASH
-	#find_hash="$(inline_index_search_inline_hash)"
 
 	if inline_index_search_inline_hash
 	then
@@ -1816,55 +1778,10 @@ verify_inline_hash ()
 		return 0
 	fi
 
-#	case "$find_hash" in
-#	0)
-#		# HASH check failed
-#		help_note="HASH incorrect for: $inline_file"
-#	;;
-#	1)
-#		# This is the correct HASH so set it
-#		# If this does not work in another function
-#		# then control it from that function
-#		inline_hash="$real_hash"
-#
-#		# HASH is correct
-#		return 0
-#	;;
-#	*) help_note="HASH check unknown error: $find_hash"
-#	;;
-#	esac
-
 	# There is only one way out of this..
 	error_msg "Inline file hash failed"
 	return 1
 } # => verify_inline_hash ()
-
-# Get serial number from inline index file using Common name as key
-#inline_index_common_name_to_serial ()
-#{
-	# TODO: This could be effected by duplicate names from easyrsa
-	# This function is defunct but keep it for the EasyRSA early warning
-	# Other functions could be effected
-	# https://github.com/TinCanTech/easy-tls/issues/48
-	# Maybe close this as "EasyRSA leaves an indeterminate grace period for
-	# partially renewed certs to be completely renewed by revoking the old cert"
-	# EasyTLS can work with that
-	#"$EASYTLS_GREP" "^${name}[[:blank:]].*$" \
-	#	"$EASYTLS_INLINE_INDEX" | "$EASYTLS_AWK" '{print $2}'
-
-	#script="{if(\$1 ~ /^${name}\$/) print \$2}"
-	#"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
-	#unset script
-#}
-
-# Get Common name from inline index file using serial number as key
-#inline_index_serial_to_common_name ()
-#{
-#	Target_File="${1:-"$EASYTLS_INLINE_INDEX"}"
-#	script="{if(\$2 ~ /^${inline_serial}\$/) print \$1}"
-#	"$EASYTLS_AWK" -P "$script" "$Target_File"
-#	unset script
-#}
 
 # Get Common name from inline index file using inline hash as key
 inline_index_ilhash_to_common_name ()
@@ -1872,7 +1789,7 @@ inline_index_ilhash_to_common_name ()
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$3}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
-}
+} # => inline_index_ilhash_to_common_name ()
 
 # Get sub name from inline index file using inline hash as key
 inline_index_ilhash_to_sub_name ()
@@ -1880,7 +1797,7 @@ inline_index_ilhash_to_sub_name ()
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$4}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
-}
+} # => inline_index_ilhash_to_sub_name ()
 
 # Get cert serial number from inline index file using inline hash as key
 inline_index_ilhash_to_serial ()
@@ -1888,7 +1805,7 @@ inline_index_ilhash_to_serial ()
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$2}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
-}
+} # => inline_index_ilhash_to_serial ()
 
 # Search inline-index for inline-file hash
 inline_index_search_inline_hash ()
@@ -1897,35 +1814,21 @@ inline_index_search_inline_hash ()
 	# because inline file HASH ${real_hash} is unique
 	"$EASYTLS_GREP" -q "^${real_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
 		"$EASYTLS_INLINE_INDEX"
-}
-
-# Does this .inline file name already have an index record
-#inline_index_search_valid_cn_list ()
-#{
-#	"$EASYTLS_PRINTF" '%s\n' "$etls_inline_record_list" | \
-#		"$EASYTLS_GREP" -c "[[:blank:]]${name}[[:blank:]]"
-#}
-
-# Dragon be here ! - Extract CN from OpenSSL index.txt
-#inline_index_openssl_valid_cn_list ()
-#{
-#	"$EASYTLS_GREP" '^V.*$' "$EASYRSA_INDEX" | \
-#		"$EASYTLS_SED" -e 's`^.*/CN=``g' -e 's`/emailAddress=.*$``g'
-#}
+} # => inline_index_search_inline_hash ()
 
 # Get common_name from inline file
 inline_crt_common_name ()
 {
 	inline_common_name="$("$EASYTLS_GREP" '^# Common name: .*$' "$inline_file")"
 	inline_common_name="${inline_common_name##*name: }"
-}
+} # => inline_crt_common_name ()
 
 # Get serial number from inline file
 inline_crt_serial ()
 {
 	inline_serial="$("$EASYTLS_GREP" '^# X509 serial: .*$' "$inline_file")"
 	inline_serial="${inline_serial##*serial: }"
-}
+} # => inline_crt_serial ()
 
 # Get and format OpenSSL serial number output
 openssl_crt_serial ()
@@ -1934,7 +1837,7 @@ openssl_crt_serial ()
 	crt_serial="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -serial)"
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
-}
+} # => openssl_crt_serial ()
 
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_cn ()
@@ -1943,7 +1846,7 @@ openssl_crt_cn ()
 		-noout -subject -nameopt sep_multiline | \
 		"$EASYTLS_GREP" '^[[:blank:]]*CN=.*$' | \
 		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
-}
+} # => openssl_crt_cn ()
 
 # Check inline hash and Copy inline to stdout
 inline_show ()
@@ -1980,18 +1883,9 @@ remove_inline ()
 	name="$1"
 	inline_file="$EASYTLS_PKI/$name.inline"
 
-	# This does not over-write a previous setting
-	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
-
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 		}
-
-	# standardize this
-	#[ $TLSKEY_SUBNAME ] && \
-	#	inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
-
-	#verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -2020,7 +1914,7 @@ remove_inline ()
 	# explicitly return success for callers
 	return 0
 
-} # => inline_remove ()
+} # => remove_inline ()
 
 # Rebuild inline index
 inline_index_rebuild ()
@@ -2031,8 +1925,6 @@ inline_index_rebuild ()
 	# TODO
 	# TODO WARNING, inline_index_rebuild is a work in progress
 	# TODO
-
-	#verify_tls_init
 
 	# Do not over write current easytls-inline-index.txt.backup
 	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
@@ -2148,6 +2040,7 @@ inline_index_rebuild ()
 	print
 } # => inline_index_rebuild ()
 
+# Reset files if index rebuild fails
 inline_index_rebuild_reset ()
 {
 	"$EASYTLS_CP" -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
@@ -2157,7 +2050,7 @@ inline_index_rebuild_reset ()
 	"$EASYTLS_RM" -f "$EASYTLS_IL_INDEX_HASH.backup"
 
 	die "Inline index rebuild failed."
-}
+} # => inline_index_rebuild_reset ()
 
 
 
@@ -2170,8 +2063,6 @@ inline_index_rebuild_reset ()
 tlskey_index_update ()
 {
 	update_index_action="$1"
-
-	#verify_tls_init
 
 	# Verify tlskey-index Hash
 	tlskey_index_verify_hash || {
@@ -2290,30 +2181,16 @@ tlskey_index_save_hash ()
 	easytls_verbose "tlskey-index hash save OK"
 } # => tlskey_index_save_hash ()
 
-#Insert a serial number
+# Insert a serial number
 tls_crypt_v2_serial_number ()
 {
-	# Why SHA1 ?
-	# 1. An attacker will have to decrypt their client key.
-	#    Otherwise, they only have access to the metadata.
-	# 2. An attacker will have to calculate a SHA1 collision.
-	#    Collision must still conform to correctly formatted metadata.
-	# 3. An attacker will have to build a new client key.
-	#    Using the real server key, still not exposed ..
-	# 4. The new client key will have to expliot the server, somehow ?
-	#    The server is still protected by real X509.
-	# 5. Even with current technology, SHA1 is still 2^61
-	# Considering the risk this key exposes, it seems a bit far fetched
-	# that breaking this key will have any value for anybody.
-	# It is trillions of times easier to steal the server key.
-	# If you want to get really picky then please open an issue.
-
 	# Prepend random padding to metadata
 	metadata_padding="$("$EASYRSA_OPENSSL" rand -hex 4)"
 	metadata="${metadata_padding}--${metadata}"
 
 	# What ever OpenSSL says ..
-	md_hash="$("$EASYTLS_PRINTF" '%s' "$metadata"|"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
+	md_hash="$("$EASYTLS_PRINTF" '%s' "$metadata" | \
+		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 
 	# Assume it is a valid HASH
 	generated_hash="${md_hash%% *}"
@@ -2342,7 +2219,7 @@ tlskey_index_full_name_to_tls_serial ()
 	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$1}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
-}
+} # => tlskey_index_full_name_to_tls_serial ()
 
 # tlskey name subkeyname to x509 serial
 tlskey_index_full_name_to_x509_serial ()
@@ -2350,7 +2227,7 @@ tlskey_index_full_name_to_x509_serial ()
 	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$2}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
-}
+} # => tlskey_index_full_name_to_x509_serial ()
 
 # tlskey verify serial number is valid
 verify_cert_serial ()
@@ -2381,7 +2258,7 @@ verify_cert_serial ()
 		return 1
 	;;
 	esac
-}
+} # => verify_cert_serial ()
 
 # tlskey verify serial number is valid
 verify_tlskey_serial ()
@@ -2412,13 +2289,13 @@ verify_tlskey_serial ()
 		return 1
 	;;
 	esac
-}
+} # => verify_tlskey_serial ()
 
 # # Verify that this key is no longer in use
 tlskey_verify_in_use ()
 {
 	"$EASYTLS_GREP" -q "^.*[[:blank:]]${tlskey_serial}$" "$EASYTLS_INLINE_INDEX"
-}
+} # => tlskey_verify_in_use ()
 
 # Remove a TLS-Crypt-V2 Client key and update the tlskey-index
 remove_tlskey ()
@@ -2433,8 +2310,9 @@ remove_tlskey ()
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		tlskey_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
-		metadata_file="$EASYTLS_MD_DIR/$name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
+		full_name="${name}-${TLSKEY_SUBNAME}"
+		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_file="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 		}
 
 	# Check required files (No metadata_file for servers)
@@ -2445,7 +2323,6 @@ remove_tlskey ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Verify this tlskey-serial
-	#verify_tlskey_serial || die "verify_tlskey_serial: failed"
 	verify_valid_hash "$tlskey_serial" || {
 		error_msg "remove_tlskey - tlskey_serial failed: $tlskey_serial"
 		unset tlskey_serial
@@ -2459,9 +2336,10 @@ remove_tlskey ()
 	verify_cert_serial || die "verify_cert_serial: failed"
 
 	# Check this tlskey is not in use by an .inline file
-	help_note="Remove the inline file which uses this key."
-	tlskey_verify_in_use && die "This key is still in use: $tlskey_file"
-	unset help_note
+	tlskey_verify_in_use && {
+		help_note="Remove the inline file which uses this key."
+		die "This key is still in use: $tlskey_file"
+		}
 
 	# Confirm remove
 	confirm  "Remove tlskey file ? " "yes" "Remove: $tlskey_file"
@@ -2591,7 +2469,6 @@ inline_renew ()
 	# Build the new .inline file
 	case "$inline_type" in
 		tls-base)
-			#silent_base=1
 			inline_base "$name" $cmd_opts || \
 				die "Failed to create inline base file"
 			inline_index_update add
@@ -2619,8 +2496,9 @@ inline_renew ()
 # Get current inline key direction
 inline_renew_key_direction ()
 {
-	"$EASYTLS_GREP" '^key-direction [01]$' "$inline_file" | "$EASYTLS_AWK" '{print $2}'
-}
+	"$EASYTLS_GREP" '^key-direction [01]$' "$inline_file" | \
+		"$EASYTLS_AWK" '{print $2}'
+} # => inline_renew_key_direction ()
 
 # Create inline credentials file from Easy-RSA PKI
 inline_base ()
@@ -2629,8 +2507,6 @@ inline_base ()
 		error_msg "Required option(s): <filename_base>"
 		return 1
 		}
-
-	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2647,7 +2523,6 @@ inline_base ()
 	ca_file="$EASYRSA_PKI/ca.crt"
 	crt_file="$EASYRSA_PKI/issued/$name.crt"
 	key_file="$EASYRSA_PKI/private/$name.key"
-	#[ -z "$inline_file" ] && inline_file="$EASYTLS_PKI/$name.inline"
 
 	[ -f "$crt_file" ] || {
 		error_msg "Certificate file missing or revoked: $crt_file"
@@ -2682,17 +2557,6 @@ inline_base ()
 	# get the serial number of the certificate from OpenSSL
 	crt_serial=""
 	openssl_crt_serial
-
-	# Check .inline file does not exist
-	#if [ "$EASYTLS_BATCH" ]
-	#then
-	#	"$EASYTLS_RM" -f "$inline_file"
-	#else
-	#	[ -f "$inline_file" ] && {
-	#		error_msg "Inline file exists: $inline_file"
-	#		return 1
-	#		}
-	#fi
 
 	# Build .base file
 	{
@@ -2740,15 +2604,12 @@ inline_base ()
 
 	# explicitly return success for callers
 	return 0
-
 } # => inline_base ()
 
 # Append TLS auth file to base file
 inline_tls_auth ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
-
-	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2793,7 +2654,6 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
-	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{	"$EASYTLS_PRINTF" "%s\n" "# TLS auth"
@@ -2828,8 +2688,6 @@ inline_tls_crypt_v1 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	#verify_tls_init
-
 	name="$1"
 	shift
 
@@ -2861,7 +2719,6 @@ inline_tls_crypt_v1 ()
 		}
 
 	# Inline base file
-	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{	"$EASYTLS_PRINTF" "%s\n" "# TLS crypt"
@@ -2886,15 +2743,12 @@ inline_tls_crypt_v1 ()
 
 	# explicitly return success for callers
 	return 0
-
 } # => inline_tls_crypt_v1 ()
 
 # Append TLS crypt v2 file to base file
 inline_tls_crypt_v2 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
-
-	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2921,9 +2775,6 @@ inline_tls_crypt_v2 ()
 	inline_temp="$EASYTLS_PKI/$name.temp"
 	inline_base="$EASYTLS_PKI/$name.base"
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
-
-	# This does not over-write a previous setting
-	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
 	# Set file names
 	sub_name="$name-$TLSKEY_SUBNAME"
@@ -2972,7 +2823,8 @@ inline_tls_crypt_v2 ()
 		# Set creation Date
 		MD_date_sec="${metadata_string%% *}"
 		MD_date="$("$EASYTLS_DATE" --date=@${MD_date_sec} +%F)" 2>/dev/null || {
-			MD_date="$("$EASYTLS_DATE" -u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
+			MD_date="$("$EASYTLS_DATE" \
+				-u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
 			}
 		# Drop Date
 		metadata_string="${metadata_string#* }"
@@ -2983,10 +2835,10 @@ inline_tls_crypt_v2 ()
 		metadata_string="${metadata_string#* }"
 
 		# Verify Custom-Group
-		help_note="This key was built with a different Custom-Group"
-		[ "$TLSKEY_CUSTOM_GRP" = "$MD_cgroup" ] || \
+		[ "$TLSKEY_CUSTOM_GRP" = "$MD_cgroup" ] || {
+			help_note="This key was built with a different Custom-Group"
 			die "Custom-group mismatch: $TLSKEY_CUSTOM_GRP <> $MD_cgroup"
-		unset help_note
+			}
 
 		# Set common-name
 		MD_cn="${metadata_string%% *}"
@@ -3019,11 +2871,12 @@ inline_tls_crypt_v2 ()
 	fi
 
 	# Inline base file
-	#silent_base=1
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
 	{
-		"$EASYTLS_PRINTF" "%s\n" "# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
+		"$EASYTLS_PRINTF" "%s\n" \
+			"# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
+
 		[ $no_metadata ] || {
 			"$EASYTLS_PRINTF" '%s\n' "# CA serial: $ca_serial"
 			"$EASYTLS_PRINTF" '%s\n' "# tlskey-serial: $tlskey_serial"
@@ -3069,7 +2922,6 @@ inline_tls_crypt_v2 ()
 
 	# explicitly return success for callers
 	return 0
-
 } # => inline_tls_crypt_v2 ()
 
 
@@ -3082,10 +2934,6 @@ inline_tls_crypt_v2 ()
 # Create TLS auth file
 build_tls_auth ()
 {
-	# This is allowed without a complete Easy-RSA PKI
-	# Verify Easy-TLS has been correctly setup
-	#verify_tls_init
-
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
@@ -3108,10 +2956,6 @@ build_tls_auth ()
 # Create TLS crypt v1 file
 build_tls_crypt_v1 ()
 {
-	# This is allowed without a complete Easy-RSA PKI
-	# Verify Easy-TLS has been correctly setup
-	#verify_tls_init
-
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
@@ -3153,9 +2997,10 @@ build_tls_crypt_v2_server ()
 	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
 	key_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
 
-	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the x509 certificate has been built.
-Missing file: $srv_cert"
+	[ -f "$srv_cert" ] || {
+		help_note="Easy-TLS requires that the x509 certificate has been built."
+		die "Missing file: $srv_cert"
+		}
 
 	verify_cert_purpose "$srv_cert" 'SSL server : Yes' || \
 		die "Certificate must be a Server: $srv_cert"
@@ -3237,15 +3082,20 @@ build_tls_crypt_v2_client ()
 	#set_var TLSKEY_SUBNAME	'NOSUBKEY'
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		key_file="$EASYTLS_PKI/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
-		metadata_debug="$EASYTLS_MD_DIR/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
+		full_name="${cli_name}-${TLSKEY_SUBNAME}"
+		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 		}
 
-	help_note="You must first build a TLS-Crypt-V2 Server key."
-	[ -f "$in_file" ] || die "Server key does not exist: $in_file"
-	help_note="To remove an inline file use: easytls remove"
-	[ -f "$key_file" ] && die "Client key already exists: $key_file"
-	unset help_note
+	[ -f "$in_file" ] || {
+		help_note="You must first build a TLS-Crypt-V2 Server key."
+		die "Server key does not exist: $in_file"
+		}
+
+	[ -f "$key_file" ] && {
+		help_note="To remove an inline file use: easytls remove"
+		die "Client key already exists: $key_file"
+		}
 
 	# Capture HW addresses
 	EASYTLS_TLSCV2_HWLIST=""
@@ -3318,7 +3168,7 @@ hw_addr_hex_check ()
 			}
 	export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
 	return 0
-}
+} # => hw_addr_hex_check ()
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
@@ -3415,7 +3265,6 @@ b64_enc_metadata ()
 		}
 
 	# Save metadata in plain text
-	#save_metadata || \....
 	"$EASYTLS_PRINTF" "%s\n" "$metadata" > "$metadata_debug" || {
 		error_msg "Save metadata failed"
 		return 1
@@ -3423,7 +3272,8 @@ b64_enc_metadata ()
 
 	easytls_verbose "metadata: $metadata"
 	# Base64 encode metadata
-	b64_metadata="$("$EASYTLS_PRINTF" "%s" "$metadata"|"$EASYRSA_OPENSSL" enc -e -a -A)"
+	b64_metadata="$("$EASYTLS_PRINTF" "%s" "$metadata" | \
+		"$EASYRSA_OPENSSL" enc -e -a -A)"
 } # => b64_enc_metadata ()
 
 # Generate CA Identity from CA fingerprint
@@ -3431,37 +3281,36 @@ generate_ca_identity ()
 {
 	# CA fingerprint
 	ca_fingerprint="$(fn_ca_fingerprint)"
-	#easytls_verbose "CA fingerprint: $ca_fingerprint"
 
 	# CA Identity
 	ca_identity="$(fn_ca_identity)"
-	#easytls_verbose "CA Identity: $ca_identity"
 } # => generate_ca_identity ()
 
 # Collect CA serial number
 fn_ca_serial ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -serial
-}
+} # => fn_ca_serial ()
 
 # Collect CA fingerprint
 fn_ca_fingerprint ()
 {
 	"$EASYRSA_OPENSSL" \
 		x509 -in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint
-}
+} # => fn_ca_fingerprint ()
 
 # Collect CA Identity
 fn_ca_identity ()
 {
-	"$EASYTLS_PRINTF" '%s' "$ca_fingerprint" | "$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
-}
+	"$EASYTLS_PRINTF" '%s' "$ca_fingerprint" | \
+		"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
+} # => fn_ca_identity ()
 
 # Save metadata
 save_metadata ()
 {
 	"$EASYTLS_PRINTF" "%s\n" "$metadata" > "$metadata_debug"
-}
+} # => save_metadata ()
 
 # Save the ID
 save_id ()
@@ -3497,7 +3346,7 @@ save_id ()
 		die "Failed to create CA Identify file: $EASYTLS_CA_IDENTITY"
 
 	notice "Saved CA Identity: $EASYTLS_CA_IDENTITY"
-}
+} # => save_id ()
 
 
 
@@ -3526,8 +3375,6 @@ disabled_list_manager ()
 		die "disabled_list_manager - Invalid action: $action"
 	;;
 	esac
-
-	#verify_tls_init
 
 	# Verify disabled-list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
@@ -3565,9 +3412,6 @@ disabled_list_manager ()
 		:
 	fi
 
-	#disabled_list_serial_status="$(disabled_list_serial_search)"
-	#[ $disabled_list_serial_status -lt 2 ] || die "Serial is duplicated"
-
 	# Update disabled-list
 	case $action in
 	disable) # Add serial number to the disabled-list
@@ -3601,14 +3445,16 @@ disabled_list_manager ()
 	enable) # Remove serial number from the disabled-list
 		if [ $is_disabled ]
 		then
-			"$EASYTLS_SED" -i "/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
+			"$EASYTLS_SED" -i \
+				"/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
 				"$EASYTLS_DISABLED_LIST" || {
 					error_msg "Failed to update disabled-list"
 					exit 99
 					}
 
 			# Verify serial was removed
-			"$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
+			"$EASYTLS_GREP" -q \
+				"^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
 				"$EASYTLS_DISABLED_LIST" && {
 					error_msg "Failed to update disabled-list"
 					exit 99
@@ -3637,8 +3483,9 @@ disabled_list_manager ()
 # Search disabled-list for serial number
 disabled_list_serial_search ()
 {
-	"$EASYTLS_GREP" -c "^${crt_serial}[[:blank:]]${name}$" "$EASYTLS_DISABLED_LIST"
-}
+	"$EASYTLS_GREP" -c "^${crt_serial}[[:blank:]]${name}$" \
+		"$EASYTLS_DISABLED_LIST"
+} # => disabled_list_serial_search ()
 
 # Update disabled-list footer and hash
 # TODO: is footer necessary ?
@@ -3670,7 +3517,7 @@ disabled_list_update_and_hash ()
 		error_msg "Failed to save disabled-list Hash"
 		return 1
 		}
-}
+} # => disabled_list_update_and_hash ()
 
 # Verify current disable-list hash
 disabled_list_verify_hash ()
@@ -3683,7 +3530,7 @@ disabled_list_verify_hash ()
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
-		error_msg "disabled_list_verify_hash: Hash failed: $EASYTLS_DISABLED_LIST"
+		error_msg "disabled_list_verify_hash: Hash failed: $generated_hash"
 		return 1
 		}
 
@@ -3697,7 +3544,7 @@ disabled_list_verify_hash ()
 		}
 
 	easytls_verbose "Disabled-list hash check OK"
-}
+} # => disabled_list_verify_hash ()
 
 # Save new disable-list hash
 disabled_list_save_hash ()
@@ -3719,7 +3566,7 @@ disabled_list_save_hash ()
 			}
 
 	easytls_verbose "Disabled-list hash save OK"
-}
+} # => disabled_list_save_hash ()
 
 
 
@@ -3737,29 +3584,31 @@ interactive_verify_pki ()
 		return 0
 	else
 		# Not Found easytls pki
-		"$EASYTLS_PRINTF" '\n%s\n' "Cannot find your EasyRSA-PKI, expected to be: "
+		"$EASYTLS_PRINTF" '\n%s\n' "Cannot find your EasyRSA-PKI, expected to be:"
 		"$EASYTLS_PRINTF" '\n%s\n' "  $EASYRSA_PKI"
 		"$EASYTLS_PRINTF" '\n%s\n' "Make sure you have run: ./easytls init-tls"
-		"$EASYTLS_PRINTF" '\n%s\n' "Please re-run this command and specify your PKI like so:"
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"Please re-run this command and specify your PKI like so:"
 		"$EASYTLS_PRINTF" '\n%s\n' "  ./easytls  --pki-dir=Your-PKI  build"
 		"$EASYTLS_PRINTF" '\n%s\n' "Example for Your-PKI could be: test-pki"
 		"$EASYTLS_PRINTF" '\n%s\n' "Quit!"
 		return 1
 	fi
-}
+} # => interactive_verify_pki ()
 
 # Ask a question
 interactive_question ()
 {
 	unset ia_answer
 	"$EASYTLS_PRINTF" '\n%s\n' "===================="
-	"$EASYTLS_PRINTF" '\n%s\n' 'To cancel this inter-active menu at any time, press Control-C'
+	"$EASYTLS_PRINTF" '\n%s\n' \
+		'To cancel this inter-active menu at any time, press Control-C'
 	[ -n "$ia_extra_help" ] && "$EASYTLS_PRINTF" '\n%s\n' "$ia_extra_help"
 	"$EASYTLS_PRINTF" '%s\n' "$ia_question_help"
 	"$EASYTLS_PRINTF" '%s ' "$ia_question_text"
 	read -r input
 	ia_answer="$input"
-}
+} # => interactive_question ()
 
 # Show the command to run
 interactive_show_cmd ()
@@ -3768,7 +3617,7 @@ interactive_show_cmd ()
 	"$EASYTLS_PRINTF" '\n%s\n' '* Easy-TLS command:'
 	"$EASYTLS_PRINTF" '\n%s\n' "  * ./easytls $cmd_line"
 	"$EASYTLS_PRINTF" '\n%s\n' '===================='
-}
+} # => interactive_show_cmd ()
 
 # Inter-active build menu
 interactive_build ()
@@ -4242,7 +4091,8 @@ interactive_remove ()
 		# Disable internal batch_mode
 		unset batch_mode
 
-		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt-V2 Client inline removed: $key_file"
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"  * TLS-Crypt-V2 Client inline removed: $key_file"
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -4292,7 +4142,8 @@ interactive_remove ()
 			# Disable internal batch_mode
 			unset batch_mode
 
-			"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt-V2 Client key removed: $key_file"
+			"$EASYTLS_PRINTF" '\n%s\n' \
+				"  * TLS-Crypt-V2 Client key removed: $key_file"
 		else
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				"  * Inline-file removed. "
@@ -4342,7 +4193,8 @@ interactive_remove ()
 		# Disable internal batch_mode
 		unset batch_mode
 
-		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt-V2 Client key removed: $key_file"
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"  * TLS-Crypt-V2 Client key removed: $key_file"
 	;;
 	3)	# Remove Server inline-file
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Server inline-file'
@@ -4474,7 +4326,8 @@ interactive_remove ()
 		# Disable internal batch_mode
 		unset batch_mode
 
-		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt-V2 Server key removed: $key_file"
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"  * TLS-Crypt-V2 Server key removed: $key_file"
 	;;
 	5)	# tls-crypt key
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt key'
@@ -4540,7 +4393,8 @@ interactive_remove ()
 interactive_remove_warning ()
 {
 	[ $EASYTLS_BATCH ] || \
-		"$EASYTLS_PRINTF" '\n%s\n%s\n%s' '  ###########' '  # WARNING #' '  ###########'
+		"$EASYTLS_PRINTF" '\n%s\n%s\n%s' \
+			'  ###########' '  # WARNING #' '  ###########'
 	case $1 in
 	remove-tls-auth-key)
 	# TLS-Auth key
@@ -4554,7 +4408,7 @@ interactive_remove_warning ()
   * $key_file"
 	;;
 	remove-tls-crypt-key)
-	# TLS-Crypt key
+		# TLS-Crypt key
 		[ -f "$key_file" ] || die "Missing file: $key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
@@ -4565,7 +4419,7 @@ interactive_remove_warning ()
   * $key_file"
 	;;
 	remove-tls-crypt-v2-server-key)
-	# TLS-Crypt-V2 Server key
+		# TLS-Crypt-V2 Server key
 		[ -f "$key_file" ] || die "Missing file: $key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
@@ -4577,7 +4431,7 @@ interactive_remove_warning ()
   * $key_file"
 	;;
 	remove-tls-crypt-v2-client-key)
-	# TLS-Crypt-V2 Client key
+		# TLS-Crypt-V2 Client key
 		[ -f "$key_file" ] || die "Missing file: $key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
@@ -4588,7 +4442,7 @@ interactive_remove_warning ()
   * $key_file"
 	;;
 	remove-tls-auth-inline)
-	# TLS-Auth inline
+		# TLS-Auth inline
 		[ -f "$inline_file" ] || die "Missing file: $inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
@@ -4598,7 +4452,7 @@ interactive_remove_warning ()
   * $inline_file"
 	;;
 	remove-tls-crypt-inline)
-	# TLS-Crypt inline
+		# TLS-Crypt inline
 		[ -f "$inline_file" ] || die "Missing file: $inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
@@ -4608,7 +4462,7 @@ interactive_remove_warning ()
   * $inline_file"
 	;;
 	remove-tls-crypt-v2-server-inline)
-	# TLS-Crypt-V2 Server inline
+		# TLS-Crypt-V2 Server inline
 		[ -f "$inline_file" ] || die "Missing file: $inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
@@ -4618,7 +4472,7 @@ interactive_remove_warning ()
   * $inline_file"
 	;;
 	remove-tls-crypt-v2-client-inline)
-	# TLS-Crypt-V2 Client inline
+		# TLS-Crypt-V2 Client inline
 		[ -f "$inline_file" ] || die "Missing file: $inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
@@ -4764,7 +4618,7 @@ interactive_scripts ()
 		# Windows instructions
 		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
 		"$EASYTLS_PRINTF" '%s\n\n' '* Configure OpenVPN to use easytls scripts'
-		"$EASYTLS_PRINTF" '%s\n'   '  Add this to your OpenVPN Server config file:'
+		"$EASYTLS_PRINTF" '%s\n' '  Add this to your OpenVPN Server config file:'
 		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
 	else
 		# NIX
@@ -4813,7 +4667,7 @@ interactive_scripts ()
 		# Linux instructions
 		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
 		"$EASYTLS_PRINTF" '%s\n\n' '* Configure OpenVPN to use easytls scripts'
-		"$EASYTLS_PRINTF" '%s\n'   '  Add this to your OpenVPN Server config file:'
+		"$EASYTLS_PRINTF" '%s\n' '  Add this to your OpenVPN Server config file:'
 		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
 	fi
 	"$EASYTLS_PRINTF" '\n%s\n' '* Easy-TLS Scripts configuration completed'
@@ -4847,7 +4701,7 @@ interactive_common_name ()
 			break
 			}
 	done
-}
+} # => interactive_common_name ()
 
 # Verify the certificate and purpose
 interactive_verify_cert ()
@@ -4861,7 +4715,7 @@ interactive_verify_cert ()
 		"$EASYTLS_PRINTF" '\n%s\n' "  ERROR: Certificate must be a $cert_type"
 		return 1
 		}
-}
+} # => interactive_verify_cert ()
 
 # Automatically detect certificate type
 interactive_auto_cert_type ()
@@ -4873,7 +4727,7 @@ interactive_auto_cert_type ()
 		die "Unsupported certificate: Server&Client"
 	[ $is_server ] && cert_type='Server'
 	[ $is_client ] && cert_type='Client'
-}
+} # => interactive_auto_cert_type ()
 
 # Set option --sub-key-name
 interactive_sub_key_name ()
@@ -4899,10 +4753,11 @@ interactive_sub_key_name ()
 	fi
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-	key_file="$EASYTLS_PKI/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.key"
-	metadata_debug="$EASYTLS_MD_DIR/$cli_name-$TLSKEY_SUBNAME-tls-crypt-v2.metadata"
-	}
-}
+		full_name="${cli_name}-${TLSKEY_SUBNAME}"
+		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		}
+} # => interactive_sub_key_name ()
 
 # Set key direction
 interactive_key_direction ()
@@ -4935,7 +4790,7 @@ interactive_key_direction ()
 		esac
 	done
 	cmd_line="${cmd_line} $key_direction"
-}
+} # => interactive_key_direction ()
 
 # Set option nokey
 interactive_opt_nokey ()
@@ -4966,7 +4821,7 @@ interactive_opt_nokey ()
 			;;
 		esac
 	done
-}
+} # => interactive_opt_nokey ()
 
 # Set option add-dh
 interactive_opt_add_dh ()
@@ -4999,7 +4854,7 @@ interactive_opt_add_dh ()
 			;;
 		esac
 	done
-}
+} # => interactive_opt_add_dh ()
 
 # Set custom dh file
 interactive_custom_dh ()
@@ -5029,7 +4884,7 @@ interactive_custom_dh ()
 		cmd_line="--dh=\"${opt_custom_dh}\" ${cmd_line} add-dh"
 		export EASYRSA_DH_FILE="${opt_custom_dh}"
 		}
-}
+} # => interactive_custom_dh ()
 
 # Set option no-md
 interactive_opt_no_md ()
@@ -5063,7 +4918,7 @@ interactive_opt_no_md ()
 			;;
 		esac
 	done
-}
+} # => interactive_opt_no_md ()
 
 # Set option add-hw
 interactive_opt_add_hw ()
@@ -5095,7 +4950,7 @@ interactive_opt_add_hw ()
 			;;
 		esac
 	done
-}
+} # => interactive_opt_add_hw ()
 
 # Set hardware addresses
 interactive_hwaddr ()
@@ -5125,7 +4980,7 @@ interactive_hwaddr ()
 		opt_hardware="$opt_hardware $ia_answer"
 	done
 	cmd_line="${cmd_line} ${opt_hardware}"
-}
+} # => interactive_hwaddr ()
 
 # Set CA path
 interactive_ca_path ()
@@ -5151,13 +5006,13 @@ interactive_ca_path ()
 		print '
   This path does not contain a valid CA certificate.'
 	done
-}
+} # => interactive_ca_path ()
 
 # hash algorithm
 interactive_hashalgo ()
 {
 	opt_hashalgo="--hash=${EASYTLS_HASH_ALGO}"
-}
+} # => interactive_hashalgo ()
 
 # Set Custom Group
 interactive_custom_group ()
@@ -5197,7 +5052,7 @@ interactive_custom_group ()
 			unset opt_customg
 		fi
 	easytls_verbose "Config: $opt_customg"
-}
+} # => interactive_custom_group ()
 
 # Set tlskey allowed age in days
 interactive_key_age ()
@@ -5218,7 +5073,7 @@ interactive_key_age ()
 	key_age_days="${ia_answer:-$default}"
 	[ "$key_age_days" = "1825" ] || opt_key_age="-x=${key_age_days}"
 	easytls_verbose "Config: $opt_key_age"
-}
+} # => interactive_key_age ()
 
 # Set use of disabled-list
 interactive_disabled_list ()
@@ -5254,7 +5109,7 @@ interactive_disabled_list ()
 
 	easytls_verbose
 	easytls_verbose "Config: $opt_disable_list"
-}
+} # => interactive_disabled_list ()
 
 # Set the temp dir
 interactive_tmp_dir ()
@@ -5277,7 +5132,7 @@ interactive_tmp_dir ()
   This path is not valid.'
 	done
 	easytls_verbose "Config: $opt_tmp_dir"
-}
+} # => interactive_tmp_dir ()
 
 # Set the X509 method
 interactive_x509_method ()
@@ -5381,10 +5236,11 @@ interactive_x509_method ()
 			if [ -n "$ia_answer" ]
 			then
 				opt_preload_id="$ia_answer"
-				"$EASYTLS_PRINTF" '%s' "$opt_preload_id" | "$EASYTLS_GREP" -q '^[[:xdigit:]]\{40\}$' || {
-					error_msg "Invalid CA-ID"
-					continue
-					}
+				"$EASYTLS_PRINTF" '%s' "$opt_preload_id" | \
+					"$EASYTLS_GREP" -q '^[[:xdigit:]]\{40\}$' || {
+						error_msg "Invalid CA-ID"
+						continue
+						}
 				break
 			else
 				opt_preload_id="$EASYTLS_MASTER_ID"
@@ -5431,7 +5287,7 @@ interactive_openvpn_pid ()
 
 	easytls_verbose
 	easytls_verbose "Config: $opt_hw_required"
-}
+} # => interactive_openvpn_pid ()
 
 # Set use of hardware-address required
 interactive_hw_required ()
@@ -5479,7 +5335,7 @@ interactive_hw_required ()
 
 	easytls_verbose
 	easytls_verbose "Config: $opt_hw_required"
-}
+} # => interactive_hw_required ()
 
 
 
@@ -5672,7 +5528,7 @@ generate_wiscii_hash ()
 	wiscii_hash2="$("$EASYTLS_PRINTF" '%s' "$wiscii_seed2" | \
 		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 	counted_wiscii="${wiscii_hash2%% *}"
-}
+} # => generate_wiscii_hash ()
 
 # Save wiscii hash
 save_wiscii_hash ()
@@ -5705,7 +5561,7 @@ save_wiscii_hash ()
 		}
 
 	easytls_verbose "Master hash save OK: $counted_wiscii"
-}
+} # => save_wiscii_hash ()
 
 # Verify wiscii hash
 verify_wiscii_hash ()
@@ -5729,7 +5585,7 @@ verify_wiscii_hash ()
 		return 1
 		}
 	easytls_verbose "Master hash check OK: $counted_wiscii"
-}
+} # => verify_wiscii_hash ()
 
 
 
@@ -5764,7 +5620,7 @@ external_deps ()
 	"$EASYTLS_GREP" --version   > /dev/null || die 'Missing file: grep'
 	"$EASYTLS_MKTEMP" --version > /dev/null || die 'Missing file: mktemp'
 	"$EASYTLS_SED" --version    > /dev/null || die 'Missing file: sed'
-}
+} # => external_deps ()
 
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
@@ -5891,7 +5747,7 @@ set_var()
 easytls_version ()
 {
 	notice "Easy-TLS version: $EASYTLS_VERSION"
-} # => easy_tls_version ()
+} # => easytls_version ()
 
 
 
