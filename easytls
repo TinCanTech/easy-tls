@@ -1595,7 +1595,7 @@ inline_expire ()
 {
 	name="$1"
 
-	verify_tls_init
+	#verify_tls_init
 
 	if [ -n "$name" ]
 	then
@@ -1621,7 +1621,7 @@ inline_index_update ()
 {
 	update_index_action="$1"
 
-	verify_tls_init
+	#verify_tls_init
 
 	# Verify inline-index Hash
 	inline_index_verify_hash || {
@@ -1957,7 +1957,7 @@ inline_show ()
 		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 		}
 
-	verify_tls_init
+	#verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -1991,7 +1991,7 @@ remove_inline ()
 	#[ $TLSKEY_SUBNAME ] && \
 	#	inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 
-	verify_tls_init
+	#verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -2032,7 +2032,7 @@ inline_index_rebuild ()
 	# TODO WARNING, inline_index_rebuild is a work in progress
 	# TODO
 
-	verify_tls_init
+	#verify_tls_init
 
 	# Do not over write current easytls-inline-index.txt.backup
 	[ -f "$EASYTLS_INLINE_INDEX.backup" ] && \
@@ -2171,7 +2171,7 @@ tlskey_index_update ()
 {
 	update_index_action="$1"
 
-	verify_tls_init
+	#verify_tls_init
 
 	# Verify tlskey-index Hash
 	tlskey_index_verify_hash || {
@@ -2425,7 +2425,7 @@ remove_tlskey ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	cert_file="$EASYRSA_PKI/issued/$name.crt"
@@ -2498,7 +2498,7 @@ inline_renew ()
 
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2630,7 +2630,7 @@ inline_base ()
 		return 1
 		}
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2748,7 +2748,7 @@ inline_tls_auth ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2828,7 +2828,7 @@ inline_tls_crypt_v1 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	shift
@@ -2894,7 +2894,7 @@ inline_tls_crypt_v2 ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	verify_tls_init
+	#verify_tls_init
 
 	name="$1"
 	shift
@@ -3084,7 +3084,7 @@ build_tls_auth ()
 {
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS has been correctly setup
-	verify_tls_init
+	#verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -3110,7 +3110,7 @@ build_tls_crypt_v1 ()
 {
 	# This is allowed without a complete Easy-RSA PKI
 	# Verify Easy-TLS has been correctly setup
-	verify_tls_init
+	#verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -3527,7 +3527,7 @@ disabled_list_manager ()
 	;;
 	esac
 
-	verify_tls_init
+	#verify_tls_init
 
 	# Verify disabled-list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
@@ -6023,6 +6023,9 @@ case "$cmd" in
  * Some files have been manually altered, restore the changes to continue..'
 		die "Master hash check failed"
 		}
+
+	# Just the once
+	verify_tls_init
 
 	# Everything else
 	case "$cmd" in
