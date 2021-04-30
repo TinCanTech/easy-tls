@@ -1037,12 +1037,6 @@ easytls_auto_check ()
 # Generate file hash
 generate_file_hash ()
 {
-	# Fixed Hash - If file hashing is disabled
-	[ ! $force_hash ] && [ $file_hash_disabled ] && {
-		generated_hash=$fixed_hash
-		return
-	}
-
 	# Test for file
 	[ -f "$1" ] || {
 		error_msg "generate_file_hash - Missing file: $1"
@@ -1050,13 +1044,17 @@ generate_file_hash ()
 		}
 
 	# hash the file
-	openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
-
-	# Only need hash - Valid generated_hash is returned
-	generated_hash="${openssl_hash%% *}"
-
-	# Clean up
-	unset openssl_hash
+	if [ ! $force_hash ] && [ $file_hash_disabled ]
+	then
+		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
+		generated_hash=$fixed_hash
+	else
+		openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
+		# Only need hash - Valid generated_hash is returned
+		generated_hash="${openssl_hash%% *}"
+		# Clean up
+		unset openssl_hash
+	fi
 
 	# Verify hash
 	verify_valid_hash "$generated_hash" || {
