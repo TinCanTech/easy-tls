@@ -1059,7 +1059,6 @@ generate_file_hash ()
 	# Verify hash
 	verify_valid_hash "$generated_hash" || {
 		error_msg "generate_file_hash - Hash failed: $generated_hash"
-		# Don't need to do this: unset generated_hash
 		return 1
 		}
 } # => generate_file_hash ()
@@ -1075,6 +1074,13 @@ match_file_hash ()
 		error_msg "match_file_hash - Invalid hash (2)"
 		return 1
 		}
+
+	# Check if either hash is fixed hash and ignore
+	# Allows to switch between hash and hash-disabled mode
+	[ $1 = $fixed_hash ] && return 0
+	[ $2 = $fixed_hash ] && return 0
+
+	# Check if all hashes are real
 	[ $1 = $2 ] || {
 		error_msg "match_file_hash: match failed"
 		return 1
