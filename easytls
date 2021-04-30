@@ -1059,7 +1059,7 @@ generate_file_hash ()
 	# Verify hash
 	verify_valid_hash "$generated_hash" || {
 		error_msg "generate_file_hash - Hash failed: $generated_hash"
-		unset generated_hash
+		# Don't need to do this: unset generated_hash
 		return 1
 		}
 } # => generate_file_hash ()

@@ -15,6 +15,7 @@ matrix:
       dist: focal
       env: PATH=/usr/bin:/bin:./:/usr/local/bin:/usr/sbin
       env: EASYTLS_REMOTE_CI=1
+      env: TRAVIS_CI=1
       script:
 # OpenVPN fixed this after they found out ;-)
         - openvpn --version; echo "exit-code $?"; echo "exit 0 always (because openvpn --version does(did) not)"

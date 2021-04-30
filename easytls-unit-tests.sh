@@ -139,6 +139,9 @@ do
 	export EASYRSA_PKI="$PKI_DIR"
 	print "EASYRSA_PKI: $EASYRSA_PKI"
 
+	# github Windows runner takes too long, so just test once
+	[ $loops -eq 2 ] && [ $EASYTLS_WINDOWS ] && exit 0
+
 	# Build vars, used by all remaining loops
 	#[ $loops -eq 2 ] && exit 99
 	[ $loops -eq 2 ] && build_vars
