@@ -1063,27 +1063,29 @@ generate_file_hash ()
 # Verify file hash Match
 match_file_hash ()
 {
-	old_hash=$1
-	verify_valid_hash $old_hash
-	new_hash=$2
-	verify_valid_hash $new_hash
-
-	[ $old_hash = $new_hash ] || {
+	verify_valid_hash $1 || {
+		error_msg "match_file_hash - Invalid hash (1)"
+		return 1
+		}
+	verify_valid_hash $2 || {
+		error_msg "match_file_hash - Invalid hash (2)"
+		return 1
+		}
+	[ $1 = $2 ] || {
 		error_msg "match_file_hash: match failed"
 		return 1
 		}
-	unset old_hash new_hash
 } # => match_file_hash ()
 
 # Verify valid hash
 verify_valid_hash ()
 {
 	# Local var
-	test_hash="$1"
+	test_hash=$1
 
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
-	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
+	[ $test_hash = ${test_hash%[!0123456789abcdefABCDEF]*} ] || {
 			error_msg "verify_hash - !Hex: $test_hash"
 			return 1
 			}
