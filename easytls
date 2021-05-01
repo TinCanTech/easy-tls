@@ -1671,21 +1671,12 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
-	# If the inline-index does not exist then TLS has not been initialised
-	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
-
-	# If the inline-index exists then the hash must exist
-	[ -f "$EASYTLS_IL_INDEX_HASH" ] || {
-		error_msg "inline_index_verify_hash - Missing index file."
-		return 1
-		}
-
 	# Read the saved hash
 	inline_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_IL_INDEX_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
-		error_msg "inline_index_verify_hash - generate_file_hash"
+		error_msg "inline_index_verify_hash - generate_file_hash fail"
 		return 1
 		}
 
@@ -1693,7 +1684,7 @@ inline_index_verify_hash ()
 
 	# Verify hash match
 	match_file_hash $inline_index_saved_hash $inline_index_current_hash || {
-		error_msg "inline_index_verify_hash - Verify hash match"
+		error_msg "inline_index_verify_hash - match_file_hash fail"
 		return 1
 		}
 
@@ -1847,8 +1838,6 @@ inline_show ()
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
 		}
-
-	#verify_tls_init
 
 	[ -f "$inline_file" ] || die "Missing: $inline_file"
 
@@ -2290,8 +2279,6 @@ remove_tlskey ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	#verify_tls_init
-
 	name="$1"
 	cert_file="$EASYRSA_PKI/issued/$name.crt"
 	tlskey_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
@@ -2363,8 +2350,6 @@ inline_renew ()
 	return 1
 
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
-
-	#verify_tls_init
 
 	name="$1"
 	shift
