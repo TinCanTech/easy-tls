@@ -803,23 +803,12 @@ config_verify_hash ()
 # Hash config-file
 config_save_hash ()
 {
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
-		error_msg "config_file_save_hash: Failed to hash: $EASYTLS_CONFIG_FILE"
-		return 1
-		}
-
-	# Set the current hash
-	config_current_hash="$generated_hash"
-
-	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$config_current_hash" > "$EASYTLS_CONFIG_HASH" || {
-		error_msg "config_file_save_hash - Save the current hash failed."
-		return 1
-		}
-
+	generate_and_save_file_hash \
+		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH"|| {
+			error_msg "config_save_hash - generate_and_save_file_hash"
+			return 1
+			}
 	easytls_verbose "config-file hash save OK"
-	return 0
 } # => config_save_hash ()
 
 # Verify Openvpn is available
@@ -1055,6 +1044,38 @@ generate_file_hash ()
 		}
 } # => generate_file_hash ()
 
+# Save file hash
+save_file_hash ()
+{
+	[ -z "$1" ] && {
+		error_msg "save_file_hash - No target file specified"
+		return 1
+		}
+	"$EASYTLS_PRINTF" '%s' "$generated_hash" > "$1" || return 1
+} # => save_file_hash ()
+
+# generate and save file hash
+generate_and_save_file_hash ()
+{
+	[ "$1" = "$2" ] && {
+		error_msg "generate_and_save_file_hash - Source file is target file!"
+		return 1
+		}
+
+	unset generated_hash
+	# Generate $generated_hash
+	generate_file_hash "$1" || {
+		error_msg "generate_and_save_file_hash - generate_file_hash fail"
+		return 1
+		}
+	# Save $generated_hash
+	save_file_hash "$2" || {
+		error_msg "generate_and_save_file_hash - save_file_hash fail"
+		return 1
+		}
+	unset generated_hash
+}
+
 # Verify file hash Match
 match_file_hash ()
 {
@@ -1083,11 +1104,11 @@ match_file_hash ()
 verify_valid_hash ()
 {
 	# Local var
-	test_hash=$1
+	test_hash="$*"
 
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
-	[ $test_hash = ${test_hash%[!0123456789abcdefABCDEF]*} ] || {
+	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
 			error_msg "verify_hash - !Hex: $test_hash"
 			return 1
 			}
@@ -1695,22 +1716,12 @@ inline_index_verify_hash ()
 # Save new inline-index hash
 inline_index_save_hash ()
 {
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
-		error_msg "inline_index_save_hash - Generate the current hash"
-		return 1
-		}
-
-	inline_index_current_hash="$generated_hash"
-	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$inline_index_current_hash" > \
-		"$EASYTLS_INLINE_X_HASH" || {
-			error_msg "inline_index_save_hash - Save the current hash"
+	generate_and_save_file_hash \
+		"$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_X_HASH"|| {
+			error_msg "inline_index_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-
 	easytls_verbose "Inline-index hash save OK"
-	return 0
 } # => inline_index_save_hash ()
 
 # Check inline-file hash
@@ -2137,21 +2148,11 @@ tlskey_index_verify_hash ()
 # Save tlskey-index hash
 tlskey_index_save_hash ()
 {
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_KEY_INDEX" || {
-		error_msg "tlskey_index_save_hash - Generate the current hash"
-		return 1
-		}
-
-	# Set the current hash
-	tlskey_index_current_hash="$generated_hash"
-
-	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$tlskey_index_current_hash" > "$EASYTLS_KEY_X_HASH" || {
-		error_msg "tlskey_index_save_hash - Save the current hash"
-		return 1
-		}
-
+	generate_and_save_file_hash \
+		"$EASYTLS_KEY_INDEX" "$EASYTLS_KEY_X_HASH"|| {
+			error_msg "tlskey_index_save_hash - generate_and_save_file_hash"
+			return 1
+			}
 	easytls_verbose "tlskey-index hash save OK"
 } # => tlskey_index_save_hash ()
 
@@ -3520,22 +3521,11 @@ disabled_list_verify_hash ()
 # Save new disable-list hash
 disabled_list_save_hash ()
 {
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
-		error_msg "disabled_list_save_hash: Hash failed: $EASYTLS_DISABLED_LIST"
-		return 1
-		}
-
-	# Set current hash
-	disabled_list_current_hash="$generated_hash"
-
-	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$disabled_list_current_hash" > \
-		"$EASYTLS_DISABLED_HASH" || {
-			error_msg "disabled_list_save_hash: Failed to write new hash"
+	generate_and_save_file_hash \
+		"$EASYTLS_DISABLED_LIST" "$EASYTLS_DISABLED_HASH"|| {
+			error_msg "disabled_list_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-
 	easytls_verbose "Disabled-list hash save OK"
 } # => disabled_list_save_hash ()
 
