@@ -854,9 +854,9 @@ verify_tls_init ()
 		[ -d "$EASYTLS_PKI" ] && \
 		[ -f "$EASYTLS_CONFIG_FILE" ] && \
 		[ -f "$EASYTLS_INLINE_INDEX" ] && \
-		[ -f "$EASYTLS_IL_INDEX_HASH" ] && \
+		[ -f "$EASYTLS_INLINE_X_HASH" ] && \
 		[ -f "$EASYTLS_KEY_INDEX" ] && \
-		[ -f "$EASYTLS_KEY_HASH" ] && \
+		[ -f "$EASYTLS_KEY_X_HASH" ] && \
 		[ -f "$EASYTLS_DISABLED_LIST" ] && \
 		[ -f "$EASYTLS_DISABLED_HASH" ]
 	} || {
@@ -1672,7 +1672,7 @@ inline_index_update ()
 inline_index_verify_hash ()
 {
 	# Read the saved hash
-	inline_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_IL_INDEX_HASH")"
+	inline_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_INLINE_X_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
@@ -1704,7 +1704,7 @@ inline_index_save_hash ()
 	inline_index_current_hash="$generated_hash"
 	# Save the current hash
 	"$EASYTLS_PRINTF" '%s' "$inline_index_current_hash" > \
-		"$EASYTLS_IL_INDEX_HASH" || {
+		"$EASYTLS_INLINE_X_HASH" || {
 			error_msg "inline_index_save_hash - Save the current hash"
 			return 1
 			}
@@ -1908,8 +1908,8 @@ inline_index_rebuild ()
 		die "Backup file already exists: $EASYTLS_INLINE_INDEX.backup"
 
 	# Do not over write current easytls-inline-index.hash.backup
-	[ -f "$EASYTLS_IL_INDEX_HASH.backup" ] && \
-		die "Backup file already exists: $EASYTLS_IL_INDEX_HASH.backup"
+	[ -f "$EASYTLS_INLINE_X_HASH.backup" ] && \
+		die "Backup file already exists: $EASYTLS_INLINE_X_HASH.backup"
 
 	# Warn!
 	confirm "Rebuild inline index file ? " "yes" \
@@ -1920,8 +1920,8 @@ inline_index_rebuild ()
 		die "Failed to backup: $EASYTLS_INLINE_INDEX"
 
 	# Backup current easytls-inline-index.hash.backup
-	"$EASYTLS_CP" "$EASYTLS_IL_INDEX_HASH" "$EASYTLS_IL_INDEX_HASH.backup" || \
-		die "Failed to backup: $EASYTLS_IL_INDEX_HASH"
+	"$EASYTLS_CP" "$EASYTLS_INLINE_X_HASH" "$EASYTLS_INLINE_X_HASH.backup" || \
+		die "Failed to backup: $EASYTLS_INLINE_X_HASH"
 
 	# Check OpenSSL index.txt
 	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
@@ -2023,8 +2023,8 @@ inline_index_rebuild_reset ()
 	"$EASYTLS_CP" -f "$EASYTLS_INLINE_INDEX.backup" "$EASYTLS_INLINE_INDEX"
 	"$EASYTLS_RM" -f "$EASYTLS_INLINE_INDEX.backup"
 
-	"$EASYTLS_CP" -f "$EASYTLS_IL_INDEX_HASH.backup" "$EASYTLS_IL_INDEX_HASH"
-	"$EASYTLS_RM" -f "$EASYTLS_IL_INDEX_HASH.backup"
+	"$EASYTLS_CP" -f "$EASYTLS_INLINE_X_HASH.backup" "$EASYTLS_INLINE_X_HASH"
+	"$EASYTLS_RM" -f "$EASYTLS_INLINE_X_HASH.backup"
 
 	die "Inline index rebuild failed."
 } # => inline_index_rebuild_reset ()
@@ -2115,7 +2115,7 @@ tlskey_index_update ()
 tlskey_index_verify_hash ()
 {
 	# Read the saved hash
-	tlskey_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_KEY_HASH")"
+	tlskey_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_KEY_X_HASH")"
 
 	# Generate the current hash
 	generate_file_hash "$EASYTLS_KEY_INDEX" || {
@@ -2150,7 +2150,7 @@ tlskey_index_save_hash ()
 	tlskey_index_current_hash="$generated_hash"
 
 	# Save the current hash
-	"$EASYTLS_PRINTF" '%s' "$tlskey_index_current_hash" > "$EASYTLS_KEY_HASH" || {
+	"$EASYTLS_PRINTF" '%s' "$tlskey_index_current_hash" > "$EASYTLS_KEY_X_HASH" || {
 		error_msg "tlskey_index_save_hash - Save the current hash"
 		return 1
 		}
@@ -5664,7 +5664,9 @@ vars_setup()
 	set_var EASYTLS_CONFIG_FILE     "$EASYTLS_DATA_DIR/easytls-config.txt"
 	set_var EASYTLS_CONFIG_HASH     "$EASYTLS_DATA_DIR/easytls-config.hash"
 	set_var EASYTLS_INLINE_INDEX    "$EASYTLS_DATA_DIR/easytls-inline-index.txt"
-	set_var EASYTLS_IL_INDEX_HASH   "$EASYTLS_DATA_DIR/easytls-inline-index.hash"
+	set_var EASYTLS_INLINE_X_HASH   "$EASYTLS_DATA_DIR/easytls-inline-index.hash"
+	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
+	set_var EASYTLS_KEY_X_HASH       "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var EASYTLS_DISABLED_LIST   "$EASYTLS_DATA_DIR/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH   "$EASYTLS_DATA_DIR/easytls-disabled-list.hash"
 
@@ -5672,8 +5674,6 @@ vars_setup()
 	set_var EASYTLS_TEMP_RECORD     "$EASYTLS_DATA_DIR/easytls-temp.record"
 
 	set_var EASYTLS_CA_IDENTITY     "$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
-	set_var EASYTLS_KEY_INDEX       "$EASYTLS_DATA_DIR/easytls-key-index.txt"
-	set_var EASYTLS_KEY_HASH        "$EASYTLS_DATA_DIR/easytls-key-index.hash"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
 	set_var EASYTLS_VERIFY_V2_SH    "$EASYTLS/easytls-cryptv2-verify.sh"
