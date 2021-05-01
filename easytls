@@ -1811,7 +1811,7 @@ openssl_crt_common_name ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
 		-noout -subject -nameopt sep_multiline | \
-		"$EASYTLS_GREP" '^[[:blank:]]*CN=.*$' | \
+		"$EASYTLS_GREP" '^[[:blank:]]\{1,\}CN=.*$' | \
 		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
 } # => openssl_crt_common_name ()
 
