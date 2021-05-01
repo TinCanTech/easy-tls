@@ -21,8 +21,6 @@ print() { printf "%s\n" "$*"; }
 build_easyrsa ()
 {
 
-rm -f vars
-
 mkdir -p x509-types
 
 print "
@@ -91,12 +89,10 @@ build_vars ()
 		print ' set_var EASYRSA_REQ_ORG       "example.org"'
 		print ' set_var EASYRSA_REQ_EMAIL     "me@example.net"'
 		print ' set_var EASYRSA_REQ_OU        "TEST esc \{ \} \£ \¬ (4) TEST"'
-	} > vars
+	} > "$EASYTLS_VARS"
 } # => build_vars ()
 
 echo '===[  Easy-TLS Unit Tests ]==='
-
-build_easyrsa
 
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
@@ -127,6 +123,8 @@ fi
 
 export EASYRSA_CERT_RENEW=1000
 
+build_easyrsa
+
 total_expected_errors=0
 
 for loops in 1 2 3
@@ -138,25 +136,23 @@ do
 	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
 	print "EASYRSA_PKI: $EASYRSA_PKI"
+	EASYTLS_VARS="$PKI_DIR/vars"
 
 	# github Windows runner takes too long, so just test once
 	[ $loops -eq 2 ] && [ $EASYTLS_WINDOWS ] && exit 0
 
-	# Build vars, used by all remaining loops
-	#[ $loops -eq 2 ] && exit 99
-	[ $loops -eq 2 ] && build_vars
-	#[ $loops -eq 3 ] && exit 99
-	[ $loops -eq 3 ] && {
-		export EASYRSA_RAND_SN="yes"
-		#EASYTLS_OPTS="--verbose --batch --no-auto-check"
-		TLSCV2V_OPTS="-v --hash=SHA1"
-		}
+	# Switch to SHA1
+	[ $loops -eq 3 ] && TLSCV2V_OPTS="-v --hash=SHA1"
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
 	print "ls -l"
 	ls -l
 	"$EASYRSA_CMD" $EASYRSA_OPTS init-pki
+
+	# Build EASYTLS_VARS - Random serial NO
+	[ $loops -eq 2 ] && build_vars
+
 	print "ls -l $EASYRSA_PKI"
 	ls -l "$EASYRSA_PKI"
 	for i in "build-ca nopass" \
@@ -179,8 +175,6 @@ do
 		print "$EASYRSA_CMD $EASYRSA_OPTS $i"
 		"$EASYRSA_CMD" $EASYRSA_OPTS $i || fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
 	done
-
-	#rm "$PKI_DIR/private/ca.key" || Die "fk"
 
 	# Test EasyTLS
 	for i in "init-tls" "config"\
