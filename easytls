@@ -1747,13 +1747,14 @@ inline_file_verify_hash ()
 	force_hash=1
 	generate_file_hash "$inline_file" || \
 		die "inline_file_verify_hash: Failed to hash: $inline_file"
-	real_hash="$generated_hash"
+	# Use the hash
+	inline_file_hash="$generated_hash"
 	unset force_hash
 
 	if inline_index_search_inline_hash
 	then
 		# hash OK
-		verified_inline_hash="$real_hash"
+		verified_inline_hash="$inline_file_hash"
 		return 0
 	fi
 
@@ -1790,8 +1791,8 @@ inline_index_ilhash_to_serial ()
 inline_index_search_inline_hash ()
 {
 	# Do not need to search for --sub-key-name
-	# because inline file HASH ${real_hash} is unique
-	"$EASYTLS_GREP" -q "^${real_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
+	# because inline file HASH ${inline_file_hash} is unique
+	"$EASYTLS_GREP" -q "^${inline_file_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
 		"$EASYTLS_INLINE_INDEX"
 } # => inline_index_search_inline_hash ()
 
