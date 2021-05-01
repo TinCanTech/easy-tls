@@ -1806,6 +1806,15 @@ inline_crt_serial ()
 	inline_serial="${inline_serial##*serial: }"
 } # => inline_crt_serial ()
 
+# Extract the CommonName from OpenSSL -subject
+openssl_crt_common_name ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
+		-noout -subject -nameopt sep_multiline | \
+		"$EASYTLS_GREP" '^[[:blank:]]*CN=.*$' | \
+		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
+} # => openssl_crt_common_name ()
+
 # Get and format OpenSSL serial number output
 openssl_crt_serial ()
 {
@@ -1814,15 +1823,6 @@ openssl_crt_serial ()
 	# remove the serial= part -> we only need the XXXX part
 	crt_serial=${crt_serial##*=}
 } # => openssl_crt_serial ()
-
-# Extract the CommonName from OpenSSL -subject
-openssl_crt_cn ()
-{
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
-		-noout -subject -nameopt sep_multiline | \
-		"$EASYTLS_GREP" '^[[:blank:]]*CN=.*$' | \
-		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
-} # => openssl_crt_cn ()
 
 # Check inline hash and Copy inline to stdout
 inline_show ()
@@ -5353,7 +5353,7 @@ import_key ()
 
 		cert_file="$EASYRSA_PKI/$requested_cert_CN.crt"
 		[ -f "$cert_file" ] || die "Cannot find file: $cert_file"
-		actual_cert_CN="$(openssl_crt_cn)"
+		actual_cert_CN="$(openssl_crt_common_name)"
 
 		if [ "$requested_cert_CN" = "$actual_cert_CN" ]
 		then
