@@ -113,7 +113,7 @@ cmd_help()
   init-tls <hash_algorithm>
       Removes & re-initializes the TLS key dir
 
-      Specify an alternat6e <hash_algorithm> to use. Default SHA256" ;;
+      Specify an alternate <hash_algorithm> to use. Default SHA256" ;;
 		build|inline|remove|script) text="
   Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
@@ -405,12 +405,8 @@ print ()
 die ()
 {
 	easytls_version
-	print "
-Easy-TLS error:
-
-${help_note:-No extra help is configured}
-
-$1" 1>&2
+	[ -n "$help_note" ] && print "$help_note"
+	print "$1" 1>&2
 	exit "${2:-1}"
 } # => die ()
 
@@ -623,9 +619,10 @@ easytls_config ()
 			[ -z "$cfg_val" ] && die "Unsupported value for $cfg_opt: $cfg_val"
 			# spaces ?
 			test_val="${cfg_val%% *}"
-			help_note="custom.group does not support spaces."
-			[ "$cfg_val" = "$test_val" ] || \
+			[ "$cfg_val" = "$test_val" ] || {
+				help_note="custom.group does not support spaces."
 				die "Unsupported value for $cfg_opt: $cfg_val"
+				}
 
 			confirm "Change your Custom-Group: " "yes" \
 "WARNING:
@@ -644,9 +641,11 @@ easytls_config ()
 			fi
 		;;
 		ca.id)
-			help_note="To change your CA-ID you must create a new Easy-RSA CA"
-			[ -n "$EASYTLS_MASTER_ID" ] && \
+			[ -n "$EASYTLS_MASTER_ID" ] && {
+				help_note="To change your CA-ID you must create a new Easy-RSA CA"
 				die "The CA-ID cannot be changed"
+				}
+
 			# Do not allow user access to 'easytls config ca.id foo'
 			[ $save_id_authorized ] || \
 				die "Please use 'easytls save-id' to configure your CA-ID"
@@ -659,7 +658,6 @@ easytls_config ()
 			die "Unknown option: $cfg_opt"
 		;;
 	esac
-	unset help_note
 
 	# Write config
 	config_update || die "Error updating config."
@@ -691,12 +689,6 @@ config_update ()
 # Use config
 config_use ()
 {
-	# If config file does not exist then this must be init-tls
-	[ -f "$EASYTLS_CONFIG_FILE" ] || {
-		EASYTLS_not_init=1
-		return 0
-		}
-
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
@@ -853,13 +845,11 @@ verify_openvpn ()
 		2.4) : ;;
 		*) die "Unsupported OpenVPN version: $openvpn_version" ;;
 	esac
-	unset help_note
 } # => verify_openvpn ()
 
 # Verify TLS has been initialised
 verify_tls_init ()
 {
-	help_note="Use './easytls init-tls' to initialise"
 	{
 		[ -d "$EASYTLS_PKI" ] && \
 		[ -f "$EASYTLS_CONFIG_FILE" ] && \
@@ -869,8 +859,12 @@ verify_tls_init ()
 		[ -f "$EASYTLS_KEY_HASH" ] && \
 		[ -f "$EASYTLS_DISABLED_LIST" ] && \
 		[ -f "$EASYTLS_DISABLED_HASH" ]
-	} || die "EasyTLS has not been initialised"
-	unset help_note
+	} || {
+		error_msg "EasyTLS has not been initialised - See help below:"
+		cmd_help init-tls
+		help_note=" "
+		die "Please see ./easytls help"
+		}
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -881,14 +875,10 @@ init_tls ()
 
 	# Easy-TLS does NOT support folders with spaces in the name
 	# So bail out now and don't waste time
-	if [ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ]
-	then
-		# OK
-		:
-	else
+	[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
 		help_note="Easy-TLS does NOT support folders with spaces in the name"
 		die "Fix your folder name: $EASYTLS_PKI"
-	fi
+		}
 
 	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
@@ -917,7 +907,6 @@ and initialize a fresh TLS PKI here."
 
 	# Create config-file
 	{
-		#"$EASYTLS_PRINTF" '%s\n' "batch.mode = off"
 		"$EASYTLS_PRINTF" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
 		"$EASYTLS_PRINTF" '%s\n' "ca.id = "
 		"$EASYTLS_PRINTF" '%s\n' "custom.group = "
@@ -940,8 +929,7 @@ and initialize a fresh TLS PKI here."
 	forbidden_hash=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
 	;;
 	*)
-		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
-		return 1
+		die "Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 	;;
 	esac
 
@@ -2544,14 +2532,13 @@ inline_base ()
 	if [ "$inline_dh_file" ]
 	then
 		# dh file is required
-		help_note="Use --dh=<file_name> to specify an alternate dh file."
 		default_dh_file="$EASYRSA_PKI/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"$default_dh_file"}"
 		[ -f "$EASYRSA_DH_FILE" ] || {
-			"Diffie-Hellman parameters file missing: $EASYRSA_DH_FILE"
+			help_note="Use --dh=<file_name> to specify an alternate dh file."
+			error_msg "Diffie-Hellman parameters file missing: $EASYRSA_DH_FILE"
 			return 1
 			}
-		unset help_note
 	fi
 
 	# get the serial number of the certificate from OpenSSL
@@ -4100,7 +4087,6 @@ interactive_remove ()
 		save_wiscii_hash || die "Master hash save failed"
 
 		# Request remove_tlskey
-		cmd_line="remove-tlskey $opt_name"
 		default='Y'
 		ia_question_help="
 * Do you want to remove the corresponding TLS-Crypt-V2 key ?
@@ -4130,6 +4116,9 @@ interactive_remove ()
 		if [ $remove_inline_and_tlskey ]
 		then
 			# Print command
+			cmd_line="remove-tlskey $opt_name"
+			[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || \
+				cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
 			interactive_show_cmd
 
 			# Enable internal batch_mode
@@ -4755,7 +4744,8 @@ interactive_sub_key_name ()
 	fi
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		full_name="${cli_name}-${TLSKEY_SUBNAME}"
+		full_name="${common_name}-${TLSKEY_SUBNAME}"
+		inline_file="${EASYTLS_PKI}/${full_name}.inline"
 		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
 		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 		}
@@ -5423,7 +5413,7 @@ generate_wiscii_hash ()
 	# Fixed Hash - If file hashing is disabled
 	[ $file_hash_disabled ] && {
 		counted_wiscii=$fixed_hash
-		return
+		return 0
 		}
 
 	# Clear accumulators
@@ -5853,7 +5843,6 @@ case "$cmd" in
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
-		#unset EASYTLS_not_init
 		;;
 	v|version)
 		easytls_version || \
@@ -5867,10 +5856,10 @@ case "$cmd" in
 		;;
 
 	*)
-	# If not initialised then quit
-	help_note="Use './easytls init' to initialise TLS."
-	[ $EASYTLS_not_init ] && die 'Easy-TLS has not been initialised'
-	unset help_note
+	# Other commands
+
+	# Just the once
+	verify_tls_init
 
 	# Load config options - Does not change command line options
 	config_use || die "Config error"
@@ -5881,9 +5870,6 @@ case "$cmd" in
  * Some files have been manually altered, restore the changes to continue..'
 		die "Master hash check failed"
 		}
-
-	# Just the once
-	verify_tls_init
 
 	# Everything else
 	case "$cmd" in
