@@ -1751,7 +1751,12 @@ inline_file_verify_hash ()
 	inline_file_hash="$generated_hash"
 	unset force_hash
 
-	if inline_index_search_inline_hash
+	# Search Inline Index for Inline File Hash
+	# Do not need to search for --sub-key-name
+	# because inline file HASH ${inline_file_hash} is unique
+	if "$EASYTLS_GREP" -q \
+		"^${inline_file_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
+		"$EASYTLS_INLINE_INDEX"
 	then
 		# hash OK
 		verified_inline_hash="$inline_file_hash"
@@ -1786,15 +1791,6 @@ inline_index_ilhash_to_serial ()
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
 } # => inline_index_ilhash_to_serial ()
-
-# Search inline-index for inline-file hash
-inline_index_search_inline_hash ()
-{
-	# Do not need to search for --sub-key-name
-	# because inline file HASH ${inline_file_hash} is unique
-	"$EASYTLS_GREP" -q "^${inline_file_hash}[[:blank:]]${inline_serial}[[:blank:]]" \
-		"$EASYTLS_INLINE_INDEX"
-} # => inline_index_search_inline_hash ()
 
 # Get common_name from inline file
 inline_crt_common_name ()
