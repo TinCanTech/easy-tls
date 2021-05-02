@@ -804,7 +804,7 @@ config_verify_hash ()
 config_save_hash ()
 {
 	generate_and_save_file_hash \
-		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH"|| {
+		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
@@ -1068,13 +1068,14 @@ generate_and_save_file_hash ()
 		error_msg "generate_and_save_file_hash - generate_file_hash fail"
 		return 1
 		}
+
 	# Save $generated_hash
 	save_file_hash "$2" || {
 		error_msg "generate_and_save_file_hash - save_file_hash fail"
 		return 1
 		}
 	unset generated_hash
-}
+} # => generate_and_save_file_hash ()
 
 # Verify file hash Match
 match_file_hash ()
@@ -1093,7 +1094,7 @@ match_file_hash ()
 	[ $1 = $fixed_hash ] && return 0
 	[ $2 = $fixed_hash ] && return 0
 
-	# Check if all hashes are real
+	# hash match
 	[ $1 = $2 ] || {
 		error_msg "match_file_hash: match failed"
 		return 1
