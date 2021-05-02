@@ -1,5 +1,27 @@
 #!/bin/sh
 
+# Copyright - negotiable
+copyright ()
+{
+: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+# easytls-cryptv2-client-connect.sh -- Do simple magic
+#
+# Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
+# https://github.com/TinCanTech/easy-tls
+# tincantech@protonmail.com
+# All Rights reserved.
+#
+# This code is released under version 2 of the GNU GPL
+# See LICENSE of this project for full licensing details.
+#
+# Acknowledgement:
+# syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+#
+# Lock client connections to specific client devices.
+#
+VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+}
+
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"

@@ -1,4 +1,25 @@
 @echo OFF
+REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+REM Easy-TLS -- A Shell-based Easy-RSA extension utility to help manage
+REM               * OpenVPN specific TLS keys
+REM               * Easy-RSA based x509 security credentials
+REM               * Verified 'inline' combined OpenVPN node packages
+REM
+REM Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
+REM https://github.com/TinCanTech/easy-tls
+REM tincantech@protonmail.com
+REM All Rights reserved.
+REM
+REM This code is released under version 2 of the GNU GPL
+REM See LICENSE of this project for full licensing details.
+REM
+REM Acknowledgement:
+REM This utility is "written in the style of" and "borrows heavily from" Easy-RSA
+REM
+REM Easy-TLS is inspired by syzzer
+REM See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+REM
+REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 if %PROCESSOR_ARCHITECTURE% == x86 (
     curl -LO https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8-win32.zip
