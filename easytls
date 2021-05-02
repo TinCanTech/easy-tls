@@ -848,6 +848,13 @@ verify_tls_init ()
 		help_note=" "
 		die "Please see ./easytls help"
 		}
+
+	# Easy-TLS does NOT support folders with spaces in the name
+	# So bail out now and don't waste time
+	[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
+		help_note="Easy-TLS does NOT support folders with spaces in the name"
+		die "Fix your folder name: $EASYTLS_PKI"
+		}
 } # => verify_tls_init ()
 
 # init-tls backend:
