@@ -8,7 +8,7 @@ copyright ()
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
 # https://github.com/TinCanTech/easy-tls
-# tincanteksup@gmail.com
+# tincantech@protonmail.com
 # All Rights reserved.
 #
 # This code is released under version 2 of the GNU GPL
