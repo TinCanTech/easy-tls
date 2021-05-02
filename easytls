@@ -591,9 +591,13 @@ easytls_config ()
 			cfg_opt="inline.hardware"
 			cfg_val=$2
 		;;
+		status)
+			cfg_opt="status"
+			cfg_val=$2
+		;;
 		'')
-			# Show config
-			"$EASYTLS_CAT" "$EASYTLS_CONFIG_FILE"
+			"$EASYTLS_PRINTF" "%s\n" "easytls = $EASYTLS_VERSION"
+			"$EASYTLS_GREP" -v 'status' "$EASYTLS_CONFIG_FILE"
 			return 0
 		;;
 		*)
@@ -654,6 +658,8 @@ easytls_config ()
 			help_note="See help for init-tls"
 			die "To change your HASH you must create a new Easy-TLS PKI"
 		;;
+		status)
+			[ $flash_config ] || return 0 ;;
 		*)
 			die "Unknown option: $cfg_opt"
 		;;
@@ -682,7 +688,8 @@ config_update ()
 			return 1
 			}
 
-	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
+	[ $flash_config ] || easytls_verbose \
+		"config-file updated: ${cfg_opt} = ${cfg_val}"
 	return 0
 } # => config_update ()
 
@@ -692,10 +699,14 @@ config_use ()
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
+	unset config_error
 	while read -r cfg_opt cfg_equ cfg_val
 	do
 		# May as well check it for shellcheck
-		[ "$cfg_equ" = "=" ] || config_error=4
+		[ "$cfg_equ" = "=" ] || {
+			error_msg "Config error: Invalid syntax: Missing '='"
+			config_error=2
+			}
 
 		# These settings do not change command line
 		case "$cfg_opt" in
@@ -703,21 +714,27 @@ config_use ()
 				case "$cfg_val" in
 					off)	set_var auto_check_disabled 1 ;;
 					on)		: ;;
-					*)		config_error=2 ;;
+					*)
+							error_msg "Config error: Invalid value: $cfg_val"
+							config_error=3 ;;
 				esac
 				;;
 			inline.metadata)
 				case "$cfg_val" in
 					off)	set_var no_metadata 1 ;;
 					on)		: ;;
-					*)		config_error=3 ;;
+					*)
+							error_msg "Config error: Invalid value: $cfg_val"
+							config_error=4 ;;
 				esac
 				;;
 			inline.hardware)
 				case "$cfg_val" in
 					off)	: ;;
 					on)		set_var add_hardware 1 ;;
-					*)		config_error=3 ;;
+					*)
+							error_msg "Config error: Invalid value: $cfg_val"
+							config_error=5 ;;
 				esac
 				;;
 			custom.group)
@@ -736,11 +753,15 @@ config_use ()
 				# This is set explicitly here to protect config
 				export EASYTLS_MASTER_ID="$cfg_val"
 				;;
+			status)
+				: ;;
 			*)
-				die "config error"
+				error_msg "Config error: Invalid option: $cfg_opt"
+				config_error=6
 				;;
 		esac
 	done < "$EASYTLS_CONFIG_FILE"
+	[ $config_error ] && return "$config_error"
 
 	# Set default hash.algorithm
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -764,41 +785,14 @@ config_use ()
 	esac
 
 	# Verify the Config hash
-	config_verify_hash || {
-		error_msg "Config file hash failed."
-		error_msg "config_saved_hash:   $config_saved_hash"
-		error_msg "config_current_hash: $config_current_hash"
-		return 1
-		}
-
-	[ $config_error ] && return "$config_error"
+	generate_and_match_valid_hash \
+		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+			error_msg "config_verify_hash fail"
+			return 1
+			}
+	easytls_verbose "config-file hash check OK"
 	easytls_verbose "config-file loaded OK"
 } # => config_use ()
-
-# Verify the config-file hash
-config_verify_hash ()
-{
-	# Read the saved hash
-	config_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
-
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_CONFIG_FILE" || {
-		error_msg "config_verify_hash - Config file failed to generate hash."
-		return 1
-		}
-
-	# Set the current hash
-	config_current_hash="$generated_hash"
-
-	# Verify hash match
-	match_file_hash $config_saved_hash $config_current_hash || {
-		error_msg "config_verify_hash - Verify hash match failed."
-		return 1
-		}
-
-	easytls_verbose "config-file hash check OK"
-	return 0
-} # => config_verify_hash ()
 
 # Hash config-file
 config_save_hash ()
@@ -808,7 +802,7 @@ config_save_hash ()
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-	easytls_verbose "config-file hash save OK"
+	[ $flash_config ] || easytls_verbose "config-file hash save OK"
 } # => config_save_hash ()
 
 # Verify Openvpn is available
@@ -903,6 +897,7 @@ and initialize a fresh TLS PKI here."
 		"$EASYTLS_PRINTF" '%s\n' "inline.metadata = on"
 		"$EASYTLS_PRINTF" '%s\n' "inline.hardware = off"
 		"$EASYTLS_PRINTF" '%s\n' "custom.openvpn = "
+		"$EASYTLS_PRINTF" '%s\n' "status = 0"
 	} > "$EASYTLS_CONFIG_FILE" || die "Failed to create config-file"
 
 	# Set fixed hash
@@ -974,9 +969,10 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ $auto_check_disabled ] && return 0
 	[ $status_disabled_auto_check ] && return 0
 	[ $EASYTLS_REMOTE_CI ] && return 0
+	[ $file_hash_disabled ] && flash_config=1 && easytls_config status 1
+	[ $auto_check_disabled ] && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
@@ -1015,12 +1011,12 @@ easytls_auto_check ()
 	easytls_verbose "auto-check complete."
 } # => easytls_auto_check ()
 
-# Generate file hash
-generate_file_hash ()
+# Generate file hash - Return $generated_valid_hash
+generate_valid_file_hash ()
 {
 	# Test for file
 	[ -f "$1" ] || {
-		error_msg "generate_file_hash - Missing file: $1"
+		error_msg "generate_valid_file_hash - Missing file: $1"
 		return 1
 		}
 
@@ -1029,20 +1025,79 @@ generate_file_hash ()
 	then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=$fixed_hash
+		#generated_valid_hash=$fixed_hash
+		#return 0
 	else
 		openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
-		# Only need hash - Valid generated_hash is returned
+		# Only need hash
 		generated_hash="${openssl_hash%% *}"
-		# Clean up
-		unset openssl_hash
 	fi
 
 	# Verify hash
-	verify_valid_hash "$generated_hash" || {
-		error_msg "generate_file_hash - Hash failed: $generated_hash"
+	validate_hash "$generated_hash" || {
+		error_msg "generate_valid_file_hash - Hash failed: $generated_hash"
 		return 1
 		}
-} # => generate_file_hash ()
+
+	# Set gerated_valid_hash
+	generated_valid_hash=$generated_hash
+	# Clean up
+	unset openssl_hash generated_hash
+} # => generate_valid_file_hash ()
+
+# Verify valid hash - Only return success or fail
+validate_hash ()
+{
+	# Local var
+	test_hash="$*"
+
+	# Verify hash is hex only
+	# Any error will contain non-hex chars (hopefully)
+	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
+		error_msg "verify_hash - !Hex: $test_hash"
+		unset test_hash
+		return 1
+		}
+
+	# Test for empty input hash
+	[ $test_hash = $forbidden_hash ] && {
+		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
+		unset test_hash
+		return 1
+		}
+
+	# Set length
+	test_length=${#test_hash}
+
+	# Clean up
+	unset test_hash
+
+	# Verify length
+	[ $test_length -eq $fixed_length ] || {
+		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} hash Size:"
+		error_msg "Actual: $test_length - Expected: $fixed_length"
+		unset test_length
+		return 1
+		}
+
+	# Clean up
+	unset test_length
+} # => validate_hash ()
+
+# Verify two hashes Match
+match_two_hashes ()
+{
+	# Check if either hash is fixed hash then ignore
+	# Allows to switch between file-hash and file-hash-disabled mode
+	[ $1 = $fixed_hash ] && return 0
+	[ $2 = $fixed_hash ] && return 0
+
+	# hash match
+	[ $1 = $2 ] || {
+		error_msg "match_two_hashes: match failed"
+		return 1
+		}
+} # => match_two_hashes ()
 
 # Save file hash
 save_file_hash ()
@@ -1051,87 +1106,62 @@ save_file_hash ()
 		error_msg "save_file_hash - No target file specified"
 		return 1
 		}
-	"$EASYTLS_PRINTF" '%s' "$generated_hash" > "$1" || return 1
+	"$EASYTLS_PRINTF" '%s' "$generated_valid_hash" > "$1" || return 1
 } # => save_file_hash ()
+
+# generate_and_match_valid_hash
+generate_and_match_valid_hash ()
+{
+	# $1 - File to be hashed
+	# $2 - File to read the hash from
+
+	[ "$1" = "$2" ] && {
+		error_msg "generate_and_match_valid_hash - Source file is target file!"
+		return 1
+		}
+
+	unset generated_valid_hash
+	# Generate $generated_valid_hash
+	generate_valid_file_hash "$1" || {
+		error_msg "generate_and_match_valid_hash - generate_valid_file_hash fail"
+		return 1
+		}
+
+	saved_file_hash="$("$EASYTLS_CAT" "$2")"
+
+	# Validate and match $generated_valid_hash
+	match_two_hashes "$generated_valid_hash" "$saved_file_hash" || {
+		error_msg "generate_and_match_valid_hash - match_two_hashes fail"
+		return 1
+		}
+	unset generated_valid_hash
+} # => generate_and_match_valid_hash ()
 
 # generate and save file hash
 generate_and_save_file_hash ()
 {
+	# $1 - File to be hashed
+	# $2 - File to save the hash to
+
 	[ "$1" = "$2" ] && {
 		error_msg "generate_and_save_file_hash - Source file is target file!"
 		return 1
 		}
 
-	unset generated_hash
-	# Generate $generated_hash
-	generate_file_hash "$1" || {
-		error_msg "generate_and_save_file_hash - generate_file_hash fail"
+	unset generated_valid_hash
+	# Generate $generated_valid_hash
+	generate_valid_file_hash "$1" || {
+		error_msg "generate_and_save_file_hash - generate_valid_file_hash fail"
 		return 1
 		}
 
-	# Save $generated_hash
+	# Save $generated_valid_hash
 	save_file_hash "$2" || {
 		error_msg "generate_and_save_file_hash - save_file_hash fail"
 		return 1
 		}
-	unset generated_hash
+	unset generated_valid_hash
 } # => generate_and_save_file_hash ()
-
-# Verify file hash Match
-match_file_hash ()
-{
-	verify_valid_hash $1 || {
-		error_msg "match_file_hash - Invalid hash (1)"
-		return 1
-		}
-	verify_valid_hash $2 || {
-		error_msg "match_file_hash - Invalid hash (2)"
-		return 1
-		}
-
-	# Check if either hash is fixed hash and ignore
-	# Allows to switch between hash and hash-disabled mode
-	[ $1 = $fixed_hash ] && return 0
-	[ $2 = $fixed_hash ] && return 0
-
-	# hash match
-	[ $1 = $2 ] || {
-		error_msg "match_file_hash: match failed"
-		return 1
-		}
-} # => match_file_hash ()
-
-# Verify valid hash
-verify_valid_hash ()
-{
-	# Local var
-	test_hash="$*"
-
-	# Verify hash is hex only
-	# Any error will contain non-hex chars (hopefully)
-	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
-			error_msg "verify_hash - !Hex: $test_hash"
-			return 1
-			}
-
-	# Set length
-	test_length=${#test_hash}
-
-	# Verify length
-	[ $test_length -eq $fixed_length ] || {
-		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} Size: $test_length"
-		return 1
-		}
-
-	# Test for empty input hash
-	[ $test_hash = $forbidden_hash ] && {
-		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
-		return 1
-		}
-
-	# Clean up
-	unset test_hash test_length
-} # => verify_valid_hash ()
 
 
 
@@ -1622,14 +1652,14 @@ inline_index_update ()
 
 		# Create new inline file HASH
 		force_hash=1
-		generate_file_hash "$inline_file" || {
+		generate_valid_file_hash "$inline_file" || {
 			error_msg "inline_index_update add: Failed to hash: $inline_file"
 			return 1
 			}
 		unset force_hash
 
 		# Set new inline file HASH
-		current_inline_hash="$generated_hash"
+		current_inline_hash="$generated_valid_hash"
 
 		# Create new record
 		new_record="$current_inline_hash $inline_serial $name $TLSKEY_SUBNAME"
@@ -1693,25 +1723,12 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
-	# Read the saved hash
-	inline_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_INLINE_X_HASH")"
-
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_INLINE_INDEX" || {
-		error_msg "inline_index_verify_hash - generate_file_hash fail"
-		return 1
-		}
-
-	inline_index_current_hash="$generated_hash"
-
-	# Verify hash match
-	match_file_hash $inline_index_saved_hash $inline_index_current_hash || {
-		error_msg "inline_index_verify_hash - match_file_hash fail"
-		return 1
-		}
-
+	generate_and_match_valid_hash \
+		"$EASYTLS_INLINE_INDEX" "$EASYTLS_INLINE_X_HASH" || {
+			error_msg "inline_index_verify_hash fail"
+			return 1
+			}
 	easytls_verbose "Inline-index hash check OK"
-	return 0
 } # => inline_index_verify_hash ()
 
 # Save new inline-index hash
@@ -1757,10 +1774,10 @@ inline_file_verify_hash ()
 
 	# generate current file HASH
 	force_hash=1
-	generate_file_hash "$inline_file" || \
+	generate_valid_file_hash "$inline_file" || \
 		die "inline_file_verify_hash: Failed to hash: $inline_file"
 	# Use the hash
-	inline_file_hash="$generated_hash"
+	inline_file_hash="$generated_valid_hash"
 	unset force_hash
 
 	# Search Inline Index for Inline File Hash
@@ -2123,26 +2140,11 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
-	# Read the saved hash
-	tlskey_index_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_KEY_X_HASH")"
-
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_KEY_INDEX" || {
-		error_msg "tlskey_index_verify_hash - generate_file_hash"
-		return 1
-		}
-
-	# Set the current hash
-	tlskey_index_current_hash="$generated_hash"
-
-	# Verify hash match
-	match_file_hash $tlskey_index_saved_hash $tlskey_index_current_hash || {
-		error_msg "tlskey_index_verify_hash - Verify hash match"
-		error_msg "tlskey_index_saved_hash: $tlskey_index_saved_hash"
-		error_msg "tlskey_index_current_hash: $tlskey_index_current_hash"
-		return 1
-		}
-
+	generate_and_match_valid_hash \
+		"$EASYTLS_KEY_INDEX" "$EASYTLS_KEY_X_HASH" || {
+			error_msg "tlskey_index_verify_hash fail"
+			return 1
+			}
 	easytls_verbose "tlskey-index hash check OK"
 } # => tlskey_index_verify_hash ()
 
@@ -2169,24 +2171,25 @@ tls_crypt_v2_serial_number ()
 		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
 
 	# Assume it is a valid HASH
-	generated_hash="${md_hash%% *}"
+	tlskey_serial="${md_hash%% *}"
 
 	# Verify hash
-	verify_valid_hash "$generated_hash" || {
-		error_msg "tls_crypt_v2_serial_number - Hash failed: $generated_hash"
-		unset generated_hash
+	validate_hash "$tlskey_serial" || {
+		error_msg "tls_crypt_v2_serial_number fail: $tlskey_serial"
+		unset tlskey_serial
 		return 1
 		}
 
 	# Check for duplicate
-	"$EASYTLS_GREP" -q "^${generated_hash}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
-		error_msg "SHA1 duplicate found! -- Please report this."
+	"$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
+		error_msg "$EASYTLS_HASH_ALGO duplicate found! -- Please report this."
+		unset tlskey_serial
 		return 1
 		}
 
-	# Set this valid hash as tlskey_serial
-	tlskey_serial="${generated_hash}"
+	# Insert this valid hash as tlskey_serial into metadata
 	metadata="${tlskey_serial}-${metadata}"
+	# TODO tlskey_serial
 } # => tls_crypt_v2_serial_number ()
 
 # tlskey name subkeyname to tls serial
@@ -2297,7 +2300,7 @@ remove_tlskey ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Verify this tlskey-serial
-	verify_valid_hash "$tlskey_serial" || {
+	validate_hash "$tlskey_serial" || {
 		error_msg "remove_tlskey - tlskey_serial failed: $tlskey_serial"
 		unset tlskey_serial
 		return 1
@@ -3370,7 +3373,7 @@ disabled_list_manager ()
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Test it
-	verify_valid_hash "$tlskey_serial" || {
+	validate_hash "$tlskey_serial" || {
 		error_msg "disabled_list_manager - tlskey_serial failed: $tlskey_serial"
 		unset tlskey_serial
 		return 1
@@ -3495,27 +3498,11 @@ disabled_list_update_and_hash ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
-	# Missing disabled-list hash is ok for rehash ?
-	[ -f "$EASYTLS_DISABLED_HASH" ] || return 0
-
-	# Read the saved hash
-	disabled_list_saved_hash="$("$EASYTLS_CAT" "$EASYTLS_DISABLED_HASH")"
-
-	# Generate the current hash
-	generate_file_hash "$EASYTLS_DISABLED_LIST" || {
-		error_msg "disabled_list_verify_hash: Hash failed: $generated_hash"
-		return 1
-		}
-
-	# Set current hash
-	disabled_list_current_hash="$generated_hash"
-
-	# Verify hash match
-	match_file_hash $disabled_list_current_hash $disabled_list_saved_hash || {
-		error_msg "disabled_list_verify_hash: Verify hash match failed"
-		return 1
-		}
-
+	generate_and_match_valid_hash \
+		"$EASYTLS_DISABLED_LIST" "$EASYTLS_DISABLED_HASH" || {
+			error_msg "disabled_list_verify_hash fail"
+			return 1
+			}
 	easytls_verbose "Disabled-list hash check OK"
 } # => disabled_list_verify_hash ()
 
@@ -5514,8 +5501,8 @@ save_wiscii_hash ()
 	[ "$counted_wiscii" = "$bottled_wiscii" ] && return 0
 
 	# Test it here Only!
-	verify_valid_hash "$counted_wiscii" || {
-		error_msg "save_wiscii_hash - counted_wiscii failed: $counted_wiscii"
+	validate_hash "$counted_wiscii" || {
+		error_msg "save_wiscii_hash - validate_hash failed: $counted_wiscii"
 		return 1
 		}
 
@@ -5525,7 +5512,7 @@ save_wiscii_hash ()
 		return 1
 		}
 
-	easytls_verbose "Master hash save OK: $counted_wiscii"
+	[ $flash_config ] || easytls_verbose "Master hash save OK: $counted_wiscii"
 } # => save_wiscii_hash ()
 
 # Verify wiscii hash
@@ -5544,7 +5531,7 @@ verify_wiscii_hash ()
 	[ "$counted_wiscii" = '00' ] && return 0
 
 	# hash match or error
-	match_file_hash $bottled_wiscii $counted_wiscii || {
+	match_two_hashes $bottled_wiscii $counted_wiscii || {
 		error_msg "bottled_wiscii: $bottled_wiscii"
 		error_msg "counted_wiscii: $counted_wiscii"
 		return 1
@@ -5835,7 +5822,7 @@ case "$cmd" in
 	verify_tls_init
 
 	# Load config options - Does not change command line options
-	config_use || die "Config error"
+	config_use || die "config_use - Error: $?"
 
 	# Verify me!
 	verify_wiscii_hash || {
