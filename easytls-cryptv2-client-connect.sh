@@ -34,15 +34,19 @@ help_text ()
   Options:
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
-  -t|--tmp-dir=<path> Temporary directory to load the client hardware list from.
-  -s|--pid-file=<FILE>
-                      The PID file for the openvpn server instance.
   -a|--allow-no-check If the key has a hardware-address configured
                       and the client did NOT use --push-peer-info
                       then allow the connection.  Otherwise, keys with a
                       hardware-address MUST use --push-peer-info.
   -p|--push-required  Require all clients to use --push-peer-info.
   -k|--key-required   Require all client keys to have a hardware-address.
+  -t|--tmp-dir        Temp directory where the hardware address list is written.
+                      (Required only if easytls-cryptv2-client-connect.sh is used)
+                      Default: *nix /tmp | Windows C:/Windows/Temp
+  -o|--ovpnbin-dir    Path to OpenVPN bin directory. (Windows Only)
+                      Default: C:/Progra~1/OpenVPN/bin
+  -e|--ersabin-dir    Path to Easy-RSA3 bin directory. (Windows Only)
+                      Default: C:/Progra~1/Openvpn/easy-rsa/bin
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
@@ -51,10 +55,10 @@ help_text ()
   3   - Disallow connection, hwaddr required and not keyed.
   4   - Disallow connection, X509 certificate incorrect for this TLS-key.
   5   - Disallow connection, hwaddr verification has not been configured.
-  6   - Disallow connection, Server PID does not match daemon_pid.
-  7   - Disallow connection, missing value to option.
+  6   - Disallow connection, missing Required binaries.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
+  21  - USER ERROR Disallow connection, options error.
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -73,7 +77,7 @@ print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
 # Exit on error
 die ()
 {
-	"$EASYTLS_RM" -f "$client_hwaddr_file"
+	"$EASYTLS_RM" -f "$client_metadata_file"
 	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
 	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
 	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
@@ -83,7 +87,7 @@ die ()
 # easytls-cryptv2-client-connect failure, not an error.
 fail_and_exit ()
 {
-	"$EASYTLS_RM" -f "$client_hwaddr_file"
+	"$EASYTLS_RM" -f "$client_metadata_file"
 	if [ $EASYTLS_VERBOSE ]
 	then
 		"$EASYTLS_PRINTF" "%s " "$easytls_msg"
@@ -97,22 +101,48 @@ fail_and_exit ()
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
+# Log fatal warnings
+warn_die ()
+{
+	if [ -n "$1" ]
+	then
+		fatal_msg="${fatal_msg}
+$1"
+	else
+		[ -z "$fatal_msg" ] || die "$fatal_msg" 21
+	fi
+}
+
+# Log warnings
+warn_log ()
+{
+	if [ -n "$1" ]
+	then
+		warn_msg="${warn_msg}
+$1"
+	else
+		[ -z "$warn_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$warn_msg"
+	fi
+}
+
 # Get the client certificate serial number from env
 get_ovpn_client_serial ()
 {
-	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | "$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | \
+		"$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Get the client hardware address from env
 get_ovpn_client_hwaddr ()
 {
-	"$EASYTLS_PRINTF" '%s' "$IV_HWADDR" | "$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"$EASYTLS_PRINTF" '%s' "$IV_HWADDR" | \
+		"$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
 connection_allowed ()
 {
-	"$EASYTLS_RM" -f "$client_hwaddr_file"
+	"$EASYTLS_RM" -f "$client_metadata_file"
 	absolute_fail=0
 }
 
@@ -123,14 +153,7 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_tmp_dir='/tmp'
-	EASYTLS_CAT='cat'
-	EASYTLS_GREP='grep'
-	EASYTLS_PRINTF='printf'
-	EASYTLS_SED='sed'
-	EASYTLS_RM='rm'
-	# This is the best place to check
-	"$EASYTLS_SED" --version > /dev/null || die 'Missing file: sed'
+	EASYTLS_server_pid=$PPID
 
 	# Log message
 	easytls_msg="* EasyTLS-cryptv2-client-connect"
@@ -139,21 +162,42 @@ init ()
 # Dependancies
 deps ()
 {
-	# Set default Server PID file if not set by command line
-	[ $EASYTLS_server_pid_file ] || \
-		EASYTLS_server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
+	# Required binaries
+	EASYTLS_OPENSSL="openssl"
+	EASYTLS_CAT="cat"
+	EASYTLS_DATE="date"
+	EASYTLS_GREP="grep"
+	EASYTLS_SED="sed"
+	EASYTLS_PRINTF="printf"
+	EASYTLS_RM='rm'
 
-	# Verify Server PID file - daemon_pid is from Openvpn env
-	if [ -f "$EASYTLS_server_pid_file" ]
+	# Directories and files
+	if [ "$KSH_VERSION" ]
 	then
-		EASYTLS_server_pid="$("$EASYTLS_CAT" $EASYTLS_server_pid_file)"
-		[ -z "$EASYTLS_server_pid" ] && die "Failed to read pid file"
-		# PID file MUST match daemon PID
-		[ "$EASYTLS_server_pid" = "$daemon_pid" ] || \
-			fail_and_exit "SERVER PID MISMATCH" 6
+		# Windows
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
+		def_bin_dir="C:/Progra~1/Openvpn"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${def_bin_dir}/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${def_bin_dir}/bin}"
+		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
+		help_note="Easy-TLS requires binary files provided by Easy-RSA"
+		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
+		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] \
+			|| die "Missing openssl" 119
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || \
+			die "Missing cat" 113
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || \
+			die "Missing date" 114
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || \
+			die "Missing grep" 115
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || \
+			die "Missing sed" 116
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || \
+			die "Missing printf" 118
+		unset help_note
 	else
-		# The Server is not configured for easytls-cryptv2-client-connect.sh
-		fail_and_exit "SERVER PID FILE NOT CONFIGURED" 5
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
 
 	# Set Client certificate serial number from Openvpn env
@@ -162,11 +206,11 @@ deps ()
 	# Verify Client certificate serial number
 	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 8
 
-	# Set hwaddr file name
-	client_hwaddr_file="$EASYTLS_tmp_dir/$client_serial.$daemon_pid"
+	# Set client_metadata_file
+	client_metadata_file="$EASYTLS_tmp_dir/$client_serial.$EASYTLS_server_pid"
 
-	# Verify the hwaddr file
-	if [ -f "$client_hwaddr_file" ]
+	# Verify client_metadata_file
+	if [ -f "$client_metadata_file" ]
 	then
 		# Client cert serial matches
 		easytls_msg="${easytls_msg} ==> X509 serial matched"
@@ -198,12 +242,6 @@ do
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
-	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
-	;;
-	-s|--pid-file)
-		EASYTLS_server_pid_file="$val"
-	;;
 	-a|--allow-no-check)
 		empty_ok=1
 		allow_no_check=1
@@ -216,20 +254,29 @@ do
 		empty_ok=1
 		key_hwaddr_required=1
 	;;
+	-t|--tmp-dir)
+		EASYTLS_tmp_dir="$val"
+	;;
+	-o|--openvpn-bin-dir)
+		EASYTLS_ovpnbin_dir="$val"
+	;;
+	-e|--easyrsa-bin-dir)
+		EASYTLS_ersabin_dir="$val"
+	;;
 	*)
 		empty_ok=1
 		if [ -f "$opt" ]
 		then
-			[ $EASYTLS_VERBOSE ] && print "Ignoring temp file: $opt"
+			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
 		else
-			[ $EASYTLS_VERBOSE ] && print "Ignoring unknown option: $opt"
+			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring unknown option: $opt"
 		fi
 	;;
 	esac
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		die "Missing value to option: $opt" 7
+		warn_die "Missing value to option: $opt"
 	fi
 	shift
 done
@@ -237,8 +284,14 @@ done
 # Dependencies
 deps
 
+# Report and die on fatal warnings
+warn_die
+
+# Report option warnings
+warn_log
+
 # Set only for NO keyed hwaddr
-if "$EASYTLS_GREP" -q '000000000000' "$client_hwaddr_file"
+if "$EASYTLS_GREP" -q '000000000000' "$client_metadata_file"
 then
 	key_hwaddr_missing=1
 fi
@@ -279,7 +332,7 @@ else
 		fi
 	else
 		# hwaddr is pushed
-		if "$EASYTLS_GREP" -q "$push_hwaddr" "$client_hwaddr_file"
+		if "$EASYTLS_GREP" -q "$push_hwaddr" "$client_metadata_file"
 		then
 			# MATCH!
 			success_msg="==> hwaddr $push_hwaddr pushed and matched!"
