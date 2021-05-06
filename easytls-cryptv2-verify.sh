@@ -103,6 +103,30 @@ fail_and_exit ()
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
+# Log fatal warnings
+warn_die ()
+{
+	if [ -n "$1" ]
+	then
+		fatal_msg="${fatal_msg}
+$1"
+	else
+		[ -z "$fatal_msg" ] || die "$fatal_msg" 21
+	fi
+}
+
+# Log warnings
+warn_log ()
+{
+	if [ -n "$1" ]
+	then
+		warn_msg="${warn_msg}
+$1"
+	else
+		[ -z "$warn_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$warn_msg"
+	fi
+}
+
 # Help
 help_text ()
 {
@@ -125,8 +149,6 @@ help_text ()
   -s|--pid-file=<FILE>
                       The PID file for the openvpn server instance.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
-  -t|--tmp-dir        Temp directory where the hardware address list is written.
-                      (Required only if easytls-cryptv2-client-connect.sh is used)
   --v1|--via-crl      Do X509 certificate checks via x509_method 1, CRL check.
   --v2|--via-ca       Do X509 certificate checks via x509_method 2,
                       Use `OpenSSL ca` commands.  NOT RECOMMENDED
@@ -138,6 +160,13 @@ help_text ()
                       Preload the CA-Identity when calling the script.
                       See EasyTLS command save-id for details of the CA-Identity.
                       See EasyTLS-Howto.txt for an example.
+  -t|--tmp-dir        Temp directory where the hardware address list is written.
+                      (Required only if easytls-cryptv2-client-connect.sh is used)
+                      Default: *nix /tmp | Windows C:/Windows/Temp
+  -o|--ovpnbin-dir    Path to OpenVPN bin directory. (Windows Only)
+                      Default: C:/Progra~1/OpenVPN/bin
+  -e|--ersabin-dir    Path to Easy-RSA3 bin directory. (Windows Only)
+                      Default: C:/Progra~1/Openvpn/easy-rsa/bin
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
@@ -149,7 +178,8 @@ help_text ()
   6   - Disallow connection, invalid metadata_version field.
   8   - Dissalow connection, failed to read metadata_file
   9   - BUG Disallow connection, general script failure.
-  11  - ERROR Disallow connection, client key has invalid serial number.
+  10  - ERROR Disallow connection, client TLS key has unknown serial number.
+  11  - ERROR Disallow connection, client TLS key has invalid serial number.
   12  - ERROR Disallow connection, missing remote Identity.
   13  - ERROR Disallow connection, missing local Identity. (Unlucky)
   21  - USER ERROR Disallow connection, options error.
@@ -163,7 +193,16 @@ help_text ()
   29  - USER ERROR Disallow connection, Invalid value for --tls-age.
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
-  35  - USER ERROR Disallow connection, missing openvpn server pid_file.
+  35  - USER ERROR Disallow connection, missing easy-rsa binary directory.
+  36  - USER ERROR Disallow connection, missing openvpn binary directory.
+  101 - BUG Disallow connection, wait-gate time-out.
+  112 - BUG Disallow connection, invalid date
+  113 - BUG Disallow connection, missing dependency file.
+  114 - BUG Disallow connection, missing dependency file.
+  115 - BUG Disallow connection, missing dependency file.
+  116 - BUG Disallow connection, missing dependency file.
+  117 - BUG Disallow connection, missing dependency file.
+  118 - BUG Disallow connection, missing dependency file.
   119 - BUG Disallow connection, missing dependency file.
   121 - BUG Disallow connection, client serial number is not in CA database.
   122 - BUG Disallow connection, failed to verify CRL.
@@ -399,38 +438,17 @@ init ()
 	# Do not accept external settings
 	unset use_x509
 
-	# Default temp dir
-	EASYTLS_tmp_dir="/tmp"
-
 	# TLS expiry age (days) Default 5 years, 1825 days
 	tlskey_max_age=$((365*5))
 
-	# From openvpn server
-	OPENVPN_METADATA_FILE="$metadata_file"
-	OPENVPN_DAEMON_PID="$daemon_pid"
+	# Defaults
+	EASYTLS_server_pid=$PPID
 
-	# Required binaries
-	EASYTLS_OPENSSL="openssl"
-	EASYTLS_CAT="cat"
-	EASYTLS_GREP="grep"
-	EASYTLS_SED="sed"
-	EASYTLS_PRINTF="printf"
+	# metadata file
+	OPENVPN_METADATA_FILE="$metadata_file"
 
 	# Log message
 	status_msg="* Easy-TLS ==>"
-
-	# `metadata_file` must be set by openvpn
-	help_note="This script can ONLY be used by a running openvpn server."
-	[ -f "$OPENVPN_METADATA_FILE" ] || \
-		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
-	unset help_note
-
-	# Get metadata_string
-	metadata_string="$("$EASYTLS_CAT" "$OPENVPN_METADATA_FILE")"
-	[ -z "$metadata_string" ] && fail_and_exit "failed to read metadata_file" 8
-
-	# Populate metadata variables
-	metadata_string_to_vars $metadata_string
 
 	# X509 is disabled by default
 	# To enable use command line option:
@@ -446,6 +464,49 @@ init ()
 # Dependancies
 deps ()
 {
+	# Required binaries
+	EASYTLS_OPENSSL="openssl"
+	EASYTLS_CAT="cat"
+	EASYTLS_DATE="date"
+	EASYTLS_GREP="grep"
+	EASYTLS_SED="sed"
+	EASYTLS_PRINTF="printf"
+	EASYTLS_RM="rm"
+
+	# Directories and files
+	if [ "$KSH_VERSION" ]
+	then
+		# Windows
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-C:/Progra~1/Openvpn/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-C:/Progra~1/Openvpn/bin}"
+		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
+		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
+		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] \
+			|| die "Missing openssl" 119
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || \
+			die "Missing cat" 113
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || \
+			die "Missing date" 114
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || \
+			die "Missing grep" 115
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || \
+			die "Missing sed" 116
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || \
+			die "Missing printf" 118
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || \
+			die "Missing rm" 118
+	else
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
+	fi
+
+	# $metadata_file - Must be set by openvpn
+	[ -f "$OPENVPN_METADATA_FILE" ] || {
+		help_note="This script can ONLY be used by a running openvpn server."
+		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
+		}
+
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 22
 
@@ -462,49 +523,47 @@ deps ()
 	openssl_cnf="$CA_dir/safessl-easyrsa.cnf"
 
 	# Ensure we have all the necessary files
-	help_note="This script requires an EasyRSA generated CA."
-	[ -f "$ca_cert" ] || die "Missing CA certificate: $ca_cert" 23
-
-	help_note="This script requires external binaries."
-	if ! "$EASYTLS_GREP" --version  > /dev/null; then
-		die "Missing grep"    119; fi
+	[ -f "$ca_cert" ] || {
+		help_note="This script requires an EasyRSA generated CA."
+		die "Missing CA certificate: $ca_cert" 23
+		}
 
 	if [ $use_cache_id ]
 	then
 	# This can soon be deprecated
-	help_note="This script requires an EasyTLS generated CA identity."
-		[ -f "$ca_identity_file" ] || \
-			die "Missing CA identity: $ca_identity_file" 33
+	[ -f "$ca_identity_file" ] || {
+		help_note="This script requires an EasyTLS generated CA identity."
+		die "Missing CA identity: $ca_identity_file" 33
+		}
 	fi
 
 	if [ $use_x509 ]
 	then
-		# Verify OpenSSL is present
-		if ! "$EASYTLS_OPENSSL" version > /dev/null; then
-			die "Missing openssl" 119; fi
-		if ! "$EASYTLS_SED" --version   > /dev/null; then
-			die "Missing sed"     119; fi
-
 		# Only check these files if using x509
-		help_note="This script requires an EasyRSA generated CRL."
-		[ -f "$crl_pem" ] || die "Missing CRL: $crl_pem" 24
+		[ -f "$crl_pem" ] || {
+			help_note="This script requires an EasyRSA generated CRL."
+			die "Missing CRL: $crl_pem" 24
+			}
 
-		help_note="This script requires an EasyRSA generated DB."
-		[ -f "$index_txt" ] || die "Missing index.txt: $index_txt" 25
+		[ -f "$index_txt" ] || {
+			help_note="This script requires an EasyRSA generated DB."
+			die "Missing index.txt: $index_txt" 25
+			}
 
-		help_note="This script requires an EasyRSA generated PKI."
-		[ -f "$openssl_cnf" ] || die "Missing OpenSSL config: $openssl_cnf" 26
+		[ -f "$openssl_cnf" ] || {
+			help_note="This script requires an EasyRSA generated PKI."
+			die "Missing OpenSSL config: $openssl_cnf" 26
+			}
 	fi
 
 	# Ensure that TLS expiry age is numeric
 	case $tlskey_max_age in
 		''|*[!0-9]*) # Invalid value
-			# Exit script with error code 29 and disallow the connection
 			die "Invalid value for --tls-age: $tlskey_max_age" 29
 		;;
 		*) # Valid value
-		# maximum age in seconds
-		tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
+			# maximum age in seconds
+			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
 		;;
 	esac
 
@@ -513,18 +572,6 @@ deps ()
 	[ $use_cache_id ] && [ $preload_cache_id ] && \
 		die "Cannot use --cache-id and --preload-cache-id together." 34
 
-	# Check the PID file
-	if [ -n "$server_pid_file" ]
-	then
-		[ -f "$server_pid_file" ] || die "Missing PID file: $server_pid_file" 23
-	else
-		if [ $EASYTLS_tmp_dir ]
-		then
-			server_pid_file="${EASYTLS_tmp_dir}/easytls-server.pid"
-		else
-			[ $EASYTLS_VERBOSE ] && "$EASYTLS_PRINTF" '%s\n' "No pid file."
-		fi
-	fi
 } # => deps ()
 
 # Break metadata_string into variables
@@ -546,7 +593,7 @@ metadata_string_to_vars ()
 	md_subkey="$7"
 	md_opt="$8"
 	md_hwadds="$9"
-}
+} # => metadata_string_to_vars ()
 
 #######################################
 
@@ -562,6 +609,14 @@ do
 	empty_ok="" # Empty values are not allowed unless expected
 
 	case "$opt" in
+	help|-h|-help|--help)
+		empty_ok=1
+		help_text
+	;;
+	-v|--verbose)
+		empty_ok=1
+		EASYTLS_VERBOSE=1
+	;;
 	-c|--ca)
 		CA_dir="$val"
 	;;
@@ -578,12 +633,6 @@ do
 	-d|--disable-list)
 		empty_ok=1
 		unset use_disable_list
-	;;
-	-s|--pid-file)
-		server_pid_file="$val"
-	;;
-	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
 	;;
 	--hash)
 		EASYTLS_HASH_ALGO="$val"
@@ -613,28 +662,45 @@ do
 	-p|--preload-id)
 		preload_cache_id="$val"
 	;;
-	-v|--verbose)
-		empty_ok=1
-		EASYTLS_VERBOSE=1
+	-t|--tmp-dir)
+		EASYTLS_tmp_dir="$val"
 	;;
-	help|-h|-help|--help)
-		empty_ok=1
-		help_text
+	-e|--easyrsa-bin-dir)
+		EASYTLS_ersabin_dir="$val"
+	;;
+	-o|--openvpn-bin-dir)
+		EASYTLS_ovpnbin_dir="$val"
 	;;
 	*)
-		die "Unknown option: $1" 253
+		warn_die "Unknown option: $1"
 	;;
 	esac
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		die "Missing value to option: $opt" 21
+		warn_die "Missing value to option: $opt"
 	fi
 	shift
 done
 
 # Dependancies
 deps
+
+# Report and die on fatal warnings
+warn_die
+
+# Report option warnings
+warn_log
+
+# Get metadata
+
+	# Get metadata_string
+	metadata_string="$("$EASYTLS_CAT" "$OPENVPN_METADATA_FILE")"
+	[ -z "$metadata_string" ] && fail_and_exit "failed to read metadata_file" 8
+
+	# Populate metadata variables
+	metadata_string_to_vars $metadata_string
+
 
 # Metadata version
 
@@ -677,7 +743,7 @@ deps
 		# Verify tlskey-serial is in index
 		"$EASYTLS_GREP" -q "$tlskey_serial" "$tlskey_serial_index" || {
 			failure_msg="TLS-key is not recognised"
-			fail_and_exit "TLSKEY SERIAL ALIEN" 11
+			fail_and_exit "TLSKEY SERIAL ALIEN" 10
 			}
 
 		# HASH metadata sring without the tlskey-serial
@@ -694,14 +760,14 @@ deps
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
+	# current date
+	local_date_sec="$("$EASYTLS_DATE" +%s)"
 	if [ $tlskey_expire_age_sec -gt 0 ]
 	then
-		# current date
-		local_date_sec="$(date +%s)"
 		case $local_date_sec in
-		''|*[!0-9]*) # Invalid value - date.exe is missing
-			# Exit script with error code 119 and disallow the connection
-			die "Invalid value for local_date_sec: $local_date_sec" 119
+		''|*[!0-9]*)
+			# Invalid value - date.exe is missing
+			die "Invalid value for local_date_sec: $local_date_sec" 112
 		;;
 		*) # Valid value
 			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
@@ -730,7 +796,6 @@ deps
 	# Use --disable-list to disable this check
 	if [ $use_disable_list ]
 	then
-		help_note="This script requires an EasyTLS generated disabled_list."
 		[ -f "$disabled_list" ] || \
 			die "Missing disabled list: $disabled_list" 27
 
@@ -825,21 +890,31 @@ else
 
 fi # => use_x509 ()
 
-# Save the hardware addresses to temp file
-# Need to confirm temp dir location
-if [ -f "$server_pid_file" ]
+# Save the client_metadata to temp file
+client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
+
+if [ -f "$client_metadata_file" ]
 then
-	daemon_pid="$("$EASYTLS_CAT" "$server_pid_file")"
-	client_hw_list="$EASYTLS_tmp_dir/$md_serial.$daemon_pid"
-	#[ -f "$client_hw_list" ] && fail_and_exit "File exists: $client_hw_list"
-	"$EASYTLS_PRINTF" '%s\n%s\n' "$md_hwadds" "$md_opt" > "$client_hw_list" || \
-		die "Failed to write HW file"
-	[ $EASYTLS_VERBOSE ] && print "HWADDR-file: $client_hw_list"
+	metadata_file_date="$("$EASYTLS_DATE" +%s -r "$client_metadata_file")"
+	[ $local_date_sec -gt $(( metadata_file_date + 60 )) ] && \
+		"$EASYTLS_RM" -f "$client_metadata_file"
+	[ $EASYTLS_REMOTE_CI ] && "$EASYTLS_RM" -f "$client_metadata_file"
+fi
+
+while [ -f "$client_metadata_file" ]
+do
+	delay_start="$("$EASYTLS_DATE" +%s)"
+	[ $delay_start -gt $(( local_date_sec + 1 )) ] && break
+done
+
+if [ -f "$client_metadata_file" ]
+then
+	fail_and_exit "wait-gate time-out" 101
 else
-	# OpenVPN does not give the PID so it must be set via $server_pid_file
-	# In this case, assume hardware address verification is not required
-	[ $EASYTLS_VERBOSE ] && \
-		print "Hardware-address verification is not configured."
+	"$EASYTLS_PRINTF" '%s\n%s\n' \
+		"$md_hwadds" "$md_opt" > "$client_metadata_file" || \
+			die "Failed to write client_metadata file"
+	[ $EASYTLS_VERBOSE ] && print "client_metadata: $client_metadata"
 fi
 
 # Any failure_msg means fail_and_exit
