@@ -5660,7 +5660,7 @@ vars_setup()
 
 	set_var EASYTLS_VERIFY_V2_SH    "$EASYTLS/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_VERIFY_V1_SH    "$EASYTLS/easytls-verify.sh"
-	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-cryptv2-client-connect.sh"
+	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-client-connect.sh"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-script.conf"
 
