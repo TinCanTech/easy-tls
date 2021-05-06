@@ -865,10 +865,10 @@ init_tls ()
 
 	# Easy-TLS does NOT support folders with spaces in the name
 	# So bail out now and don't waste time
-	[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
-		help_note="Easy-TLS does NOT support folders with spaces in the name"
-		die "Fix your folder name: $EASYTLS_PKI"
-		}
+	#[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
+	#	help_note="Easy-TLS does NOT support folders with spaces in the name"
+	#	die "Fix your folder name: $EASYTLS_PKI"
+	#	}
 
 	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
