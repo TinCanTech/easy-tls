@@ -898,7 +898,7 @@ then
 	metadata_file_date="$("$EASYTLS_DATE" +%s -r "$client_metadata_file")"
 	[ $local_date_sec -gt $(( metadata_file_date + 60 )) ] && \
 		"$EASYTLS_RM" -f "$client_metadata_file"
-	[ $EASYTLS_REMOTE_CI ] && "$EASYTLS_RM" -f "$client_metadata_file"
+	[ $SHALLOW ] && "$EASYTLS_RM" -f "$client_metadata_file"
 fi
 
 while [ -f "$client_metadata_file" ]
