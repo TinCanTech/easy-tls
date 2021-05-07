@@ -478,8 +478,9 @@ deps ()
 	then
 		# Windows
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
-		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-C:/Progra~1/Openvpn/easy-rsa/bin}"
-		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-C:/Progra~1/Openvpn/bin}"
+		def_bin_dir="C:/Progra~1/Openvpn"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${def_bin_dir}/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${def_bin_dir}/bin}"
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
 		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
 		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
