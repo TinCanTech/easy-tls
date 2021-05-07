@@ -851,10 +851,10 @@ verify_tls_init ()
 
 	# Easy-TLS does NOT support folders with spaces in the name
 	# So bail out now and don't waste time
-	[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
-		help_note="Easy-TLS does NOT support folders with spaces in the name"
-		die "Fix your folder name: $EASYTLS_PKI"
-		}
+	#[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
+	#	help_note="Easy-TLS does NOT support folders with spaces in the name"
+	#	die "Fix your folder name: $EASYTLS_PKI"
+	#	}
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -4526,109 +4526,75 @@ interactive_scripts ()
 		# -a|-p|-k hardware requirements
 		[ $opt_openvpn_pid ] && interactive_hw_required
 
-	if [ $OS ]
-	then
-		# Windows
-		# Create config
-		{
-			"$EASYTLS_PRINTF" '%s\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n' 'script-security 2'
-			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
-			"$EASYTLS_PRINTF" ' %s'  "'"
-			"$EASYTLS_PRINTF" '%s'   "${EASYTLS_WIN_TC2V_BAT}"
-			"$EASYTLS_PRINTF" '%s\n' "'"
-			[ $opt_openvpn_pid ] && "$EASYTLS_PRINTF" '%s\n' \
-				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
-			[ $opt_openvpn_pid ] && {
-				"$EASYTLS_PRINTF" '%s'   'tls-verify'
-				"$EASYTLS_PRINTF" ' %s'  "'"
-				"$EASYTLS_PRINTF" '%s'   "${EASYTLS_WIN_TV_BAT}"
-				"$EASYTLS_PRINTF" '%s\n' "'"
-				}
-			[ $opt_openvpn_pid ] && {
-				"$EASYTLS_PRINTF" '%s'   'client-connect'
-				"$EASYTLS_PRINTF" ' %s'  "'"
-				"$EASYTLS_PRINTF" '%s'   "${EASYTLS_WIN_CCON_BAT}"
-				"$EASYTLS_PRINTF" '%s\n' "'"
-				}
-		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
-
-		# Write easytls-cryptv2-verify.bat
-		"$EASYTLS_SED" -i \
-			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
-			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
-			-e "s\`^SET HASH_ALGO=.*$\`SET HASH_ALGO=${opt_hashalgo}\`g" \
-			-e "s\`^SET CUST_GRP=.*$\`SET CUST_GRP=${opt_customg}\`g" \
-			"$EASYTLS_WIN_TC2V_BAT"
-
-		# Write easytls-verify.bat
-		"$EASYTLS_SED" -i \
-			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
-			-e "s\`^SET CA_DIR=.*$\`SET CA_DIR=${opt_ca_path}\`g" \
-			"$EASYTLS_WIN_TV_BAT"
-
-		# Write easytls-cryptv2-client-connect.bat
-		"$EASYTLS_SED" -i \
-			-e "s\`^SET WORK_DIR=.*$\`SET WORK_DIR=${opt_tmp_dir}\`g" \
-			-e "s\`^SET HWADDR_REQ=.*$\`SET HWADDR_REQ=${opt_hw_required}\`g" \
-			"$EASYTLS_WIN_CCON_BAT"
-
-		# Windows instructions
-		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
-		"$EASYTLS_PRINTF" '%s\n\n' '* Configure OpenVPN to use easytls scripts'
-		"$EASYTLS_PRINTF" '%s\n' '  Add this to your OpenVPN Server config file:'
-		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
-	else
-		# NIX
 		# Create config
 		{
 			# easytls-cryptv2-verify.sh
-			"$EASYTLS_PRINTF" '%s\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n' 'script-security 2'
+			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
+			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
+			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH -v"
-			"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
-			[ $opt_hashalgo ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
-			[ $opt_customg ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
-			[ $opt_key_age ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
-			[ $opt_disable_list ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
-			[ $opt_tmp_dir ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
-			[ $opt_x509_method ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
-			[ $opt_load_ca_id ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
-			[ $opt_preload_id ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
-			"$EASYTLS_PRINTF" '%s\n' "'"
-			[ $opt_openvpn_pid ] && "$EASYTLS_PRINTF" '%s\n' \
-				"${opt_openvpn_pid} ${opt_tmp_dir}/easytls-server.pid"
+			"$EASYTLS_PRINTF" ' %s'  "${opt_ca_path}"
+			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
+			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
+			[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
+			[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
+			[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
+			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
+			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
+			"$EASYTLS_PRINTF" '%s\n\n' "'"
+
 
 			# easytls-verify.sh - Required for --tls-auth or --tls-crypt clients
 			[ $opt_openvpn_pid ] && {
-				"$EASYTLS_PRINTF" '%s'   'tls-verify'
-				"$EASYTLS_PRINTF" ' %s'  "'"
-				"$EASYTLS_PRINTF" '%s'   "${EASYTLS_VERIFY_V1_SH} -v"
-				"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
-				"$EASYTLS_PRINTF" ' %s'  "-t=${opt_tmp_dir}"
-				"$EASYTLS_PRINTF" '%s\n' "'"
+				"$EASYTLS_PRINTF" '%s' 'tls-verify'
+				"$EASYTLS_PRINTF" ' %s' "'"
+				[ $EASYTLS_FOR_WINDOWS ] && \
+					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
+				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH} -v"
+				"$EASYTLS_PRINTF" ' %s' "${opt_ca_path}"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+				"$EASYTLS_PRINTF" '%s\n\n' "'"
 				}
+
 
 			# easytls-cryptv2-client-connect.sh
 			[ $opt_openvpn_pid ] && {
-				"$EASYTLS_PRINTF" '%s'   'client-connect'
-				"$EASYTLS_PRINTF" ' %s'  "'"
-				"$EASYTLS_PRINTF" '%s'   "${EASYTLS_CLICON_SH} -v"
-				"$EASYTLS_PRINTF" ' %s'  "$opt_hw_required"
-				"$EASYTLS_PRINTF" ' %s'  "-t=${opt_tmp_dir}"
+				"$EASYTLS_PRINTF" '%s' 'client-connect'
+				"$EASYTLS_PRINTF" ' %s' "'"
+				[ $EASYTLS_FOR_WINDOWS ] && \
+					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
+				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
+				[ "$opt_hw_required" ] && \
+					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				}
+
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
+
+		# Remove space in 'C:/Program Files/'
+		"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
+			"$EASYTLS_SRVSCRIPT_CFG"
+
+		# Instructions temp file
+		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG" > \
+			"$EASYTLS_INSTRUCT_TEMP"
+
+		# Remove space in 'C:/Program Files/'
+		"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
+			"$EASYTLS_INSTRUCT_TEMP"
 
 		# Linux instructions
 		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
 		"$EASYTLS_PRINTF" '%s\n\n' '* Configure OpenVPN to use easytls scripts'
 		"$EASYTLS_PRINTF" '%s\n' '  Add this to your OpenVPN Server config file:'
-		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG"
-	fi
-	"$EASYTLS_PRINTF" '\n%s\n' '* Easy-TLS Scripts configuration completed'
+		"$EASYTLS_CAT" "$EASYTLS_INSTRUCT_TEMP"
+		"$EASYTLS_RM" "$EASYTLS_INSTRUCT_TEMP"
+
+		"$EASYTLS_PRINTF" '\n%s\n' '* Easy-TLS Scripts configuration completed'
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
@@ -4957,11 +4923,14 @@ interactive_ca_path ()
 	while :
 	do
 		interactive_question
-		opt_ca_path="${ia_answer:-$default}"
-		[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] && {
-			opt_ca_path="$EASYTLS_CA_FULLPATH/$EASYRSA_PKI"
+		ans_ca_path="${ia_answer:-$default}"
+		[ -f "${EASYTLS_CA_FULLPATH}/${EASYRSA_PKI}/ca.crt" ] && {
+			ans_ca_path="${EASYTLS_CA_FULLPATH}/${EASYRSA_PKI}"
 			}
-		[ -f "$opt_ca_path/ca.crt" ] && break
+		[ -f "$ans_ca_path/ca.crt" ] && {
+			opt_ca_path="-c=${ans_ca_path}"
+			break
+			}
 		print '
   This path does not contain a valid CA certificate.'
 	done
@@ -5074,7 +5043,7 @@ interactive_disabled_list ()
 interactive_tmp_dir ()
 {
 	unset opt_tmp_dir
-	default="$EASYTLS"
+	default="$EASYTLS_tmp_dir"
 	ia_question_help="
 * Enter the temporary directory path where the script can write temp files.
 
@@ -5084,11 +5053,13 @@ interactive_tmp_dir ()
 	while :
 	do
 		interactive_question
-		opt_tmp_dir="${ia_answer:-$default}"
-		[ -z "$opt_tmp_dir" ] && break
-		[ -d "$opt_tmp_dir" ] && opt_tmp_dir="$opt_tmp_dir" && break
-		print '
-  This path is not valid.'
+		ans_tmp_dir="${ia_answer:-$default}"
+		[ -d "$ans_tmp_dir" ] && {
+			[ "$ans_tmp_dir" = "$default" ] || opt_tmp_dir="-t=${ans_tmp_dir}"
+			break
+			}
+		print "
+  This path is not valid: $ans_tmp_dir"
 	done
 	easytls_verbose "Config: $opt_tmp_dir"
 } # => interactive_tmp_dir ()
@@ -5557,8 +5528,12 @@ verify_wiscii_hash ()
 # Don't wait for Easy-RSA3 to be patched because that is futile
 external_deps ()
 {
+	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+
 	# Set the external binary names
 	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.
+	set_var EASYRSA_OPENSSL         "openssl"
+
 	#EASYTLS_OPENVPN='openvpn' # Set in config_use()
 
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
@@ -5574,11 +5549,34 @@ external_deps ()
 	EASYTLS_RM='rm' # Checked by Easy-RSA3
 	EASYTLS_SED='sed'
 
-	# Check the ones Easy-RSA3 fails to..
-	"$EASYTLS_DATE"             > /dev/null || die 'Missing file: date'
-	"$EASYTLS_GREP" --version   > /dev/null || die 'Missing file: grep'
-	"$EASYTLS_MKTEMP" --version > /dev/null || die 'Missing file: mktemp'
-	"$EASYTLS_SED" --version    > /dev/null || die 'Missing file: sed'
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		# Windows
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
+		def_bin_dir="C:/Progra~1/Openvpn"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${def_bin_dir}/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${def_bin_dir}/bin}"
+		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
+		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
+		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" ] \
+			|| die "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" 119
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || \
+			die "Missing cat" 113
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || \
+			die "Missing date" 114
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || \
+			die "Missing grep" 115
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || \
+			die "Missing sed" 116
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || \
+			die "Missing printf" 118
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || \
+			die "Missing rm" 118
+		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
+	else
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
+	fi
 } # => external_deps ()
 
 # vars setup
@@ -5663,6 +5661,7 @@ vars_setup()
 	set_var EASYTLS_CLICON_SH       "$EASYTLS/easytls-client-connect.sh"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-script.conf"
+	set_var EASYTLS_INSTRUCT_TEMP   "$EASYTLS/easytls-script.help"
 
 	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
 	set_var EASYTLS_WIN_TV_BAT      "$EASYTLS/easytls-verify.bat"
@@ -5772,6 +5771,15 @@ while :; do
 	-y|--why-disable-file-hash)
 		empty_ok=1
 		file_hash_disabled=1
+	;;
+	-t|--tmp-dir)
+		EASYTLS_tmp_dir="$val"
+	;;
+	-e|--easyrsa-bin-dir)
+		EASYTLS_ersabin_dir="$val"
+	;;
+	-o|--openvpn-bin-dir)
+		EASYTLS_ovpnbin_dir="$val"
 	;;
 	*)
 		break ;;
