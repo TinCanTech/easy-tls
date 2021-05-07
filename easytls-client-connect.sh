@@ -40,6 +40,8 @@ help_text ()
                       hardware-address MUST use --push-peer-info.
   -p|--push-required  Require all clients to use --push-peer-info.
   -k|--key-required   Require all client keys to have a hardware-address.
+  -b|--base-dir       Path to OpenVPN base directory. (Windows Only)
+                      Default: C:/Progra~1/OpenVPN
   -t|--tmp-dir        Temp directory where the hardware address list is written.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
                       Default: *nix /tmp | Windows C:/Windows/Temp
@@ -162,23 +164,26 @@ init ()
 # Dependancies
 deps ()
 {
+	# Identify Windows
+	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+
 	# Required binaries
-	EASYTLS_OPENSSL="openssl"
-	EASYTLS_CAT="cat"
-	EASYTLS_DATE="date"
-	EASYTLS_GREP="grep"
-	EASYTLS_SED="sed"
-	EASYTLS_PRINTF="printf"
+	EASYTLS_OPENSSL='openssl'
+	EASYTLS_CAT='cat'
+	EASYTLS_DATE='date'
+	EASYTLS_GREP='grep'
+	EASYTLS_SED='sed'
+	EASYTLS_PRINTF='printf'
 	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ "$KSH_VERSION" ]
+	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		# Windows
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
-		def_bin_dir="C:/Progra~1/Openvpn"
-		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${def_bin_dir}/easy-rsa/bin}"
-		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${def_bin_dir}/bin}"
+		base_dir="${EASYTLS_base_dir:-C:/Progra~1/Openvpn}"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
 		help_note="Easy-TLS requires binary files provided by Easy-RSA"
 		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
@@ -253,6 +258,9 @@ do
 	-k|--key-hwaddr-required)
 		empty_ok=1
 		key_hwaddr_required=1
+	;;
+	-b|--base-dir)
+		EASYTLS_base_dir="$val"
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="$val"

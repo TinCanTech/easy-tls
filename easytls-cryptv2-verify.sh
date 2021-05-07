@@ -160,6 +160,8 @@ help_text ()
                       Preload the CA-Identity when calling the script.
                       See EasyTLS command save-id for details of the CA-Identity.
                       See EasyTLS-Howto.txt for an example.
+  -b|--base-dir       Path to OpenVPN base directory. (Windows Only)
+                      Default: C:/Progra~1/OpenVPN
   -t|--tmp-dir        Temp directory where the hardware address list is written.
                       (Required only if easytls-cryptv2-client-connect.sh is used)
                       Default: *nix /tmp | Windows C:/Windows/Temp
@@ -464,23 +466,26 @@ init ()
 # Dependancies
 deps ()
 {
+	# Identify Windows
+	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+
 	# Required binaries
-	EASYTLS_OPENSSL="openssl"
-	EASYTLS_CAT="cat"
-	EASYTLS_DATE="date"
-	EASYTLS_GREP="grep"
-	EASYTLS_SED="sed"
-	EASYTLS_PRINTF="printf"
-	EASYTLS_RM="rm"
+	EASYTLS_OPENSSL='openssl'
+	EASYTLS_CAT='cat'
+	EASYTLS_DATE='date'
+	EASYTLS_GREP='grep'
+	EASYTLS_SED='sed'
+	EASYTLS_PRINTF='printf'
+	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ "$KSH_VERSION" ]
+	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		# Windows
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
-		def_bin_dir="C:/Progra~1/Openvpn"
-		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${def_bin_dir}/easy-rsa/bin}"
-		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${def_bin_dir}/bin}"
+		base_dir="${EASYTLS_base_dir:-C:/Progra~1/Openvpn}"
+		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
+		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
 		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
 		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
@@ -662,6 +667,9 @@ do
 	;;
 	-p|--preload-id)
 		preload_cache_id="$val"
+	;;
+	-b|--base-dir)
+		EASYTLS_base_dir="$val"
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="$val"
@@ -915,7 +923,7 @@ else
 	"$EASYTLS_PRINTF" '%s\n%s\n' \
 		"$md_hwadds" "$md_opt" > "$client_metadata_file" || \
 			die "Failed to write client_metadata file"
-	[ $EASYTLS_VERBOSE ] && print "client_metadata: $client_metadata"
+	[ $EASYTLS_VERBOSE ] && print "client_metadata: $client_metadata_file"
 fi
 
 # Any failure_msg means fail_and_exit
