@@ -433,7 +433,13 @@ cleanup ()
 {
 	[ -z "$EASYRSA_TEMP_DIR_session" ] || \
 		"$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR_session"
-	(stty echo 2>/dev/null) || { (set -o echo 2>/dev/null) && set -o echo; }
+
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		set -o echo
+	else
+		stty echo
+	fi
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
 } # => cleanup ()
 
