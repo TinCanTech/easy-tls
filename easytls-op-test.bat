@@ -49,5 +49,5 @@ SET EASYTLS_ovpnbin_dir=.
 
 sh.exe easytls-unit-tests.sh
 
-ECHO "Verified expected errors: 54"
+ECHO * Verified expected errors: 54
 

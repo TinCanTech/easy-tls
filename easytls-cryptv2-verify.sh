@@ -215,7 +215,7 @@ help_text ()
 	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
 
 	# For secrity, --help must exit with an error
-	exit 253
+	die 253
 }
 
 # Verify CA
@@ -227,8 +227,8 @@ verify_ca ()
 # Local identity
 fn_local_identity ()
 {
-	"$EASYTLS_OPENSSL" x509 \
-		-in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint | \
+	"$EASYTLS_OPENSSL" x509 -in "$ca_cert" \
+		-noout -${EASYTLS_HASH_ALGO} -fingerprint | \
 			"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
 }
 
