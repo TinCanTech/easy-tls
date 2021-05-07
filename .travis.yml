@@ -22,7 +22,10 @@ matrix:
         - sh easytls-shellcheck.sh
         - sh easytls-op-test.sh
 
-    - os: osx
-      osx_image: xcode10.1
-      script:
-        - sh easytls-op-test.sh
+#    - os: osx
+#      osx_image: xcode10.1
+#      env: PATH=/usr/bin:/bin:./:/usr/local/bin:/usr/sbin
+#      env: EASYTLS_REMOTE_CI=1
+#      env: TRAVIS_CI=1
+#      script:
+#        - sh easytls-op-test.sh
