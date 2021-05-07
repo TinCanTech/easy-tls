@@ -9,7 +9,8 @@ Easy-TLS is an Easy-RSA extension utility to help manage:
 # Additional tools
 EasyTLS scripts to interogate EasyTLS-CryptV2 metadata:
 + `easytls-cryptv2-verify.sh` - TLS-Crypt-V2 key metadata access policy tool.
-+ `easytls-cryptv2-client-connect.sh` - Hardware-address access policy tool.
++ `easytls-verify.sh` - TLS and X509 level access policy tool.
++ `easytls-client-connect.sh` - Hardware-address access policy tool.
 
 ## Installation
 Simply copy `easytls` to your `easyrsa` working directory.
@@ -17,6 +18,9 @@ Simply copy `easytls` to your `easyrsa` working directory.
 For full support, you will also need these scripts for use by your OpenVPN Server:
 + `easytls-cryptv2-verify.sh`<br>
   This script manages EasyTLS Crypt V2 Metadata field access policy rules.
+
++ `easytls-verify.sh`<br>
+  This script is required for EasyTLS Crypt V2 Metadata hardware-address access policy rules.
 
 + `easytls-cryptv2-client-connect.sh`<br>
   This script manages EasyTLS Crypt V2 Metadata hardware-address access policy rules.
