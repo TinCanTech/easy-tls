@@ -197,6 +197,16 @@ help_text ()
   34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
   35  - USER ERROR Disallow connection, missing easy-rsa binary directory.
   36  - USER ERROR Disallow connection, missing openvpn binary directory.
+  60  - USER ERROR Disallow connection, missing Temp dir
+  61  - USER ERROR Disallow connection, missing Base dir
+  62  - USER ERROR Disallow connection, missing Easy-RSA bin dir
+  63  - USER ERROR Disallow connection, missing Openvpn bin dir
+  64  - USER ERROR Disallow connection, missing openssl.exe
+  65  - USER ERROR Disallow connection, missing cat.exe
+  66  - USER ERROR Disallow connection, missing date.exe
+  67  - USER ERROR Disallow connection, missing grep.exe
+  68  - USER ERROR Disallow connection, missing sed.exe
+  69  - USER ERROR Disallow connection, missing printf.exe
   101 - BUG Disallow connection, wait-gate time-out.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
@@ -482,27 +492,23 @@ deps ()
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		# Windows
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
-		base_dir="${EASYTLS_base_dir:-C:/Progra~1/Openvpn}"
+		host_drv="${PATH%%\:*}"
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
+		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
-		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
-		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
-		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
-		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] \
-			|| die "Missing openssl" 119
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || \
-			die "Missing cat" 113
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || \
-			die "Missing date" 114
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || \
-			die "Missing grep" 115
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || \
-			die "Missing sed" 116
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || \
-			die "Missing printf" 118
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || \
-			die "Missing rm" 118
+
+		[ -d "$EASYTLS_tmp_dir" ] || exit 60
+		[ -d "$base_dir" ] || exit 61
+		[ -d "$EASYTLS_ersabin_dir" ] || exit 62
+		[ -d "$EASYTLS_ovpnbin_dir" ] || exit 63
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] || exit 64
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
+		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
