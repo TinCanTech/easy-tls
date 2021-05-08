@@ -866,13 +866,6 @@ verify_tls_init ()
 		help_note=" "
 		die "Please see ./easytls help"
 		}
-
-	# Easy-TLS does NOT support folders with spaces in the name
-	# So bail out now and don't waste time
-	#[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
-	#	help_note="Easy-TLS does NOT support folders with spaces in the name"
-	#	die "Fix your folder name: $EASYTLS_PKI"
-	#	}
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -880,13 +873,6 @@ init_tls ()
 {
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
 	verify_pki_init
-
-	# Easy-TLS does NOT support folders with spaces in the name
-	# So bail out now and don't waste time
-	#[ "${EASYTLS_PKI##* }" = "$EASYTLS_PKI" ] || {
-	#	help_note="Easy-TLS does NOT support folders with spaces in the name"
-	#	die "Fix your folder name: $EASYTLS_PKI"
-	#	}
 
 	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
@@ -4474,18 +4460,6 @@ interactive_scripts ()
 		return 1
 		}
 
-	# CA dir used for inter-active script must be fully expanded
-	if [ "${EASYRSA_PKI%/*}" = "$PWD" ]
-	then
-		set_var EASYTLS_CA_FULLPATH "$EASYRSA_PKI"
-		[ -f "$EASYTLS_CA_FULLPATH/ca.crt" ] || \
-		die "Missing: $EASYTLS_CA_FULLPATH/ca.crt"
-	else
-		set_var EASYTLS_CA_FULLPATH "$PWD"
-		[ -f "$EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt" ] || \
-		die "Missing full path to CA: $EASYTLS_CA_FULLPATH/$EASYRSA_PKI/ca.crt"
-	fi
-
 	# Capture the command line to inline
 	cmd_line=''
 
@@ -4594,16 +4568,16 @@ interactive_scripts ()
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
 
 		# Remove space in 'C:/Program Files/'
-		"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
-			"$EASYTLS_SRVSCRIPT_CFG"
+		#"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
+		#	"$EASYTLS_SRVSCRIPT_CFG"
 
 		# Instructions temp file
 		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG" > \
 			"$EASYTLS_INSTRUCT_TEMP"
 
 		# Remove space in 'C:/Program Files/'
-		"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
-			"$EASYTLS_INSTRUCT_TEMP"
+		#"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
+		#	"$EASYTLS_INSTRUCT_TEMP"
 
 		# Linux instructions
 		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
@@ -5568,31 +5542,83 @@ external_deps ()
 	EASYTLS_RM='rm' # Checked by Easy-RSA3
 	EASYTLS_SED='sed'
 
+	# Directories and files
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		# Windows
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-C:/Windows/Temp}"
-		base_dir="${EASYTLS_base_dir:-C:/Progra~1/Openvpn}"
+		host_drv="${PATH%%\:*}"
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
+		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
-		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH};"
-		[ -d "$EASYTLS_ersabin_dir" ] || die "Missing easy-rsa\bin dir" 35
-		[ -d "$EASYTLS_ovpnbin_dir" ] || die "Missing Openvpn\bin dir" 36
-		[ -f "${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" ] \
-			|| die "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" 119
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || \
-			die "Missing cat" 113
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || \
-			die "Missing date" 114
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || \
-			die "Missing grep" 115
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || \
-			die "Missing sed" 116
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || \
-			die "Missing printf" 118
-		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || \
-			die "Missing rm" 118
+
+		setup_err=0
+		[ -d "$EASYTLS_tmp_dir" ] || {
+			echo "Missing: $EASYTLS_tmp_dir"
+			setup_err=1
+			}
+		[ -d "$EASYTLS_ersabin_dir" ] || {
+			echo "Missing: $EASYTLS_ersabin_dir" 61
+			setup_err=1
+			}
+		[ -d "$EASYTLS_ersabin_dir" ] || {
+			echo "Missing: $EASYTLS_ersabin_dir" 62
+			setup_err=1
+			}
+		[ -d "$EASYTLS_ovpnbin_dir" ] || {
+			echo "Missing: $EASYTLS_ovpnbin_dir" 63
+			setup_err=1
+			}
+
+		# Note: EASYRSA_OPENSSL not EasyTLS
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" ] || {
+			echo "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" 64
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || {
+			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" 65
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || {
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" 66
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || {
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" 67
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || {
+			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" 68
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || {
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" 69
+			setup_err=1
+			}
+		[ $setup_err -eq 0 ] || {
+			echo "Errors occurred!"
+			exit 9
+			}
+		unset setup_err
+
+		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
+
+		EASYTLS_work_dir="$PWD"
+		if [ "${EASYTLS_work_dir% *}" = "$EASYTLS_work_dir" ]; then
+			: # No spaces
+		elif [ "${EASYTLS_work_dir% *}" = "${host_drv}:/Program" ]; then
+			# Only one space found: ?:/Program Files/foo
+			last_part="${EASYTLS_work_dir#* Files/}"
+			EASYTLS="${host_drv}:/Progra~1/${last_part}"
+			[ -d "$EASYTLS" ] || die "Error translating EASYTLS: $EASYTLS"
+		else
+			# Not in recognised path or more than one space found
+			error_msg "EasyTLS will not function correctly in this directory:"
+			error_msg "* Name: $EASYTLS_work_dir"
+			help_note="Remove spaces from PATH using CD to select short name."
+			die "EasyTLS tools will not function correctly in this path."
+		fi
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
@@ -5654,6 +5680,25 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 	set_var EASYRSA_RAND_SN         "yes"
+
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		if [ "${EASYRSA_PKI% *}" = "$EASYRSA_PKI" ]; then
+			: # No spaces
+		elif [ "${EASYRSA_PKI% *}" = "${host_drv}:/Program" ]; then
+			# Only one space found: ?:/Program Files/foo
+			last_part="${EASYRSA_PKI#* Files/}"
+			EASYRSA_PKI="${host_drv}:/Progra~1/${last_part}"
+			[ -d "$EASYRSA_PKI" ] || \
+				die "Error translating EASYRSA_PKI: $EASYRSA_PKI"
+		else
+			# Not in recognised path or more than one space found
+			error_msg "EasyTLS will not function correctly in this directory:"
+			error_msg "* Name: $EASYRSA_PKI"
+			help_note="Remove spaces from PATH using CD to select short name."
+			die "EasyTLS tools will not function correctly in this path."
+		fi
+	fi
 
 	set_var EASYTLS                 "$PWD"
 	set_var EASYTLS_PKI             "$EASYRSA_PKI/easytls"
