@@ -353,7 +353,6 @@ else
 			success_msg="==> hwaddr $push_hwaddr pushed and matched!"
 			connection_allowed
 		else
-			"$EASYTLS_GREP" --version > /dev/null || die 'Missing file: grep'
 			# push does not match key hwaddr
 			fail_and_exit "HWADDR MISMATCH" 1
 		fi
