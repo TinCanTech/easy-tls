@@ -513,12 +513,6 @@ deps ()
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
 
-	# $metadata_file - Must be set by openvpn
-	[ -f "$OPENVPN_METADATA_FILE" ] || {
-		help_note="This script can ONLY be used by a running openvpn server."
-		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
-		}
-
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 22
 
@@ -584,6 +578,14 @@ deps ()
 	[ $use_cache_id ] && [ $preload_cache_id ] && \
 		die "Cannot use --cache-id and --preload-cache-id together." 34
 
+	# $metadata_file - Must be set by openvpn
+	# If the script fails for metadata file
+	# - then All pre-flight checks completed
+	# - Script is ready to run
+	[ -f "$OPENVPN_METADATA_FILE" ] || {
+		help_note="This script can ONLY be used by a running openvpn server."
+		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
+		}
 } # => deps ()
 
 # Break metadata_string into variables
