@@ -579,8 +579,8 @@ deps ()
 		die "Cannot use --cache-id and --preload-cache-id together." 34
 
 	# $metadata_file - Must be set by openvpn
-	# If the script fails for metadata file
-	# - then All pre-flight checks completed
+	# If the script fails for metadata file then
+	# - All pre-flight checks completed
 	# - Script is ready to run
 	[ -f "$OPENVPN_METADATA_FILE" ] || {
 		help_note="This script can ONLY be used by a running openvpn server."
