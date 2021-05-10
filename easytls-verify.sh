@@ -333,7 +333,6 @@ warn_log
 			success_msg=" ==> Recognised Client cert serial"
 		fi
 	else
-		"$EASYTLS_GREP" --version > /dev/null || die "Cannot find grep"
 		# Cert serial not found in PKI index.txt
 		fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 	fi
