@@ -151,6 +151,8 @@ total_expected_errors=0
 
 for loops in 1 2 3
 do
+	# Set errexit for all easytls
+	set -e
 
 	PKI_DIR="${WORK_DIR}/et-tdir${loops}"
 	ETLS_DIR="${PKI_DIR}/easytls"
@@ -317,6 +319,11 @@ do
 		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
 	# Test tls-crypt-v2-verify.sh
+
+	# Unset errexit for all easytls-cryptv2-verify.sh
+	# because errors are expected and accounted for manually
+	set +e
+
 	for c in "c01" "c05" "c06" "c07-nomd" "c09"
 	do
 		print "============================================================"
@@ -373,12 +380,19 @@ do
 		echo "exit: $exit_code"
 		[ $exit_code -eq 0 ] || expected_errors $exit_code
 
+	# Set errexit for all easytls
+	#set -e
+
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
 		exit_code=$?
 		echo "exit: $exit_code"
 		[ $exit_code -eq 0 ] || expected_errors $exit_code
+
+	# Unset errexit for all easytls-cryptv2-verify.sh
+	# because errors are expected and accounted for manually
+	#set +e
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
@@ -444,6 +458,9 @@ do
 		echo "exit: $exit_code"
 		[ $exit_code -eq 0 ] || expected_errors $exit_code
 
+	# Set errexit for all easytls
+	set -e
+
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
 		     "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
@@ -451,12 +468,19 @@ do
 		echo "exit: $exit_code"
 		[ $exit_code -eq 0 ] || expected_errors $exit_code
 
+	# Unset errexit for all easytls-cryptv2-verify.sh
+	# because errors are expected and accounted for manually
+	set +e
+
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		exit_code=$?
 		echo "exit: $exit_code"
 		[ $exit_code -eq 0 ] || expected_errors $exit_code
+
+	# Set errexit for all easytls
+	set -e
 
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
@@ -483,6 +507,10 @@ printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 ###  NOTE: Hard coded directory
 
 ### EVERY TEST IS EXPECTED TO FAIL
+
+	# Unset errexit for all easytls-cryptv2-verify.sh
+	# because errors are expected and accounted for manually
+	set +e
 
 DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
@@ -611,6 +639,9 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		echo
 	done
 
+	# Set errexit for all easytls
+	set -e
+
 	EASYTLS_OPTS="--verbose --batch"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
@@ -621,8 +652,8 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 
 	# This last rebuild over writes the backup from prior to making+revoke c04+c06
-	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.txt.backup"
-	rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.hash.backup"
+	#rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.txt.backup"
+	#rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.hash.backup"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
 	"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
