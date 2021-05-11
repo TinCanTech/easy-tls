@@ -2228,18 +2228,22 @@ verify_cert_serial ()
 			return 1
 			}
 
-	hash_size=${#cert_serial}
+	serial_size=${#cert_serial}
 
+	# This test is invalid - random serial numbers are not always 32 hex
+	# I could keep hashes of certificates (fingerprint) instead
+	# That could tie-in to Openvpn peer fingerprint method
+	# https://github.com/TinCanTech/easy-tls/issues/158
 	case ${EASYRSA_RAND_SN} in
 	yes)
-		[ $hash_size -eq 32 ] || {
-			error_msg "verify_cert_serial - cert_serial size !=32: $cert_serial"
+		[ $serial_size -lt 33 ] || {
+			error_msg "verify_cert_serial - cert_serial size !<33: $cert_serial"
 			return 1
 			}
 	;;
 	no)
-		[ $hash_size -lt 32 ] || {
-			error_msg "verify_cert_serial - cert_serial size !<32: $cert_serial"
+		[ $serial_size -lt 33 ] || {
+			error_msg "verify_cert_serial - cert_serial size !<33: $cert_serial"
 			return 1
 			}
 	;;
