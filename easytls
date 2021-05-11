@@ -3468,11 +3468,11 @@ disabled_list_manager ()
 } # => disabled_list_manager ()
 
 # Search disabled-list for serial number
-disabled_list_serial_search ()
-{
-	"$EASYTLS_GREP" -c "^${crt_serial}[[:blank:]]${name}$" \
-		"$EASYTLS_DISABLED_LIST"
-} # => disabled_list_serial_search ()
+#disabled_list_serial_search ()
+#{
+#	"$EASYTLS_GREP" -c "^${crt_serial}[[:blank:]]${name}$" \
+#		"$EASYTLS_DISABLED_LIST"
+#} # => disabled_list_serial_search ()
 
 # Update disabled-list footer and hash
 # TODO: is footer necessary ?
