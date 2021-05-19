@@ -5852,6 +5852,9 @@ while :; do
 	-o|--openvpn-bin-dir)
 		EASYTLS_ovpnbin_dir="$val"
 	;;
+	-*)
+		die "Unknown option: ${opt}"
+	;;
 	*)
 		break ;;
 	esac
