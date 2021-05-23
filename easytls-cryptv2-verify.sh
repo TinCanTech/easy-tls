@@ -530,38 +530,51 @@ deps ()
 	openssl_cnf="$CA_dir/safessl-easyrsa.cnf"
 
 	# Ensure we have all the necessary files
-	[ -f "$ca_cert" ] || {
-		help_note="This script requires an EasyRSA generated CA."
-		die "Missing CA certificate: $ca_cert" 23
-		}
-
-	if [ $use_cache_id ]
+	if [ $EASYTLS_NO_CA ]
 	then
-	# This can soon be deprecated
-	[ -f "$ca_identity_file" ] || {
-		help_note="This script requires an EasyTLS generated CA identity."
-		die "Missing CA identity: $ca_identity_file" 33
-		}
-	fi
-
-	if [ $use_x509 ]
-	then
-		# Only check these files if using x509
-		[ -f "$crl_pem" ] || {
-			help_note="This script requires an EasyRSA generated CRL."
-			die "Missing CRL: $crl_pem" 24
+		# Do not need CA cert
+		# Cannot do any X509 verification
+		:
+	else
+		# Need CA cert
+		[ -f "$ca_cert" ] || {
+			help_note="This script requires an EasyRSA generated CA."
+			die "Missing CA certificate: $ca_cert" 23
 			}
 
-		[ -f "$index_txt" ] || {
-			help_note="This script requires an EasyRSA generated DB."
-			die "Missing index.txt: $index_txt" 25
-			}
+		if [ $use_cache_id ]
+		then
+			# This can soon be deprecated
+			[ -f "$ca_identity_file" ] || {
+				help_note="This script requires an EasyTLS generated CA identity."
+				die "Missing CA identity: $ca_identity_file" 33
+				}
+		fi
 
-		[ -f "$openssl_cnf" ] || {
-			help_note="This script requires an EasyRSA generated PKI."
-			die "Missing OpenSSL config: $openssl_cnf" 26
-			}
-	fi
+		# Check for either --cache-id or --preload-cache-id
+		# Do NOT allow both
+		[ $use_cache_id ] && [ $preload_cache_id ] && \
+			die "Cannot use --cache-id and --preload-cache-id together." 34
+
+		if [ $use_x509 ]
+		then
+			# Only check these files if using x509
+			[ -f "$crl_pem" ] || {
+				help_note="This script requires an EasyRSA generated CRL."
+				die "Missing CRL: $crl_pem" 24
+				}
+
+			[ -f "$index_txt" ] || {
+				help_note="This script requires an EasyRSA generated DB."
+				die "Missing index.txt: $index_txt" 25
+				}
+
+			[ -f "$openssl_cnf" ] || {
+				help_note="This script requires an EasyRSA generated PKI."
+				die "Missing OpenSSL config: $openssl_cnf" 26
+				}
+		fi
+	fi # X509 checks
 
 	# Ensure that TLS expiry age is numeric
 	case $tlskey_max_age in
@@ -573,11 +586,6 @@ deps ()
 			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
 		;;
 	esac
-
-	# Check for either --cache-id or --preload-cache-id
-	# Do NOT allow both
-	[ $use_cache_id ] && [ $preload_cache_id ] && \
-		die "Cannot use --cache-id and --preload-cache-id together." 34
 
 	# $metadata_file - Must be set by openvpn
 	# If the script fails for metadata file then
@@ -634,6 +642,10 @@ do
 	;;
 	-c|--ca)
 		CA_dir="$val"
+	;;
+	-z|--no-pki)
+		empty_ok=1
+		EASYTLS_NO_CA=1
 	;;
 	-g|--custom-group)
 		local_custom_g="$val"
