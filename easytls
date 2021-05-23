@@ -58,7 +58,7 @@ Here is the list of commands available with a short syntax reminder.
 Use the "help" command above to get full usage details.
 
   config
-  init-tls <hash_algorithm>
+  init-tls <hash_algorithm> no-ca
   build     :Inter-active menu to build TLS keys
   inline    :Inter-active menu to build Inline files
   remove    :Inter-active menu to remove TLS keys and Inline files
@@ -109,11 +109,17 @@ cmd_help()
 	text=""
 	opts=""
 	case "$1" in
-		init-tls) text="
-  init-tls <hash_algorithm>
-      Removes & re-initializes the TLS key dir
+		init|init-tls) text="
+  init-tls <hash_algorithm> no-ca
+      Removes & re-initializes the TLS key directory.
 
-      Specify an alternate <hash_algorithm> to use. Default SHA256" ;;
+        Specify an alternate <hash_algorithm> to use. (Default SHA256)
+
+        no-ca - Do not use an Easy-RSA Certificate Authority [CA].
+        This mode requires that you build server and client keys with
+        Easy Peer-Finger-Print: https://github.com/TinCanTech/easy-pfp
+
+        * Note: This mode still requires you to use './easyrsa init-pki'" ;;
 		build|inline|remove|script) text="
   Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
@@ -418,7 +424,7 @@ die ()
 {
 	easytls_version
 	[ -n "$help_note" ] && print "$help_note"
-	print "$1" 1>&2
+	error_msg "$1" 1>&2
 	exit "${2:-1}"
 } # => die ()
 
@@ -477,7 +483,7 @@ $msg
   Type the word '$value' to continue, or any other input to abort."
 	"$EASYTLS_PRINTF" '\n%s' "  $prompt"
 	read -r input
-	[ "$input" = "$value" ] && return
+	[ "$input" = "$value" ] && "$EASYTLS_PRINTF" "\n" && return
 	notice "Aborting without confirmation."
 	exit 9
 } # => confirm ()
@@ -581,6 +587,10 @@ easytls_config ()
 	# Verify config-file and hash has already been done by config_use()
 
 	case "$1" in
+		nc|no.ca)
+			cfg_opt="no.ca"
+			cfg_val=$2
+		;;
 		ha|hash.algorithm)
 			cfg_opt="hash.algorithm"
 			cfg_val=$2
@@ -706,7 +716,7 @@ config_update ()
 			return 1
 			}
 
-	[ $flash_config ] || easytls_verbose \
+	[ $flash_config ] || notice \
 		"config-file updated: ${cfg_opt} = ${cfg_val}"
 	return 0
 } # => config_update ()
@@ -762,6 +772,10 @@ config_use ()
 			custom.openvpn)
 				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
 				set_var EASYTLS_OPENVPN "openvpn"
+				;;
+			no.ca)
+				# This is set explicitly here to protect config
+				[ -n "$cfg_val" ] && export EASYTLS_NO_CA="$cfg_val"
 				;;
 			hash.algorithm)
 				# This is set explicitly here to protect config
@@ -887,8 +901,17 @@ and initialize a fresh TLS PKI here."
 		|| die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
+	while [ -n "$1" ]; do
+		case "$1" in
+			sha1|SHA1) EASYTLS_HASH_ALGO="$1" ;;
+			nc|no-ca) EASYTLS_NO_CA=1 ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	# Explicitly set EASYTLS_HASH_ALGO here
-	EASYTLS_HASH_ALGO="${1:-SHA256}"
+	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Create easytls dir in EasyRSA-PKI dir
 	"$EASYTLS_MKDIR" -p "$EASYTLS_PKI" || die "Failed to create easytls dir"
@@ -901,6 +924,7 @@ and initialize a fresh TLS PKI here."
 
 	# Create config-file
 	{
+		"$EASYTLS_PRINTF" '%s\n' "no.ca = ${EASYTLS_NO_CA}"
 		"$EASYTLS_PRINTF" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
 		"$EASYTLS_PRINTF" '%s\n' "ca.id = "
 		"$EASYTLS_PRINTF" '%s\n' "custom.group = "
@@ -950,9 +974,15 @@ and initialize a fresh TLS PKI here."
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
-	EASYTLS_INIT=1
-	save_id || "$EASYTLS_PRINTF" '%s\n\n' "      Failed to Save CA-ID."
-	unset EASYTLS_INIT
+	if [ $EASYTLS_NO_CA ]
+	then
+		# Ignore this
+		:
+	else
+		EASYTLS_INIT=1
+		save_id || "$EASYTLS_PRINTF" '%s\n\n' "      Failed to Save CA-ID."
+		unset EASYTLS_INIT
+	fi
 
 	# Create disabled-list
 	head_text="# EastTLS disabled-list - Created: $(date)"
@@ -3202,7 +3232,7 @@ b64_enc_metadata ()
 	generate_ca_identity
 
 	# Append Server name to CA-ID
-	ca_identity="$ca_identity-$srv_name"
+	ca_identity="${ca_identity}-${srv_name}"
 
 	# get the serial number of the certificate from OpenSSL
 	crt_file="$cli_cert"
@@ -3277,6 +3307,15 @@ generate_ca_identity ()
 	ca_identity="$(fn_ca_identity)"
 } # => generate_ca_identity ()
 
+generate_server_identity ()
+{
+	# CA fingerprint
+	ca_fingerprint="$(fn_ca_fingerprint)"
+
+	# CA Identity
+	ca_identity="$(fn_ca_identity)"
+} # => generate_ca_identity ()
+
 # Collect CA serial number
 fn_ca_serial ()
 {
@@ -3303,6 +3342,179 @@ save_metadata ()
 	"$EASYTLS_PRINTF" "%s\n" "$metadata" > "$metadata_debug"
 } # => save_metadata ()
 
+#
+noca_build_tls_crypt_v2_server ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
+
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	# This key does not require EasyRSA PKI
+	# but for the client metadata this script does
+	# So make CA a requirement for both server and client
+	#verify_ca_init
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
+	case $openvpn_version in
+		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
+
+	srv_name="$1"
+	srv_cert="${EASYTLS_SELF_SIGN_DIR}/${srv_name}.crt"
+	key_file="${EASYTLS_SELF_SIGN_DIR}/${srv_name}-tls-crypt-v2.key"
+
+	[ -f "$srv_cert" ] || {
+		#help_note="Easy-TLS requires that the x509 certificate has been built."
+		die "Missing file: $srv_cert"
+		}
+
+	verify_cert_purpose "$srv_cert" 'SSL server : Yes' || \
+		die "Certificate must be a Server: $srv_cert"
+
+	[ -f "$key_file" ] && die "Server file already exists: $key_file"
+
+	# get the serial number of the certificate from OpenSSL
+	crt_file="$srv_cert"
+	crt_serial=""
+	openssl_crt_serial
+
+	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
+		die "Failed to create tls-crypt-v2-server key: $key_file"
+
+	# Save incomplete server record to key-index
+	tlskey_serial='0000000000000000000000000000000000000000'
+	cli_name="$srv_name" # Improve this
+	tlskey_index_update add || die "Failed to update tlskey-index"
+
+	notice "TLS crypt v2 server key created: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "$srv_name" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
+} # => noca_build_tls_crypt_v2_server ()
+
+#
+noca_build_tls_crypt_v2_client ()
+{
+	[ $# -ge 2 ] || \
+	die "Required option(s): <server_filename_base> <client_filename_base>"
+
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	# This key does not require EasyRSA PKI
+	# but for the client metadata this script does
+	# So make CA a requirement for both server and client
+	#verify_ca_init
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
+	case $openvpn_version in
+		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
+
+	srv_name="$1"
+	srv_cert="${EASYTLS_SELF_SIGN_DIR}/${srv_name}.crt"
+	ca_cert="$srv_cert"
+	shift
+
+	cli_name="$1"
+	cli_cert="${EASYTLS_SELF_SIGN_DIR}/${cli_name}.crt"
+	shift
+
+	# don't do that ..
+	[ "$srv_name" = "$cli_name" ] && \
+		die "Server name cannot be the same as the client name."
+
+	[ -f "$srv_cert" ] || \
+		die "Easy-TLS requires that the X509 Server certificate has been built.
+* Missing Server certificate: $srv_cert"
+
+	[ -f "$cli_cert" ] || \
+		die "Easy-TLS requires that the X509 Client certificate has been built.
+* Missing Client certificate: $cli_cert"
+
+	verify_cert_purpose "$cli_cert" 'SSL client : Yes' || \
+		die "Certificate must be a Client: $cli_cert"
+
+	in_file="${EASYTLS_SELF_SIGN_DIR}/${srv_name}-tls-crypt-v2.key"
+	key_file="${EASYTLS_SELF_SIGN_DIR}/${cli_name}-tls-crypt-v2.key"
+	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
+
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		full_name="${cli_name}-${TLSKEY_SUBNAME}"
+		key_file="${EASYTLS_SELF_SIGN_DIR}/${full_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		}
+
+	[ -f "$in_file" ] || {
+		help_note="You must first build a TLS-Crypt-V2 Server key."
+		die "Server key does not exist: $in_file"
+		}
+
+	[ -f "$key_file" ] && {
+		help_note="To remove an key file use: easytls remove"
+		die "Client key already exists: $key_file"
+		}
+
+	# Capture HW addresses
+	EASYTLS_TLSCV2_HWLIST=""
+	while [ -n "$1" ]; do
+		# Needs to allow multiples. EG: eth & wifi
+		EASYTLS_TLSCV2_HWADDR="$1"
+		# Verify this is a 12 digit hex only value
+		# and add it to the HWLIST
+		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
+			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
+		shift
+	done
+
+	# Confirm metadata Custom-Group
+	[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || {
+		confirm "Is the Custom-Group field correct ? " "yes" \
+		"Custom-Group field for metadata: $TLSKEY_CUSTOM_GRP"
+		}
+
+	# Confirm --sub-key-name)
+	[ "$TLSKEY_SUBNAME" = "NOSUBKEY" ] || {
+		confirm "Is the Sub-key-name correct ? " "yes" \
+		"Sub-key-name field for metadata: $TLSKEY_SUBNAME"
+		}
+
+	# Confirm metadata Hardware-Address(es)
+	[ -n "$EASYTLS_TLSCV2_HWLIST" ] && {
+		notice "All Hardware-Addresses are valid length hexidecimal values."
+		confirm "Is the Hardware-Address field correct ? " "yes" \
+		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
+		}
+
+	metadata=""
+	b64_metadata=""
+	b64_enc_metadata || die "Failed to base64 encode metadata"
+
+	# Build key
+	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
+		$build_string "$key_file" "$b64_metadata" || \
+		die "Failed to create tls-crypt-v2-client key: $key_file"
+
+	# Save serial number to key-index
+	tlskey_index_update add || die "Failed to update tlskey-index"
+
+	notice "TLS crypt v2 client key created: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "$cli_name" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
+} # => noca_build_tls_crypt_v2_client ()
+
 # Save the ID
 save_id ()
 {
@@ -3317,8 +3529,9 @@ save_id ()
       and Server/Client certificates."
 			return 1
 			}
-		# Clear the Old Master ID
-		unset EASYTLS_MASTER_ID
+
+			# Clear the Old Master ID
+			unset EASYTLS_MASTER_ID
 	else
 		# Fatal
 		verify_ca_init
@@ -4490,6 +4703,9 @@ interactive_scripts ()
 			die "Required script missing: $EASYTLS_CLICON_SH"
 			}
 
+		# no-ca mode - opt_no_ca='-z'
+		automatic_no_ca
+
 		# -c|--ca=<path> - opt_ca_path
 		interactive_ca_path
 
@@ -4531,6 +4747,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH -v"
+			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "${opt_ca_path}"
 			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
@@ -4550,6 +4767,7 @@ interactive_scripts ()
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH} -v"
+				[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 				"$EASYTLS_PRINTF" ' %s' "${opt_ca_path}"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
 				"$EASYTLS_PRINTF" '%s\n\n' "'"
@@ -4920,8 +5138,17 @@ interactive_ca_path ()
 	do
 		interactive_question
 		ans_ca_path="${ia_answer:-$default}"
-		[ -f "${EASYTLS_CA_FULLPATH}/${EASYRSA_PKI}/ca.crt" ] && {
-			ans_ca_path="${EASYTLS_CA_FULLPATH}/${EASYRSA_PKI}"
+
+		# no-ca mode, accept the answer, debug later
+		[ $EASYTLS_NO_CA ] && {
+			ans_ca_path="${EASYRSA_PKI}"
+			opt_ca_path="-c=${ans_ca_path}"
+			break
+			}
+
+		# Normal PKI mode
+		[ -f "${EASYRSA_PKI}/ca.crt" ] && {
+			ans_ca_path="${EASYRSA_PKI}"
 			}
 		[ -f "$ans_ca_path/ca.crt" ] && {
 			opt_ca_path="-c=${ans_ca_path}"
@@ -4935,7 +5162,8 @@ interactive_ca_path ()
 # hash algorithm
 interactive_hashalgo ()
 {
-	opt_hashalgo="--hash=${EASYTLS_HASH_ALGO}"
+	[ "${EASYTLS_HASH_ALGO}" = "SHA256" ] || \
+		opt_hashalgo="--hash=${EASYTLS_HASH_ALGO}"
 } # => interactive_hashalgo ()
 
 # Set Custom Group
@@ -5263,7 +5491,11 @@ interactive_hw_required ()
 	easytls_verbose "Config: $opt_hw_required"
 } # => interactive_hw_required ()
 
-
+# Detect no-ca mode
+automatic_no_ca ()
+{
+	[ $EASYTLS_NO_CA ] && opt_no_ca='-z'
+}
 
 ############################################################################
 #
@@ -5785,7 +6017,7 @@ easytls_version ()
 ########################################
 # Invocation entry point:
 
-EASYTLS_VERSION="1.28"
+EASYTLS_VERSION="2.1"
 
 # Be secure with a restrictive umask
 [ -z "$EASYTLS_NO_UMASK" ] && umask 077
@@ -5920,6 +6152,54 @@ case "$cmd" in
 		die "Master hash check failed"
 		}
 
+	# Commands which can run with or without a PKI
+	case "$cmd" in
+		script)
+			interactive_scripts || die "Error: interactive_scripts"
+			cmd='Done'
+		;;
+		cf|cfg|config)
+			easytls_config "$@" || die "Error: easytls_config"
+			cmd='Done'
+		;;
+		bta|build-tls-auth)
+			build_tls_auth "$@" || die "Error: build_tls_auth"
+			cmd='Done'
+		;;
+		btc|build-tls-crypt)
+			build_tls_crypt_v1 "$@" || die "Error: build_tls_crypt_v1"
+			cmd='Done'
+		;;
+	esac
+
+	# When no-ca is true use these versions of commands
+	if [ $EASYTLS_NO_CA ] && [ ! "$cmd" = 'Done' ]
+	then
+		# Set self-sign dir
+		EASYTLS_SELF_SIGN_DIR="${EASYTLS}/peer-fpr"
+
+		# Verify self-sign dir
+		[ -d "${EASYTLS_SELF_SIGN_DIR}" ] || \
+			warn "Missing required directory: ${EASYTLS_SELF_SIGN_DIR}"
+
+		# Possible commands
+		case "$cmd" in
+			btv2s|btcv2s|build-tls-crypt-v2-server)
+				noca_build_tls_crypt_v2_server "$@" || \
+					die "Error: build_tls_crypt_v2_server"
+				cmd='Done'
+			;;
+			btv2c|btcv2c|build-tls-crypt-v2-client)
+				noca_build_tls_crypt_v2_client "$@" || \
+					die "Error: build_tls_crypt_v2_client"
+				cmd='Done'
+			;;
+			*)
+				die "Command '${cmd}' does not support 'no-ca' mode"
+			;;
+		esac
+	fi
+
 	# Everything else
 	case "$cmd" in
 	build)
@@ -5933,18 +6213,6 @@ case "$cmd" in
 	remove)
 		interactive_remove || \
 			die "Error: interactive_remove"
-		;;
-	script)
-		interactive_scripts || \
-			die "Error: interactive_scripts"
-		;;
-	bta|build-tls-auth)
-		build_tls_auth "$@" || \
-			die "Error: build_tls_auth"
-		;;
-	btc|build-tls-crypt)
-		build_tls_crypt_v1 "$@" || \
-			die "Error: build_tls_crypt_v1"
 		;;
 	btv2s|btcv2s|build-tls-crypt-v2-server)
 		build_tls_crypt_v2_server "$@" || \
@@ -6019,9 +6287,8 @@ case "$cmd" in
 		import_key "$@" || \
 			die "Error: import_key"
 		;;
-	cf|cfg|config)
-		easytls_config "$@" || \
-			die "Error: easytls_config"
+	Done)
+		: # Command already completed
 		;;
 	*)
 		die "Unknown command '$cmd'. Run without commands for help."
