@@ -98,9 +98,9 @@ fail_and_exit ()
 	"$EASYTLS_RM" -f "$client_metadata_file"
 	if [ $EASYTLS_VERBOSE ]
 	then
-		"$EASYTLS_PRINTF" "%s " "$easytls_msg"
+		"$EASYTLS_PRINTF" "%s " "$easytls_msg}"
 		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$success_msg"
-		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $common_name" "$1"
+		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg" "$1"
 
 		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
 	else
@@ -157,7 +157,7 @@ init ()
 	EASYTLS_server_pid=$PPID
 
 	# Log message
-	easytls_msg="* EasyTLS-verify"
+	easytls_msg="* EasyTLS-verify => CN: ${X509_0_CN}"
 }
 
 # Dependancies
@@ -208,15 +208,22 @@ deps ()
 	ca_cert="$CA_dir/ca.crt"
 	index_txt="$CA_dir/index.txt"
 
-	# Ensure we have all the necessary files
-	[ -f "$ca_cert" ] || {
-		help_note="This script requires an EasyRSA generated CA."
-		die "Missing CA certificate: $ca_cert" 4
-		}
-	[ -f "$index_txt" ] || {
-		help_note="This script requires an EasyRSA generated DB."
-		die "Missing index.txt: $index_txt" 5
-		}
+	if [ $EASYTLS_NO_CA ]
+	then
+		# Do not need CA cert
+		# Cannot do any X509 verification
+		:
+	else
+		# Ensure we have all the necessary files
+		[ -f "$ca_cert" ] || {
+			help_note="This script requires an EasyRSA generated CA."
+			die "Missing CA certificate: $ca_cert" 4
+			}
+		[ -f "$index_txt" ] || {
+			help_note="This script requires an EasyRSA generated DB."
+			die "Missing index.txt: $index_txt" 5
+			}
+	fi
 }
 
 #######################################
@@ -243,6 +250,10 @@ do
 	;;
 	-c|--ca)
 		CA_dir="$val"
+	;;
+	-z|--no-pki)
+		empty_ok=1
+		EASYTLS_NO_CA=1
 	;;
 	-x|--x509)
 		empty_ok=1
@@ -315,31 +326,38 @@ warn_log
 	# Set hwaddr file name
 	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
 
-	# Check cert serial is known by index.txt
-	serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
-	valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
-	if "$EASYTLS_GREP" -q "${serial}" "$index_txt"
+	if [ $EASYTLS_NO_CA ]
 	then
-		if [ $x509_check ]
+		# Cannot do any X509 verification
+		:
+	else
+		# Check cert serial is known by index.txt
+		serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
+		valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
+		if "$EASYTLS_GREP" -q "${serial}" "$index_txt"
 		then
-			if "$EASYTLS_GREP" -q "${valids}" "$index_txt"
+			if [ $x509_check ]
 			then
-				# Valid Cert serial found in PKI index.txt
-				success_msg=" ==> Valid Client cert serial"
+				if "$EASYTLS_GREP" -q "${valids}" "$index_txt"
+				then
+					# Valid Cert serial found in PKI index.txt
+					success_msg=" ==> Valid Client cert serial"
+				else
+					fail_and_exit "CLIENT CERTIFICATE IS REVOKED" 2
+				fi
 			else
-				fail_and_exit "CLIENT CERTIFICATE IS REVOKED" 2
+				# Cert serial found in PKI index.txt
+				success_msg=" ==> Recognised Client cert serial"
 			fi
 		else
-			# Cert serial found in PKI index.txt
-			success_msg=" ==> Recognised Client cert serial"
+			# Cert serial not found in PKI index.txt
+			fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 		fi
-	else
-		# Cert serial not found in PKI index.txt
-		fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
 	fi
 
 	# Allow this connection
 	connection_allowed
+	success_msg="connection allowed"
 
 	# If there is no hwaddr file then
 	# create a simple hwaddr file for client-connect
