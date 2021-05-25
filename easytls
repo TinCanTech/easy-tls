@@ -4743,6 +4743,7 @@ interactive_scripts ()
 			# easytls-cryptv2-verify.sh
 			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
 			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
+			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
