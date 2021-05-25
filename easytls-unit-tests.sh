@@ -130,7 +130,11 @@ WORK_DIR="$(pwd)"
 [ $EASYTLS_REMOTE_CI ] && export file_hash_disabled=1 && \
 	printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
 
-if [ $OS ]
+# Identify Windows
+[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+
+
+if [ "$EASYTLS_FOR_WINDOWS" ]
 then
 	export OPENVPN_CMD="./openvpn.exe"
 else
