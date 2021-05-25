@@ -52,12 +52,10 @@ help_text ()
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
-  1   - Disallow connection, pushed hwaddr does not match.
-  2   - Disallow connection, hwaddr required and not pushed.
-  3   - Disallow connection, hwaddr required and not keyed.
-  4   - Disallow connection, X509 certificate incorrect for this TLS-key.
-  5   - Disallow connection, hwaddr verification has not been configured.
-  6   - Disallow connection, missing Required binaries.
+  2   - Disallow connection, pushed hwaddr does not match.
+  3   - Disallow connection, hwaddr required and not pushed.
+  4   - Disallow connection, hwaddr required and not keyed.
+  7   - Disallow connection, X509 certificate incorrect for this TLS-key.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
   21  - USER ERROR Disallow connection, options error.
@@ -72,12 +70,13 @@ help_text ()
   67  - USER ERROR Disallow connection, missing grep.exe
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
+  70  - USER ERROR Disallow connection, missing rm.exe
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
 '
-	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
+	print "${help_msg}"
 
 	# For secrity, --help must exit with an error
 	die 253
@@ -85,83 +84,76 @@ help_text ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
+print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
+verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 
 # Exit on error
 die ()
 {
-	"$EASYTLS_RM" -f "$client_metadata_file"
-	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
-	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
-	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	[ -n "${help_note}" ] && print "${help_note}"
+	print "ERROR: ${1}"
 	exit "${2:-255}"
 }
 
-# easytls-cryptv2-client-connect failure, not an error.
+# failure not an error
 fail_and_exit ()
 {
-	"$EASYTLS_RM" -f "$client_metadata_file"
-	if [ $EASYTLS_VERBOSE ]
-	then
-		"$EASYTLS_PRINTF" "%s " "$easytls_msg"
-		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$success_msg"
-		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $common_name" "$1"
-
-		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
-	else
-		"$EASYTLS_PRINTF" "%s %s %s %s\n" "$easytls_msg" "$success_msg" "$failure_msg" "$1"
-	fi
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	print "${status_msg} ${failure_msg} ${1}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
 # Log fatal warnings
 warn_die ()
 {
-	if [ -n "$1" ]
+	if [ -n "${1}" ]
 	then
 		fatal_msg="${fatal_msg}
-$1"
+${1}"
 	else
-		[ -z "$fatal_msg" ] || die "$fatal_msg" 21
+		[ -z "${fatal_msg}" ] || die "${fatal_msg}" 21
 	fi
 }
 
 # Log warnings
 warn_log ()
 {
-	if [ -n "$1" ]
+	if [ -n "${1}" ]
 	then
 		warn_msg="${warn_msg}
-$1"
+${1}"
 	else
-		[ -z "$warn_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$warn_msg"
+		[ -z "${warn_msg}" ] || verbose_print "${warn_msg}"
 	fi
 }
 
-# Get the client certificate serial number from env
-get_ovpn_client_serial ()
+# Update status message
+update_status ()
 {
-	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | \
-		"$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	status_msg="${status_msg} => ${*}"
 }
 
-# Get the client hardware address from env
-get_ovpn_client_hwaddr ()
+# Remove colons ':' and up-case
+format_number ()
 {
-	"$EASYTLS_PRINTF" '%s' "$IV_HWADDR" | \
-		"$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	"${EASYTLS_PRINTF}" '%s' "${1}" | \
+		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
 connection_allowed ()
 {
-	"$EASYTLS_RM" -f "$client_metadata_file"
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
 	absolute_fail=0
+	update_status "connection allowed"
 }
 
 # Initialise
 init ()
 {
+	NL='
+'
 	# Fail by design
 	absolute_fail=1
 
@@ -169,7 +161,7 @@ init ()
 	EASYTLS_server_pid=$PPID
 
 	# Log message
-	easytls_msg="* EasyTLS-client-connect"
+	status_msg="* EasyTLS-client-connect"
 }
 
 # Dependancies
@@ -197,6 +189,8 @@ deps ()
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 
+		# If any of these are missing then cannot clear up
+		# No message in Windows, only exit code is available
 		[ -d "$EASYTLS_tmp_dir" ] || exit 60
 		[ -d "$base_dir" ] || exit 61
 		[ -d "$EASYTLS_ersabin_dir" ] || exit 62
@@ -212,25 +206,6 @@ deps ()
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
-
-	# Set Client certificate serial number from Openvpn env
-	client_serial="$(get_ovpn_client_serial)"
-
-	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "NO CLIENT SERIAL" 8
-
-	# Set client_metadata_file
-	client_metadata_file="$EASYTLS_tmp_dir/$client_serial.$EASYTLS_server_pid"
-
-	# Verify client_metadata_file
-	if [ -f "$client_metadata_file" ]
-	then
-		# Client cert serial matches
-		easytls_msg="${easytls_msg} ==> X509 serial matched"
-	else
-		# cert serial does not match - ALWAYS fail
-		fail_and_exit "CLIENT X509 SERIAL MISMATCH" 4
-	fi
 }
 
 #######################################
@@ -239,14 +214,14 @@ deps ()
 init
 
 # Options
-while [ -n "$1" ]
+while [ -n "${1}" ]
 do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
 	empty_ok="" # Empty values are not allowed unless expected
 
-	case "$opt" in
+	case "${opt}" in
 	help|-h|-help|--help)
 		empty_ok=1
 		help_text
@@ -268,24 +243,26 @@ do
 		key_hwaddr_required=1
 	;;
 	-b|--base-dir)
-		EASYTLS_base_dir="$val"
+		EASYTLS_base_dir="${val}"
 	;;
 	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
+		EASYTLS_tmp_dir="${val}"
 	;;
 	-o|--openvpn-bin-dir)
-		EASYTLS_ovpnbin_dir="$val"
+		EASYTLS_ovpnbin_dir="${val}"
 	;;
 	-e|--easyrsa-bin-dir)
-		EASYTLS_ersabin_dir="$val"
+		EASYTLS_ersabin_dir="${val}"
 	;;
 	*)
 		empty_ok=1
-		if [ -f "$opt" ]
+		if [ -f "${opt}" ]
 		then
-			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
+			# Do not need this in the log but keep it here for reference
+			#[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
+			:
 		else
-			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring unknown option: $opt"
+			[ "${EASYTLS_VERBOSE}" ] && warn_log "Ignoring unknown option: ${opt}"
 		fi
 	;;
 	esac
@@ -306,32 +283,55 @@ warn_die
 # Report option warnings
 warn_log
 
+# Update log message
+update_status "CN:${X509_0_CN}"
+
+# Set Client certificate serial number from Openvpn env
+client_serial="$(format_number "${tls_serial_hex_0}")"
+
+# Verify Client certificate serial number
+[ -z "${client_serial}" ] && {
+	help_note="Openvpn failed to pass a client serial number"
+	die "NO CLIENT SERIAL" 8
+	}
+
+# Set client_metadata_file
+client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+
+# Verify client_metadata_file
+if [ -f "${client_metadata_file}" ]
+then
+	# Client cert serial matches
+	update_status "X509 serial matched"
+else
+	# cert serial does not match - ALWAYS fail
+	fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
+fi
+
 # Set only for NO keyed hwaddr
-if "$EASYTLS_GREP" -q '000000000000' "$client_metadata_file"
+if "${EASYTLS_GREP}" -q '000000000000' "${client_metadata_file}"
 then
 	key_hwaddr_missing=1
 fi
 
 # If keyed hwaddr is required and missing then fail - No exceptions
 [ $key_hwaddr_required ] && [ $key_hwaddr_missing ] && \
-	fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 3
-
+	fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
 
 # Set hwaddr from Openvpn env
 # This is not a dep. different clients may not push-peer-info
-push_hwaddr="$(get_ovpn_client_hwaddr)"
-[ -z "$push_hwaddr" ] && push_hwaddr_missing=1
+push_hwaddr="$(format_number "${IV_HWADDR}")"
+[ -z "${push_hwaddr}" ] && push_hwaddr_missing=1
 
 # If pushed hwaddr is required and missing then fail - No exceptions
 [ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && \
-	fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 2
-
+	fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 
 # Verify hwaddr
 if [ $key_hwaddr_missing ]
 then
 	# No keyed hwaddr
-	success_msg="==> Key is not locked to hwaddr"
+	update_status "Key is not locked to hwaddr"
 	connection_allowed
 else
 	# key has a hwaddr
@@ -340,38 +340,40 @@ else
 		# push_hwaddr_missing and allow_no_check
 		if [ $allow_no_check ]
 		then
-			success_msg="==> hwaddr not pushed and not required"
+			update_status "hwaddr not pushed and not required"
 			connection_allowed
 		else
 			# push_hwaddr_missing NOT allow_no_check
-			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 2
+			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 		fi
 	else
 		# hwaddr is pushed
-		if "$EASYTLS_GREP" -q "$push_hwaddr" "$client_metadata_file"
+		if "${EASYTLS_GREP}" -q "${push_hwaddr}" "${client_metadata_file}"
 		then
 			# MATCH!
-			success_msg="==> hwaddr $push_hwaddr pushed and matched!"
+			update_status "hwaddr ${push_hwaddr} pushed and matched"
 			connection_allowed
 		else
 			# push does not match key hwaddr
-			fail_and_exit "HWADDR MISMATCH" 1
+			fail_and_exit "HWADDR MISMATCH" 2
 		fi
 	fi
 fi
 
 # Any failure_msg means fail_and_exit
-[ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
+[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
-	failure_msg="FORCE_ABSOLUTE_FAIL"
+[ "${FORCE_ABSOLUTE_FAIL}" ] && \
+	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
-[ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
+if [ $absolute_fail -eq 0 ]
+then
+	# All is well
+	verbose_print "<EXOK> ${status_msg}"
+	exit 0
+fi
 
-# All is well
-[ $EASYTLS_VERBOSE ] && \
-	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $easytls_msg $success_msg"
-
-exit 0
+# Otherwise
+fail_and_exit "ABSOLUTE FAIL" 9
