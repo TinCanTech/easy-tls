@@ -31,106 +31,10 @@ copyright ()
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
-# This is here to catch "print" statements
-# Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
-# shellcheck disable=SC1117
-print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
-
-# Exit on error
-die ()
-{
-	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
-	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
-	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
-	exit "${2:-255}"
-}
-
-# Tls-crypt-v2-verify failure, not an error.
-fail_and_exit ()
-{
-	if [ $EASYTLS_VERBOSE ]
-	then
-		"$EASYTLS_PRINTF" "%s " "$status_msg"
-		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s " "$success_msg"
-		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg $md_name" "$1"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> version       local: $local_easytls"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> version      remote: $md_easytls"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> custom_group  local: $local_custom_g"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> custom_group remote: $md_custom_g"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> identity      local: $local_identity"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> identity     remote: $md_identity"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> X509 serial  remote: $md_serial"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> name         remote: $md_name"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> TLSK serial  remote: $tlskey_serial"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> sub-key      remote: $md_subkey"
-
-		"$EASYTLS_PRINTF" "%s\n" \
-			"* ==> date         remote: $md_date"
-
-		[ $2 -eq 1 ] && "$EASYTLS_PRINTF" "%s\n" \
-			"* ==> Client serial status: revoked"
-
-		[ $2 -eq 2 ] && "$EASYTLS_PRINTF" "%s\n" \
-			"* ==> Client serial status: disabled"
-
-		[ -n "$help_note" ] && "$EASYTLS_PRINTF" "%s\n" "$help_note"
-
-		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
-	else
-		"$EASYTLS_PRINTF" "%s %s %s %s\n" "$status_msg" \
-			"$success_msg" "$failure_msg" "$md_name"
-	fi
-	exit "${2:-254}"
-} # => fail_and_exit ()
-
-# Log fatal warnings
-warn_die ()
-{
-	if [ -n "$1" ]
-	then
-		fatal_msg="${fatal_msg}
-$1"
-	else
-		[ -z "$fatal_msg" ] || die "$fatal_msg" 21
-	fi
-}
-
-# Log warnings
-warn_log ()
-{
-	if [ -n "$1" ]
-	then
-		warn_msg="${warn_msg}
-$1"
-	else
-		[ -z "$warn_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$warn_msg"
-	fi
-}
-
 # Help
 help_text ()
 {
-	help_msg='
+	help_msg="
   easytls-cryptv2-verify.sh
 
   This script is intended to be used by tls-crypt-v2 client keys
@@ -172,12 +76,12 @@ help_text ()
 
   Exit codes:
   0   - Allow connection, Client key has passed all tests.
-  1   - Disallow connection, client key has passed all tests but is REVOKED.
-  2   - Disallow connection, TLS key serial number is disabled.
-  3   - Disallow connection, TLS key has expired.
-  4   - Disallow connection, local/remote Custom Groups do not match.
-  5   - Disallow connection, local/remote Identities do not match.
-  6   - Disallow connection, invalid metadata_version field.
+  2   - Disallow connection, client key has passed all tests but is REVOKED.
+  3   - Disallow connection, TLS key serial number is disabled.
+  4   - Disallow connection, TLS key has expired.
+  5   - Disallow connection, local/remote Custom Groups do not match.
+  6   - Disallow connection, local/remote Identities do not match.
+  7   - Disallow connection, invalid metadata_version field.
   8   - Dissalow connection, failed to read metadata_file
   9   - BUG Disallow connection, general script failure.
   10  - ERROR Disallow connection, client TLS key has unknown serial number.
@@ -207,6 +111,7 @@ help_text ()
   67  - USER ERROR Disallow connection, missing grep.exe
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
+  70  - USER ERROR Disallow connection, missing rm.exe
   101 - BUG Disallow connection, wait-gate time-out.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
@@ -220,55 +125,127 @@ help_text ()
   122 - BUG Disallow connection, failed to verify CRL.
   123 - BUG Disallow connection, failed to verify CA.
   127 - BUG Disallow connection, duplicate serial number in CA database.
+  128 - BUG Disallow connection, duplicate serial number in CA database. v2
+  129 - BUG Disallow connection, Serial status via CA has broken.
+  130 - BUG Disallow connection, unknown X509 method.
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit exited with default error code.
   255 - BUG Disallow connection, die exited with default error code.
-'
-	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
+"
+	print "$help_msg"
 
 	# For secrity, --help must exit with an error
 	die 253
 }
 
+# Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
+# shellcheck disable=SC1117
+print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
+verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
+
+# Exit on error
+die ()
+{
+	[ -n "${help_note}" ] && print "${help_note}"
+	print "ERROR: ${1}"
+	exit "${2:-255}"
+}
+
+# Tls-crypt-v2-verify failure, not an error.
+fail_and_exit ()
+{
+	if [ "${EASYTLS_VERBOSE}" ]
+	then
+		print "$status_msg $failure_msg $md_name" "$1"
+		print "* ==> version       local: ${local_easytls}"
+		print "* ==> version      remote: ${md_easytls}"
+		print "* ==> custom_group  local: ${local_custom_g}"
+		print "* ==> custom_group remote: ${md_custom_g}"
+		print "* ==> identity      local: ${local_identity}"
+		print "* ==> identity     remote: ${md_identity}"
+		print "* ==> X509 serial  remote: ${md_serial}"
+		print "* ==> name         remote: ${md_name}"
+		print "* ==> TLSK serial  remote: ${tlskey_serial}"
+		print "* ==> sub-key      remote: ${md_subkey}"
+		print "* ==> date         remote: ${md_date}"
+		[ ${2} -eq 2 ] && print "* ==> Client serial status: revoked"
+		[ ${2} -eq 3 ] && print "* ==> Client serial status: disabled"
+		[ -n "${help_note}" ] && print "${help_note}"
+	else
+		print "${status_msg} ${failure_msg} ${md_name}"
+	fi
+	exit "${2:-254}"
+} # => fail_and_exit ()
+
+# Log fatal warnings
+warn_die ()
+{
+	if [ -n "${1}" ]
+	then
+		fatal_msg="${fatal_msg}
+${1}"
+	else
+		[ -z "${fatal_msg}" ] || die "${fatal_msg}" 21
+	fi
+}
+
+# Log warnings
+warn_log ()
+{
+	if [ -n "${1}" ]
+	then
+		warn_msg="${warn_msg}
+${1}"
+	else
+		[ -z "${warn_msg}" ] || print "${warn_msg}"
+	fi
+}
+
+# Update status message
+update_status ()
+{
+	status_msg="${status_msg} => ${*}"
+}
+
 # Verify CA
 verify_ca ()
 {
-	"$EASYTLS_OPENSSL" x509 -in "$ca_cert" -noout
+	"${EASYTLS_OPENSSL}" x509 -in "${ca_cert}" -noout
 }
 
 # Local identity
 fn_local_identity ()
 {
-	"$EASYTLS_OPENSSL" x509 -in "$ca_cert" \
+	"${EASYTLS_OPENSSL}" x509 -in "${ca_cert}" \
 		-noout -${EASYTLS_HASH_ALGO} -fingerprint | \
-			"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g'
+			"${EASYTLS_SED}" -e 's/^.*=//g' -e 's/://g'
 }
 
 # Verify CRL
 verify_crl ()
 {
-	"$EASYTLS_OPENSSL" crl -in "$crl_pem" -noout
+	"${EASYTLS_OPENSSL}" crl -in "${crl_pem}" -noout
 }
 
 # Decode CRL
 fn_read_crl ()
 {
-	"$EASYTLS_OPENSSL" crl -in "$crl_pem" -noout -text
+	"${EASYTLS_OPENSSL}" crl -in "${crl_pem}" -noout -text
 }
 
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
-	"$EASYTLS_PRINTF" "%s\n" "$crl_text" | \
-		"$EASYTLS_GREP" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
+	"${EASYTLS_PRINTF}" "%s\n" "${crl_text}" | \
+		"${EASYTLS_GREP}" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
 }
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
-	"$EASYTLS_GREP" -c \
+	"${EASYTLS_GREP}" -c \
 		"^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
-		"$index_txt"
+		"${index_txt}"
 }
 
 # Check metadata client certificate serial number against CRL
@@ -287,7 +264,7 @@ serial_status_via_crl ()
 		client_passed_x509_tests_connection_allowed
 		;;
 		*)
-		die "Duplicate serial numbers: $md_serial" 127
+		die "Duplicate serial numbers: ${md_serial}" 127
 		;;
 		esac
 	;;
@@ -296,8 +273,8 @@ serial_status_via_crl ()
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected:"
-		failure_msg="$insert_msg $md_serial"
-		die "Duplicate serial numbers: $md_serial" 127
+		failure_msg="${insert_msg} ${md_serial}"
+		die "Duplicate serial numbers: ${md_serial}" 128
 	;;
 	esac
 }
@@ -317,7 +294,7 @@ serial_status_via_ca ()
 	client_cert_serno_status="${client_cert_serno_status##*=}"
 
 	# Considering what has to be done, I don't like this
-	case "$client_cert_serno_status" in
+	case "${client_cert_serno_status}" in
 	Valid)
 		client_passed_x509_tests_connection_allowed
 	;;
@@ -325,7 +302,7 @@ serial_status_via_ca ()
 		client_passed_x509_tests_certificate_revoked
 	;;
 	*)
-		die "Serial status via CA has broken" 9
+		die "Serial status via CA has broken" 129
 	;;
 	esac
 }
@@ -334,15 +311,15 @@ serial_status_via_ca ()
 openssl_serial_status ()
 {
 	# OpenSSL appears to always exit with error - but here I do not care
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$md_serial" 2>&1
+	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
+		-status "${md_serial}" 2>&1
 }
 
 # Capture serial status
 capture_serial_status ()
 {
-	"$EASYTLS_PRINTF" "%s\n" "$client_cert_serno_status" | \
-		"$EASYTLS_GREP" '^.*=.*$'
+	"${EASYTLS_PRINTF}" "%s\n" "${client_cert_serno_status}" | \
+		"${EASYTLS_GREP}" '^.*=.*$'
 }
 
 # Verify OpenSSL serial status returns ok
@@ -350,8 +327,8 @@ verify_openssl_serial_status ()
 {
 	return 0 # Disable this `return` if you want to test
 	# OpenSSL appears to always exit with error - have not solved this
-	"$EASYTLS_OPENSSL" ca -cert "$ca_cert" -config "$openssl_cnf" \
-		-status "$md_serial" || \
+	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
+		-status "${md_serial}" || \
 		die "OpenSSL returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
@@ -373,6 +350,7 @@ MAN_OPENSSL_CA
 # Check metadata client certificate serial number against index.txt
 serial_status_via_pki_index ()
 {
+	# This needs improvement
 	is_valid="$(fn_search_valid_pki_index)"
 	is_revoked="$(fn_search_revoked_pki_index)"
 	if [ $is_revoked -eq 0 ]
@@ -383,7 +361,7 @@ serial_status_via_pki_index ()
 		else
 			# Cert is not known
 			insert_msg="Serial number is not in the CA database:"
-			failure_msg="$insert_msg $md_serial"
+			failure_msg="${insert_msg} ${md_serial}"
 			fail_and_exit "SERIAL NUMBER UNKNOWN" 121
 		fi
 	else
@@ -394,25 +372,24 @@ serial_status_via_pki_index ()
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_valid_pki_index ()
 {
-	"$EASYTLS_GREP" -c \
+	"${EASYTLS_GREP}" -c \
 	"^V.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
-		"$index_txt"
+		"${index_txt}"
 }
 
 # Final check: Search index.txt for Revoked client cert serial number
 fn_search_revoked_pki_index ()
 {
-	"$EASYTLS_GREP" -c \
+	"${EASYTLS_GREP}" -c \
 	"^R.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
-		"$index_txt"
+		"${index_txt}"
 }
 
 # This is the long way to connect - X509
 client_passed_x509_tests_connection_allowed ()
 {
 	insert_msg="Client certificate is recognised and Valid:"
-	success_msg="$success_msg $insert_msg $md_serial"
-	success_msg="$success_msg $md_name"
+	update_status "${insert_msg} ${md_serial}"
 	absolute_fail=0
 }
 
@@ -420,22 +397,22 @@ client_passed_x509_tests_connection_allowed ()
 client_passed_x509_tests_certificate_revoked ()
 {
 	insert_msg="Client certificate is revoked:"
-	failure_msg="$insert_msg $md_serial"
-	fail_and_exit "CERTIFICATE REVOKED" 1
+	failure_msg="${insert_msg} ${md_serial}"
+	fail_and_exit "CERTIFICATE REVOKED" 2
 }
 
 # This is the best way to connect - TLS only
 client_passed_tls_tests_connection_allowed ()
 {
-	insert_msg="TLS key is recognised and Valid:"
-	success_msg="$success_msg $insert_msg $tlskey_serial"
-	success_msg="$success_msg $md_name"
 	absolute_fail=0
+	update_status "TLS key is recognised and Valid: ${tlskey_serial}"
 }
 
 # Initialise
 init ()
 {
+	NL='
+'
 	# Fail by design
 	absolute_fail=1
 
@@ -445,7 +422,6 @@ init ()
 
 	# Verify tlskey-serial number by hash of metadata
 	VERIFY_hash=1
-	EASYTLS_HASH_ALGO="SHA256"
 
 	# Do not accept external settings
 	unset use_x509
@@ -457,10 +433,10 @@ init ()
 	EASYTLS_server_pid=$PPID
 
 	# metadata file
-	OPENVPN_METADATA_FILE="$metadata_file"
+	OPENVPN_METADATA_FILE="${metadata_file}"
 
 	# Log message
-	status_msg="* Easy-TLS ==>"
+	status_msg="* Easy-TLS-cryptv2-verify"
 
 	# X509 is disabled by default
 	# To enable use command line option:
@@ -471,6 +447,9 @@ init ()
 
 	# Enable disable list by default
 	use_disable_list=1
+
+	# Seconds to allow a previous client_metadata_file (HDADDR) to exist
+	stale_secs=10
 } # => init ()
 
 # Dependancies
@@ -478,6 +457,9 @@ deps ()
 {
 	# Identify Windows
 	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+
+	# HASH
+	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
@@ -515,19 +497,19 @@ deps ()
 	fi
 
 	# CA_dir MUST be set with option: -c|--ca
-	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 22
+	[ -d "${CA_dir}" ] || die "Path to CA directory is required, see help" 22
 
 	# Easy-TLS required files
-	TLS_dir="$CA_dir/easytls/data"
-	disabled_list="$TLS_dir/easytls-disabled-list.txt"
-	tlskey_serial_index="$TLS_dir/easytls-key-index.txt"
+	TLS_dir="${CA_dir}/easytls/data"
+	disabled_list="${TLS_dir}/easytls-disabled-list.txt"
+	tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
 
 	# CA required files
-	ca_cert="$CA_dir/ca.crt"
-	ca_identity_file="$TLS_dir/easytls-ca-identity.txt"
-	crl_pem="$CA_dir/crl.pem"
-	index_txt="$CA_dir/index.txt"
-	openssl_cnf="$CA_dir/safessl-easyrsa.cnf"
+	ca_cert="${CA_dir}/ca.crt"
+	ca_identity_file="${TLS_dir}/easytls-ca-identity.txt"
+	crl_pem="${CA_dir}/crl.pem"
+	index_txt="${CA_dir}/index.txt"
+	openssl_cnf="${CA_dir}/safessl-easyrsa.cnf"
 
 	# Ensure we have all the necessary files
 	if [ $EASYTLS_NO_CA ]
@@ -537,17 +519,17 @@ deps ()
 		:
 	else
 		# Need CA cert
-		[ -f "$ca_cert" ] || {
+		[ -f "${ca_cert}" ] || {
 			help_note="This script requires an EasyRSA generated CA."
-			die "Missing CA certificate: $ca_cert" 23
+			die "Missing CA certificate: ${ca_cert}" 23
 			}
 
 		if [ $use_cache_id ]
 		then
 			# This can soon be deprecated
-			[ -f "$ca_identity_file" ] || {
+			[ -f "${ca_identity_file}" ] || {
 				help_note="This script requires an EasyTLS generated CA identity."
-				die "Missing CA identity: $ca_identity_file" 33
+				die "Missing CA identity: ${ca_identity_file}" 33
 				}
 		fi
 
@@ -559,27 +541,27 @@ deps ()
 		if [ $use_x509 ]
 		then
 			# Only check these files if using x509
-			[ -f "$crl_pem" ] || {
+			[ -f "${crl_pem}" ] || {
 				help_note="This script requires an EasyRSA generated CRL."
-				die "Missing CRL: $crl_pem" 24
+				die "Missing CRL: ${crl_pem}" 24
 				}
 
-			[ -f "$index_txt" ] || {
+			[ -f "${index_txt}" ] || {
 				help_note="This script requires an EasyRSA generated DB."
-				die "Missing index.txt: $index_txt" 25
+				die "Missing index.txt: ${index_txt}" 25
 				}
 
-			[ -f "$openssl_cnf" ] || {
+			[ -f "${openssl_cnf}" ] || {
 				help_note="This script requires an EasyRSA generated PKI."
-				die "Missing OpenSSL config: $openssl_cnf" 26
+				die "Missing OpenSSL config: ${openssl_cnf}" 26
 				}
 		fi
 	fi # X509 checks
 
 	# Ensure that TLS expiry age is numeric
-	case $tlskey_max_age in
+	case "${tlskey_max_age}" in
 		''|*[!0-9]*) # Invalid value
-			die "Invalid value for --tls-age: $tlskey_max_age" 29
+			die "Invalid value for --tls-age: ${tlskey_max_age}" 29
 		;;
 		*) # Valid value
 			# maximum age in seconds
@@ -591,9 +573,9 @@ deps ()
 	# If the script fails for metadata file then
 	# - All pre-flight checks completed
 	# - Script is ready to run
-	[ -f "$OPENVPN_METADATA_FILE" ] || {
+	[ -f "${OPENVPN_METADATA_FILE}" ] || {
 		help_note="This script can ONLY be used by a running openvpn server."
-		die "Missing: OPENVPN_METADATA_FILE: $OPENVPN_METADATA_FILE" 28
+		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
 } # => deps ()
 
@@ -609,13 +591,13 @@ metadata_string_to_vars ()
 	md_identity="${2%%-*}"
 	#md_srv_name="${2##*-}"
 
-	md_serial="$3"
-	md_date="$4"
-	md_custom_g="$5"
-	md_name="$6"
-	md_subkey="$7"
-	md_opt="$8"
-	md_hwadds="$9"
+	md_serial="${3}"
+	md_date="${4}"
+	md_custom_g="${5}"
+	md_name="${6}"
+	md_subkey="${7}"
+	md_opt="${8}"
+	md_hwadds="${9}"
 } # => metadata_string_to_vars ()
 
 #######################################
@@ -624,14 +606,14 @@ metadata_string_to_vars ()
 init
 
 # Options
-while [ -n "$1" ]
+while [ -n "${1}" ]
 do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
 	empty_ok="" # Empty values are not allowed unless expected
 
-	case "$opt" in
+	case "${opt}" in
 	help|-h|-help|--help)
 		empty_ok=1
 		help_text
@@ -641,44 +623,44 @@ do
 		EASYTLS_VERBOSE=1
 	;;
 	-c|--ca)
-		CA_dir="$val"
+		CA_dir="${val}"
 	;;
 	-z|--no-pki)
 		empty_ok=1
 		EASYTLS_NO_CA=1
 	;;
 	-g|--custom-group)
-		local_custom_g="$val"
+		local_custom_g="${val}"
 	;;
 	-n|--no-hash)
 		empty_ok=1
 		unset VERIFY_hash
 	;;
 	-x|--max-tls-age)
-		tlskey_max_age="$val"
+		tlskey_max_age="${val}"
 	;;
 	-d|--disable-list)
 		empty_ok=1
 		unset use_disable_list
 	;;
 	--hash)
-		EASYTLS_HASH_ALGO="$val"
+		EASYTLS_HASH_ALGO="${val}"
 	;;
 	--v1|--via-crl)
 		empty_ok=1
-		status_msg="* Easy-TLS (crl) ==>"
+		update_status "(crl)"
 		use_x509=1
 		x509_method=1
 	;;
 	--v2|--via-ca)
 		empty_ok=1
-		status_msg="* Easy-TLS (ca) ==>"
+		update_status "(ca)"
 		use_x509=1
 		x509_method=2
 	;;
 	--v3|--via-index)
 		empty_ok=1
-		status_msg="* Easy-TLS (index) ==>"
+		update_status "(index)"
 		use_x509=1
 		x509_method=3
 	;;
@@ -687,28 +669,28 @@ do
 		use_cache_id=1
 	;;
 	-p|--preload-id)
-		preload_cache_id="$val"
+		preload_cache_id="${val}"
 	;;
 	-b|--base-dir)
-		EASYTLS_base_dir="$val"
+		EASYTLS_base_dir="${val}"
 	;;
 	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
+		EASYTLS_tmp_dir="${val}"
 	;;
 	-e|--easyrsa-bin-dir)
-		EASYTLS_ersabin_dir="$val"
+		EASYTLS_ersabin_dir="${val}"
 	;;
 	-o|--openvpn-bin-dir)
-		EASYTLS_ovpnbin_dir="$val"
+		EASYTLS_ovpnbin_dir="${val}"
 	;;
 	*)
-		warn_die "Unknown option: $1"
+		warn_die "Unknown option: ${1}"
 	;;
 	esac
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		warn_die "Missing value to option: $opt"
+		warn_die "Missing value to option: ${opt}"
 	fi
 	shift
 done
@@ -725,44 +707,46 @@ warn_log
 # Get metadata
 
 	# Get metadata_string
-	metadata_string="$("$EASYTLS_CAT" "$OPENVPN_METADATA_FILE")"
-	[ -z "$metadata_string" ] && fail_and_exit "failed to read metadata_file" 8
+	metadata_string="$("${EASYTLS_CAT}" "${OPENVPN_METADATA_FILE}")"
+	[ -z "${metadata_string}" ] && fail_and_exit "failed to read metadata_file" 8
 
 	# Populate metadata variables
 	metadata_string_to_vars $metadata_string
 
+	# Update log message
+	update_status "CN:${md_name}"
 
 # Metadata version
 
 	# metadata_version MUST equal 'easytls'
-	case "$md_easytls" in
-	"$local_easytls")
-		status_msg="$status_msg $md_easytls OK ==>"
+	case "${md_easytls}" in
+	"${local_easytls}")
+		update_status "${md_easytls} OK"
 	;;
 	'')
 		failure_msg="metadata version is missing"
-		fail_and_exit "METADATA VERSION" 6
+		fail_and_exit "METADATA VERSION" 7
 	;;
 	*)
-		failure_msg="metadata version is not recognised: $md_easytls"
-		fail_and_exit "METADATA VERSION" 6
+		failure_msg="metadata version is not recognised: ${md_easytls}"
+		fail_and_exit "METADATA VERSION" 7
 	;;
 	esac
 
 # Metadata custom_group
 
 	# md_custom_g MUST equal local_custom_g
-	case "$md_custom_g" in
-	"$local_custom_g")
-		status_msg="$status_msg custom_group $md_custom_g OK ==>"
+	case "${md_custom_g}" in
+	"${local_custom_g}")
+		update_status "custom_group ${md_custom_g} OK"
 	;;
 	'')
 		failure_msg="metadata custom_group is missing"
-		fail_and_exit "METADATA CUSTOM GROUP" 4
+		fail_and_exit "METADATA CUSTOM GROUP" 5
 	;;
 	*)
-		failure_msg="metadata custom_group is not correct: $md_custom_g"
-		fail_and_exit "METADATA CUSTOM GROUP" 4
+		failure_msg="metadata custom_group is not correct: ${md_custom_g}"
+		fail_and_exit "METADATA CUSTOM GROUP" 5
 	;;
 	esac
 
@@ -771,16 +755,16 @@ warn_log
 	if [ $VERIFY_hash ]
 	then
 		# Verify tlskey-serial is in index
-		"$EASYTLS_GREP" -q "$tlskey_serial" "$tlskey_serial_index" || {
+		"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
 			failure_msg="TLS-key is not recognised"
 			fail_and_exit "TLSKEY SERIAL ALIEN" 10
 			}
 
 		# HASH metadata sring without the tlskey-serial
-		md_hash="$("$EASYTLS_PRINTF" '%s' "$md_seed" | \
-			"$EASYTLS_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
+		md_hash="$("${EASYTLS_PRINTF}" '%s' "${md_seed}" | \
+			"${EASYTLS_OPENSSL}" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
-		[ "$md_hash" = "$tlskey_serial" ] || {
+		[ "${md_hash}" = "${tlskey_serial}" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
 			fail_and_exit "TLSKEY SERIAL HASH" 11
 			}
@@ -791,13 +775,13 @@ warn_log
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
 	# current date
-	local_date_sec="$("$EASYTLS_DATE" +%s)"
-	if [ $tlskey_expire_age_sec -gt 0 ]
+	local_date_sec="$("${EASYTLS_DATE}" +%s)"
+	if [ "${tlskey_expire_age_sec}" -gt 0 ]
 	then
-		case $local_date_sec in
+		case "${local_date_sec}" in
 		''|*[!0-9]*)
 			# Invalid value - date.exe is missing
-			die "Invalid value for local_date_sec: $local_date_sec" 112
+			die "Invalid value for local_date_sec: ${local_date_sec}" 112
 		;;
 		*) # Valid value
 			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
@@ -807,15 +791,15 @@ warn_log
 			tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
 
 			# Check key_age is less than --tls-age
-			[ $tlskey_age_sec -lt $tlskey_expire_age_sec ] || {
-				max_age_msg="Max age: $tlskey_max_age days"
-				key_age_msg="Key age: $tlskey_age_day days"
-				failure_msg="Key expired: $max_age_msg $key_age_msg"
-				fail_and_exit "TLSKEY EXPIRED" 3
+			[ ${tlskey_age_sec} -lt ${tlskey_expire_age_sec} ] || {
+				max_age_msg="Max age: ${tlskey_max_age days}"
+				key_age_msg="Key age: ${tlskey_age_day days}"
+				failure_msg="Key expired: ${max_age_msg} ${key_age_msg}"
+				fail_and_exit "TLSKEY EXPIRED" 4
 				}
 
 			# Success message
-			success_msg="$success_msg Key age $tlskey_age_day days OK ==>"
+			update_status "Key age ${tlskey_age_day} days OK"
 		;;
 		esac
 	fi
@@ -826,18 +810,18 @@ warn_log
 	# Use --disable-list to disable this check
 	if [ $use_disable_list ]
 	then
-		[ -f "$disabled_list" ] || \
-			die "Missing disabled list: $disabled_list" 27
+		[ -f "${disabled_list}" ] || \
+			die "Missing disabled list: ${disabled_list}" 27
 
 		# Search the disabled_list for client serial number
-		if "$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$disabled_list"
+		if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" "${disabled_list}"
 		then
 			# Client is disabled
-			failure_msg="client serial number is disabled: $md_serial"
-			fail_and_exit "CLIENT DISABLED" 2
+			failure_msg="client serial number is disabled: ${md_serial}"
+			fail_and_exit "CLIENT DISABLED" 3
 		else
 			# Client is not disabled
-			success_msg="$success_msg Enabled OK ==>"
+			update_status "Enabled OK"
 		fi
 	fi
 
@@ -852,32 +836,31 @@ else
 	# Verify CA cert is valid and/or set the CA identity
 	if [ $use_cache_id ]
 	then
-		local_identity="$("$EASYTLS_CAT" "$ca_identity_file")"
-	elif [ -n "$preload_cache_id" ]
+		local_identity="$("${EASYTLS_CAT}" "${ca_identity_file}")"
+	elif [ -n "${preload_cache_id}" ]
 	then
-		local_identity="$preload_cache_id"
+		local_identity="${preload_cache_id}"
 	else
 		# Verify CA is valid
-		verify_ca || die "Bad CA $ca_cert" 123
+		verify_ca || die "Bad CA ${ca_cert}" 123
 
 		# Set Local Identity: CA fingerprint
 		local_identity="$(fn_local_identity)"
 	fi
 
 	# local_identity is required
-	[ -z "$local_identity" ] && {
+	[ -z "${local_identity}" ] && {
 		failure_msg="Missing: local identity"
 		fail_and_exit "LOCAL IDENTITY" 13
 		}
 
 	# Check metadata Identity against local Identity
-	if [ "$local_identity" = "$md_identity" ]
+	if [ "${local_identity}" = "${md_identity}" ]
 	then
-		insert_msg="identity OK ==>"
-		success_msg="$success_msg $insert_msg"
+		update_status "identity OK"
 	else
 		failure_msg="identity mismatch"
-		fail_and_exit "IDENTITY MISMATCH" 5
+		fail_and_exit "IDENTITY MISMATCH" 6
 	fi
 
 
@@ -888,7 +871,7 @@ else
 		# Check metadata client certificate serial number against CRL
 
 		# Verify CRL is valid
-		verify_crl || die "Bad CRL: $crl_pem" 122
+		verify_crl || die "Bad CRL: ${crl_pem}" 122
 
 		# Capture CRL
 		crl_text="$(fn_read_crl)"
@@ -914,7 +897,7 @@ else
 		serial_status_via_pki_index
 	;;
 	*)
-		die "Unknown method for verify: $x509_method" 9
+		die "Unknown method for verify: ${x509_method}" 130
 	;;
 	esac
 
@@ -923,42 +906,47 @@ fi # => use_x509 ()
 # Save the client_metadata to temp file
 client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
 
-if [ -f "$client_metadata_file" ]
+# If client_metadata_file exists then delete it if is stale
+if [ -f "${client_metadata_file}" ]
 then
-	metadata_file_date="$("$EASYTLS_DATE" +%s -r "$client_metadata_file")"
-	[ $local_date_sec -gt $(( metadata_file_date + 60 )) ] && \
-		"$EASYTLS_RM" -f "$client_metadata_file"
-	[ $SHALLOW ] && "$EASYTLS_RM" -f "$client_metadata_file"
+	metadata_file_date="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
+	[ ${local_date_sec} -gt $(( metadata_file_date + stale_secs )) ] && \
+		"${EASYTLS_RM}" -f "${client_metadata_file}"
+	[ $SHALLOW ] && "${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
 
-while [ -f "$client_metadata_file" ]
+# Wait for --client-connect to delete client_metadata_file
+while [ -f "${client_metadata_file}" ]
 do
-	delay_start="$("$EASYTLS_DATE" +%s)"
-	[ $delay_start -gt $(( local_date_sec + 1 )) ] && break
+	delay_start="$("${EASYTLS_DATE}" +%s)"
+	[ ${delay_start} -gt $(( local_date_sec + 1 )) ] && break
 done
 
-if [ -f "$client_metadata_file" ]
+# If client_metadata_file still exists the fail the connection
+# Client will try again
+if [ -f "${client_metadata_file}" ]
 then
 	fail_and_exit "wait-gate time-out" 101
 else
-	"$EASYTLS_PRINTF" '%s\n%s\n' \
-		"$md_hwadds" "$md_opt" > "$client_metadata_file" || \
+	"${EASYTLS_PRINTF}" '%s\n%s\n' \
+		"${md_hwadds}" "${md_opt}" > "${client_metadata_file}" || \
 			die "Failed to write client_metadata file"
-	[ $EASYTLS_VERBOSE ] && print "client_metadata: $client_metadata_file"
 fi
 
 # Any failure_msg means fail_and_exit
-[ "$failure_msg" ] && fail_and_exit "NEIN" 99
+[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "$FORCE_ABSOLUTE_FAIL" ] && absolute_fail=1 && \
-	failure_msg="FORCE ABSOLUTE FAIL"
+[ "${FORCE_ABSOLUTE_FAIL}" ] && \
+	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
-[ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
+if [ $absolute_fail -eq 0 ]
+then
+	# All is well
+	verbose_print "<EXOK> ${status_msg}"
+	exit 0
+fi
 
-# All is well
-[ $EASYTLS_VERBOSE ] && \
-	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $status_msg $success_msg"
-
-exit 0
+# Otherwise
+fail_and_exit "ABSOLUTE FAIL" 9
