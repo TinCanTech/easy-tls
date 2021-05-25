@@ -35,7 +35,11 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
+  -p|--ignore-expired Ignore expiry and allow connection of expired clients
   -x|--x509           Check X509 certificate validity
+                      (Only works in full PKI mode)
+  -r|--ignore-revoked Ignore revocation and allow connection of revoked clients
+                      (Only works in full PKI mode)
   -b|--base-dir       Path to OpenVPN base directory. (Windows Only)
                       Default: C:/Progra~1/OpenVPN
   -t|--tmp-dir        Temp directory where the hardware address list is written.
@@ -48,11 +52,13 @@ help_text ()
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
-  1   - Disallow connection, Client cert not recognised.
-  2   - Disallow connection, Client cert revoked.
-  3   - Disallow connection, CA PKI dir not defined. (REQUIRED)
-  4   - Disallow connection, CA cert not found.
-  5   - Disallow connection, index.txt not found.
+  2   - Disallow connection, Client cert expired.
+  3   - Disallow connection, Client cert revoked.
+  4   - Disallow connection, Client cert not recognised.
+  5   - Disallow connection, CA PKI dir not defined. (REQUIRED)
+  6   - Disallow connection, CA cert not found.
+  7   - Disallow connection, index.txt not found.
+  8   - Disallow connection, Script requires --tls-export-cert
   9   - Disallow connection, unexpected failure. (BUG)
   11  - Disallow connection, missing X509 client cert serial. (BUG)
   21  - USER ERROR Disallow connection, options error.
@@ -67,12 +73,13 @@ help_text ()
   67  - USER ERROR Disallow connection, missing grep.exe
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
+  70  - USER ERROR Disallow connection, missing rm.exe
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
 '
-	"$EASYTLS_PRINTF" "%s\n" "$help_msg"
+	print "${help_msg}"
 
 	# For secrity, --help must exit with an error
 	die 253
@@ -80,76 +87,75 @@ help_text ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print() { "$EASYTLS_PRINTF" "%s\n" "$1"; }
+print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
+verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 
 # Exit on error
 die ()
 {
-	"$EASYTLS_RM" -f "$client_metadata_file"
-	[ -n "$help_note" ] && "$EASYTLS_PRINTF" "\n%s\n" "$help_note"
-	"$EASYTLS_PRINTF" "\n%s\n" "ERROR: $1"
-	"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	[ -n "${help_note}" ] && print "${help_note}"
+	print "ERROR: ${1}"
 	exit "${2:-255}"
 }
 
-# easytls-cryptv2-client-connect failure, not an error.
+# failure not an error
 fail_and_exit ()
 {
-	"$EASYTLS_RM" -f "$client_metadata_file"
-	if [ $EASYTLS_VERBOSE ]
-	then
-		"$EASYTLS_PRINTF" "%s " "$easytls_msg}"
-		[ -z "$success_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$success_msg"
-		"$EASYTLS_PRINTF" "%s\n%s\n" "$failure_msg" "$1"
-
-		"$EASYTLS_PRINTF" "%s\n" "https://github.com/TinCanTech/easy-tls"
-	else
-		"$EASYTLS_PRINTF" "%s %s %s %s\n" \
-			"$easytls_msg" "$success_msg" "$failure_msg" "$1"
-	fi
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	print "${status_msg} ${failure_msg} ${1}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
 # Log fatal warnings
 warn_die ()
 {
-	if [ -n "$1" ]
+	if [ -n "${1}" ]
 	then
 		fatal_msg="${fatal_msg}
-$1"
+${1}"
 	else
-		[ -z "$fatal_msg" ] || die "$fatal_msg" 21
+		[ -z "${fatal_msg}" ] || die "${fatal_msg}" 21
 	fi
 }
 
 # Log warnings
 warn_log ()
 {
-	if [ -n "$1" ]
+	if [ -n "${1}" ]
 	then
 		warn_msg="${warn_msg}
-$1"
+${1}"
 	else
-		[ -z "$warn_msg" ] || "$EASYTLS_PRINTF" "%s\n" "$warn_msg"
+		[ -z "${warn_msg}" ] || verbose_print "${warn_msg}"
 	fi
 }
 
-# Get the client certificate serial number from env
-get_ovpn_client_serial ()
+# Update status message
+update_status ()
 {
-	"$EASYTLS_PRINTF" '%s' "$tls_serial_hex_0" | \
-		"$EASYTLS_SED" -e 's/://g' -e 'y/abcdef/ABCDEF/'
+	status_msg="${status_msg} => ${*}"
+}
+
+# Remove colons ':' and up-case
+format_number ()
+{
+	"${EASYTLS_PRINTF}" '%s' "${1}" | \
+		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
 # Allow connection
 connection_allowed ()
 {
 	absolute_fail=0
+	update_status "connection allowed"
 }
 
 # Initialise
 init ()
 {
+	NL='
+'
 	# Fail by design
 	absolute_fail=1
 
@@ -157,7 +163,7 @@ init ()
 	EASYTLS_server_pid=$PPID
 
 	# Log message
-	easytls_msg="* EasyTLS-verify => CN: ${X509_0_CN}"
+	status_msg="* EasyTLS-verify"
 }
 
 # Dependancies
@@ -202,28 +208,36 @@ deps ()
 	fi
 
 	# CA_dir MUST be set with option: -c|--ca
-	[ -d "$CA_dir" ] || die "Path to CA directory is required, see help" 3
+	[ -d "${CA_dir}" ] || {
+		help_note="This script requires an EasyRSA generated PKI."
+		die "Path to CA directory is required, see help" 5
+		}
 
 	# CA required files
-	ca_cert="$CA_dir/ca.crt"
-	index_txt="$CA_dir/index.txt"
+	ca_cert="${CA_dir}/ca.crt"
+	index_txt="${CA_dir}/index.txt"
 
 	if [ $EASYTLS_NO_CA ]
 	then
 		# Do not need CA cert
-		# Cannot do any X509 verification
 		:
 	else
 		# Ensure we have all the necessary files
-		[ -f "$ca_cert" ] || {
+		[ -f "${ca_cert}" ] || {
 			help_note="This script requires an EasyRSA generated CA."
-			die "Missing CA certificate: $ca_cert" 4
+			die "Missing CA certificate: ${ca_cert}" 6
 			}
-		[ -f "$index_txt" ] || {
+		[ -f "${index_txt}" ] || {
 			help_note="This script requires an EasyRSA generated DB."
-			die "Missing index.txt: $index_txt" 5
+			die "Missing index.txt: ${index_txt}" 7
 			}
 	fi
+
+	# Check for peer_cert
+	[ -f "${peer_cert}" ] || {
+		help_note="This script requires Openvpn --tls-export-cert"
+		die "Missing peer_cert variable or file: ${peer_cert}" 8
+		}
 }
 
 #######################################
@@ -232,14 +246,14 @@ deps ()
 init
 
 # Options
-while [ -n "$1" ]
+while [ -n "${1}" ]
 do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
 	empty_ok="" # Empty values are not allowed unless expected
 
-	case "$opt" in
+	case "${opt}" in
 	help|-h|-help|--help)
 		empty_ok=1
 		help_text
@@ -249,7 +263,7 @@ do
 		EASYTLS_VERBOSE=1
 	;;
 	-c|--ca)
-		CA_dir="$val"
+		CA_dir="${val}"
 	;;
 	-z|--no-pki)
 		empty_ok=1
@@ -259,17 +273,25 @@ do
 		empty_ok=1
 		x509_check=1
 	;;
+	-p|--ignore-expired)
+		empty_ok=1
+		ignore_expired=1
+	;;
+	-r|--ignore-revoked)
+		empty_ok=1
+		ignore_revoked=1
+	;;
 	-b|--base-dir)
-		EASYTLS_base_dir="$val"
+		EASYTLS_base_dir="${val}"
 	;;
 	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
+		EASYTLS_tmp_dir="${val}"
 	;;
 	-o|--openvpn-bin-dir)
-		EASYTLS_ovpnbin_dir="$val"
+		EASYTLS_ovpnbin_dir="${val}"
 	;;
 	-e|--easyrsa-bin-dir)
-		EASYTLS_ersabin_dir="$val"
+		EASYTLS_ersabin_dir="${val}"
 	;;
 	0)
 		empty_ok=1
@@ -281,13 +303,19 @@ do
 		empty_ok=1
 		ignore_ca_verify=1
 	;;
+	CN)
+		empty_ok=1
+		# CN # Currently not used
+	;;
 	*)
 		empty_ok=1
-		if [ -f "$opt" ]
+		if [ -f "${opt}" ]
 		then
-			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
+			# Do not need this in the log but keep it here for reference
+			#[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
+			:
 		else
-			[ $EASYTLS_VERBOSE ] && warn_log "Ignoring unknown option: $opt"
+			[ "${EASYTLS_VERBOSE}" ] && warn_log "Ignoring unknown option: ${opt}"
 		fi
 	;;
 	esac
@@ -311,13 +339,16 @@ warn_log
 # Ignore CA verify
 [ $ignore_ca_verify ] && exit 0
 
+# Update log message
+update_status "CN:${X509_0_CN}"
+
 # TLS verify checks
 
 	# Set Client certificate serial number from Openvpn env
-	client_serial="$(get_ovpn_client_serial)"
+	client_serial="$(format_number "${tls_serial_hex_0}")"
 
 	# Verify Client certificate serial number
-	[ -n "$client_serial" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
+	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
 	# There will ONLY be a hardware file
 	# if the client does have a --tls-crypt-v2 key
@@ -326,57 +357,84 @@ warn_log
 	# Set hwaddr file name
 	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
 
+	# Certificate expire date
+	expire_date=$(
+		openssl x509 -in "$peer_cert" -noout -enddate |
+		sed 's/^notAfter=//'
+		)
+	expire_date=$(date -d "$expire_date" +%s)
+
+	# Current date
+	current_date=$(date +%s)
+
+	# Check for expire
+	if [ $((expire_date)) -lt $((current_date)) ]
+	then
+		update_status "Certificate expired"
+		[ $ignore_expired ] || \
+			fail_and_exit "CLIENT CERTIFICATE IS EXPIRED" 2
+		update_status "Ignored expiry"
+	else
+		update_status "Certificate is not expired"
+	fi
+
+	# X509
 	if [ $EASYTLS_NO_CA ]
 	then
-		# Cannot do any X509 verification
+		# No CA checks
 		:
 	else
 		# Check cert serial is known by index.txt
 		serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
 		valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
-		if "$EASYTLS_GREP" -q "${serial}" "$index_txt"
+		if "${EASYTLS_GREP}" -q "${serial}" "${index_txt}"
 		then
 			if [ $x509_check ]
 			then
-				if "$EASYTLS_GREP" -q "${valids}" "$index_txt"
+				if "${EASYTLS_GREP}" -q "${valids}" "${index_txt}"
 				then
 					# Valid Cert serial found in PKI index.txt
-					success_msg=" ==> Valid Client cert serial"
+					update_status "Valid Client cert serial"
 				else
-					fail_and_exit "CLIENT CERTIFICATE IS REVOKED" 2
+					[ $ignore_revoked ] || \
+						fail_and_exit "CLIENT CERTIFICATE IS REVOKED" 3
+					update_status "Ignored revocation"
 				fi
 			else
 				# Cert serial found in PKI index.txt
-				success_msg=" ==> Recognised Client cert serial"
+				update_status "Recognised Client cert serial"
 			fi
 		else
 			# Cert serial not found in PKI index.txt
-			fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 1
+			fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 4
 		fi
 	fi
 
 	# Allow this connection
 	connection_allowed
-	success_msg="connection allowed"
 
+	# THIS SCRIPT MUST NOT WRITE A HWADDR FILE.
+	# https://github.com/TinCanTech/easy-tls/issues/179
 	# If there is no hwaddr file then
 	# create a simple hwaddr file for client-connect
 	# This implies that the client is not bound to a hwaddr
-	[ -f "$client_metadata_file" ] || \
-		"$EASYTLS_PRINTF" '%s' '000000000000' > "$client_metadata_file"
+	#[ -f "${client_metadata_file}" ] || \
+	#	"${EASYTLS_PRINTF}" '%s' '000000000000' > "${client_metadata_file}"
 
 # Any failure_msg means fail_and_exit
-[ -n "$failure_msg" ] && fail_and_exit "NEIN: $failure_msg" 9
+[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "$FORCE_ABSOLUTE_FAIL" ] && \
+[ "${FORCE_ABSOLUTE_FAIL}" ] && \
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
-[ $absolute_fail -eq 0 ] || fail_and_exit "ABSOLUTE FAIL" 9
+if [ $absolute_fail -eq 0 ]
+then
+	# All is well
+	verbose_print "<EXOK> ${status_msg}"
+	exit 0
+fi
 
-# All is well
-[ $EASYTLS_VERBOSE ] && \
-	"$EASYTLS_PRINTF" "%s\n" "<EXOK> $easytls_msg $success_msg"
-
-exit 0
+# Otherwise
+fail_and_exit "ABSOLUTE FAIL" 9
