@@ -156,7 +156,9 @@ fail_and_exit ()
 {
 	if [ "${EASYTLS_VERBOSE}" ]
 	then
-		print "$status_msg $failure_msg $md_name" "$1"
+		print "${status_msg}"
+		print "${failure_msg}"
+		print "${1}"
 		print "* ==> version       local: ${local_easytls}"
 		print "* ==> version      remote: ${md_easytls}"
 		print "* ==> custom_group  local: ${local_custom_g}"
@@ -172,7 +174,9 @@ fail_and_exit ()
 		[ ${2} -eq 3 ] && print "* ==> Client serial status: disabled"
 		[ -n "${help_note}" ] && print "${help_note}"
 	else
-		print "${status_msg} ${failure_msg} ${md_name}"
+		print "${status_msg}"
+		print "${failure_msg}"
+		print "${1}"
 	fi
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -501,6 +505,12 @@ deps ()
 	disabled_list="${TLS_dir}/easytls-disabled-list.txt"
 	tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
 
+	# Check TLS files
+	[ -d "${TLS_dir}" ] || {
+		help_note="Use './easytls init <no-ca>"
+		die "Missing EasyTLS dir: ${TLS_dir}"
+		}
+
 	# CA required files
 	ca_cert="${CA_dir}/ca.crt"
 	ca_identity_file="${TLS_dir}/easytls-ca-identity.txt"
@@ -508,7 +518,7 @@ deps ()
 	index_txt="${CA_dir}/index.txt"
 	openssl_cnf="${CA_dir}/safessl-easyrsa.cnf"
 
-	# Ensure we have all the necessary files
+	# Check X509 files
 	if [ $EASYTLS_NO_CA ]
 	then
 		# Do not need CA cert
@@ -909,8 +919,8 @@ client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
 # If client_metadata_file exists then delete it if is stale
 if [ -f "${client_metadata_file}" ]
 then
-	metadata_file_date="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
-	[ ${local_date_sec} -gt $(( metadata_file_date + stale_sec )) ] && \
+	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
+	[ ${local_date_sec} -gt $(( md_file_date_sec + stale_sec )) ] && \
 		"${EASYTLS_RM}" -f "${client_metadata_file}"
 	[ $SHALLOW ] && "${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
