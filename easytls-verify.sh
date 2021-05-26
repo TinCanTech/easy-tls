@@ -55,12 +55,13 @@ help_text ()
   2   - Disallow connection, Client cert expired.
   3   - Disallow connection, Client cert revoked.
   4   - Disallow connection, Client cert not recognised.
-  5   - Disallow connection, CA PKI dir not defined. (REQUIRED)
-  6   - Disallow connection, CA cert not found.
-  7   - Disallow connection, index.txt not found.
-  8   - Disallow connection, Script requires --tls-export-cert
+  5   - Disallow connection, Client cert should have TLS-Crypt-v2 key
   9   - Disallow connection, unexpected failure. (BUG)
   11  - Disallow connection, missing X509 client cert serial. (BUG)
+  12  - Disallow connection, CA PKI dir not defined. (REQUIRED)
+  13  - Disallow connection, CA cert not found.
+  14  - Disallow connection, index.txt not found.
+  15  - Disallow connection, Script requires --tls-export-cert
   21  - USER ERROR Disallow connection, options error.
 
   60  - USER ERROR Disallow connection, missing Temp dir
@@ -102,8 +103,10 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
-	print "${status_msg} ${failure_msg} ${1}"
+	#"${EASYTLS_RM}" -f "${client_metadata_file}"
+	print "${status_msg}"
+	print "${failure_msg}"
+	print "${1}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -210,7 +213,18 @@ deps ()
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
 		help_note="This script requires an EasyRSA generated PKI."
-		die "Path to CA directory is required, see help" 5
+		die "Path to CA directory is required, see help" 12
+		}
+
+	# Easy-TLS required files
+	TLS_dir="${CA_dir}/easytls/data"
+	disabled_list="${TLS_dir}/easytls-disabled-list.txt"
+	tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
+
+	# Check TLS files
+	[ -d "${TLS_dir}" ] || {
+		help_note="Use './easytls init <no-ca>"
+		die "Missing EasyTLS dir: ${TLS_dir}"
 		}
 
 	# CA required files
@@ -225,18 +239,18 @@ deps ()
 		# Ensure we have all the necessary files
 		[ -f "${ca_cert}" ] || {
 			help_note="This script requires an EasyRSA generated CA."
-			die "Missing CA certificate: ${ca_cert}" 6
+			die "Missing CA certificate: ${ca_cert}" 13
 			}
 		[ -f "${index_txt}" ] || {
 			help_note="This script requires an EasyRSA generated DB."
-			die "Missing index.txt: ${index_txt}" 7
+			die "Missing index.txt: ${index_txt}" 14
 			}
 	fi
 
 	# Check for peer_cert
 	[ -f "${peer_cert}" ] || {
 		help_note="This script requires Openvpn --tls-export-cert"
-		die "Missing peer_cert variable or file: ${peer_cert}" 8
+		die "Missing peer_cert variable or file: ${peer_cert}" 15
 		}
 }
 
@@ -350,13 +364,6 @@ update_status "CN:${X509_0_CN}"
 	# Verify Client certificate serial number
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
-	# There will ONLY be a hardware file
-	# if the client does have a --tls-crypt-v2 key
-	# --tls-crypt-v2, --tls-auth and --tls-crypt
-	# are mutually exclusive in client mode
-	# Set hwaddr file name
-	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
-
 	# Certificate expire date
 	expire_date=$(
 		openssl x509 -in "$peer_cert" -noout -enddate |
@@ -410,16 +417,57 @@ update_status "CN:${X509_0_CN}"
 		fi
 	fi
 
+	# There will ONLY be a hardware file
+	# if the client does have a --tls-crypt-v2 key
+	# --tls-crypt-v2, --tls-auth and --tls-crypt
+	# are mutually exclusive in client mode
+	# Set hwaddr file name
+	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+
+	# Verify tlskey-serial is in index
+	if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
+	then
+		# This client is using TLS Crypt V2 - there will be a HWADDR file
+		# If not then the TLS Key is being used by the wrong X509 client
+		# --tls-crypt-v2 does not have any X509 so check is done here
+		[ -f "${client_metadata_file}" ] || {
+			# Wrong X509 cert - The HWADDR file must exist
+			failure_msg="Client cert is being used by wrong config"
+			fail_and_exit "CLIENT MUST USE TLS CRYPT V2" 5
+			}
+	else
+		# Client X509 is not in TLS key index but is in CA index
+		# This client is not using TLS Crypt V2
+		# https://github.com/TinCanTech/easy-tls/issues/179
+		# If there is no hwaddr file then
+		# create a simple hwaddr file for client-connect
+		# This implies that the client is not bound to a hwaddr
+		if [ -f "${client_metadata_file}" ]
+		then
+			# Openvpn BUG
+			update_status "Openvpn BUG: Peer-Fingerproint mode"
+			update_status "--tls-verify script runs twice for same peer"
+			local_date_sec="$("${EASYTLS_DATE}" +%s)"
+			md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
+			update_status "local_date_sec: ${local_date_sec}"
+			update_status "md_file_date_sec: ${md_file_date_sec}"
+			[ ${local_date_sec} -eq ${md_file_date_sec} ] || {
+				failure_msg="This is not the same client connection instance"
+				fail_and_exit "METADATA FILE DATE IS TOO OLD" 6
+				}
+			# Or Something has gone hideously wrong with TLS Key index
+			#failure_msg="Failed to find client X509 in TLS key index"
+			#fail_and_exit "CLIENT MUST USE NOT TLS CRYPT V2" 6
+		else
+			# X509 not in TLS key index and HWADDR file missing
+			# This is correct behaviour for --tls-crypt/--tls-auth keys
+			"${EASYTLS_PRINTF}" '%s' '000000000000' > "${client_metadata_file}"
+			update_status "Client using --tls-crypt (V1)"
+		fi
+	fi
+
 	# Allow this connection
 	connection_allowed
-
-	# THIS SCRIPT MUST NOT WRITE A HWADDR FILE.
-	# https://github.com/TinCanTech/easy-tls/issues/179
-	# If there is no hwaddr file then
-	# create a simple hwaddr file for client-connect
-	# This implies that the client is not bound to a hwaddr
-	#[ -f "${client_metadata_file}" ] || \
-	#	"${EASYTLS_PRINTF}" '%s' '000000000000' > "${client_metadata_file}"
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
