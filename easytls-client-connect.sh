@@ -100,7 +100,9 @@ die ()
 fail_and_exit ()
 {
 	"${EASYTLS_RM}" -f "${client_metadata_file}"
-	print "${status_msg} ${failure_msg} ${1}"
+	print "${status_msg}"
+	print "${failure_msg}"
+	print "${1}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
