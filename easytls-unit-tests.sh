@@ -137,7 +137,12 @@ WORK_DIR="$(pwd)"
 if [ "$EASYTLS_FOR_WINDOWS" ]
 then
 	export OPENVPN_CMD="./openvpn.exe"
+	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
+	export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
+	mkdir -p "$EASYTLS_tmp_dir"
 else
+	export EASYTLS_tmp_dir="/tmp/easytls-unit-tests"
+	mkdir -p "$EASYTLS_tmp_dir"
 	if [ -f ./openvpn ]
 	then
 		export OPENVPN_CMD=./openvpn
@@ -732,6 +737,8 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 echo "============================================================"
 echo "total_expected_errors=$total_expected_errors (Expected 165 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
+echo "rm -r $EASYTLS_tmp_dir"
+[ -n "$EASYTLS_tmp_dir" ] && [ "$EASYTLS_tmp_dir" != "/" ] && rm -rv "$EASYTLS_tmp_dir"
 echo "============================================================"
 echo
 [ $total_expected_errors -eq 165 ] || {
