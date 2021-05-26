@@ -353,7 +353,7 @@ Easy-TLS abbreviations:
   build-tls-crypt-v2-client     - btv2c | btcv2c
   remove-tlskey                 - No abbreviation
   save-id                       - sid
- 
+
   status                        - s
 	Easy-RSA valid certificates   - val|valid
 	Easy-RSA revoked certificates - rev|revoked
@@ -2639,7 +2639,7 @@ inline_tls_auth ()
 			0|1)	key_direction="$1" ;;
 			add-dh)	cmd_opts="$cmd_opts add-dh" ;;
 			nokey)	cmd_opts="$cmd_opts nokey" ;;
-			*) 	warn "Ignoring unknown command option: '$1'" ;;
+			*)		warn "Ignoring unknown command option: '$1'" ;;
 		esac
 		shift
 	done

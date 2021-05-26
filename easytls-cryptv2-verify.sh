@@ -447,9 +447,6 @@ init ()
 
 	# Enable disable list by default
 	use_disable_list=1
-
-	# Seconds to allow a previous client_metadata_file (HDADDR) to exist
-	stale_secs=10
 } # => init ()
 
 # Dependancies
@@ -577,6 +574,9 @@ deps ()
 		help_note="This script can ONLY be used by a running openvpn server."
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
+
+	# Seconds to allow a previous client_metadata_file (HDADDR) to exist
+	stale_sec="${stale_sec:-7}"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -910,7 +910,7 @@ client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
 if [ -f "${client_metadata_file}" ]
 then
 	metadata_file_date="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
-	[ ${local_date_sec} -gt $(( metadata_file_date + stale_secs )) ] && \
+	[ ${local_date_sec} -gt $(( metadata_file_date + stale_sec )) ] && \
 		"${EASYTLS_RM}" -f "${client_metadata_file}"
 	[ $SHALLOW ] && "${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
