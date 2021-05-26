@@ -186,17 +186,13 @@ deps ()
 	then
 		# Windows
 		host_drv="${PATH%%\:*}"
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 
-		# If any of these are missing then cannot clear up
-		# No message in Windows, only exit code is available
-		[ -d "$EASYTLS_tmp_dir" ] || exit 60
-		[ -d "$base_dir" ] || exit 61
-		[ -d "$EASYTLS_ersabin_dir" ] || exit 62
-		[ -d "$EASYTLS_ovpnbin_dir" ] || exit 63
+		[ -d "${base_dir}" ] || exit 61
+		[ -d "${EASYTLS_ersabin_dir}" ] || exit 62
+		[ -d "${EASYTLS_ovpnbin_dir}" ] || exit 63
 		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] || exit 64
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
@@ -204,10 +200,20 @@ deps ()
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || exit 70
+
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
+
+		WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
+		[ -d "${WIN_TEMP}" ] || exit 60
+
+		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}/easytls}"
 	else
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp/easytls}"
 	fi
+
+	# Make temp dir
+	mkdir -p "${EASYTLS_tmp_dir}" || die "Failed to create ${EASYTLS_tmp_dir}"
+	verbose_print "Temp directory: ${EASYTLS_tmp_dir}"
 }
 
 #######################################
