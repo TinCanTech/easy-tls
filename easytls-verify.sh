@@ -103,7 +103,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	#"${EASYTLS_RM}" -f "${client_metadata_file}"
+	"${EASYTLS_RM}" -f "${client_metadata_file}"
 	print "${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
@@ -453,7 +453,7 @@ update_status "CN:${X509_0_CN}"
 		if [ -f "${client_metadata_file}" ]
 		then
 			# Openvpn BUG
-			update_status "Openvpn BUG: Peer-Fingerproint mode"
+			update_status "Openvpn BUG: Peer-Fingerprint mode"
 			update_status "--tls-verify script runs twice for same peer"
 			local_date_sec="$("${EASYTLS_DATE}" +%s)"
 			md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
