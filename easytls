@@ -587,12 +587,40 @@ easytls_config ()
 	# Verify config-file and hash has already been done by config_use()
 
 	case "$1" in
+		addition)
+			cfg_opt=$2
+			[ -z "${cfg_opt}" ] && {
+				error_msg "Missing addition option"
+				return 1
+				}
+			config_addition || {
+				error_msg "Failed to add: ${cfg_opt}"
+				return 1
+				}
+			return 0
+		;;
+		deletion)
+			cfg_opt=$2
+			[ -z "${cfg_opt}" ] && {
+				error_msg "Missing addition option"
+				return 1
+				}
+			config_deletion || {
+				error_msg "Failed to delete: ${cfg_opt}"
+				return 1
+				}
+			return 0
+		;;
 		nc|no.ca)
 			cfg_opt="no.ca"
 			cfg_val=$2
 		;;
 		ha|hash.algorithm)
 			cfg_opt="hash.algorithm"
+			cfg_val=$2
+		;;
+		td|tmp.dir)
+			cfg_opt="tmp.dir"
 			cfg_val=$2
 		;;
 		ac|auto.check)
@@ -635,6 +663,12 @@ easytls_config ()
 	esac
 
 	case "$cfg_opt" in
+		tmp.dir)
+			[ -d "$cfg_val" ] || {
+				help_note="First create directory: $cfg_val"
+				die "Directory does not exists: $cfg_val"
+				}
+		;;
 		auto.check|inline.metadata|inline.hardware)
 			case "$cfg_val" in
 				on|off)
@@ -704,7 +738,7 @@ config_update ()
 	# Find the pattern
 	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
 		"$EASYTLS_CONFIG_FILE" || {
-			error_msg "config_update - input error"
+			error_msg "config_update - input error: ${cfg_opt}"
 			return 1
 			}
 
@@ -712,7 +746,7 @@ config_update ()
 	"$EASYTLS_SED" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 		"$EASYTLS_CONFIG_FILE" || {
-			error_msg "config_update - replace error"
+			error_msg "config_update - replace error: ${cfg_opt}"
 			return 1
 			}
 
@@ -773,13 +807,17 @@ config_use ()
 				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
 				set_var EASYTLS_OPENVPN "openvpn"
 				;;
+			tmp.dir)
+				# This is set explicitly here to over-write default
+				[ -n "$cfg_val" ] && export EASYTLS_tmp_dir="$cfg_val"
+				;;
 			no.ca)
 				# This is set explicitly here to protect config
 				[ -n "$cfg_val" ] && export EASYTLS_NO_CA="$cfg_val"
 				;;
 			hash.algorithm)
 				# This is set explicitly here to protect config
-				export EASYTLS_HASH_ALGO="$cfg_val"
+				[ -n "$cfg_val" ] && export EASYTLS_HASH_ALGO="$cfg_val"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
@@ -788,8 +826,7 @@ config_use ()
 			status)
 				: ;;
 			*)
-				error_msg "Config error: Invalid option: $cfg_opt"
-				config_error=6
+				error_msg "Config error: Ignored option: $cfg_opt"
 				;;
 		esac
 	done < "$EASYTLS_CONFIG_FILE"
@@ -836,6 +873,74 @@ config_save_hash ()
 			}
 	[ $flash_config ] || easytls_verbose "config-file hash save OK"
 } # => config_save_hash ()
+
+# Add a new option to config
+config_addition ()
+{
+	# Verify the Config hash
+	generate_and_match_valid_hash \
+		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+			error_msg "config_addition hash fail"
+			return 1
+			}
+
+	# Only allow alpha caracters and '.'
+	"$EASYTLS_PRINTF" "%s" "${cfg_opt}" | \
+		"$EASYTLS_GREP" -q '[^abcdefghijklmnopqrstuvwxyz\.]' && {
+			error_msg "config_addition - label error: ${cfg_opt}"
+			return 1
+			}
+
+	# Find the pattern - Fail if found
+	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"$EASYTLS_CONFIG_FILE" && {
+			error_msg "config_addition - duplication error: ${cfg_opt}"
+			return 1
+			}
+
+	# Add the new pattern
+	"${EASYTLS_CP}" "${EASYTLS_CONFIG_FILE}" "${EASYTLS_TEMP_LIST}"
+	"${EASYTLS_PRINTF}" "%s\n" "${cfg_opt} = " > "${EASYTLS_TEMP_RECORD}"
+	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
+		"$EASYTLS_CONFIG_FILE" || {
+			error_msg "config_addition - addition error: ${cfg_opt}"
+			return 1
+			}
+
+	# Save hash
+	config_save_hash || die "Error hashing config."
+	easytls_verbose "New option added to config: ${cfg_opt}"
+} # => config_addition ()
+
+# Delete an option from config
+config_deletion ()
+{
+	# Verify the Config hash
+	generate_and_match_valid_hash \
+		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+			error_msg "config_deletion hash fail"
+			return 1
+			}
+
+	# Find the pattern
+	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"$EASYTLS_CONFIG_FILE" || {
+			error_msg "config_deletion - addition error: ${cfg_opt}"
+			return 1
+			}
+
+	# Remove the pattern
+	"$EASYTLS_SED" -i \
+	-e "/^${cfg_opt}[[:blank:]]=[[:blank:]].*$/d" \
+		"$EASYTLS_CONFIG_FILE" || {
+			error_msg "config_deletion - delete error: ${cfg_opt}"
+			return 1
+			}
+
+	# Save hash
+	config_save_hash || die "Error hashing config."
+	easytls_verbose "Option deleted from config: ${cfg_opt}"
+} # => config_deletion ()
 
 # Verify Openvpn is available
 verify_openvpn ()
@@ -926,6 +1031,7 @@ and initialize a fresh TLS PKI here."
 	{
 		"$EASYTLS_PRINTF" '%s\n' "no.ca = ${EASYTLS_NO_CA}"
 		"$EASYTLS_PRINTF" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
+		"$EASYTLS_PRINTF" '%s\n' "tmp.dir = "
 		"$EASYTLS_PRINTF" '%s\n' "ca.id = "
 		"$EASYTLS_PRINTF" '%s\n' "custom.group = "
 		"$EASYTLS_PRINTF" '%s\n' "auto.check = on"
@@ -4742,8 +4848,11 @@ interactive_scripts ()
 		{
 			# easytls-cryptv2-verify.sh
 			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
+			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${EASYTLS_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n' \
+				'# If your clients have username/password then set this to level 3'
+			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
@@ -5280,7 +5389,7 @@ interactive_tmp_dir ()
 		interactive_question
 		ans_tmp_dir="${ia_answer:-$default}"
 		[ -d "$ans_tmp_dir" ] && {
-			[ "$ans_tmp_dir" = "$default" ] || opt_tmp_dir="-t=${ans_tmp_dir}"
+			opt_tmp_dir="-t=${ans_tmp_dir}"
 			break
 			}
 		print "
@@ -5859,6 +5968,10 @@ external_deps ()
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
+
+	# Append easytls to tmp_dir and create it
+	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
+	mkdir -p "${EASYTLS_tmp_dir}"
 } # => external_deps ()
 
 # vars setup

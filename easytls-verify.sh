@@ -165,7 +165,7 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_server_pid=$PPID
+	EASYTLS_srv_pid=$PPID
 
 	# Log message
 	status_msg="* EasyTLS-verify"
@@ -438,7 +438,7 @@ update_status "CN:${X509_0_CN}"
 	# --tls-crypt-v2, --tls-auth and --tls-crypt
 	# are mutually exclusive in client mode
 	# Set hwaddr file name TLS Crypt V2 only
-	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
 	# --tls-verify output to --client-connect
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 	# Work around for double call of --tls-verify
