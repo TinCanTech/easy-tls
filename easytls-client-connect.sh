@@ -90,7 +90,7 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	"${EASYTLS_RM}" -f "${client_ext_md_file}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
 	exit "${2:-255}"
@@ -99,7 +99,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	"${EASYTLS_RM}" -f "${client_ext_md_file}"
 	print "${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
@@ -146,7 +146,7 @@ format_number ()
 # Allow connection
 connection_allowed ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	"${EASYTLS_RM}" -f "${client_ext_md_file}"
 	absolute_fail=0
 	update_status "connection allowed"
 }
@@ -213,7 +213,6 @@ deps ()
 
 	# Make temp dir
 	mkdir -p "${EASYTLS_tmp_dir}" || die "Failed to create ${EASYTLS_tmp_dir}"
-	verbose_print "Temp directory: ${EASYTLS_tmp_dir}"
 }
 
 #######################################
@@ -303,11 +302,12 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# Set client_metadata_file
+# Set client_metadata_files
 client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
 # Verify client_metadata_file
-if [ -f "${client_metadata_file}" ]
+if [ -f "${client_ext_md_file}" ]
 then
 	# Client cert serial matches
 	update_status "X509 serial matched"
@@ -317,7 +317,7 @@ else
 fi
 
 # Set only for NO keyed hwaddr
-if "${EASYTLS_GREP}" -q '000000000000' "${client_metadata_file}"
+if "${EASYTLS_GREP}" -q '000000000000' "${client_ext_md_file}"
 then
 	key_hwaddr_missing=1
 fi
@@ -356,7 +356,7 @@ else
 		fi
 	else
 		# hwaddr is pushed
-		if "${EASYTLS_GREP}" -q "${push_hwaddr}" "${client_metadata_file}"
+		if "${EASYTLS_GREP}" -q "${push_hwaddr}" "${client_ext_md_file}"
 		then
 			# MATCH!
 			update_status "hwaddr ${push_hwaddr} pushed and matched"
