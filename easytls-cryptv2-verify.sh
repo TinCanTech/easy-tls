@@ -112,7 +112,7 @@ help_text ()
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
-  101 - BUG Disallow connection, wait-gate time-out.
+  101 - BUG Disallow connection, stale metadata file time-out.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
   114 - BUG Disallow connection, missing dependency file.
@@ -442,6 +442,9 @@ init ()
 	# Log message
 	status_msg="* Easy-TLS-cryptv2-verify"
 
+	# Default stale-metadata-output-file time-out
+	stale_sec=30
+
 	# X509 is disabled by default
 	# To enable use command line option:
 	# --v1|--via-crl   - client serial revokation via CRL search (Default)
@@ -503,7 +506,6 @@ deps ()
 
 	# Make temp dir
 	mkdir -p "${EASYTLS_tmp_dir}" || die "Failed to create ${EASYTLS_tmp_dir}"
-	verbose_print "Temp directory: ${EASYTLS_tmp_dir}"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || die "Path to CA directory is required, see help" 22
@@ -593,8 +595,6 @@ deps ()
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
 
-	# Seconds to allow a previous client_metadata_file (HDADDR) to exist
-	stale_sec="${stale_sec:-7}"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -928,23 +928,18 @@ client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
 if [ -f "${client_metadata_file}" ]
 then
 	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
-	[ ${local_date_sec} -gt $(( md_file_date_sec + stale_sec )) ] && \
+	md_file_age_sec=$((local_date_sec - md_file_date_sec))
+	[ ${md_file_age_sec} -gt ${stale_sec} ] && \
 		"${EASYTLS_RM}" -f "${client_metadata_file}"
 	[ $SHALLOW ] && "${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
 
-# Wait for --client-connect to delete client_metadata_file
-while [ -f "${client_metadata_file}" ]
-do
-	delay_start="$("${EASYTLS_DATE}" +%s)"
-	[ ${delay_start} -gt $(( local_date_sec + 1 )) ] && break
-done
-
-# If client_metadata_file still exists the fail the connection
+# If client_metadata_file still exists then fail the connection
 # Client will try again
 if [ -f "${client_metadata_file}" ]
 then
-	fail_and_exit "wait-gate time-out" 101
+	failure_msg="client_metadata_file age: ${md_file_date_sec} sec"
+	fail_and_exit "STALE_METADATA_FILE" 101
 else
 	"${EASYTLS_PRINTF}" '%s\n%s\n' \
 		"${md_hwadds}" "${md_opt}" > "${client_metadata_file}" || \
