@@ -25,7 +25,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Help
 help_text ()
 {
-	help_msg='
+	help_msg="
   easytls-verify.sh
 
   This script is intended to be used by tls-crypt-v2 client keys
@@ -35,9 +35,9 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
-  -p|--ignore-expired Ignore expiry and allow connection of expired clients
   -x|--x509           Check X509 certificate validity
                       (Only works in full PKI mode)
+  -p|--ignore-expired Ignore expiry and allow connection of expired clients
   -r|--ignore-revoked Ignore revocation and allow connection of revoked clients
                       (Only works in full PKI mode)
   -b|--base-dir       Path to OpenVPN base directory. (Windows Only)
@@ -76,15 +76,17 @@ help_text ()
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
 
+  111 - BUG Disallow connection, required trusted client does not exist
+  252 - Disallow connection, script access permission.
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
-'
+"
 	print "${help_msg}"
 
 	# For secrity, --help must exit with an error
 	die 253
-}
+} # => help_text ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
@@ -167,6 +169,9 @@ init ()
 
 	# Log message
 	status_msg="* EasyTLS-verify"
+
+	# Default stale-metadata-output-file time-out
+	stale_sec=30
 }
 
 # Dependancies
@@ -178,8 +183,10 @@ deps ()
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
 	EASYTLS_CAT='cat'
+	EASYTLS_CP='cp'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
+	EASYTLS_MV='mv'
 	EASYTLS_SED='sed'
 	EASYTLS_PRINTF='printf'
 	EASYTLS_RM='rm'
@@ -198,8 +205,10 @@ deps ()
 		[ -d "${EASYTLS_ovpnbin_dir}" ] || exit 63
 		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] || exit 64
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CP}.exe" ] || exit 72
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MV}.exe" ] || exit 71
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || exit 70
@@ -216,7 +225,6 @@ deps ()
 
 	# Make temp dir
 	mkdir -p "${EASYTLS_tmp_dir}" || die "Failed to create ${EASYTLS_tmp_dir}"
-	verbose_print "Temp directory: ${EASYTLS_tmp_dir}"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -374,16 +382,16 @@ update_status "CN:${X509_0_CN}"
 
 	# Certificate expire date
 	expire_date=$(
-		openssl x509 -in "$peer_cert" -noout -enddate |
+		"${EASYTLS_OPENSSL}" x509 -in "$peer_cert" -noout -enddate |
 		sed 's/^notAfter=//'
 		)
-	expire_date=$(date -d "$expire_date" +%s)
+	expire_date=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
 
 	# Current date
-	current_date=$(date +%s)
+	local_date_sec=$("${EASYTLS_DATE}" +%s)
 
 	# Check for expire
-	if [ $((expire_date)) -lt $((current_date)) ]
+	if [ $((expire_date)) -lt $((local_date_sec)) ]
 	then
 		update_status "Certificate expired"
 		[ $ignore_expired ] || \
@@ -429,50 +437,79 @@ update_status "CN:${X509_0_CN}"
 	# if the client does have a --tls-crypt-v2 key
 	# --tls-crypt-v2, --tls-auth and --tls-crypt
 	# are mutually exclusive in client mode
-	# Set hwaddr file name
+	# Set hwaddr file name TLS Crypt V2 only
 	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+	# --tls-verify output to --client-connect
+	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
+	# Work around for double call of --tls-verify
+	client_stage1_file="${client_ext_md_file}.stage-1"
+	# Required for reneg
+	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
-	# Verify tlskey-serial is in index
-	if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
+	# Mitigate running tls-verify twice
+	if [ -f "${client_stage1_file}" ]
 	then
-		# This client is using TLS Crypt V2 - there will be a HWADDR file
-		# If not then the TLS Key is being used by the wrong X509 client
-		# --tls-crypt-v2 does not have any X509 so check is done here
-		[ -f "${client_metadata_file}" ] || {
-			# Wrong X509 cert - The HWADDR file must exist
-			failure_msg="Client cert is being used by wrong config"
-			fail_and_exit "CLIENT MUST USE TLS CRYPT V2" 5
-			}
-	else
-		# Client X509 is not in TLS key index but is in CA index
-		# This client is not using TLS Crypt V2
-		# https://github.com/TinCanTech/easy-tls/issues/179
-		# If there is no hwaddr file then
-		# create a simple hwaddr file for client-connect
-		# This implies that the client is not bound to a hwaddr
-		if [ -f "${client_metadata_file}" ]
+		# Remove stage-1 file, all metadata files are in place
+		"${EASYTLS_RM}" "${client_stage1_file}" || \
+			die "Failed to remove stage-1 file" 252
+		update_status "Stage-1 file deleted"
+
+		# Remove trusted metadata file, if this is a reneg ..
+		if [ -f "${client_trusted_md_file}" ]
 		then
-			# Openvpn BUG
-			update_status "Openvpn BUG: Peer-Fingerprint mode"
-			update_status "--tls-verify script runs twice for same peer"
-			local_date_sec="$("${EASYTLS_DATE}" +%s)"
-			md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
-			update_status "local_date_sec: ${local_date_sec}"
-			update_status "md_file_date_sec: ${md_file_date_sec}"
-			[ ${local_date_sec} -eq ${md_file_date_sec} ] || {
-				failure_msg="This is not the same client connection instance"
-				fail_and_exit "METADATA FILE DATE IS TOO OLD" 6
+			"${EASYTLS_RM}" "${client_trusted_md_file}"
+			update_status "client_trusted_md_file file deleted"
+		fi
+	else
+		# Verify tlskey-serial is in index
+		if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
+		then
+			# This client is using TLS Crypt V2 - there will be a HWADDR file
+			# If not then the TLS Key is being used by the wrong X509 client
+			# --tls-crypt-v2 does not have any X509 so check is done here
+			[ -f "${client_metadata_file}" ] || {
+				# No output file then tls-crypt-v2 key is being used by wrong cert
+				failure_msg="Client cert is being used by wrong config"
+				fail_and_exit "CLIENT TLS CRYPT V2 KEY X509 SERIAL MISMATCH" 5
 				}
-			# Or Something has gone hideously wrong with TLS Key index
-			#failure_msg="Failed to find client X509 in TLS key index"
-			#fail_and_exit "CLIENT MUST USE NOT TLS CRYPT V2" 6
+			# Move tls-crypt-v2-verify output file to tls-verify output file
+			"${EASYTLS_CP}" "${client_metadata_file}" "${client_ext_md_file}"
+			update_status "client_metadata_file copied -> client_ext_md_file"
 		else
+			# Client X509 is not in TLS key index but is in CA index
+			# This client is not using TLS Crypt V2
+			# https://github.com/TinCanTech/easy-tls/issues/179
+			# If there is no hwaddr file then
+			# create a simple hwaddr file for client-connect
+			# This implies that the client is not bound to a hwaddr
+			if [ -f "${client_ext_md_file}" ]
+			then
+				md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_ext_md_file}")"
+				if [ ${local_date_sec} -gt ${md_file_date_sec} ]
+				then
+					"${EASYTLS_RM}" "${client_ext_md_file}"
+					update_status "Stale file deleted"
+				else
+					"${EASYTLS_RM}" "${client_ext_md_file}"
+					update_status "Duplicate file deleted"
+					failure_msg="client_ext_md_file exits"
+					fail_and_exit "DUPLICATE_SESSION" 6
+				fi
+			fi
 			# X509 not in TLS key index and HWADDR file missing
 			# This is correct behaviour for --tls-crypt/--tls-auth keys
-			"${EASYTLS_PRINTF}" '%s' '000000000000' > "${client_metadata_file}"
+			"${EASYTLS_PRINTF}" '%s' '000000000000' > \
+				"${client_ext_md_file}" || \
+					die "Failed to write client_ext_md_file"
 			update_status "Client using --tls-crypt (V1)"
-		fi
-	fi
+		fi # TLS crypt v2 or v1
+
+		# Create Stage-1 file
+		"${EASYTLS_PRINTF}" '%s' '1' > \
+			"${client_stage1_file}" || \
+				die "Failed to write client_stage1_file"
+		update_status "Stage-1 file created"
+	fi # client_stage1_file
 
 	# Allow this connection
 	connection_allowed
