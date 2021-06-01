@@ -36,7 +36,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 usage()
 {
 	# command help:
-	print '
+	print "
 Easy-TLS usage and overview
 
 USAGE: easytls [options] COMMAND [command-options]
@@ -55,10 +55,10 @@ For a list of configurable options, use:
   ./easytls help config
 
 Here is the list of commands available with a short syntax reminder.
-Use the "help" command above to get full usage details.
+Use the 'help' command above to get full usage details.
 
   config
-  init-tls <hash_algorithm> no-ca
+  init-tls <hash_algorithm> 'no-ca'
   build     :Inter-active menu to build TLS keys
   inline    :Inter-active menu to build Inline files
   remove    :Inter-active menu to remove TLS keys and Inline files
@@ -83,12 +83,13 @@ Use the "help" command above to get full usage details.
   enable <filename_base>
   disabled-list-rehash
 
-NOTE: Easy-TLS requires that you have a working Easy-RSA PKI in place.
-NOTE: Easy-TLS requires that you have OpenVPN installed.
+No-CA Mode commands:
+  self-sign-server <filename_base>
+  self-sign-client <filename_base>
 
 Easy-TLS also has a useful Howto and wiki with expanded help and examples:
 * https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md
-* https://github.com/TinCanTech/easy-tls/wiki'
+* https://github.com/TinCanTech/easy-tls/wiki"
 
 	# collect/show dir status:
 	err_source="Not defined: vars autodetect failed and no value provided"
@@ -263,6 +264,12 @@ cmd_help()
 
         * 'import-key tls-crypt-v2 ./cli2-v2.key client02'
           Imported key name: ./pki/easytls/client02-tls-crypt-v2.key" ;;
+		sss|self-sign-server) text="
+  self-sign-server
+       Build a self signed server certificate and key." ;;
+		ssc|self-sign-client) text="
+  self-sign-server
+       Build a self signed client certificate and key." ;;
 
 		options)
 			opt_usage ;;
@@ -287,31 +294,31 @@ $opts"
 # Options usage
 opt_usage()
 {
-	print '
+	print "
 Easy-TLS Global Option Flags
 
 The following options may be provided before the command. Options specified
-at runtime override env-vars and any "vars" file in use. Unless noted,
+at runtime override env-vars and any 'vars' file in use. Unless noted,
 non-empty values to options are mandatory.
 
 General options:
 
---openvpn="FILE"    The full (or relative) <path-to> and <file-name-of>
+--openvpn='FILE'    The full (or relative) <path-to> and <file-name-of>
                     your preferred openvpn(.exe) executable openvpn file.
 -n|--no-auto-check  For performance you can disable auto-check.
 --batch             Set automatic (no-prompts when possible) mode.
 -v|--verbose        Verbose output.
 -s|--silent         Silence all message output except prompts.
--p|--pki-dir="DIR"  Declare the EasyRSA PKI directory.
---vars="FILE"       Define a specific "vars" file to use for Easy-RSA config.
---dh=FILE           Define an alternate Diffie-Hellman parameters file.
+-p|--pki-dir='DIR'  Declare the EasyRSA PKI directory.
+--vars='FILE'       Define a specific 'vars' file to use for Easy-RSA config.
+--dh='FILE'         Define an alternate Diffie-Hellman parameters file.
 -i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
                     This only accepts default options for inline-tls-crypt-v2.
 
 -y|--why-disable-file-hash
                     To temporarily disable file hash verification.
 
--g|--custom-group=XYZ
+-g|--custom-group=<GROUP-NAME>
 
       <CUSTOM-GROUP> is an optional single word which will be used
       in .inline files to identify the group to which this PKI belongs.
@@ -320,12 +327,18 @@ General options:
       The <CUSTOM-GROUP> can also be matched against in easytls-cryptv2-verify.sh
       by using the command line switch --c|custom-group=XYZ
 
--k|--sub-key-name=Name
+-k|--sub-key-name=<SUBKEY-NAME>
 
       This allows for one single X509 client certificate to have multiple
       TLS Crypt V2 client keys associated with it.  For example, the same
       X509 certificate can be used from different locations with unique
       TLS crypt V2 keys.
+
+-a|--ss-age=<AGE>   Self-signed certificate age. (Default: 3650 days)
+-w|--ss-password    Prompt for a password to encrypt a self-signed key.
+-c|--ss-eccurve=<CURVE_NAME>
+                    Specify an alternate Eliptic Curve for a self-signed key.
+                    (Default: secp384r1)
 
 -b|--base-dir       Path to OpenVPN base directory. (Windows Only)
                     Default: C:/Progra~1/OpenVPN
@@ -336,13 +349,13 @@ General options:
                     Default: C:/Progra~1/OpenVPN/bin
 -e|--ersabin-dir    Path to Easy-RSA3 bin directory. (Windows Only)
                     Default: C:/Progra~1/Openvpn/easy-rsa/bin
-'
+"
 } # => opt_usage()
 
 # Option abbreviations
 opt_abbreviations ()
 {
-	print '
+	print "
 Easy-TLS abbreviations:
 
   config                        - cf | cfg
@@ -372,7 +385,11 @@ Easy-TLS abbreviations:
   cert-expire                   - cx
   disable                       - d
   enable                        - e
-  disabled-list-rehash          - No abbreviation'
+  disabled-list-rehash          - No abbreviation
+
+  self-sign-server              - sss
+  self-sign-client              - ssc
+"
 } # => opt_abbreviations ()
 
 # Option abbreviations
@@ -1096,7 +1113,9 @@ and initialize a fresh TLS PKI here."
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	if [ $EASYTLS_NO_CA ]
 	then
-		# Ignore this
+		# create issued
+		#"${EASYTLS_MKDIR}" -p "${EASYRSA_PKI}/issued"
+		# Ignore
 		:
 	else
 		EASYTLS_INIT=1
@@ -3461,6 +3480,94 @@ save_metadata ()
 {
 	"$EASYTLS_PRINTF" "%s\n" "$metadata" > "$metadata_debug"
 } # => save_metadata ()
+
+# Build self-signed server cert and key
+build_self_sign ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
+
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	verify_tls_init
+
+	crt_type="$1"
+	shift # Scrape off type
+
+	crt_name="$1"
+	shift # Scrape off name
+
+	crt_file="$EASYTLS_PKI/$crt_name.crt"
+	key_file="$EASYTLS_PKI/$crt_name.key"
+
+	[ -f "$crt_file" ] && {
+		help_note="Not over-writing current certificate"
+		die "Certificate exists: $crt_file"
+		}
+
+	[ -f "$key_file" ] && {
+		help_note="Not over-writing current key"
+		die "Key exists: $key_file"
+		}
+
+	# Certificate type
+	case "${crt_type}" in
+		server)
+			# Certificate extension: TLS Web Server
+			EASYTLS_EKU="serverAuth"
+			openssl_eku="-addext extendedKeyUsage="
+		;;
+		client)
+			# Certificate extension: TLS Web Server
+			EASYTLS_EKU="clientAuth"
+			openssl_eku="-addext extendedKeyUsage="
+		;;
+		*)
+			die "Unknown certificate type: ${crt_type}"
+		;;
+	esac
+
+	# Disable password
+	[ ${EASYTLS_PASSWORD} ] || openssl_nodes="-nodes"
+
+	# build
+	create_self_sign_cert_pair || \
+		die "Failed to create self-signed server cert/key for $crt_name"
+
+	notice "Self signed server certificate/key created for $crt_name"
+	notice " * Certificate: $crt_file"
+	notice " * Key: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		# Inline what ?
+		:
+	fi
+
+	# Explicit return success
+	return 0
+
+} # => build_self_sign_server ()
+
+# Build self-signed client cert and key
+self_sign_client ()
+{
+	#
+	:
+} # => self_sign_client ()
+
+# Create an EC key/cert pair
+create_self_sign_cert_pair ()
+{
+	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_ECCURVE}" \
+		> "${EASYTLS_ECPARAM_TMP}"
+	# If ecparams fail then so does req
+	notice "Creating private-key and public-certificate"
+	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
+		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} \
+		-keyout "${key_file}" -out "${crt_file}" -subj "/CN=${crt_name}" \
+		${openssl_eku}${EASYTLS_EKU} \
+		|| return 1
+	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
+}
 
 #
 noca_build_tls_crypt_v2_server ()
@@ -5918,41 +6025,41 @@ external_deps ()
 			setup_err=1
 			}
 		[ -d "$EASYTLS_ersabin_dir" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir" 61
+			echo "Missing: $EASYTLS_ersabin_dir"
 			setup_err=1
 			}
 		[ -d "$EASYTLS_ersabin_dir" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir" 62
+			echo "Missing: $EASYTLS_ersabin_dir"
 			setup_err=1
 			}
 		[ -d "$EASYTLS_ovpnbin_dir" ] || {
-			echo "Missing: $EASYTLS_ovpnbin_dir" 63
+			echo "Missing: $EASYTLS_ovpnbin_dir"
 			setup_err=1
 			}
 
 		# Note: EASYRSA_OPENSSL not EasyTLS
 		[ -f "${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" ] || {
-			echo "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" 64
+			echo "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || {
-			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" 65
+			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" 66
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" 67
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || {
-			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" 68
+			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" 69
+			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe"
 			setup_err=1
 			}
 		[ $setup_err -eq 0 ] || {
@@ -5986,6 +6093,14 @@ external_deps ()
 	# Append easytls to tmp_dir and create it
 	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
 	mkdir -p "${EASYTLS_tmp_dir}"
+
+	# OpenSSL config
+	export OPENSSL_CONF="${PWD}/openssl-easytls.cnf"
+	github="https://raw.githubusercontent.com"
+	config_url="TinCanTech/easy-tls/master/openssl-easytls.cnf"
+	[ -f "${OPENSSL_CONF}" ] || \
+		die "Missing openssl config: ${NL} * ${github}/${config_url}"
+
 } # => external_deps ()
 
 # vars setup
@@ -6091,9 +6206,9 @@ vars_setup()
 	set_var EASYTLS_SRVSCRIPT_CFG   "$EASYTLS/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "$EASYTLS/easytls-script.help"
 
-	set_var EASYTLS_WIN_TC2V_BAT    "$EASYTLS/easytls-cryptv2-verify.bat"
-	set_var EASYTLS_WIN_TV_BAT      "$EASYTLS/easytls-verify.bat"
-	set_var EASYTLS_WIN_CCON_BAT    "$EASYTLS/easytls-cryptv2-client-connect.bat"
+	set_var EASYTLS_SS_AGE          "3650"
+	set_var EASYTLS_ECCURVE         "secp384r1"
+	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_tmp_dir}/ecp.tmp"
 
 	# Assign value to $EASYRSA_TEMP_DIR_session and work around
 	# Windows mktemp bug when parent dir is missing
@@ -6188,6 +6303,16 @@ while :; do
 	;;
 	-k|--sub-key-name)
 		export TLSKEY_SUBNAME="$val"
+	;;
+	-w|--ss-pass)
+		empty_ok=1
+		export EASYTLS_PASSWORD=1
+	;;
+	-c|--ss-curve)
+		export EASYTLS_EC_CURVE="${val}"
+	;;
+	-a|--ss-age)
+		export EASYTLS_SS_AGE="${val}"
 	;;
 	--openvpn)
 		export EASYTLS_OPENVPN="$val"
@@ -6301,17 +6426,27 @@ case "$cmd" in
 	esac
 
 	# When no-ca is true use these versions of commands
-	if [ $EASYTLS_NO_CA ] && [ ! "$cmd" = 'Done' ]
+	if [ $EASYTLS_NO_CA ]
 	then
 		# Set self-sign dir
-		EASYTLS_SELF_SIGN_DIR="${EASYTLS}/peer-fpr"
+		#EASYTLS_SELF_SIGN_DIR="${EASYTLS}/peer-fpr"
 
 		# Verify self-sign dir
-		[ -d "${EASYTLS_SELF_SIGN_DIR}" ] || \
-			warn "Missing required directory: ${EASYTLS_SELF_SIGN_DIR}"
+		#[ -d "${EASYTLS_SELF_SIGN_DIR}" ] || \
+		#	warn "Missing required directory: ${EASYTLS_SELF_SIGN_DIR}"
 
 		# Possible commands
 		case "$cmd" in
+			sss|self-sign-server)
+				build_self_sign 'server' "$@" || \
+					die "Error: self-sign-server"
+				cmd='Done'
+			;;
+			ssc|self-sign-client)
+				build_self_sign 'client' "$@" || \
+					die "Error: self-sign-client"
+				cmd='Done'
+			;;
 			btv2s|btcv2s|build-tls-crypt-v2-server)
 				noca_build_tls_crypt_v2_server "$@" || \
 					die "Error: build_tls_crypt_v2_server"
@@ -6321,6 +6456,9 @@ case "$cmd" in
 				noca_build_tls_crypt_v2_client "$@" || \
 					die "Error: build_tls_crypt_v2_client"
 				cmd='Done'
+			;;
+			Done)
+				: # Command already completed
 			;;
 			*)
 				die "Command '${cmd}' does not support 'no-ca' mode"
