@@ -923,7 +923,7 @@ config_addition ()
 
 	# Save hash
 	config_save_hash || die "Error hashing config."
-	easytls_verbose "New option added to config: ${cfg_opt}"
+	notice "New option added to config: ${cfg_opt}"
 } # => config_addition ()
 
 # Delete an option from config
@@ -953,7 +953,7 @@ config_deletion ()
 
 	# Save hash
 	config_save_hash || die "Error hashing config."
-	easytls_verbose "Option deleted from config: ${cfg_opt}"
+	notice "Option deleted from config: ${cfg_opt}"
 } # => config_deletion ()
 
 # Verify Openvpn is available
