@@ -49,5 +49,12 @@ SET EASYTLS_ovpnbin_dir=.
 
 sh.exe easytls-unit-tests.sh
 
+REM AOK
+IF ERRORLEVEL 0 SET SH_EXIT=0
+REM X509 certificate revoked
+IF ERRORLEVEL 1 SET SH_EXIT=1
+
 ECHO * Verified expected errors: 54
 
+ECHO SH_EXIT: %SH_EXIT%
+EXIT /B %SH_EXIT%
