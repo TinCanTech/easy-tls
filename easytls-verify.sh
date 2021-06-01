@@ -383,15 +383,15 @@ update_status "CN:${X509_0_CN}"
 	# Certificate expire date
 	expire_date=$(
 		"${EASYTLS_OPENSSL}" x509 -in "$peer_cert" -noout -enddate |
-		sed 's/^notAfter=//'
+		"${EASYTLS_SED}" 's/^notAfter=//'
 		)
-	expire_date=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
+	expire_date_sec=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
 
 	# Current date
 	local_date_sec=$("${EASYTLS_DATE}" +%s)
 
 	# Check for expire
-	if [ $((expire_date)) -lt $((local_date_sec)) ]
+	if [ ${expire_date_sec} -lt ${local_date_sec} ]
 	then
 		update_status "Certificate expired"
 		[ $ignore_expired ] || \
