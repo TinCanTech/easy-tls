@@ -6095,9 +6095,9 @@ external_deps ()
 	mkdir -p "${EASYTLS_tmp_dir}"
 
 	# OpenSSL config
-	export OPENSSL_CONF="${PWD}/openssl-easytls.cnf"
+	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
 	github="https://raw.githubusercontent.com"
-	config_url="TinCanTech/easy-tls/master/openssl-easytls.cnf"
+	config_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
 	[ -f "${OPENSSL_CONF}" ] || \
 		die "Missing openssl config: ${NL} * ${github}/${config_url}"
 
