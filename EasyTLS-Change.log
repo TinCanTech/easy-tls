@@ -1,6 +1,11 @@
 https://github.com/TinCanTech/easy-tls
   Change log:
 
+Version 2.2
+* TBD
+  Complete script support for --tls-auth and --tls-crypt keys
+  Commit 1dab7536cce344c931861bdb75c76f7c06333ed6
+
 Version 2.1
 * 2021-05-23
   Introduce 'no-ca' mode to support OpenVPN Peer-Fingerprint mode
