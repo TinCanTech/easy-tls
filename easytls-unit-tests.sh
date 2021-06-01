@@ -153,10 +153,23 @@ fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
 
 # No-CA test
+echo "============================================================"
+echo "No-CA mode:"
+print "ls -l"
+ls -l
+echo "--------------------"
+print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 "$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
+echo "--------------------"
+print "$EASYTLS_CMD ${EASYTLS_OPTS} init no-ca"
 "$EASYTLS_CMD" ${EASYTLS_OPTS} init no-ca || fail "No-CA test: init no-ca"
+echo "--------------------"
+print "$EASYTLS_CMD ${EASYTLS_OPTS} sss ss-s01"
 "$EASYTLS_CMD" ${EASYTLS_OPTS} sss ss-s01 || fail "No-CA test: sss ss-s01"
+echo "--------------------"
+print "$EASYTLS_CMD ${EASYTLS_OPTS} ssc ss-c01"
 "$EASYTLS_CMD" ${EASYTLS_OPTS} ssc ss-c01 || fail "No-CA test: ssc ss-c01"
+echo "============================================================"
 
 
 export EASYRSA_CERT_RENEW=1000
