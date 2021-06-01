@@ -152,6 +152,13 @@ else
 fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
 
+# No-CA test
+"$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
+"$EASYTLS_CMD" ${EASYTLS_OPTS} init no-ca || fail "No-CA test: init no-ca"
+"$EASYTLS_CMD" ${EASYTLS_OPTS} sss ss-s01 || fail "No-CA test: sss ss-s01"
+"$EASYTLS_CMD" ${EASYTLS_OPTS} ssc ss-c01 || fail "No-CA test: ssc ss-c01"
+
+
 export EASYRSA_CERT_RENEW=1000
 
 build_easyrsa
@@ -735,10 +742,12 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 71: version"
 
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 165 Verified)"
-echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
+echo "Clean up"
 echo "rm -r $EASYTLS_tmp_dir"
 [ -n "$EASYTLS_tmp_dir" ] && [ "$EASYTLS_tmp_dir" != "/" ] && rm -rv "$EASYTLS_tmp_dir"
+echo "============================================================"
+echo "total_expected_errors=$total_expected_errors (Expected 165 Verified)"
+echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
 [ $total_expected_errors -eq 165 ] || {
