@@ -381,10 +381,6 @@ opt_config ()
 	print '
 Easy-TLS configurable options:
 
-  ac|auto.check on|off
-     Always run auto-check
-     Toggle auto.check on|off.
-
   cg|custom.group NAME
      Save the Custom Group NAME - NAME must be a single contiguous word.
 
@@ -393,6 +389,13 @@ Easy-TLS configurable options:
 
      When using easytls-crypt-v2-verify.sh in your openvpn server, if you
      change it then your current keys will no longer be able to connect.
+
+  td|tmp-dir
+     Set general temp directory
+
+  ac|auto.check on|off
+     Always run auto-check
+     Toggle auto.check on|off.
 
   co|custom.openvpn "/full/path/to/openvpn(.exe)"
      Save your custom openvpn binary location.
@@ -408,7 +411,18 @@ Easy-TLS configurable options:
 
   ih|inline.hardware on|off
      Include metadata hardware-addresses in metadata for inline file
-     Toggle inline-file hardware-address metadata on|off.'
+     Toggle inline-file hardware-address metadata on|off.
+
+  addition (No short form)
+     Add arbitrary item to config
+     This only adds the <label = > item to the config.
+     The item must then be configured.
+     This allows for future additions to config without the need to hack.
+
+  deletion (No short form)
+     delete an item from config
+     Should the need arise, items can now be deleted also.
+'
 } #=> opt_config ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
@@ -925,7 +939,7 @@ config_deletion ()
 	# Find the pattern
 	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
 		"$EASYTLS_CONFIG_FILE" || {
-			error_msg "config_deletion - addition error: ${cfg_opt}"
+			error_msg "config_deletion - verify error: ${cfg_opt}"
 			return 1
 			}
 
