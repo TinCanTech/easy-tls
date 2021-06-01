@@ -3547,13 +3547,6 @@ build_self_sign ()
 
 } # => build_self_sign_server ()
 
-# Build self-signed client cert and key
-self_sign_client ()
-{
-	#
-	:
-} # => self_sign_client ()
-
 # Create an EC key/cert pair
 create_self_sign_cert_pair ()
 {
