@@ -1208,6 +1208,11 @@ generate_valid_file_hash ()
 		#generated_valid_hash=$fixed_hash
 		#return 0
 	else
+		[ -z "${EASYTLS_HASH_ALGO}" ] && {
+			error_msg "generate_valid_file_hash - Missing EASYTLS_HASH_ALGO"
+			return 1
+			}
+
 		openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
 		# Only need hash
 		generated_hash="${openssl_hash%% *}"
