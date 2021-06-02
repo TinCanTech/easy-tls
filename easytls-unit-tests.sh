@@ -153,6 +153,10 @@ fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
 
 # No-CA test
+PKI_DIR="${WORK_DIR}/noca"
+export EASYRSA="$WORK_DIR"
+export EASYRSA_PKI="$PKI_DIR"
+
 echo "============================================================"
 echo "No-CA mode:"
 print "ls -l"
