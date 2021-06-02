@@ -445,7 +445,7 @@ Easy-TLS configurable options:
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 print ()
 {
-	[ "$EASYTLS_SILENT" ] && return
+	[ "$EASYTLS_SILENT" ] && return 0
 	"$EASYTLS_PRINTF" "%s\n" "$*"
 } # => print ()
 
@@ -483,7 +483,7 @@ cleanup ()
 # non-fatal warning output
 warn ()
 {
-	[ "$EASYTLS_SILENT" ] && return
+	[ "$EASYTLS_SILENT" ] && return 0
 		print "
 WARNING:
   $1
@@ -493,7 +493,8 @@ WARNING:
 # informational notices to stdout
 notice ()
 {
-	[ "$EASYTLS_SILENT" ] && return
+	[ "$EASYTLS_SILENT" ] && return 0
+	[ $flash_config ] && return 0
 		print "
 $1"
 } # => notice ()
@@ -502,8 +503,8 @@ $1"
 # returns without prompting in EASYTLS_BATCH
 confirm ()
 {
-	[ "$batch_mode" ] && return
-	[ "$EASYTLS_BATCH" ] && return
+	[ "$batch_mode" ] && return 0
+	[ "$EASYTLS_BATCH" ] && return 0
 	prompt="$1"
 	value="$2"
 	msg="$3"
@@ -514,7 +515,7 @@ $msg
   Type the word '$value' to continue, or any other input to abort."
 	"$EASYTLS_PRINTF" '\n%s' "  $prompt"
 	read -r input
-	[ "$input" = "$value" ] && "$EASYTLS_PRINTF" "\n" && return
+	[ "$input" = "$value" ] && "$EASYTLS_PRINTF" "\n" && return 0
 	notice "Aborting without confirmation."
 	exit 9
 } # => confirm ()
@@ -607,6 +608,7 @@ easytls_verbose ()
 {
 	[ $EASYTLS_VERBOSE ] || return 0
 	[ $EASYTLS_SILENT ] && return 0
+	[ $flash_config ] && return 0
 	verbose_message="$*"
 	[ -z "$verbose_message" ] && print "" && return 0
 	print "* $verbose_message"
@@ -781,9 +783,7 @@ config_update ()
 			return 1
 			}
 
-	[ $flash_config ] || notice \
-		"config-file updated: ${cfg_opt} = ${cfg_val}"
-	return 0
+	notice "config-file updated: ${cfg_opt} = ${cfg_val}"
 } # => config_update ()
 
 # Use config
@@ -855,7 +855,8 @@ config_use ()
 				export EASYTLS_MASTER_ID="$cfg_val"
 				;;
 			status)
-				: ;;
+				EASYTLS_VERSION="${EASYTLS_VERSION}${cfg_val:-1}"
+				unset flash_config ;;
 			*)
 				error_msg "Config error: Ignored option: $cfg_opt"
 				;;
@@ -902,7 +903,7 @@ config_save_hash ()
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-	[ $flash_config ] || easytls_verbose "config-file hash save OK"
+	easytls_verbose "config-file hash save OK"
 } # => config_save_hash ()
 
 # Add a new option to config
@@ -1149,9 +1150,8 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ $status_disabled_auto_check ] && return 0
 	[ $EASYTLS_REMOTE_CI ] && return 0
-	[ $file_hash_disabled ] && flash_config=1 && easytls_config status 1
+	[ $status_disabled_auto_check ] && return 0
 	[ $auto_check_disabled ] && return 0
 
 	# If inline-index does not exist then do not auto-check
@@ -1239,14 +1239,14 @@ validate_hash ()
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
 	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
-		error_msg "verify_hash - !Hex: $test_hash"
+		error_msg "validate_hash - !Hex: $test_hash"
 		unset test_hash
 		return 1
 		}
 
 	# Test for empty input hash
 	[ $test_hash = $forbidden_hash ] && {
-		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
+		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
 		unset test_hash
 		return 1
 		}
@@ -1259,7 +1259,7 @@ validate_hash ()
 
 	# Verify length
 	[ $test_length -eq $fixed_length ] || {
-		error_msg "verify_hash - ${EASYTLS_HASH_ALGO} hash Size:"
+		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} hash Size:"
 		error_msg "Actual: $test_length - Expected: $fixed_length"
 		unset test_length
 		return 1
@@ -5920,6 +5920,7 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
+	[ $file_hash_disabled ] && flash_config=1 && easytls_config status 1
 
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
@@ -5947,7 +5948,7 @@ save_wiscii_hash ()
 		return 1
 		}
 
-	[ $flash_config ] || easytls_verbose "Master hash save OK: $counted_wiscii"
+	easytls_verbose "Master hash save OK: $counted_wiscii"
 } # => save_wiscii_hash ()
 
 # Verify wiscii hash
@@ -6087,6 +6088,8 @@ external_deps ()
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
+
+	EASYTLS_VERSION="${EASYTLS_VERSION}/"
 
 	# Append easytls to tmp_dir and create it
 	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
@@ -6245,7 +6248,7 @@ set_var()
 # Set the Easy-TLS version
 easytls_version ()
 {
-	notice "Easy-TLS version: $EASYTLS_VERSION"
+	notice "Easy-TLS version: ${EASYTLS_VERSION}"
 } # => easytls_version ()
 
 
@@ -6375,18 +6378,8 @@ case "$cmd" in
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
+		cmd='Done'
 		;;
-	v|version)
-		easytls_version || \
-			die "Error: easytls_version"
-		exit 0
-		;;
-	''|help|-h|--help|--usage)
-		cmd_help "$1" || \
-			die "Error: cmd_help"
-		exit 0
-		;;
-
 	*)
 	# Other commands
 
@@ -6395,6 +6388,19 @@ case "$cmd" in
 
 	# Load config options - Does not change command line options
 	config_use || die "config_use - Error: $?"
+
+	case "$cmd" in
+		''|help|-h|--help|--usage)
+			cmd_help "$1" || \
+				die "Error: cmd_help"
+			cmd='Done'
+		;;
+		v|version)
+			easytls_version || \
+				die "Error: easytls_version"
+			cmd='Done'
+		;;
+	esac
 
 	# Verify me!
 	verify_wiscii_hash || {
