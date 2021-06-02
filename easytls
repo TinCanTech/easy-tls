@@ -2688,17 +2688,24 @@ inline_base ()
 	then
 		crt_file="${EASYTLS_PKI}/${name}.crt"
 		key_file="${EASYTLS_PKI}/${name}.key"
-		# fpr file ?
+		# Always generate the fingerprint
 	else
 		ca_file="$EASYRSA_PKI/ca.crt"
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
 		key_file="$EASYRSA_PKI/private/$name.key"
 	fi
 
-	[ -f "$crt_file" ] || {
+	if [ -f "$crt_file" ]
+	then
+		crt_fpr="$(generate_fingerprint)" || {
+			error_msg "generate_fingerprint failed"
+			return 1
+			}
+		crt_fpr="${crt_fpr##*=}"
+	else
 		error_msg "Certificate file missing or revoked: $crt_file"
 		return 1
-		}
+	fi
 
 	if [ "$no_x509_key" ]
 	then
@@ -2730,19 +2737,22 @@ inline_base ()
 
 	# Build .base file
 	{
+		# Header
 		"$EASYTLS_PRINTF" '%s\n' "# $TLSKEY_CUSTOM_GRP"
 		"$EASYTLS_PRINTF" '%s\n' "# EasyTLS version $EASYTLS_VERSION"
 		"$EASYTLS_PRINTF" '%s\n' "# Common name: $name"
 		"$EASYTLS_PRINTF" '%s\n' "# X509 serial: $crt_serial"
-		[ $EASYTLS_NO_CA ] && {
-			"$EASYTLS_PRINTF" '%s' "# Send this to your peer - Fingerprint: "
-			"$EASYTLS_CAT" "${fpr_file}"
-			}
-		"$EASYTLS_PRINTF" '%s\n' ""
+
+		# Fingerprint
+		[ $EASYTLS_NO_CA ] && "$EASYTLS_PRINTF" '%s\n\n' \
+			"# Send this to your peer - Fingerprint: ${crt_fpr}"
+
+		# Certificate
 		"$EASYTLS_PRINTF" '%s\n' "<cert>"
 		"$EASYTLS_CAT" "$crt_file"
-		"$EASYTLS_PRINTF" '%s\n' "</cert>"
-		"$EASYTLS_PRINTF" '%s\n' ""
+		"$EASYTLS_PRINTF" '%s\n\n' "</cert>"
+
+		# Key
 		"$EASYTLS_PRINTF" '%s\n' "<key>"
 
 		if [ "$no_x509_key" ]
@@ -2755,16 +2765,16 @@ inline_base ()
 			"$EASYTLS_CAT" "$key_file"
 		fi
 
-		"$EASYTLS_PRINTF" '%s\n' "</key>"
-		"$EASYTLS_PRINTF" '%s\n' ""
+		"$EASYTLS_PRINTF" '%s\n\n' "</key>"
 
+		# CA
 		[ $EASYTLS_NO_CA ] || {
 			"$EASYTLS_PRINTF" '%s\n' "<ca>"
 			"$EASYTLS_CAT" "$ca_file"
-			"$EASYTLS_PRINTF" '%s\n' "</ca>"
-			"$EASYTLS_PRINTF" '%s\n' ""
+			"$EASYTLS_PRINTF" '%s\n\n' "</ca>"
 			}
 
+		# DH
 		if [ "$inline_dh_file" ] && [ ! $EASYTLS_NO_CA ]
 		then
 			"$EASYTLS_PRINTF" '%s\n' "<dh>"
@@ -2778,11 +2788,7 @@ inline_base ()
 		return 1
 		}
 
-	easytls_verbose
 	easytls_verbose "Inline base file created: $inline_base"
-
-	# explicitly return success for callers
-	return 0
 } # => inline_base ()
 
 # Append TLS auth file to base file
