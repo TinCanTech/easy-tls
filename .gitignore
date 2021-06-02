@@ -3,6 +3,7 @@ easytls-script.conf
 easytls-server.pid
 ia-*.*
 et-tdir*/*
+noca/*
 x509-types/*
 easyrsa
 vars
