@@ -172,6 +172,8 @@ do
 done
 echo "============================================================"
 
+[ $NOCA_ONLY ] && exit 0
+
 export EASYRSA_CERT_RENEW=1000
 
 build_easyrsa
