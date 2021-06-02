@@ -9,6 +9,8 @@ Version 2.2
     Commit 8f78129c73af47ed0aa87dfa4272c28771baf5c7
   Allow addition/deletion of arbitrary config labels
     Commit 237dab2ad5e3a68fe010cc8b2c0dfb7d9acab1ee
+  Renamed cmd opt 'nokey' to 'no-key'
+    Commit 5dc17aee11c44b31a433d09dc7f4b99e99e9ae38
 
 Version 2.1
 * 2021-05-23 - Commit 234ced916c9e7e6f3e5bf9205c87a84528d62ad2
