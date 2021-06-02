@@ -157,20 +157,20 @@ echo "============================================================"
 echo "No-CA mode:"
 print "ls -l"
 ls -l
+
 echo "--------------------"
 print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 "$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
-echo "--------------------"
-print "$EASYTLS_CMD ${EASYTLS_OPTS} init no-ca"
-"$EASYTLS_CMD" ${EASYTLS_OPTS} init no-ca || fail "No-CA test: init no-ca"
-echo "--------------------"
-print "$EASYTLS_CMD ${EASYTLS_OPTS} sss ss-s01"
-"$EASYTLS_CMD" ${EASYTLS_OPTS} sss ss-s01 || fail "No-CA test: sss ss-s01"
-echo "--------------------"
-print "$EASYTLS_CMD ${EASYTLS_OPTS} ssc ss-c01"
-"$EASYTLS_CMD" ${EASYTLS_OPTS} ssc ss-c01 || fail "No-CA test: ssc ss-c01"
-echo "============================================================"
 
+for cmd in "init no-ca" "cf cg easytls-unit-test" "sss s01" "ssc c01" \
+			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 AABB55FFAABB" \
+			"itcv2 s01" "itcv2 c01" "-k=hw itcv2 c01 add-hw"
+do
+	echo "--------------------"
+	print "$EASYTLS_CMD ${EASYTLS_OPTS} ${cmd}"
+	"$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || fail "No-CA test: ${cmd}"
+done
+echo "============================================================"
 
 export EASYRSA_CERT_RENEW=1000
 
