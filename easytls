@@ -2684,9 +2684,16 @@ inline_base ()
 		shift
 	done
 
-	ca_file="$EASYRSA_PKI/ca.crt"
-	crt_file="$EASYRSA_PKI/issued/$name.crt"
-	key_file="$EASYRSA_PKI/private/$name.key"
+	if [ $EASYTLS_NO_CA ]
+	then
+		crt_file="${EASYTLS_PKI}/${name}.crt"
+		key_file="${EASYTLS_PKI}/${name}.key"
+		# fpr file ?
+	else
+		ca_file="$EASYRSA_PKI/ca.crt"
+		crt_file="$EASYRSA_PKI/issued/$name.crt"
+		key_file="$EASYRSA_PKI/private/$name.key"
+	fi
 
 	[ -f "$crt_file" ] || {
 		error_msg "Certificate file missing or revoked: $crt_file"
@@ -2705,7 +2712,7 @@ inline_base ()
 			}
 	fi
 
-	if [ "$inline_dh_file" ]
+	if [ "$inline_dh_file" ] && [ ! $EASYTLS_NO_CA ]
 	then
 		# dh file is required
 		default_dh_file="$EASYRSA_PKI/dh.pem"
@@ -2727,6 +2734,10 @@ inline_base ()
 		"$EASYTLS_PRINTF" '%s\n' "# EasyTLS version $EASYTLS_VERSION"
 		"$EASYTLS_PRINTF" '%s\n' "# Common name: $name"
 		"$EASYTLS_PRINTF" '%s\n' "# X509 serial: $crt_serial"
+		[ $EASYTLS_NO_CA ] && {
+			"$EASYTLS_PRINTF" '%s' "# Send this to your peer - Fingerprint: "
+			"$EASYTLS_CAT" "${fpr_file}"
+			}
 		"$EASYTLS_PRINTF" '%s\n' ""
 		"$EASYTLS_PRINTF" '%s\n' "<cert>"
 		"$EASYTLS_CAT" "$crt_file"
@@ -2737,19 +2748,24 @@ inline_base ()
 		if [ "$no_x509_key" ]
 		then
 			"$EASYTLS_PRINTF" '%s\n' \
-			' * Replace this line with your complete x509 key file *'
+			'# * Replace this line with your complete x509 key file *'
 		else
+			[ $EASYTLS_NO_CA ] && "${EASYRSA_OPENSSL}" \
+				ecparam -name "${EASYTLS_ECCURVE}" -in "${key_file}" -text
 			"$EASYTLS_CAT" "$key_file"
 		fi
 
 		"$EASYTLS_PRINTF" '%s\n' "</key>"
 		"$EASYTLS_PRINTF" '%s\n' ""
-		"$EASYTLS_PRINTF" '%s\n' "<ca>"
-		"$EASYTLS_CAT" "$ca_file"
-		"$EASYTLS_PRINTF" '%s\n' "</ca>"
-		"$EASYTLS_PRINTF" '%s\n' ""
 
-		if [ "$inline_dh_file" ]
+		[ $EASYTLS_NO_CA ] || {
+			"$EASYTLS_PRINTF" '%s\n' "<ca>"
+			"$EASYTLS_CAT" "$ca_file"
+			"$EASYTLS_PRINTF" '%s\n' "</ca>"
+			"$EASYTLS_PRINTF" '%s\n' ""
+			}
+
+		if [ "$inline_dh_file" ] && [ ! $EASYTLS_NO_CA ]
 		then
 			"$EASYTLS_PRINTF" '%s\n' "<dh>"
 			"$EASYTLS_CAT" "$EASYRSA_DH_FILE"
@@ -2929,6 +2945,7 @@ inline_tls_crypt_v2 ()
 	done
 
 	cert_file="$EASYRSA_PKI/issued/$name.crt"
+	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/$name.crt"
 	[ -f "$cert_file" ] || die "Missing cert file: $cert_file"
 	cert_purpose='Client'
 	verify_cert_purpose "$cert_file" "SSL client : Yes" || cert_purpose='Server'
@@ -2938,6 +2955,7 @@ inline_tls_crypt_v2 ()
 	inline_temp="$EASYTLS_PKI/$name.temp"
 	inline_base="$EASYTLS_PKI/$name.base"
 	metadata_file="$EASYTLS_MD_DIR/$name-tls-crypt-v2.metadata"
+	fpr_file="$EASYTLS_PKI/$name.fpr"
 
 	# Set file names
 	sub_name="$name-$TLSKEY_SUBNAME"
@@ -3023,10 +3041,19 @@ inline_tls_crypt_v2 ()
 		# Drop hardware-address
 		metadata_string="${metadata_string#* }"
 
-		# Get the CA serial number
-		ca_cert="$EASYRSA_PKI/ca.crt"
-		ca_serial="$(fn_ca_serial)"
-		ca_serial="${ca_serial#*=}"
+		if [ $EASYTLS_NO_CA ]
+		then
+			# Get the server serial number
+			crt_file="${EASYTLS_PKI}/${srv_name}.crt"
+			crt_serial=''
+			openssl_crt_serial
+			srv_serial="${crt_serial}"
+		else
+			# Get the CA serial number
+			ca_cert="$EASYRSA_PKI/ca.crt"
+			ca_serial="$(fn_ca_serial)"
+			ca_serial="${ca_serial#*=}"
+		fi
 	else
 		# Must be a server
 		no_metadata=1
@@ -3036,17 +3063,23 @@ inline_tls_crypt_v2 ()
 	# Inline base file
 	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
 
+	# Append TLS-Crypt-V2 key
 	{
 		"$EASYTLS_PRINTF" "%s\n" \
 			"# Easy-TLS version $EASYTLS_VERSION - TLS crypt v2 key"
 
 		[ $no_metadata ] || {
-			"$EASYTLS_PRINTF" '%s\n' "# CA serial: $ca_serial"
+			if [ $EASYTLS_NO_CA ]
+			then
+				"$EASYTLS_PRINTF" '%s\n' "# Server-serial: $srv_serial"
+			else
+				"$EASYTLS_PRINTF" '%s\n' "# CA-serial: $ca_serial"
+			fi
 			"$EASYTLS_PRINTF" '%s\n' "# tlskey-serial: $tlskey_serial"
-			"$EASYTLS_PRINTF" '%s\n' "# Creation Date: $MD_date"
+			"$EASYTLS_PRINTF" '%s\n' "# Creation-Date: $MD_date"
 			"$EASYTLS_PRINTF" '%s\n' "# Custom-Group: $MD_cgroup"
-			"$EASYTLS_PRINTF" '%s\n' "# Server Common Name: $srv_name"
-			"$EASYTLS_PRINTF" '%s\n' "# Client Common Name: $MD_cn"
+			"$EASYTLS_PRINTF" '%s\n' "# Server-Common-Name: $srv_name"
+			"$EASYTLS_PRINTF" '%s\n' "# Client-Common-Name: $MD_cn"
 			[ "$MD_subkey" = 'NOSUBKEY' ] || \
 				"$EASYTLS_PRINTF" '%s\n' "# Sub-key name: $MD_subkey"
 			[ "$MD_opt" = "OPT" ] || "$EASYTLS_PRINTF" '%s\n' "# Opt: $MD_opt"
@@ -3502,6 +3535,7 @@ build_self_sign ()
 
 	crt_file="$EASYTLS_PKI/$crt_name.crt"
 	key_file="$EASYTLS_PKI/$crt_name.key"
+	fpr_file="$EASYTLS_PKI/$crt_name.fpr"
 
 	[ -f "$crt_file" ] && {
 		help_note="Not over-writing current certificate"
@@ -3535,11 +3569,15 @@ build_self_sign ()
 
 	# build
 	create_self_sign_cert_pair || \
-		die "Failed to create self-signed server cert/key for $crt_name"
+		die "Failed to create self-signed ${crt_type} cert/key for $crt_name"
 
-	notice "Self signed server certificate/key created for $crt_name"
-	notice " * Certificate: $crt_file"
-	notice " * Key: $key_file"
+	# Fingerprint file - Always over-write any current file
+	create_fingerprint || \
+		die "Failed to create fingerprint for $crt_name"
+
+	notice "Self signed ${crt_type} certificate/key created for $crt_name"
+	notice " * Cert: $crt_file"
+	notice " *  Key: $key_file"
 
 	if [ $EASYTLS_BINLINE ]
 	then
@@ -3560,14 +3598,28 @@ create_self_sign_cert_pair ()
 	# If ecparams fail then so does req
 	notice "Creating private-key and public-certificate"
 	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} \
+		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text \
 		-keyout "${key_file}" -out "${crt_file}" -subj "/CN=${crt_name}" \
 		${openssl_eku}${EASYTLS_EKU} \
 		|| return 1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
-}
+} # => create_self_sign_cert_pair ()
 
-#
+# Create fingerprint file for self-signed cert
+create_fingerprint ()
+{
+	crt_fpr="$(generate_fingerprint)" || return 1
+	crt_fpr="${crt_fpr##*=}"
+	"${EASYTLS_PRINTF}" "%s\n" "${crt_fpr}" > "${fpr_file}" || return 1
+} # => create_fingerprint ()
+
+# Fingerprint
+generate_fingerprint ()
+{
+	"${EASYRSA_OPENSSL}" x509 -in "${crt_file}" -noout -sha256 -fingerprint
+} # => generate_fingerprint ()
+
+# No-CA version
 noca_build_tls_crypt_v2_server ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
@@ -3586,8 +3638,8 @@ noca_build_tls_crypt_v2_server ()
 	esac
 
 	srv_name="$1"
-	srv_cert="${EASYTLS_SELF_SIGN_DIR}/${srv_name}.crt"
-	key_file="${EASYTLS_SELF_SIGN_DIR}/${srv_name}-tls-crypt-v2.key"
+	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
+	key_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
 
 	[ -f "$srv_cert" ] || {
 		#help_note="Easy-TLS requires that the x509 certificate has been built."
@@ -3623,7 +3675,7 @@ noca_build_tls_crypt_v2_server ()
 	return 0
 } # => noca_build_tls_crypt_v2_server ()
 
-#
+# No-CA version
 noca_build_tls_crypt_v2_client ()
 {
 	[ $# -ge 2 ] || \
@@ -3643,12 +3695,12 @@ noca_build_tls_crypt_v2_client ()
 	esac
 
 	srv_name="$1"
-	srv_cert="${EASYTLS_SELF_SIGN_DIR}/${srv_name}.crt"
+	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
 	ca_cert="$srv_cert"
 	shift
 
 	cli_name="$1"
-	cli_cert="${EASYTLS_SELF_SIGN_DIR}/${cli_name}.crt"
+	cli_cert="${EASYTLS_PKI}/${cli_name}.crt"
 	shift
 
 	# don't do that ..
@@ -3666,13 +3718,13 @@ noca_build_tls_crypt_v2_client ()
 	verify_cert_purpose "$cli_cert" 'SSL client : Yes' || \
 		die "Certificate must be a Client: $cli_cert"
 
-	in_file="${EASYTLS_SELF_SIGN_DIR}/${srv_name}-tls-crypt-v2.key"
-	key_file="${EASYTLS_SELF_SIGN_DIR}/${cli_name}-tls-crypt-v2.key"
+	in_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
+	key_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
 	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		full_name="${cli_name}-${TLSKEY_SUBNAME}"
-		key_file="${EASYTLS_SELF_SIGN_DIR}/${full_name}-tls-crypt-v2.key"
+		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
 		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 		}
 
@@ -4967,8 +5019,8 @@ interactive_scripts ()
 		{
 			# easytls-cryptv2-verify.sh
 			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${EASYTLS_tmp_dir}'"
-			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${opt_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${opt_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s\n' \
 				'# If your clients have username/password then set this to level 3'
 			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
@@ -4982,7 +5034,7 @@ interactive_scripts ()
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
 			[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
 			[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
-			[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+			[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
 			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
 			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
@@ -4998,7 +5050,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH} -v"
 				[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 				"$EASYTLS_PRINTF" ' %s' "${opt_ca_path}"
-				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 				"$EASYTLS_PRINTF" '%s\n\n' "'"
 				}
 
@@ -5012,7 +5064,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
-				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				}
 
@@ -5508,7 +5560,7 @@ interactive_tmp_dir ()
 		interactive_question
 		ans_tmp_dir="${ia_answer:-$default}"
 		[ -d "$ans_tmp_dir" ] && {
-			opt_tmp_dir="-t=${ans_tmp_dir}"
+			opt_tmp_dir="${ans_tmp_dir}"
 			break
 			}
 		print "
@@ -6427,6 +6479,11 @@ case "$cmd" in
 			build_tls_crypt_v1 "$@" || die "Error: build_tls_crypt_v1"
 			cmd='Done'
 		;;
+		itv2|itcv2|inline-tls-crypt-v2)
+			inline_tls_crypt_v2 "$@" || \
+				die "Error: inline_tls_crypt_v2"
+			cmd='Done'
+		;;
 	esac
 
 	# When no-ca is true use these versions of commands
@@ -6512,10 +6569,6 @@ case "$cmd" in
 	itc|inline-tls-crypt)
 		inline_tls_crypt_v1 "$@" || \
 			die "Error: inline_tls_crypt_v1"
-		;;
-	itv2|itcv2|inline-tls-crypt-v2)
-		inline_tls_crypt_v2 "$@" || \
-			die "Error: inline_tls_crypt_v2"
 		;;
 	remove-inline)
 		remove_inline "$@" || \
