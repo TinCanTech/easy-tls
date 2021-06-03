@@ -156,6 +156,7 @@ fi
 PKI_DIR="${WORK_DIR}/noca"
 export EASYRSA="$WORK_DIR"
 export EASYRSA_PKI="$PKI_DIR"
+hwaddr="00:15:5d:c9:6e:01"
 
 echo "============================================================"
 echo "No-CA mode:"
@@ -167,7 +168,7 @@ print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 "$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
 
 for cmd in "init no-ca" "cf cg easytls-unit-test" "sss s01" "ssc c01" \
-			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 AABB55FFAABB" \
+			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 ${hwaddr}" \
 			"itcv2 s01" "itcv2 c01" "-k=hw itcv2 c01 add-hw"
 do
 	echo "--------------------"
