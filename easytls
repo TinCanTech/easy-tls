@@ -684,6 +684,10 @@ easytls_config ()
 			cfg_opt="status"
 			cfg_val=$2
 		;;
+		test.bool)
+			cfg_opt="test.bool"
+			cfg_val=$2
+		;;
 		'')
 			"$EASYTLS_PRINTF" "%s\n" "easytls = $EASYTLS_VERSION"
 			"$EASYTLS_GREP" -v 'status' "$EASYTLS_CONFIG_FILE"
@@ -696,6 +700,17 @@ easytls_config ()
 	esac
 
 	case "$cfg_opt" in
+		test.bool|no.ca)
+			case "$cfg_val" in
+				0|1)
+					:
+				;;
+				*)
+					help_note="Supported options:  0 | 1"
+					die "Unsupported value for $cfg_opt: $cfg_val"
+				;;
+			esac
+		;;
 		tmp.dir)
 			[ -d "$cfg_val" ] || {
 				help_note="First create directory: $cfg_val"
@@ -753,8 +768,7 @@ easytls_config ()
 			help_note="See help for init-tls"
 			die "To change your HASH you must create a new Easy-TLS PKI"
 		;;
-		status)
-			[ $flash_config ] || return 0 ;;
+		status) [ $flash_config ] || return 0 ;;
 		*)
 			die "Unknown option: $cfg_opt"
 		;;
@@ -776,6 +790,7 @@ config_update ()
 			}
 
 	# Replace the pattern
+	[ ${cfg_val} -eq 0 ] && unset cfg_val
 	"$EASYTLS_SED" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 		"$EASYTLS_CONFIG_FILE" || {
@@ -803,6 +818,7 @@ config_use ()
 
 		# These settings do not change command line
 		case "$cfg_opt" in
+			test.bool) : ;;
 			auto.check)
 				case "$cfg_val" in
 					off)	set_var auto_check_disabled 1 ;;
@@ -2956,7 +2972,7 @@ inline_tls_crypt_v2 ()
 	cert_purpose='Client'
 	verify_cert_purpose "$cert_file" "SSL client : Yes" || cert_purpose='Server'
 
-	tls_key="$EASYTLS_PKI/$name-tls-crypt-v2.key"
+	tlskey_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
 	inline_file="$EASYTLS_PKI/$name.inline"
 	inline_temp="$EASYTLS_PKI/$name.temp"
 	inline_base="$EASYTLS_PKI/$name.base"
@@ -2966,7 +2982,7 @@ inline_tls_crypt_v2 ()
 	# Set file names
 	sub_name="$name-$TLSKEY_SUBNAME"
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		tls_key="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
+		tlskey_file="$EASYTLS_PKI/$sub_name-tls-crypt-v2.key"
 		metadata_file="$EASYTLS_MD_DIR/$sub_name-tls-crypt-v2.metadata"
 		inline_file="$EASYTLS_PKI/$sub_name.inline"
 		}
@@ -2978,9 +2994,9 @@ inline_tls_crypt_v2 ()
 		}
 
 	# Check tls-crypt key exists
-	[ -f "$tls_key" ] || {
+	[ -f "$tlskey_file" ] || {
 		help_note="Use 'easytls build' to create a TLS-Crypt-V2 key."
-		die "TLS key file does not exist: $tls_key"
+		die "TLS key file does not exist: $tlskey_file"
 		}
 
 	if [ "$cert_purpose" = 'Client' ]
@@ -3105,7 +3121,7 @@ inline_tls_crypt_v2 ()
 		[ "$cert_purpose" = 'Client' ] && \
 			"$EASYTLS_PRINTF" "\n%s\n\n" "push-peer-info"
 		"$EASYTLS_PRINTF" "%s\n" "<tls-crypt-v2>"
-		"$EASYTLS_CAT" "$tls_key"
+		"$EASYTLS_CAT" "$tlskey_file"
 		"$EASYTLS_PRINTF" "%s\n" "</tls-crypt-v2>"
 		"$EASYTLS_PRINTF" "%s\n" ""
 	} > "$inline_temp" || die "Failed to create inline file: $inline_temp"
@@ -3186,7 +3202,7 @@ build_tls_crypt_v2_server ()
 	# This key does not require EasyRSA PKI
 	# but for the client metadata this script does
 	# So make CA a requirement for both server and client
-	#verify_ca_init
+	verify_tls_init
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -3196,8 +3212,15 @@ build_tls_crypt_v2_server ()
 	esac
 
 	srv_name="$1"
-	srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
-	key_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
+
+	if [ $EASYTLS_NO_CA ]
+	then
+		srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
+		tlskey_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
+	else
+		srv_cert="$EASYRSA_PKI/issued/$srv_name.crt"
+		tlskey_file="$EASYTLS_PKI/$srv_name-tls-crypt-v2.key"
+	fi
 
 	[ -f "$srv_cert" ] || {
 		help_note="Easy-TLS requires that the x509 certificate has been built."
@@ -3207,22 +3230,22 @@ build_tls_crypt_v2_server ()
 	verify_cert_purpose "$srv_cert" 'SSL server : Yes' || \
 		die "Certificate must be a Server: $srv_cert"
 
-	[ -f "$key_file" ] && die "Server file already exists: $key_file"
+	[ -f "$tlskey_file" ] && die "Server file already exists: $tlskey_file"
 
 	# get the serial number of the certificate from OpenSSL
 	crt_file="$srv_cert"
 	crt_serial=""
 	openssl_crt_serial
 
-	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
-		die "Failed to create tls-crypt-v2-server key: $key_file"
+	"$EASYTLS_OPENVPN" $build_string "$tlskey_file" || \
+		die "Failed to create tls-crypt-v2-server key: $tlskey_file"
 
 	# Save incomplete server record to key-index
 	tlskey_serial='0000000000000000000000000000000000000000'
 	cli_name="$srv_name" # Improve this
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
-	notice "TLS crypt v2 server key created: $key_file"
+	notice "TLS crypt v2 server key created: $tlskey_file"
 
 	if [ $EASYTLS_BINLINE ]
 	then
@@ -3232,6 +3255,123 @@ build_tls_crypt_v2_server ()
 	# Explicit return success
 	return 0
 } # => build_tls_crypt_v2_server ()
+
+# No-CA version
+noca_build_tls_crypt_v2_client ()
+{
+	[ $# -ge 2 ] || \
+	die "Required option(s): <server_filename_base> <client_filename_base>"
+
+	# Verify Easy-TLS and Easy-RSA have been correctly setup
+	# This key does not require EasyRSA PKI
+	# but for the client metadata this script does
+	# So make CA a requirement for both server and client
+	#verify_ca_init
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
+	case $openvpn_version in
+		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		*) die "Unsupported OpenVPN version $openvpn_version" ;;
+	esac
+
+	srv_name="$1"
+	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
+	ca_cert="$srv_cert"
+	shift
+
+	cli_name="$1"
+	cli_cert="${EASYTLS_PKI}/${cli_name}.crt"
+	shift
+
+	# don't do that ..
+	[ "$srv_name" = "$cli_name" ] && \
+		die "Server name cannot be the same as the client name."
+
+	[ -f "$srv_cert" ] || \
+		die "Easy-TLS requires that the X509 Server certificate has been built.
+* Missing Server certificate: $srv_cert"
+
+	[ -f "$cli_cert" ] || \
+		die "Easy-TLS requires that the X509 Client certificate has been built.
+* Missing Client certificate: $cli_cert"
+
+	verify_cert_purpose "$cli_cert" 'SSL client : Yes' || \
+		die "Certificate must be a Client: $cli_cert"
+
+	in_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
+	key_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
+	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
+
+	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
+		full_name="${cli_name}-${TLSKEY_SUBNAME}"
+		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		}
+
+	[ -f "$in_file" ] || {
+		help_note="You must first build a TLS-Crypt-V2 Server key."
+		die "Server key does not exist: $in_file"
+		}
+
+	[ -f "$key_file" ] && {
+		help_note="To remove an key file use: easytls remove"
+		die "Client key already exists: $key_file"
+		}
+
+	# Capture HW addresses
+	EASYTLS_TLSCV2_HWLIST=""
+	while [ -n "$1" ]; do
+		# Needs to allow multiples. EG: eth & wifi
+		EASYTLS_TLSCV2_HWADDR="$1"
+		# Verify this is a 12 digit hex only value
+		# and add it to the HWLIST
+		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
+			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
+		shift
+	done
+
+	# Confirm metadata Custom-Group
+	[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || {
+		confirm "Is the Custom-Group field correct ? " "yes" \
+		"Custom-Group field for metadata: $TLSKEY_CUSTOM_GRP"
+		}
+
+	# Confirm --sub-key-name)
+	[ "$TLSKEY_SUBNAME" = "NOSUBKEY" ] || {
+		confirm "Is the Sub-key-name correct ? " "yes" \
+		"Sub-key-name field for metadata: $TLSKEY_SUBNAME"
+		}
+
+	# Confirm metadata Hardware-Address(es)
+	[ -n "$EASYTLS_TLSCV2_HWLIST" ] && {
+		notice "All Hardware-Addresses are valid length hexidecimal values."
+		confirm "Is the Hardware-Address field correct ? " "yes" \
+		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
+		}
+
+	metadata=""
+	b64_metadata=""
+	b64_enc_metadata || die "Failed to base64 encode metadata"
+
+	# Build key
+	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
+		$build_string "$key_file" "$b64_metadata" || \
+		die "Failed to create tls-crypt-v2-client key: $key_file"
+
+	# Save serial number to key-index
+	tlskey_index_update add || die "Failed to update tlskey-index"
+
+	notice "TLS crypt v2 client key created: $key_file"
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "$cli_name" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
+} # => noca_build_tls_crypt_v2_client ()
 
 # Create TLS crypt v2 client file
 build_tls_crypt_v2_client ()
@@ -3625,179 +3765,6 @@ generate_fingerprint ()
 	"${EASYRSA_OPENSSL}" x509 -in "${crt_file}" -noout -sha256 -fingerprint
 } # => generate_fingerprint ()
 
-# No-CA version
-noca_build_tls_crypt_v2_server ()
-{
-	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
-
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	# This key does not require EasyRSA PKI
-	# but for the client metadata this script does
-	# So make CA a requirement for both server and client
-	#verify_ca_init
-
-	# Verify OpenVPN version and use correct syntax to --genkey
-	verify_openvpn
-	case $openvpn_version in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
-		*) die "Unsupported OpenVPN version $openvpn_version" ;;
-	esac
-
-	srv_name="$1"
-	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
-	key_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
-
-	[ -f "$srv_cert" ] || {
-		#help_note="Easy-TLS requires that the x509 certificate has been built."
-		die "Missing file: $srv_cert"
-		}
-
-	verify_cert_purpose "$srv_cert" 'SSL server : Yes' || \
-		die "Certificate must be a Server: $srv_cert"
-
-	[ -f "$key_file" ] && die "Server file already exists: $key_file"
-
-	# get the serial number of the certificate from OpenSSL
-	crt_file="$srv_cert"
-	crt_serial=""
-	openssl_crt_serial
-
-	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
-		die "Failed to create tls-crypt-v2-server key: $key_file"
-
-	# Save incomplete server record to key-index
-	tlskey_serial='0000000000000000000000000000000000000000'
-	cli_name="$srv_name" # Improve this
-	tlskey_index_update add || die "Failed to update tlskey-index"
-
-	notice "TLS crypt v2 server key created: $key_file"
-
-	if [ $EASYTLS_BINLINE ]
-	then
-		inline_tls_crypt_v2 "$srv_name" || warn "Failed to build Inline file!"
-	fi
-
-	# Explicit return success
-	return 0
-} # => noca_build_tls_crypt_v2_server ()
-
-# No-CA version
-noca_build_tls_crypt_v2_client ()
-{
-	[ $# -ge 2 ] || \
-	die "Required option(s): <server_filename_base> <client_filename_base>"
-
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	# This key does not require EasyRSA PKI
-	# but for the client metadata this script does
-	# So make CA a requirement for both server and client
-	#verify_ca_init
-
-	# Verify OpenVPN version and use correct syntax to --genkey
-	verify_openvpn
-	case $openvpn_version in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
-		*) die "Unsupported OpenVPN version $openvpn_version" ;;
-	esac
-
-	srv_name="$1"
-	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
-	ca_cert="$srv_cert"
-	shift
-
-	cli_name="$1"
-	cli_cert="${EASYTLS_PKI}/${cli_name}.crt"
-	shift
-
-	# don't do that ..
-	[ "$srv_name" = "$cli_name" ] && \
-		die "Server name cannot be the same as the client name."
-
-	[ -f "$srv_cert" ] || \
-		die "Easy-TLS requires that the X509 Server certificate has been built.
-* Missing Server certificate: $srv_cert"
-
-	[ -f "$cli_cert" ] || \
-		die "Easy-TLS requires that the X509 Client certificate has been built.
-* Missing Client certificate: $cli_cert"
-
-	verify_cert_purpose "$cli_cert" 'SSL client : Yes' || \
-		die "Certificate must be a Client: $cli_cert"
-
-	in_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
-	key_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
-	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
-
-	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		full_name="${cli_name}-${TLSKEY_SUBNAME}"
-		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
-		}
-
-	[ -f "$in_file" ] || {
-		help_note="You must first build a TLS-Crypt-V2 Server key."
-		die "Server key does not exist: $in_file"
-		}
-
-	[ -f "$key_file" ] && {
-		help_note="To remove an key file use: easytls remove"
-		die "Client key already exists: $key_file"
-		}
-
-	# Capture HW addresses
-	EASYTLS_TLSCV2_HWLIST=""
-	while [ -n "$1" ]; do
-		# Needs to allow multiples. EG: eth & wifi
-		EASYTLS_TLSCV2_HWADDR="$1"
-		# Verify this is a 12 digit hex only value
-		# and add it to the HWLIST
-		hw_addr_hex_check "$EASYTLS_TLSCV2_HWADDR" || \
-			die "Invalid Hardware Address: $EASYTLS_TLSCV2_HWADDR"
-		shift
-	done
-
-	# Confirm metadata Custom-Group
-	[ "$TLSKEY_CUSTOM_GRP" = "EASYTLS" ] || {
-		confirm "Is the Custom-Group field correct ? " "yes" \
-		"Custom-Group field for metadata: $TLSKEY_CUSTOM_GRP"
-		}
-
-	# Confirm --sub-key-name)
-	[ "$TLSKEY_SUBNAME" = "NOSUBKEY" ] || {
-		confirm "Is the Sub-key-name correct ? " "yes" \
-		"Sub-key-name field for metadata: $TLSKEY_SUBNAME"
-		}
-
-	# Confirm metadata Hardware-Address(es)
-	[ -n "$EASYTLS_TLSCV2_HWLIST" ] && {
-		notice "All Hardware-Addresses are valid length hexidecimal values."
-		confirm "Is the Hardware-Address field correct ? " "yes" \
-		"Hardware-Address field for metadata: $EASYTLS_TLSCV2_HWLIST"
-		}
-
-	metadata=""
-	b64_metadata=""
-	b64_enc_metadata || die "Failed to base64 encode metadata"
-
-	# Build key
-	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
-		$build_string "$key_file" "$b64_metadata" || \
-		die "Failed to create tls-crypt-v2-client key: $key_file"
-
-	# Save serial number to key-index
-	tlskey_index_update add || die "Failed to update tlskey-index"
-
-	notice "TLS crypt v2 client key created: $key_file"
-
-	if [ $EASYTLS_BINLINE ]
-	then
-		inline_tls_crypt_v2 "$cli_name" || warn "Failed to build Inline file!"
-	fi
-
-	# Explicit return success
-	return 0
-} # => noca_build_tls_crypt_v2_client ()
-
 # Save the ID
 save_id ()
 {
@@ -4065,10 +4032,18 @@ interactive_question ()
 		'To cancel this inter-active menu at any time, press Control-C'
 	[ -n "$ia_extra_help" ] && "$EASYTLS_PRINTF" '\n%s\n' "$ia_extra_help"
 	"$EASYTLS_PRINTF" '%s\n' "$ia_question_help"
-	"$EASYTLS_PRINTF" '%s ' "$ia_question_text"
-	read -r input
-	ia_answer="$input"
+	# Get the answer
+	interactive_wait_for_answer
+	ia_answer="$user_input"
 } # => interactive_question ()
+
+# Wait for answer
+interactive_wait_for_answer ()
+{
+	"$EASYTLS_PRINTF" '%s ' "$ia_question_text"
+	unset user_input
+	read -r user_input
+} # => wait_for_answer ()
 
 # Show the command to run
 interactive_show_cmd ()
@@ -5412,38 +5387,68 @@ interactive_hwaddr ()
 interactive_ca_path ()
 {
 	unset opt_ca_path
-	default="$EASYRSA_PKI"
+	default="${EASYRSA_PKI}"
 	ia_question_help="
 * Enter the path to the location of your Easy-RSA PKI directory.
 
   Leave this blank to use the default Easy-RSA PKI path.
 
-  * Default: $default"
-	ia_question_text='
-  Enter the path name:'
+  * Default: ${default}"
+
+	EASYTLS_key_index="easytls/data/easytls-key-index.txt"
+	EASYRSA_ca_cert="ca.crt"
+
 	while :
 	do
+		ia_question_text='
+  Enter the path name:'
 		interactive_question
 		ans_ca_path="${ia_answer:-$default}"
 
-		# no-ca mode, accept the answer, debug later
-		[ $EASYTLS_NO_CA ] && {
-			ans_ca_path="${EASYRSA_PKI}"
-			opt_ca_path="-c=${ans_ca_path}"
-			break
-			}
+		# Check for absolute path
+		# Because the server does not run from the script directory
+		if [ "${ans_ca_path%%/*}" = "." ]
+		then
+			# Relative path
+			ans_ca_path="${PWD}/${ans_ca_path#./}"
+		elif [ "${ans_ca_path%%/*}" != "" ]
+		then
+			# Naked path
+			ans_ca_path="${PWD}/${ans_ca_path}"
+		else
+			# Full path
+			:
+		fi
 
-		# Normal PKI mode
-		[ -f "${EASYRSA_PKI}/ca.crt" ] && {
-			ans_ca_path="${EASYRSA_PKI}"
-			}
-		[ -f "$ans_ca_path/ca.crt" ] && {
-			opt_ca_path="-c=${ans_ca_path}"
-			break
-			}
-		print '
-  This path does not contain a valid CA certificate.'
+
+		# check for ${ia_answer}/easytls/data/easytls-key-index.txt
+		# because it is always used by easytls-verify
+		if [ -f "${ans_ca_path}/${EASYTLS_key_index}" ]
+		then
+			if [ $EASYTLS_NO_CA ]
+			then
+				break
+			else
+				# Normal PKI mode
+				[ -f "${ans_ca_path}/${EASYRSA_ca_cert}" ] && break
+				print "
+    CA certificate does not exist:
+    * ${ans_ca_path}/${EASYRSA_ca_cert}"
+			fi
+		else
+			# easytls-key-index.txt must exist
+			print "
+    Easy-TLS Key Index does not exist:
+    * ${ans_ca_path}/${EASYTLS_key_index}"
+		fi
+
+		ia_question_text="
+      *** ERROR - Press ENTER to continue ***"
+		interactive_wait_for_answer
 	done
+
+	# Set answer and return
+	opt_ca_path="-c=${ans_ca_path}"
 } # => interactive_ca_path ()
 
 # hash algorithm
@@ -6469,26 +6474,31 @@ case "$cmd" in
 
 	# Commands which can run with or without a PKI
 	case "$cmd" in
-		script)
-			interactive_scripts || die "Error: interactive_scripts"
-			cmd='Done'
-		;;
-		cf|cfg|config)
-			easytls_config "$@" || die "Error: easytls_config"
-			cmd='Done'
-		;;
-		bta|build-tls-auth)
-			build_tls_auth "$@" || die "Error: build_tls_auth"
-			cmd='Done'
-		;;
-		btc|build-tls-crypt)
-			build_tls_crypt_v1 "$@" || die "Error: build_tls_crypt_v1"
-			cmd='Done'
-		;;
-		itv2|itcv2|inline-tls-crypt-v2)
-			inline_tls_crypt_v2 "$@" || \
-				die "Error: inline_tls_crypt_v2"
-			cmd='Done'
+			script)
+				interactive_scripts || die "Error: interactive_scripts"
+				cmd='Done'
+			;;
+			cf|cfg|config)
+				easytls_config "$@" || die "Error: easytls_config"
+				cmd='Done'
+			;;
+			bta|build-tls-auth)
+				build_tls_auth "$@" || die "Error: build_tls_auth"
+				cmd='Done'
+			;;
+			btc|build-tls-crypt)
+				build_tls_crypt_v1 "$@" || die "Error: build_tls_crypt_v1"
+				cmd='Done'
+			;;
+			btv2s|btcv2s|build-tls-crypt-v2-server)
+				build_tls_crypt_v2_server "$@" || \
+					die "Error: build_tls_crypt_v2_server"
+				cmd='Done'
+			;;
+			itv2|itcv2|inline-tls-crypt-v2)
+				inline_tls_crypt_v2 "$@" || \
+					die "Error: inline_tls_crypt_v2"
+				cmd='Done'
 		;;
 	esac
 
@@ -6512,11 +6522,6 @@ case "$cmd" in
 			ssc|self-sign-client)
 				build_self_sign 'client' "$@" || \
 					die "Error: self-sign-client"
-				cmd='Done'
-			;;
-			btv2s|btcv2s|build-tls-crypt-v2-server)
-				noca_build_tls_crypt_v2_server "$@" || \
-					die "Error: build_tls_crypt_v2_server"
 				cmd='Done'
 			;;
 			btv2c|btcv2c|build-tls-crypt-v2-client)
