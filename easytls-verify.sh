@@ -35,6 +35,7 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
+  -z|--no-ca          Run in No CA mode.
   -x|--x509           Check X509 certificate validity
                       (Only works in full PKI mode)
   -p|--ignore-expired Ignore expiry and allow connection of expired clients
@@ -295,7 +296,7 @@ do
 	-c|--ca)
 		CA_dir="${val}"
 	;;
-	-z|--no-pki)
+	-z|--no-ca)
 		empty_ok=1
 		EASYTLS_NO_CA=1
 	;;

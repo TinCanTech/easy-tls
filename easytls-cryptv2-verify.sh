@@ -44,6 +44,7 @@ help_text ()
   help|-h|--help      This help text.
   -v|--verbose        Be a lot more verbose at run time (Not Windows).
   -c|--ca=<path>      Path to CA *REQUIRED*
+  -z|--no-ca          Run in No CA mode.
   -g|--custom-group=<GROUP>
                       Verify the client metadata against a custom group.
   -n|--no-hash        Do not verify metadata hash (TLS-key serial number).
@@ -643,7 +644,7 @@ do
 	-c|--ca)
 		CA_dir="${val}"
 	;;
-	-z|--no-pki)
+	-z|--no-ca)
 		empty_ok=1
 		EASYTLS_NO_CA=1
 	;;
