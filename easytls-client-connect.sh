@@ -210,9 +210,6 @@ deps ()
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp/easytls}"
 	fi
-
-	# Make temp dir
-	mkdir -p "${EASYTLS_tmp_dir}" || die "Failed to create ${EASYTLS_tmp_dir}"
 }
 
 #######################################
