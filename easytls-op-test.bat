@@ -43,7 +43,7 @@ SET ENV=/disable-env
 SET EASYTLS_REMOTE_CI=1
 SET SHALLOW=1
 SET EASYTLS_base_dir=.
-SET EASYTLS_tmp_dir=.
+SET EASYTLS_tmp_dir=./easytls-unit-tests
 SET EASYTLS_ersabin_dir=.
 SET EASYTLS_ovpnbin_dir=.
 
