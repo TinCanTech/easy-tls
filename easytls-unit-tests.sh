@@ -128,7 +128,7 @@ TLSCV2V_OPTS="-v"
 WORK_DIR="$(pwd)"
 
 [ $EASYTLS_REMOTE_CI ] && {
-	export file_hash_disabled=1
+	EASYTLS_OPTS="${EASYTLS_OPTS} -y"
 	printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
 	}
 
@@ -292,11 +292,11 @@ do
 		## EOL
 	do
 		test_cmd="$i"
-		[ $loops -eq 2 ] && [ "$test_cmd" = "init-tls" ] && \
-			EASYTLS_OPTS="--verbose --batch --no-auto-check" ### "-y"
+		#[ $loops -eq 2 ] && [ "$test_cmd" = "init-tls" ] && \
+		#	EASYTLS_OPTS="--verbose --batch --no-auto-check" ### "-y"
 		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && {
 			test_cmd="$test_cmd SHA1"
-			EASYTLS_OPTS="--verbose --batch --no-auto-check"
+		#	EASYTLS_OPTS="--verbose --batch --no-auto-check"
 			}
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
@@ -688,6 +688,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	# Set errexit for all easytls
 	set -e
 
+	# Re-enable file-hashing and auto-check
 	EASYTLS_OPTS="--verbose --batch"
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
