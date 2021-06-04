@@ -117,8 +117,7 @@ cmd_help()
         Specify an alternate <hash_algorithm> to use. (Default SHA256)
 
         no-ca - Do not use an Easy-RSA Certificate Authority [CA].
-
-        * Note: This mode still requires use of './easyrsa init-pki'" ;;
+        * Note: No-CA mode still requires use of './easyrsa init-pki'" ;;
 		build|inline|remove|script) text="
   Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
@@ -802,6 +801,10 @@ config_update ()
 # Use config
 config_use ()
 {
+	# Verify once for config and then again later for other commands
+	# Don't load config if it does not exist
+	verify_tls_init || return 0
+
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
@@ -1072,12 +1075,7 @@ verify_tls_init ()
 		[ -f "$EASYTLS_KEY_X_HASH" ] && \
 		[ -f "$EASYTLS_DISABLED_LIST" ] && \
 		[ -f "$EASYTLS_DISABLED_HASH" ]
-	} || {
-		error_msg "EasyTLS has not been initialised - See help below:"
-		cmd_help init-tls
-		help_note=" "
-		die "Please see ./easytls help"
-		}
+	} || return 1
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -3243,12 +3241,6 @@ build_tls_crypt_v2_server ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
 
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	# This key does not require EasyRSA PKI
-	# but for the client metadata this script does
-	# So make CA a requirement for both server and client
-	verify_tls_init
-
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case $openvpn_version in
@@ -3715,9 +3707,6 @@ build_self_sign ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
 
-	# Verify Easy-TLS and Easy-RSA have been correctly setup
-	verify_tls_init
-
 	crt_type="$1"
 	shift # Scrape off type
 
@@ -3859,7 +3848,6 @@ disabled_list_manager ()
 {
 	action="$1"
 
-	# Allow the list to be rehashed before verify_tls_init
 	case $action in
 	rehash)
 		# This needs more work to recreate the Date stamps.
@@ -6205,9 +6193,10 @@ external_deps ()
 	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
 	github="https://raw.githubusercontent.com"
 	config_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
-	[ -f "${OPENSSL_CONF}" ] || \
-		die "Missing openssl config: ${NL} * ${github}/${config_url}"
-
+	[ -f "${OPENSSL_CONF}" ] || {
+		help_note="URL: ${github}/${config_url}"
+		die "Missing openssl config, download URL above. "
+		}
 } # => external_deps ()
 
 # vars setup
@@ -6489,13 +6478,14 @@ case "$cmd" in
 	*)
 	# Other commands
 
-	# Just the once
-	verify_tls_init
-
 	# Load config options - Does not change command line options
+	# Using the config does an internal init-tls check
 	config_use || die "config_use - Error: $?"
 
+	# Commands which do not require init-tls
 	case "$cmd" in
+		Done) : ;; # Ignore
+
 		''|help|-h|--help|--usage)
 			cmd_help "$1" || \
 				die "Error: cmd_help"
@@ -6508,40 +6498,60 @@ case "$cmd" in
 		;;
 	esac
 
-	# Verify me!
-	verify_wiscii_hash || {
-		help_note='
+	# Everything else requires init-tls
+	case "$cmd" in
+		Done) : ;; # Ignore
+
+		*)
+			# Must have init TLS now
+			verify_tls_init || {
+				error_msg "./easytls help init-tls - See help below:"
+				cmd_help init-tls
+				help_note=" "
+				die "EasyTLS has not been initialised"
+				}
+			# Verify me!
+			verify_wiscii_hash || {
+				help_note='
  * Some files have been manually altered, restore the changes to continue..'
-		die "Master hash check failed"
-		}
+				die "Master hash check failed"
+				}
+		;;
+	esac
 
 	# Commands which can run with or without a PKI
 	case "$cmd" in
-			script)
-				interactive_scripts || die "Error: interactive_scripts"
-				cmd='Done'
-			;;
-			cf|cfg|config)
-				easytls_config "$@" || die "Error: easytls_config"
-				cmd='Done'
-			;;
-			bta|build-tls-auth)
-				build_tls_auth "$@" || die "Error: build_tls_auth"
-				cmd='Done'
-			;;
-			btc|build-tls-crypt)
-				build_tls_crypt_v1 "$@" || die "Error: build_tls_crypt_v1"
-				cmd='Done'
-			;;
-			btv2s|btcv2s|build-tls-crypt-v2-server)
-				build_tls_crypt_v2_server "$@" || \
-					die "Error: build_tls_crypt_v2_server"
-				cmd='Done'
-			;;
-			itv2|itcv2|inline-tls-crypt-v2)
-				inline_tls_crypt_v2 "$@" || \
-					die "Error: inline_tls_crypt_v2"
-				cmd='Done'
+		Done) : ;; # Ignore
+
+		script)
+			interactive_scripts || \
+				die "Error: interactive_scripts"
+			cmd='Done'
+		;;
+		cf|cfg|config)
+			easytls_config "$@" || \
+				die "Error: easytls_config"
+			cmd='Done'
+		;;
+		bta|build-tls-auth)
+			build_tls_auth "$@" || \
+				die "Error: build_tls_auth"
+			cmd='Done'
+		;;
+		btc|build-tls-crypt)
+			build_tls_crypt_v1 "$@" || \
+				die "Error: build_tls_crypt_v1"
+			cmd='Done'
+		;;
+		btv2s|btcv2s|build-tls-crypt-v2-server)
+			build_tls_crypt_v2_server "$@" || \
+				die "Error: build_tls_crypt_v2_server"
+			cmd='Done'
+		;;
+		itv2|itcv2|inline-tls-crypt-v2)
+			inline_tls_crypt_v2 "$@" || \
+				die "Error: inline_tls_crypt_v2"
+			cmd='Done'
 		;;
 	esac
 
@@ -6557,6 +6567,8 @@ case "$cmd" in
 
 		# Possible commands
 		case "$cmd" in
+			Done): ;; # Ignore
+
 			sss|self-sign-server)
 				build_self_sign 'server' "$@" || \
 					die "Error: self-sign-server"
@@ -6572,17 +6584,17 @@ case "$cmd" in
 					die "Error: build_tls_crypt_v2_client"
 				cmd='Done'
 			;;
-			Done)
-				: # Command already completed
-			;;
 			*)
-				die "Command '${cmd}' does not support 'no-ca' mode"
+				error_msg "Command '${cmd}' does not support 'no-ca' mode"
+				cmd='Done'
 			;;
 		esac
 	fi
 
 	# Everything else
 	case "$cmd" in
+	Done): ;; # Ignore
+
 	build)
 		interactive_build || \
 			die "Error: interactive_build"
@@ -6663,9 +6675,6 @@ case "$cmd" in
 	import-key)
 		import_key "$@" || \
 			die "Error: import_key"
-		;;
-	Done)
-		: # Command already completed
 		;;
 	*)
 		die "Unknown command '$cmd'. Run without commands for help."
