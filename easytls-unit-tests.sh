@@ -198,13 +198,12 @@ do
 	DBUG_DIR="${ETLS_DIR}/metadata"
 	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
-	print "EASYRSA_PKI: $EASYRSA_PKI"
 	EASYTLS_VARS="$PKI_DIR/vars"
 
 	# github Windows runner takes too long, so just test once
 	if [ $loops -eq 2 ] && [ $EASYTLS_FOR_WINDOWS ]
 	then
-		print "Total varified expected errors = 54"
+		print "Total verified expected errors = 54"
 		print "total_expected_errors = $total_expected_errors"
 		[ $total_expected_errors -eq 54 ] && exit 0
 		print "***** EXPECTED ERROR COUNT INCORRECT *****"
@@ -216,6 +215,7 @@ do
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
+	print "EASYRSA_PKI: $EASYRSA_PKI"
 	print "ls -l"
 	ls -l
 	"$EASYRSA_CMD" $EASYRSA_OPTS init-pki
