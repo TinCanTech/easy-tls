@@ -127,8 +127,10 @@ TLSCV2V_OPTS="-v"
 
 WORK_DIR="$(pwd)"
 
-[ $EASYTLS_REMOTE_CI ] && export file_hash_disabled=1 && \
+[ $EASYTLS_REMOTE_CI ] && {
+	export file_hash_disabled=1
 	printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
+	}
 
 # Identify Windows
 [ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
@@ -138,7 +140,7 @@ if [ "$EASYTLS_FOR_WINDOWS" ]
 then
 	export OPENVPN_CMD="./openvpn.exe"
 	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
-	export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
+	[ -z "$EASYTLS_tmp_dir" ] && export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
 	mkdir -p "$EASYTLS_tmp_dir"
 else
 	export EASYTLS_tmp_dir="/tmp/easytls-unit-tests"
@@ -263,7 +265,7 @@ do
 		"remove-inline c01" \
 		"--custom-group=tincantech inline-tls-crypt-v2 s01 add-dh" \
 		"inline-tls-crypt-v2 c01" \
-		"--custom-group=tincantech inline-tls-crypt-v2 c02 nokey" \
+		"--custom-group=tincantech inline-tls-crypt-v2 c02 no-key" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c05" \
 		"disable c05" \
 		"enable c05" \
