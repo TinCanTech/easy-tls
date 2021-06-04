@@ -117,10 +117,8 @@ cmd_help()
         Specify an alternate <hash_algorithm> to use. (Default SHA256)
 
         no-ca - Do not use an Easy-RSA Certificate Authority [CA].
-        This mode requires that you build server and client keys with
-        Easy Peer-Finger-Print: https://github.com/TinCanTech/easy-pfp
 
-        * Note: This mode still requires you to use './easyrsa init-pki'" ;;
+        * Note: This mode still requires use of './easyrsa init-pki'" ;;
 		build|inline|remove|script) text="
   Inter-active menus to build, inline, remove and config various Easy-TLS files" ;;
 		bta|build-tls-auth) text="
@@ -790,7 +788,7 @@ config_update ()
 			}
 
 	# Replace the pattern
-	[ ${cfg_val} -eq 0 ] && unset cfg_val
+	[ "${cfg_val}" = "0" ] && unset cfg_val
 	"$EASYTLS_SED" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 		"$EASYTLS_CONFIG_FILE" || {
@@ -871,7 +869,7 @@ config_use ()
 				export EASYTLS_MASTER_ID="$cfg_val"
 				;;
 			status)
-				EASYTLS_VERSION="${EASYTLS_VERSION}${cfg_val:-1}"
+				EASYTLS_STATUS="${cfg_val}"
 				unset flash_config ;;
 			*)
 				error_msg "Config error: Ignored option: $cfg_opt"
@@ -900,6 +898,14 @@ config_use ()
 		return 1
 	;;
 	esac
+
+	EASYTLS_VERSION="${EASYTLS_VERSION}/${EASYTLS_STATUS}"
+
+	# maintenance
+	config_version || {
+		error_msg "config_version fail"
+		return 1
+		}
 
 	# Verify the Config hash
 	generate_and_match_valid_hash \
@@ -989,6 +995,45 @@ config_deletion ()
 	config_save_hash || die "Error hashing config."
 	notice "Option deleted from config: ${cfg_opt}"
 } # => config_deletion ()
+
+# Maintain config to Easy-TLS version
+config_version ()
+{
+	flash_config=1
+	unset save_me
+	# Add status
+	if "${EASYTLS_GREP}" -q "status = " "$EASYTLS_CONFIG_FILE"
+	then
+		:
+	else
+		save_me=1
+		cfg_opt="status"
+		cfg_val=2
+		config_addition
+		config_update
+		config_save_hash || return 1
+		EASYTLS_STATUS=2
+	fi
+
+	#Add tmp.dir
+	if "${EASYTLS_GREP}" -q "tmp.dir = " "$EASYTLS_CONFIG_FILE"
+	then
+		:
+	else
+		save_me=1
+		cfg_opt="tmp.dir"
+		cfg_val=""
+		config_addition
+		config_save_hash || return 1
+	fi
+
+	# Save me ! - Changes have been made
+	if [ $save_me ]
+	then
+		save_wiscii_hash || return 1 # die "Error hashing config."
+	fi
+	unset flash_config save_me cfg_opt cfg_val
+}
 
 # Verify Openvpn is available
 verify_openvpn ()
@@ -6151,8 +6196,6 @@ external_deps ()
 	else
 		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
-
-	EASYTLS_VERSION="${EASYTLS_VERSION}/"
 
 	# Append easytls to tmp_dir and create it
 	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
