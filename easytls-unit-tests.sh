@@ -202,7 +202,14 @@ do
 	EASYTLS_VARS="$PKI_DIR/vars"
 
 	# github Windows runner takes too long, so just test once
-	[ $loops -eq 2 ] && [ $EASYTLS_WINDOWS ] && exit 0
+	if [ $loops -eq 2 ] && [ $EASYTLS_FOR_WINDOWS ]
+	then
+		print "Total varified expected errors = 54"
+		print "total_expected_errors = $total_expected_errors"
+		[ $total_expected_errors -eq 54 ] && exit 0
+		print "***** EXPECTED ERROR COUNT INCORRECT *****"
+		exit 1
+	fi
 
 	# Switch to SHA1
 	[ $loops -eq 3 ] && TLSCV2V_OPTS="-v --hash=SHA1"
