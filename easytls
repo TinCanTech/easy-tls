@@ -2869,7 +2869,7 @@ inline_tls_auth ()
 		shift
 	done
 
-	tls_key="$EASYTLS_PKI/tls-auth.key"
+	tlskey_file="$EASYTLS_PKI/tls-auth.key"
 	inline_file="$EASYTLS_PKI/$name.inline"
 	inline_temp="$EASYTLS_PKI/$name.temp"
 	inline_base="$EASYTLS_PKI/$name.base"
@@ -2881,9 +2881,9 @@ inline_tls_auth ()
 		}
 
 	# Check tls-auth key exists
-	[ -f "$tls_key" ] || {
+	[ -f "$tlskey_file" ] || {
 		help_note="Use 'easytls build' to create a TLS-Auth key."
-		die "TLS key file does not exist: $tls_key"
+		die "TLS key file does not exist: $tlskey_file"
 		}
 
 	case "$key_direction" in
@@ -2905,7 +2905,7 @@ inline_tls_auth ()
 		"$EASYTLS_PRINTF" "%s\n" "key-direction $key_direction"
 		"$EASYTLS_PRINTF" "%s\n" ""
 		"$EASYTLS_PRINTF" "%s\n" "<tls-auth>"
-		"$EASYTLS_CAT" "$tls_key"
+		"$EASYTLS_CAT" "$tlskey_file"
 		"$EASYTLS_PRINTF" "%s\n" "</tls-auth>"
 		"$EASYTLS_PRINTF" "%s\n" ""
 	} > "$inline_temp" || die "Failed to create inline file: $inline_temp"
@@ -2945,7 +2945,7 @@ inline_tls_crypt_v1 ()
 		shift
 	done
 
-	tls_key="$EASYTLS_PKI/tls-crypt.key"
+	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
 	inline_file="$EASYTLS_PKI/$name.inline"
 	inline_temp="$EASYTLS_PKI/$name.temp"
 	inline_base="$EASYTLS_PKI/$name.base"
@@ -2957,9 +2957,9 @@ inline_tls_crypt_v1 ()
 		}
 
 	# Check tls-crypt key exists
-	[ -f "$tls_key" ] || {
+	[ -f "$tlskey_file" ] || {
 		help_note="Use 'easytls build' to create a TLS-Crypt-V1 key."
-		die "TLS key file does not exist: $tls_key"
+		die "TLS key file does not exist: $tlskey_file"
 		}
 
 	# Inline base file
@@ -2968,7 +2968,7 @@ inline_tls_crypt_v1 ()
 	{	"$EASYTLS_PRINTF" "%s\n" "# TLS crypt"
 		"$EASYTLS_PRINTF" "%s\n" ""
 		"$EASYTLS_PRINTF" "%s\n" "<tls-crypt>"
-		"$EASYTLS_CAT" "$tls_key"
+		"$EASYTLS_CAT" "$tlskey_file"
 		"$EASYTLS_PRINTF" "%s\n" "</tls-crypt>"
 		"$EASYTLS_PRINTF" "%s\n" ""
 	} > "$inline_temp" || die "Failed to create inline file: $inline_temp"
@@ -3203,15 +3203,15 @@ build_tls_auth ()
 		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
-	key_file="$EASYTLS_PKI/tls-auth.key"
+	tlskey_file="$EASYTLS_PKI/tls-auth.key"
 
-	[ -f "$key_file" ] && \
-		die "TLS auth key already exists: $key_file"
+	[ -f "$tlskey_file" ] && \
+		die "TLS auth key already exists: $tlskey_file"
 
-	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
-		die "Failed to create TLS auth key: $key_file"
+	"$EASYTLS_OPENVPN" $build_string "$tlskey_file" || \
+		die "Failed to create TLS auth key: $tlskey_file"
 
-	notice "TLS auth key created: $key_file"
+	notice "TLS auth key created: $tlskey_file"
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -3225,15 +3225,15 @@ build_tls_crypt_v1 ()
 		*) die "Unsupported OpenVPN version $openvpn_version" ;;
 	esac
 
-	key_file="$EASYTLS_PKI/tls-crypt.key"
+	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
 
-	[ -f "$key_file" ] && \
-		die "TLS crypt v1 key already exists: $key_file"
+	[ -f "$tlskey_file" ] && \
+		die "TLS crypt v1 key already exists: $tlskey_file"
 
-	"$EASYTLS_OPENVPN" $build_string "$key_file" || \
-		die "Failed to create TLS crypt v1 key: $key_file"
+	"$EASYTLS_OPENVPN" $build_string "$tlskey_file" || \
+		die "Failed to create TLS crypt v1 key: $tlskey_file"
 
-	notice "TLS crypt v1 key created: $key_file"
+	notice "TLS crypt v1 key created: $tlskey_file"
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -3337,12 +3337,12 @@ noca_build_tls_crypt_v2_client ()
 		die "Certificate must be a Client: $cli_cert"
 
 	in_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
-	key_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
+	tlskey_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
 	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
 
 	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
 		full_name="${cli_name}-${TLSKEY_SUBNAME}"
-		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
 		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
 		}
 
@@ -3351,9 +3351,9 @@ noca_build_tls_crypt_v2_client ()
 		die "Server key does not exist: $in_file"
 		}
 
-	[ -f "$key_file" ] && {
+	[ -f "$tlskey_file" ] && {
 		help_note="To remove an key file use: easytls remove"
-		die "Client key already exists: $key_file"
+		die "Client key already exists: $tlskey_file"
 		}
 
 	# Capture HW addresses
@@ -3393,13 +3393,13 @@ noca_build_tls_crypt_v2_client ()
 
 	# Build key
 	"$EASYTLS_OPENVPN" --tls-crypt-v2 "$in_file" \
-		$build_string "$key_file" "$b64_metadata" || \
-		die "Failed to create tls-crypt-v2-client key: $key_file"
+		$build_string "$tlskey_file" "$b64_metadata" || \
+		die "Failed to create tls-crypt-v2-client key: $tlskey_file"
 
 	# Save serial number to key-index
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
-	notice "TLS crypt v2 client key created: $key_file"
+	notice "TLS crypt v2 client key created: $tlskey_file"
 
 	if [ $EASYTLS_BINLINE ]
 	then
