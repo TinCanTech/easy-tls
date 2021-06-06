@@ -3747,8 +3747,14 @@ disabled_list_manager ()
 	disabled_list_verify_hash || die "Disabled list is corrupt."
 
 	name="$2"
-	crt_file="$EASYRSA_PKI/issued/$name.crt"
-	[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+	if [ $EASYTLS_NO_CA ]
+	then
+		crt_file="$EASYTLS_PKI/$name.crt"
+		[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+	else
+		crt_file="$EASYRSA_PKI/issued/$name.crt"
+		[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+	fi
 
 	# get the serial number of the certificate from OpenSSL
 	# https://github.com/TinCanTech/easy-tls/issues/80
@@ -6441,6 +6447,21 @@ case "$cmd" in
 				die "Error: inline_tls_crypt_v2"
 			cmd='Done'
 		;;
+		d|disable)
+			disabled_list_manager "disable" "$@" || \
+				die "Error: disabled_list_manager"
+			cmd='Done'
+		;;
+		e|enable)
+			disabled_list_manager "enable" "$@" || \
+				die "Error: disabled_list_manager"
+			cmd='Done'
+		;;
+		disabled-list-rehash)
+			disabled_list_manager "rehash" "$@" || \
+				die "Error: disabled_list_manager rehash"
+			cmd='Done'
+		;;
 	esac
 
 	# When no-ca is true use these versions of commands
@@ -6534,18 +6555,6 @@ case "$cmd" in
 	cx|cert-expire)
 		cert_expire "$@" || \
 			die "Error: cert_expire"
-		;;
-	d|disable)
-		disabled_list_manager "disable" "$@" || \
-			die "Error: disabled_list_manager"
-		;;
-	e|enable)
-		disabled_list_manager "enable" "$@" || \
-			die "Error: disabled_list_manager"
-		;;
-	disabled-list-rehash)
-		disabled_list_manager "rehash" "$@" || \
-			die "Error: disabled_list_manager rehash"
 		;;
 	import-key)
 		import_key "$@" || \
