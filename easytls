@@ -5057,10 +5057,11 @@ interactive_common_name ()
 	while :
 	do
 		interactive_question
-		common_name="$ia_answer"
-		cert_file="$EASYRSA_PKI/issued/$common_name.crt"
+		common_name="${ia_answer}"
+		cert_file="${EASYRSA_PKI}/issued/${common_name}.crt"
+		[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${common_name}.crt"
 		interactive_verify_cert && {
-			cmd_line="${cmd_line} $common_name"
+			cmd_line="${cmd_line} ${common_name}"
 			break
 			}
 	done
@@ -6463,6 +6464,21 @@ case "$cmd" in
 	case "$cmd" in
 		Done) : ;; # Ignore
 
+		build)
+			interactive_build || \
+				die "Error: interactive_build"
+			cmd='Done'
+		;;
+		inline)
+			interactive_inline || \
+				die "Error: interactive_inline"
+			cmd='Done'
+		;;
+		remove)
+			interactive_remove || \
+				die "Error: interactive_remove"
+			cmd='Done'
+		;;
 		script)
 			interactive_scripts || \
 				die "Error: interactive_scripts"
@@ -6585,18 +6601,6 @@ case "$cmd" in
 	case "$cmd" in
 	Done): ;; # Ignore
 
-	build)
-		interactive_build || \
-			die "Error: interactive_build"
-		;;
-	inline)
-		interactive_inline || \
-			die "Error: interactive_inline"
-		;;
-	remove)
-		interactive_remove || \
-			die "Error: interactive_remove"
-		;;
 	sid|save-id)
 		save_id || \
 			die "Error: save_id"
