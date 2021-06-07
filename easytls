@@ -1424,6 +1424,13 @@ generate_and_save_file_hash ()
 # EASYTLS STATUS Section
 #
 
+# Simple status for No CA mode
+noca_status ()
+{
+	print "Sorry - This is not currently implemented."
+}
+
+
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
 # Report duplicate CNs in EasyRSA due to certificate renewal
@@ -6588,6 +6595,11 @@ case "$cmd" in
 			ssc|self-sign-client)
 				build_self_sign 'client' "$@" || \
 					die "Error: self-sign-client"
+				cmd='Done'
+			;;
+			s|status)
+				noca_status "$@" || \
+					die "Error: noca_status"
 				cmd='Done'
 			;;
 			*)
