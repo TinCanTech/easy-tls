@@ -6024,7 +6024,7 @@ verify_wiscii_hash ()
 external_deps ()
 {
 	# Identify Windows
-	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
 	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.

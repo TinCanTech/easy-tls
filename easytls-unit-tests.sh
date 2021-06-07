@@ -133,7 +133,7 @@ WORK_DIR="$(pwd)"
 	}
 
 # Identify Windows
-[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
 
 
 if [ "$EASYTLS_FOR_WINDOWS" ]

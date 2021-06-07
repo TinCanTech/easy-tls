@@ -461,7 +461,7 @@ init ()
 deps ()
 {
 	# Identify Windows
-	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"

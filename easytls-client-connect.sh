@@ -170,7 +170,7 @@ init ()
 deps ()
 {
 	# Identify Windows
-	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
