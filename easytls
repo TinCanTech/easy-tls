@@ -6493,6 +6493,11 @@ case "$cmd" in
 				die "Error: remove_tlskey"
 			cmd='Done'
 		;;
+		ix|inline-expire)
+			inline_expire "$@" || \
+				die "Error: inline_expire"
+			cmd='Done'
+		;;
 		d|disable)
 			disabled_list_manager "disable" "$@" || \
 				die "Error: disabled_list_manager"
@@ -6573,10 +6578,6 @@ case "$cmd" in
 	inline-index-rebuild)
 		inline_index_rebuild "$@" || \
 			die "Error: inline_index_rebuild"
-		;;
-	ix|inline-expire)
-		inline_expire "$@" || \
-			die "Error: inline_expire"
 		;;
 	cx|cert-expire)
 		cert_expire "$@" || \
