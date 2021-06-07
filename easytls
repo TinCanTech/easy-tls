@@ -462,6 +462,14 @@ error_msg ()
 	print "ERROR: $1"
 } # => error_msg ()
 
+# Fatal errors prior to deps
+fatal_opt ()
+{
+	[ -z "${1}" ] && [ -n "${fatal_msg}" ] && die "${fatal_msg}"
+	fatal_msg="${fatal_msg}
+${1}"
+}
+
 # remove temp files and do terminal cleanups
 cleanup ()
 {
@@ -6323,22 +6331,26 @@ while :; do
 		EASYTLS_ovpnbin_dir="$val"
 	;;
 	-*)
-		die "Unknown option: ${opt}"
-	;;
+		fatal_opt "Unknown option: ${opt}"
+		shift
+		continue ;;
 	*)
 		break ;;
 	esac
 
 	# fatal error when no value was provided
 	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		die "Missing value to option: $opt"
+		fatal_opt "Missing value to option: $opt"
 	fi
-
 	shift
 done
 
 # Verify binary dependecies are present
 external_deps
+
+# Die on fatal opt error
+fatal_opt
+unset fatal_msg
 
 # Intelligent env-var detection and auto-loading:
 vars_setup
@@ -6396,7 +6408,6 @@ case "$cmd" in
 			verify_tls_init || {
 				error_msg "./easytls help init-tls - See help below:"
 				cmd_help init-tls
-				help_note=" "
 				die "EasyTLS has not been initialised"
 				}
 			# Verify me!
@@ -6432,6 +6443,16 @@ case "$cmd" in
 				die "Error: build_tls_crypt_v1"
 			cmd='Done'
 		;;
+		ita|inline-tls-auth)
+			inline_tls_auth "$@" || \
+				die "Error: inline_tls_auth"
+			cmd='Done'
+		;;
+		itc|inline-tls-crypt)
+			inline_tls_crypt_v1 "$@" || \
+				die "Error: inline_tls_crypt_v1"
+			cmd='Done'
+		;;
 		btv2s|btcv2s|build-tls-crypt-v2-server)
 			build_tls_crypt_v2_server "$@" || \
 				die "Error: build_tls_crypt_v2_server"
@@ -6445,6 +6466,11 @@ case "$cmd" in
 		itv2|itcv2|inline-tls-crypt-v2)
 			inline_tls_crypt_v2 "$@" || \
 				die "Error: inline_tls_crypt_v2"
+			cmd='Done'
+		;;
+		is|inline-show)
+			inline_show "$@" || \
+				die "Error: inline_show"
 			cmd='Done'
 		;;
 		d|disable)
@@ -6524,14 +6550,6 @@ case "$cmd" in
 			die "Error: status"
 		unset status_disabled_auto_check
 		;;
-	ita|inline-tls-auth)
-		inline_tls_auth "$@" || \
-			die "Error: inline_tls_auth"
-		;;
-	itc|inline-tls-crypt)
-		inline_tls_crypt_v1 "$@" || \
-			die "Error: inline_tls_crypt_v1"
-		;;
 	remove-inline)
 		remove_inline "$@" || \
 			die "Error: remove_inline"
@@ -6539,10 +6557,6 @@ case "$cmd" in
 	irn|irw|inline-renew)
 		inline_renew "$@" || \
 			die "Error: inline_renew"
-		;;
-	is|inline-show)
-		inline_show "$@" || \
-			die "Error: inline_show"
 		;;
 	inline-index-rebuild)
 		inline_index_rebuild "$@" || \
