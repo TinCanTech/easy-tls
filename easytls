@@ -1830,10 +1830,34 @@ inline_index_common_name_sub_name_list ()
 # Get x509 certificate expiry Date
 cert_expire ()
 {
-	name="$1"
+	name="${1}"
 
+	if [ $EASYTLS_NO_CA ]
+	then
+
+	# Begin NO CA MODE
+	if [ -n "${name}" ]
+	then
+		crt_file="${EASYTLS_PKI}/${name}.crt"
+		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+		crt_expire_date
+		print " Certificate: ${crt_file}   Expire-date: ${crt_expire}"
+	else
+		easytls_valid_list="$("${EASYTLS_LS}" -1 "${EASYTLS_PKI}"/*.crt)"
+		for name in $easytls_valid_list
+		do
+			crt_file="$name"
+			[ -f "$crt_file" ] || die "Missing: $crt_file"
+			crt_expire_date
+		print " Certificate: $name.crt   Expire-date: $crt_expire"
+		done
+	fi
+	# End NO CA MODE
+
+	else
+
+	# Begin CA MODE
 	verify_ca_init
-
 	if [ "$name" = "ca" ]
 	then
 		crt_file="$EASYRSA_PKI/ca.crt"
@@ -1859,6 +1883,8 @@ cert_expire ()
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
 		crt_expire_date
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
+	fi
+	# End CA MODE
 	fi
 } # => cert_expire ()
 
@@ -6003,7 +6029,7 @@ external_deps ()
 	EASYTLS_CP='cp' # Checked by Easy-RSA3
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
-	#EASYTLS_LS='ls' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
+	EASYTLS_LS='ls' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
 	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
 	EASYTLS_MKTEMP='mktemp'
 	#EASYTLS_MV='mv' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
@@ -6054,6 +6080,10 @@ external_deps ()
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || {
 			echo "Missing: $EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe"
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_LS}.exe" ] || {
+			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || {
@@ -6498,6 +6528,11 @@ case "$cmd" in
 				die "Error: inline_expire"
 			cmd='Done'
 		;;
+		cx|cert-expire)
+			cert_expire "$@" || \
+				die "Error: cert_expire"
+			cmd='Done'
+		;;
 		d|disable)
 			disabled_list_manager "disable" "$@" || \
 				die "Error: disabled_list_manager"
@@ -6578,10 +6613,6 @@ case "$cmd" in
 	inline-index-rebuild)
 		inline_index_rebuild "$@" || \
 			die "Error: inline_index_rebuild"
-		;;
-	cx|cert-expire)
-		cert_expire "$@" || \
-			die "Error: cert_expire"
 		;;
 	import-key)
 		import_key "$@" || \
