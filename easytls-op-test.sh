@@ -22,6 +22,8 @@ copyright ()
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
+env
+
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
