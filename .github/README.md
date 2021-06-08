@@ -27,6 +27,7 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 
 ## Environment
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
+**Except on macOS, where only Openvpn clients are allowed and cannot generate keys.**
 
 ## Requirements
 + Easy-RSA Version 3.0.5+
