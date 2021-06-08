@@ -480,7 +480,7 @@ cleanup ()
 	then
 		set -o echo
 	else
-		stty echo
+		[ -t 1 ] && stty echo
 	fi
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
 } # => cleanup ()
