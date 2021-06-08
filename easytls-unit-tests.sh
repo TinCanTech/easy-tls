@@ -116,16 +116,24 @@ build_vars ()
 
 echo '===[  Easy-TLS Unit Tests ]==='
 
+WORK_DIR="$(pwd)"
+mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
+
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch --no-auto-check"
+EASYTLS_OPTS="--verbose --batch --no-auto-check -t=${WORK_DIR}/unit-test"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_OPTS="-v"
 
-WORK_DIR="$(pwd)"
+TLSVERIFY_CMD="./easytls-verify.sh"
+TLSVERIFY_OPTS="-v -c=./ -t=${WORK_DIR}/unit-test"
+
+CLICON_CMD="./easytls-client-connect.sh"
+CLICON_OPTS="-v -t=${WORK_DIR}/unit-test"
+
 
 [ $EASYTLS_REMOTE_CI ] && {
 	EASYTLS_OPTS="${EASYTLS_OPTS} -y"
@@ -153,6 +161,15 @@ else
 	fi
 fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
+
+# Test help
+"${EASYTLS_CMD}" --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
+"${TLSCV2V_CMD}" --help
+[ $? -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} --help ($?)"
+"${TLSVERIFY_CMD}" --help
+[ $? -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
+"${CLICON_CMD}" --help
+[ $? -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
 
 # No-CA test
 PKI_DIR="${WORK_DIR}/noca"

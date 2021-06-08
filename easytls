@@ -129,7 +129,10 @@ cmd_help()
 		btc2s|btcv2s|build-tls-crypt-v2-server) text="
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
-		btv2c|btcv2c|build-tls-crypt-v2-client) text="
+		btv2c|btcv2c|build-tls-crypt-v2-client)
+		EASYTLS_github="https://github.com/TinCanTech/easy-tls/wiki"
+		EASYTLS_url="15-=-Multiple-TLS-Crypt-V2-Keys-per-X509-Certificate"
+		text="
   build-tls-crypt-v2-client
       <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
 
@@ -139,13 +142,14 @@ cmd_help()
       key is allowed to be used from.  Use easytls-cryptv2-client-connect.sh
       to verify the HW-ADDR.
 
-      Note: Both scripts are required to successfully verify Hardware.
+      Note: ALL scripts are required to successfully verify Hardware.
 
-      Each Client can have multiple TLS-Crypt-V2 keys by using option:
-      -k|--subkey-name=NAME
+      Each X509 Client can have multiple TLS-Crypt-V2 keys by using option:
+      -k|--subkey-name=<NAME>
+
       This allows an unlimited number of keys, see the following wiki article
-      * wiki/15-=-Multiple-TLS-Crypt-V2-Keys-per-X509-Certificate
-      for further details." ;;
+      for further details:
+      ${EASYTLS_github}/${EASYTLS_url}" ;;
 		remove-tlskey) text="
   remove-tlskey <client_filename_base>
       Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
@@ -236,7 +240,7 @@ cmd_help()
        Rehash the disabled-list if the current hash is corrupted.
        Does not rebuild the disabled-list. If there is an error in the list
        then edit the list manually and rehash it with 'disabled-list-rehash'" ;;
-		import-key) text="
+		import-key) text="* DISABLED *
   import-key <key-type> <key-name> <commonName>
       Import a pre-existing TLS key <key-name> to EasyTLS directory.
 
@@ -306,11 +310,11 @@ General options:
 --batch             Set automatic (no-prompts when possible) mode.
 -v|--verbose        Verbose output.
 -s|--silent         Silence all message output except prompts.
--p|--pki-dir='DIR'  Declare the EasyRSA PKI directory.
+-p|--pki-dir=<DIR>  Declare the EasyRSA PKI directory.
 --vars='FILE'       Define a specific 'vars' file to use for Easy-RSA config.
 --dh='FILE'         Define an alternate Diffie-Hellman parameters file.
 -i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
-                    This only accepts default options for inline-tls-crypt-v2.
+                    (This only accepts default options for inline-tls-crypt-v2)
 
 -y|--why-disable-file-hash
                     To temporarily disable file hash verification.
@@ -337,15 +341,15 @@ General options:
                     Specify an alternate Eliptic Curve for a self-signed key.
                     (Default: secp384r1)
 
--b|--base-dir       Path to OpenVPN base directory. (Windows Only)
-                    Default: C:/Progra~1/OpenVPN
--t|--tmp-dir        Temp directory where the hardware address list is written.
-                    (Required only if easytls-cryptv2-client-connect.sh is used)
-                    Default: *nix /tmp | Windows C:/Windows/Temp
--o|--ovpnbin-dir    Path to OpenVPN bin directory. (Windows Only)
-                    Default: C:/Progra~1/OpenVPN/bin
--e|--ersabin-dir    Path to Easy-RSA3 bin directory. (Windows Only)
-                    Default: C:/Progra~1/Openvpn/easy-rsa/bin
+-t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
+                       Default: *nix /tmp/easytls
+                                Windows C:/Windows/Temp/easytls
+-b|--base-dir=<DIR>    Path to OpenVPN base directory. (Windows Only)
+                       Default: C:/Progra~1/OpenVPN
+-o|--ovpnbin-dir=<DIR> Path to OpenVPN bin directory. (Windows Only)
+                       Default: C:/Progra~1/OpenVPN/bin
+-e|--ersabin-dir=<DIR> Path to Easy-RSA3 bin directory. (Windows Only)
+                       Default: C:/Progra~1/Openvpn/easy-rsa/bin
 "
 } # => opt_usage()
 
@@ -361,16 +365,16 @@ Easy-TLS abbreviations:
   build-tls-crypt               - btc
   build-tls-crypt-v2-server     - btv2s | btcv2s
   build-tls-crypt-v2-client     - btv2c | btcv2c
-  remove-tlskey                 - rt | rk
+  remove-tlskey                 - rt | rk | rtk
   save-id                       - sid
 
   status                        - s
-	Easy-RSA valid certificates   - val|valid
-	Easy-RSA revoked certificates - rev|revoked
-	Easy-TLS inline files         - inl|inline
-	Easy-TLS invalid inline files - inv|invalid
-	Easy-RSA renewed certificates - ren|renewed
-	Easy-TLS known TLS keys       - tls|tlskeys
+	Easy-RSA valid certificates   - val | valid
+	Easy-RSA revoked certificates - rev | revoked
+	Easy-TLS inline files         - inl | inline
+	Easy-TLS invalid inline files - inv | invalid
+	Easy-RSA renewed certificates - ren | renewed
+	Easy-TLS known TLS keys       - tls | tlskeys
 
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
@@ -392,7 +396,7 @@ Easy-TLS abbreviations:
 # Option abbreviations
 opt_config ()
 {
-	print '
+	print "
 Easy-TLS configurable options:
 
   cg|custom.group NAME
@@ -405,19 +409,19 @@ Easy-TLS configurable options:
      change it then your current keys will no longer be able to connect.
 
   td|tmp-dir
-     Set general temp directory
+     Set server scripts temporary directory
 
   ac|auto.check on|off
      Always run auto-check
      Toggle auto.check on|off.
 
-  co|custom.openvpn "/full/path/to/openvpn(.exe)"
+  co|custom.openvpn '/full/path/to/openvpn(.exe)'
      Save your custom openvpn binary location.
      EG: /usr/local/bin/openvpn
          Qutotes are not required.
-     EG: "C:/Program Files/OpenVPN/mybin/openvpn.exe"
+     EG: 'C:/Program Files/OpenVPN/mybin/openvpn.exe'
          Quotes are required for spaces.
-         Back-slash is not support, use Forward-slash "/" ONLY.
+         Back-slash is not support, use Forward-slash '/' ONLY.
 
   im|inline.metadata on|off
      Add metadata to inline file
@@ -436,7 +440,7 @@ Easy-TLS configurable options:
   deletion (No short form)
      delete an item from config
      Should the need arise, items can now be deleted also.
-'
+"
 } #=> opt_config ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
@@ -6136,11 +6140,12 @@ external_deps ()
 
 	# OpenSSL config
 	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
-	github="https://raw.githubusercontent.com"
-	config_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
+	EASYTLS_github="https://raw.githubusercontent.com"
+	EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
 	[ -f "${OPENSSL_CONF}" ] || {
-		help_note="URL: ${github}/${config_url}"
-		die "Missing openssl config, download URL above. "
+		error_msg "Missing openssl config file: easytls_openssl.cnf"
+		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
+		die "Download the file from the URL above."
 		}
 } # => external_deps ()
 
@@ -6314,6 +6319,10 @@ while :; do
 	empty_ok="" # Empty values are not allowed unless excepted
 
 	case "$opt" in
+	''|help|-h|--help|--usage)
+		cmd='help'
+		break
+	;;
 	--batch)
 		empty_ok=1
 		export EASYTLS_BATCH=1
@@ -6541,7 +6550,7 @@ case "$cmd" in
 				die "Error: remove_inline"
 			cmd='Done'
 		;;
-		rt|rk|remove-tlskey)
+		rt|rk|rtk|remove-tlskey)
 			remove_tlskey "$@" || \
 				die "Error: remove_tlskey"
 			cmd='Done'
