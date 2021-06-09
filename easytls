@@ -1217,6 +1217,10 @@ and initialize a fresh TLS PKI here."
 	notice "To configure your Easy-TLS custom group now, use:
 
     'easytls config custom.group YOUR_GROUP'"
+
+	notice "To configure your Easy-TLS temporary directory now, use:
+
+    'easytls config tmp.dir YOUR_DIR'"
 } # => init_tls ()
 
 # Auto-check for invalid inline files
@@ -6041,7 +6045,7 @@ external_deps ()
 	EASYTLS_CP='cp' # Checked by Easy-RSA3
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
-	EASYTLS_LS='ls' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
+	EASYTLS_LS='ls' # NOT Checked by Easy-RSA3
 	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
 	EASYTLS_MKTEMP='mktemp'
 	#EASYTLS_MV='mv' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
@@ -6136,7 +6140,10 @@ external_deps ()
 
 	# Append easytls to tmp_dir and create it
 	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
-	mkdir -p "${EASYTLS_tmp_dir}"
+	mkdir -p "${EASYTLS_tmp_dir}" || {
+		error_msg "Create the directory: ${EASYTLS_tmp_dir}"
+		die "Failed to create temporary directory: ${EASYTLS_tmp_dir}"
+		}
 
 	# OpenSSL config
 	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
