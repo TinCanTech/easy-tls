@@ -123,16 +123,16 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch --no-auto-check -t=${WORK_DIR}/unit-test"
+EASYTLS_OPTS="--verbose --batch --no-auto-check"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_OPTS="-v"
 
 TLSVERIFY_CMD="./easytls-verify.sh"
-TLSVERIFY_OPTS="-v -c=./ -t=${WORK_DIR}/unit-test"
+TLSVERIFY_OPTS="-v"
 
 CLICON_CMD="./easytls-client-connect.sh"
-CLICON_OPTS="-v -t=${WORK_DIR}/unit-test"
+CLICON_OPTS="-v"
 
 
 [ $EASYTLS_REMOTE_CI ] && {
