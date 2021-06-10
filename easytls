@@ -477,9 +477,8 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
-	[ -z "$EASYRSA_TEMP_DIR_session" ] || \
-		"$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR_session"
-
+	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir##*/}" = "easytls" ] && \
+		rm -rf "${EASYTLS_tmp_dir}"/*
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		set -o echo
@@ -721,10 +720,11 @@ easytls_config ()
 			esac
 		;;
 		tmp.dir)
-			[ -d "$cfg_val" ] || {
-				help_note="First create directory: $cfg_val"
-				die "Directory does not exists: $cfg_val"
-				}
+			:
+			#[ -d "$cfg_val" ] || {
+			#	help_note="First create directory: $cfg_val"
+			#	die "Directory does not exists: $cfg_val"
+			#	}
 		;;
 		auto.check|inline.metadata|inline.hardware)
 			case "$cfg_val" in
@@ -868,8 +868,10 @@ config_use ()
 				set_var EASYTLS_OPENVPN "openvpn"
 				;;
 			tmp.dir)
-				# This is set explicitly here to over-write default
-				[ -n "$cfg_val" ] && export EASYTLS_tmp_dir="$cfg_val"
+				[ -n "$cfg_val" ] && {
+					set_var EASYTLS_tmp_dir "$cfg_val"
+					config_tmp_dir=1
+					}
 				;;
 			no.ca)
 				# This is set explicitly here to protect config
@@ -1313,6 +1315,21 @@ validate_hash ()
 	# Local var
 	test_hash="$*"
 
+	# Set length
+	test_length=${#test_hash}
+
+	# Verify length
+	[ $test_length -eq $fixed_length ] || {
+		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} hash Size:"
+		error_msg "Actual: $test_length - Expected: $fixed_length"
+		unset test_hash
+		unset test_length
+		return 1
+		}
+
+	# Clean up
+	unset test_length
+
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
 	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
@@ -1328,22 +1345,8 @@ validate_hash ()
 		return 1
 		}
 
-	# Set length
-	test_length=${#test_hash}
-
 	# Clean up
 	unset test_hash
-
-	# Verify length
-	[ $test_length -eq $fixed_length ] || {
-		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} hash Size:"
-		error_msg "Actual: $test_length - Expected: $fixed_length"
-		unset test_length
-		return 1
-		}
-
-	# Clean up
-	unset test_length
 } # => validate_hash ()
 
 # Verify two hashes Match
@@ -2490,7 +2493,7 @@ tls_crypt_v2_serial_number ()
 # tlskey name subkeyname to tls serial
 tlskey_index_full_name_to_tls_serial ()
 {
-	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$1}"
+	script="{if(\$3 \$4 ~ /${name}${TLSKEY_SUBNAME}/) print \$1}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 } # => tlskey_index_full_name_to_tls_serial ()
@@ -2498,7 +2501,7 @@ tlskey_index_full_name_to_tls_serial ()
 # tlskey name subkeyname to x509 serial
 tlskey_index_full_name_to_x509_serial ()
 {
-	script="{if(\$3 ~ /${name}/ && \$4 ~ /${TLSKEY_SUBNAME}/) print \$2}"
+	script="{if(\$3 \$4 ~ /${name}${TLSKEY_SUBNAME}/) print \$2}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 } # => tlskey_index_full_name_to_x509_serial ()
@@ -6047,7 +6050,7 @@ external_deps ()
 	EASYTLS_GREP='grep'
 	EASYTLS_LS='ls' # NOT Checked by Easy-RSA3
 	EASYTLS_MKDIR='mkdir' # Checked by Easy-RSA3
-	EASYTLS_MKTEMP='mktemp'
+	#EASYTLS_MKTEMP='mktemp' # Not used in Easy-TLS
 	#EASYTLS_MV='mv' # Not used in Easy-TLS, NOT Checked by Easy-RSA3
 	EASYTLS_PRINTF='printf' # Checked by Easy-RSA3
 	EASYTLS_RM='rm' # Checked by Easy-RSA3
@@ -6058,16 +6061,16 @@ external_deps ()
 	then
 		# Windows
 		host_drv="${PATH%%\:*}"
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
+		#EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 
 		setup_err=0
-		[ -d "$EASYTLS_tmp_dir" ] || {
-			echo "Missing: $EASYTLS_tmp_dir"
-			setup_err=1
-			}
+		#[ -d "$EASYTLS_tmp_dir" ] || {
+		#	echo "Missing: $EASYTLS_tmp_dir"
+		#	setup_err=1
+		#	}
 		[ -d "$EASYTLS_ersabin_dir" ] || {
 			echo "Missing: $EASYTLS_ersabin_dir"
 			setup_err=1
@@ -6134,16 +6137,7 @@ external_deps ()
 			help_note="Remove spaces from PATH using CD to select short name."
 			die "EasyTLS tools will not function correctly in this path."
 		fi
-	else
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
-
-	# Append easytls to tmp_dir and create it
-	EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
-	mkdir -p "${EASYTLS_tmp_dir}" || {
-		error_msg "Create the directory: ${EASYTLS_tmp_dir}"
-		die "Failed to create temporary directory: ${EASYTLS_tmp_dir}"
-		}
 
 	# OpenSSL config
 	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
@@ -6155,6 +6149,33 @@ external_deps ()
 		die "Download the file from the URL above."
 		}
 } # => external_deps ()
+
+# Append easytls to tmp_dir and create it and save it in config
+make_tmp_dir ()
+{
+	flash_config=1
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
+	else
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
+	fi
+	[ "${EASYTLS_tmp_dir##*/}" = "easytls" ] || \
+		EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
+	if [ ! -d "${EASYTLS_tmp_dir}" ]
+	then
+		mkdir -p "${EASYTLS_tmp_dir}" || {
+		error_msg "Create the directory: ${EASYTLS_tmp_dir}"
+		die "Failed to create temporary directory: ${EASYTLS_tmp_dir}"
+		}
+	fi
+	[ $config_tmp_dir ] || easytls_config "tmp.dir" "${EASYTLS_tmp_dir}"
+	unset flash_config
+
+	# Any variables requiring EASYTLS_tmp_dir go here
+	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_tmp_dir}/ecp.tmp"
+}
+
 
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
@@ -6261,29 +6282,7 @@ vars_setup()
 
 	set_var EASYTLS_SS_AGE          "3650"
 	set_var EASYTLS_EC_CURVE        "secp384r1"
-	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_tmp_dir}/ecp.tmp"
-
-	# Assign value to $EASYRSA_TEMP_DIR_session and work around
-	# Windows mktemp bug when parent dir is missing
-	if [ -z "$EASYRSA_TEMP_DIR_session" ]; then
-		if [ -d "$EASYRSA_TEMP_DIR" ]; then
-			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
-		else
-			# Directory does not exist then we have not run init-pki
-			"$EASYTLS_MKDIR" -p "$EASYRSA_TEMP_DIR" || \
-				die "Cannot create $EASYRSA_TEMP_DIR"
-
-			EASYRSA_TEMP_DIR_session="$(mktemp_make_temp)"
-			"$EASYTLS_RM" -rf "$EASYRSA_TEMP_DIR"
-		fi
-	fi
 } # vars_setup()
-
-# mktemp return temp_dir name
-mktemp_make_temp ()
-{
-	"$EASYTLS_MKTEMP" -du "$EASYRSA_TEMP_DIR/easy-rsa-$$.XXXXXX"
-} # => mktemp_make_temp ()
 
 # variable assignment by indirection when undefined; merely exports
 # the variable when it is already defined (even if currently null)
@@ -6480,6 +6479,8 @@ case "$cmd" in
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
 				}
+			# Manage temporary directory
+			make_tmp_dir || die "make_tmp_dir: failed"
 		;;
 	esac
 
