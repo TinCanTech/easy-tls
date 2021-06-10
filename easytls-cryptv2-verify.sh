@@ -937,7 +937,7 @@ fi
 # Client will try again
 if [ -f "${client_metadata_file}" ]
 then
-	failure_msg="client_metadata_file age: ${md_file_date_sec} sec"
+	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
 	fail_and_exit "STALE_METADATA_FILE" 101
 else
 	"${EASYTLS_PRINTF}" '%s\n%s\n' \
