@@ -385,32 +385,62 @@ update_status "CN:${X509_0_CN}"
 	# Verify Client certificate serial number
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
-	# Certificate expire date
-	expire_date=$(
-		"${EASYTLS_OPENSSL}" x509 -in "$peer_cert" -noout -enddate |
-		"${EASYTLS_SED}" 's/^notAfter=//'
-		)
-	expire_date_sec=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
+	# There will ONLY be a hardware file
+	# if the client does have a --tls-crypt-v2 key
+	# --tls-crypt-v2, --tls-auth and --tls-crypt
+	# are mutually exclusive in client mode
+	# Set hwaddr file name TLS Crypt V2 only
+	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
+
+	# --tls-verify output to --client-connect
+	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
+
+	# Required for reneg
+	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
 	# Current date
 	local_date_sec=$("${EASYTLS_DATE}" +%s)
 
-	# Check for expire
-	if [ ${expire_date_sec} -lt ${local_date_sec} ]
-	then
-		update_status "Certificate expired"
-		[ $ignore_expired ] || \
-			fail_and_exit "CLIENT CERTIFICATE IS EXPIRED" 2
-		update_status "Ignored expiry"
-	else
-		update_status "Certificate is not expired"
-	fi
+	# Work around for double call of --tls-verify
+	client_stage1_file="${client_ext_md_file}.stage-1"
 
-	# X509
-	if [ $EASYTLS_NO_CA ]
+	# Mitigate running tls-verify twice
+	if [ -f "${client_stage1_file}" ]
 	then
-		# No CA checks
-		:
+		# Remove stage-1 file, all metadata files are in place
+		"${EASYTLS_RM}" "${client_stage1_file}" || \
+			die "Failed to remove stage-1 file" 252
+		update_status "Stage-1 file deleted"
+	else
+		# Create Stage-1 file
+		"${EASYTLS_PRINTF}" '%s' '1' > "${client_stage1_file}" || \
+			die "Failed to write client_stage1_file"
+		update_status "Stage-1 file created"
+
+	if [ $EASYTLS_NO_CA ]
+	# BEGIN: No-CA checks
+	then
+
+		# Certificate expire date
+		expire_date=$(
+			"${EASYTLS_OPENSSL}" x509 -in "$peer_cert" -noout -enddate |
+			"${EASYTLS_SED}" 's/^notAfter=//'
+			)
+		expire_date_sec=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
+
+		# Check for expire
+		if [ ${expire_date_sec} -lt ${local_date_sec} ]
+		then
+			update_status "Certificate expired"
+			[ $ignore_expired ] || \
+				fail_and_exit "CLIENT CERTIFICATE IS EXPIRED" 2
+			update_status "Ignored expiry"
+		else
+			update_status "Certificate is not expired"
+		fi
+	# END: No-CA checks
+
+	# BEGIN: CA checks
 	else
 		# Check cert serial is known by index.txt
 		serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
@@ -437,84 +467,59 @@ update_status "CN:${X509_0_CN}"
 			fail_and_exit "ALIEN CLIENT CERTIFICATE SERIAL" 4
 		fi
 	fi
+	# END: CA checks
 
-	# There will ONLY be a hardware file
-	# if the client does have a --tls-crypt-v2 key
-	# --tls-crypt-v2, --tls-auth and --tls-crypt
-	# are mutually exclusive in client mode
-	# Set hwaddr file name TLS Crypt V2 only
-	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
-	# --tls-verify output to --client-connect
-	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
-	# Work around for double call of --tls-verify
-	client_stage1_file="${client_ext_md_file}.stage-1"
-	# Required for reneg
-	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
-
-	# Mitigate running tls-verify twice
-	if [ -f "${client_stage1_file}" ]
+	# Verify tlskey-serial is in index
+	if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
 	then
-		# Remove stage-1 file, all metadata files are in place
-		"${EASYTLS_RM}" "${client_stage1_file}" || \
-			die "Failed to remove stage-1 file" 252
-		update_status "Stage-1 file deleted"
-
-		# Remove trusted metadata file, if this is a reneg ..
-		if [ -f "${client_trusted_md_file}" ]
-		then
-			"${EASYTLS_RM}" "${client_trusted_md_file}"
-			update_status "client_trusted_md_file file deleted"
-		fi
+		# This client is using TLS Crypt V2 - there will be a HWADDR file
+		# If not then the TLS Key is being used by the wrong X509 client
+		# --tls-crypt-v2 does not have any X509 so check is done here
+		[ -f "${client_metadata_file}" ] || {
+			# No output file then tls-crypt-v2 key is being used by wrong cert
+			failure_msg="Client cert is being used by wrong config"
+			fail_and_exit "CLIENT TLS CRYPT V2 KEY X509 SERIAL MISMATCH" 5
+			}
+		# Move tls-crypt-v2-verify output file to tls-verify output file
+		"${EASYTLS_CP}" "${client_metadata_file}" "${client_ext_md_file}"
+		update_status "client_metadata_file copied -> client_ext_md_file"
 	else
-		# Verify tlskey-serial is in index
-		if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
+		# Client X509 is not in TLS key index but is in CA index
+		# This client is not using TLS Crypt V2
+		# https://github.com/TinCanTech/easy-tls/issues/179
+		# If there is no hwaddr file then
+		# create a simple hwaddr file for client-connect
+		# This implies that the client is not bound to a hwaddr
+		if [ -f "${client_ext_md_file}" ]
 		then
-			# This client is using TLS Crypt V2 - there will be a HWADDR file
-			# If not then the TLS Key is being used by the wrong X509 client
-			# --tls-crypt-v2 does not have any X509 so check is done here
-			[ -f "${client_metadata_file}" ] || {
-				# No output file then tls-crypt-v2 key is being used by wrong cert
-				failure_msg="Client cert is being used by wrong config"
-				fail_and_exit "CLIENT TLS CRYPT V2 KEY X509 SERIAL MISMATCH" 5
-				}
-			# Move tls-crypt-v2-verify output file to tls-verify output file
-			"${EASYTLS_CP}" "${client_metadata_file}" "${client_ext_md_file}"
-			update_status "client_metadata_file copied -> client_ext_md_file"
-		else
-			# Client X509 is not in TLS key index but is in CA index
-			# This client is not using TLS Crypt V2
-			# https://github.com/TinCanTech/easy-tls/issues/179
-			# If there is no hwaddr file then
-			# create a simple hwaddr file for client-connect
-			# This implies that the client is not bound to a hwaddr
-			if [ -f "${client_ext_md_file}" ]
+			md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_ext_md_file}")"
+			if [ ${local_date_sec} -gt ${md_file_date_sec} ]
 			then
-				md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_ext_md_file}")"
-				if [ ${local_date_sec} -gt ${md_file_date_sec} ]
-				then
-					"${EASYTLS_RM}" "${client_ext_md_file}"
-					update_status "Stale file deleted"
-				else
-					"${EASYTLS_RM}" "${client_ext_md_file}"
-					update_status "Duplicate file deleted"
-					failure_msg="client_ext_md_file exits"
-					fail_and_exit "DUPLICATE_SESSION" 6
-				fi
+				"${EASYTLS_RM}" "${client_ext_md_file}"
+				update_status "Stale file deleted"
+			else
+				"${EASYTLS_RM}" "${client_ext_md_file}"
+				update_status "Duplicate file deleted"
+				failure_msg="client_ext_md_file exits"
+				fail_and_exit "DUPLICATE_SESSION" 6
 			fi
-			# X509 not in TLS key index and HWADDR file missing
-			# This is correct behaviour for --tls-crypt/--tls-auth keys
-			"${EASYTLS_PRINTF}" '%s' '000000000000' > \
-				"${client_ext_md_file}" || \
-					die "Failed to write client_ext_md_file"
-			update_status "Client using --tls-crypt (V1)"
-		fi # TLS crypt v2 or v1
+		fi
+		# X509 not in TLS key index and HWADDR file missing
+		# This is correct behaviour for --tls-crypt/--tls-auth keys
+		"${EASYTLS_PRINTF}" '%s' '000000000000' > \
+			"${client_ext_md_file}" || \
+				die "Failed to write client_ext_md_file"
+		update_status "Client using --tls-crypt (V1)"
+	fi # TLS crypt v2 or v1
 
-		# Create Stage-1 file
-		"${EASYTLS_PRINTF}" '%s' '1' > \
-			"${client_stage1_file}" || \
-				die "Failed to write client_stage1_file"
-		update_status "Stage-1 file created"
 	fi # client_stage1_file
+
+	# Remove trusted metadata file, if this is a reneg ..
+	if [ -f "${client_trusted_md_file}" ]
+	then
+		"${EASYTLS_RM}" "${client_trusted_md_file}"
+		update_status "client_trusted_md_file file deleted"
+	fi
 
 	# Allow this connection
 	connection_allowed
