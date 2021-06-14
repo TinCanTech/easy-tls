@@ -146,7 +146,7 @@ format_number ()
 # Allow connection
 connection_allowed ()
 {
-	"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	#"${EASYTLS_RM}" -f "${client_ext_md_file}"
 	absolute_fail=0
 	update_status "connection allowed"
 }
@@ -160,7 +160,7 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_server_pid=$PPID
+	EASYTLS_srv_pid=$PPID
 
 	# Log message
 	status_msg="* EasyTLS-client-connect"
@@ -294,6 +294,8 @@ warn_die
 # Report option warnings
 warn_log
 
+env > env.client-connect
+
 # Update log message
 update_status "CN:${X509_0_CN}"
 
@@ -306,11 +308,16 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# Set client_metadata_files
-client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_server_pid}"
+# easytls client metadata file
+client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
+
+# --tls-verify output to --client-connect
 client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-# Verify client_metadata_file
+# Append file extensions
+client_metadata_file="${client_metadata_file}.tcv2md"
+
+# Verify client_ext_md_file
 if [ -f "${client_ext_md_file}" ]
 then
 	# Client cert serial matches
@@ -321,7 +328,9 @@ else
 fi
 
 # Set only for NO keyed hwaddr
-if "${EASYTLS_GREP}" -q '000000000000' "${client_ext_md_file}"
+# regexp should be '+000000000000+' - Version update!
+if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' \
+		"${client_ext_md_file}"
 then
 	key_hwaddr_missing=1
 fi
@@ -360,13 +369,14 @@ else
 		fi
 	else
 		# hwaddr is pushed
-		if "${EASYTLS_GREP}" -q "${push_hwaddr}" "${client_ext_md_file}"
+		if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
 		then
 			# MATCH!
 			update_status "hwaddr ${push_hwaddr} pushed and matched"
 			connection_allowed
 		else
 			# push does not match key hwaddr
+			failure_msg="Key does not match pushed hwaddr: ${push_hwaddr}"
 			fail_and_exit "HWADDR MISMATCH" 2
 		fi
 	fi
@@ -383,7 +393,9 @@ fi
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "
+<EXOK> ${status_msg}
+"
 	exit 0
 fi
 
