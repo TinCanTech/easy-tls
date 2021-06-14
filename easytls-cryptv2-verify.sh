@@ -110,6 +110,9 @@ help_text ()
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
+  87  - BUG Disallow connection, failed to create generic_metadata_file
+  88  - BUG Disallow connection, failed to create generic_metadata_file
+  89  - BUG Disallow connection, failed to create client_metadata_file
   101 - BUG Disallow connection, stale metadata file time-out.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
@@ -263,7 +266,7 @@ serial_status_via_crl ()
 		fail_and_exit "SERIAL NUMBER UNKNOWN" 121
 		;;
 		1)
-		client_passed_x509_tests_connection_allowed
+		client_passed_x509_tests
 		;;
 		*)
 		die "Duplicate serial numbers: ${md_serial}" 127
@@ -298,7 +301,7 @@ serial_status_via_ca ()
 	# Considering what has to be done, I don't like this
 	case "${client_cert_serno_status}" in
 	Valid)
-		client_passed_x509_tests_connection_allowed
+		client_passed_x509_tests
 	;;
 	Revoked)
 		client_passed_x509_tests_certificate_revoked
@@ -359,7 +362,7 @@ serial_status_via_pki_index ()
 	then
 		if [ $is_valid -eq 1 ]
 		then
-			client_passed_x509_tests_connection_allowed
+			client_passed_x509_tests
 		else
 			# Cert is not known
 			insert_msg="Serial number is not in the CA database:"
@@ -388,11 +391,10 @@ fn_search_revoked_pki_index ()
 }
 
 # This is the long way to connect - X509
-client_passed_x509_tests_connection_allowed ()
+client_passed_x509_tests ()
 {
 	insert_msg="Client certificate is recognised and Valid:"
 	update_status "${insert_msg} ${md_serial}"
-	absolute_fail=0
 }
 
 # This is the only way to fail for Revokation - X509
@@ -407,7 +409,14 @@ client_passed_x509_tests_certificate_revoked ()
 client_passed_tls_tests_connection_allowed ()
 {
 	absolute_fail=0
-	update_status "TLS key is recognised and Valid: ${tlskey_serial}"
+	update_status "connection allowed"
+}
+
+# Allow connection
+connection_allowed ()
+{
+	absolute_fail=0
+	update_status "connection allowed"
 }
 
 # Initialise
@@ -430,7 +439,7 @@ init ()
 	tlskey_max_age=$((365*5))
 
 	# Defaults
-	EASYTLS_server_pid=$PPID
+	EASYTLS_srv_pid=$PPID
 
 	# metadata file
 	OPENVPN_METADATA_FILE="${metadata_file}"
@@ -457,6 +466,7 @@ init ()
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
 	EASYTLS_CAT='cat'
+	EASYTLS_CP='cp'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
 	EASYTLS_SED='sed'
@@ -477,6 +487,7 @@ init ()
 		[ -d "${EASYTLS_ovpnbin_dir}" ] || exit 63
 		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENSSL}.exe" ] || exit 64
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CP}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
@@ -847,7 +858,7 @@ warn_log
 if [ ! $use_x509 ]
 then
 	# No X509 required
-	client_passed_tls_tests_connection_allowed
+	update_status "client passed TLS tests"
 else
 
 	# Verify CA cert is valid and/or set the CA identity
@@ -921,7 +932,9 @@ else
 fi # => use_x509 ()
 
 # Save the client_metadata to temp file
-client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_server_pid}"
+client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_srv_pid}"
+#client_metadata_file="${client_metadata_file}.tcv2md"
+generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
 
 # If client_metadata_file exists then delete it if is stale
 if [ -f "${client_metadata_file}" ]
@@ -940,9 +953,29 @@ then
 	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
 	fail_and_exit "STALE_METADATA_FILE" 101
 else
-	"${EASYTLS_PRINTF}" '%s\n%s\n' \
-		"${md_hwadds}" "${md_opt}" > "${client_metadata_file}" || \
-			die "Failed to write client_metadata file"
+	#"${EASYTLS_PRINTF}" '%s %s %s\n' \
+	#	"${tlskey_serial}" "${md_hwadds}" "${md_opt}" > \
+	#		"${client_metadata_file}" || \
+	#			die "Failed to write client_metadata file"
+	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_metadata_file}" || \
+		die "Failed to create client_metadata_file" 89
+	update_status "Created client_metadata_file"
+
+	# Ugly generic_metadata_file hack
+	if [ -f "${generic_metadata_file}" ]
+	then
+		"${EASYTLS_RM}" -f "${generic_metadata_file}"
+		update_status "Deleted generic_metadata_file"
+		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
+			die "Failed to create generic_metadata_file" 87
+		update_status "Created generic_metadata_file"
+	else
+		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
+			die "Failed to create generic_metadata_file" 88
+		update_status "Created generic_metadata_file"
+	fi
+	# Allow connection
+	connection_allowed
 fi
 
 # Any failure_msg means fail_and_exit
@@ -956,7 +989,9 @@ fi
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "
+<EXOK> ${status_msg}
+"
 	exit 0
 fi
 
