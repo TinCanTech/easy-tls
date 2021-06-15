@@ -39,6 +39,7 @@ help_text ()
   -x|--x509              Check X509 certificate validity
                          (Only works in full PKI mode)
   -p|--ignore-expired    Ignore expiry and allow connection of expired clients
+  -q|--ignore-require    Ignore TLS-Crypt-V2 key requirement
   -r|--ignore-revoked    Ignore revocation and allow connection of revoked clients
                          (Only works in full PKI mode)
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
@@ -56,7 +57,8 @@ help_text ()
   2   - Disallow connection, Client cert expired.
   3   - Disallow connection, Client cert revoked.
   4   - Disallow connection, Client cert not recognised.
-  5   - Disallow connection, Client cert should have TLS-Crypt-v2 key
+  5   - Disallow connection, Client cert should have TLS-Crypt-v2 key.
+  6   - Disallow connection, TLS-key X509 serial and Openvpn X509 serial mismatch.
   9   - Disallow connection, unexpected failure. (BUG)
   11  - Disallow connection, missing X509 client cert serial. (BUG)
   12  - Disallow connection, CA PKI dir not defined. (REQUIRED)
@@ -97,7 +99,8 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
+	delete_metadata_files
+	verbose_print "<STAT> ${status_msg}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
 	exit "${2:-255}"
@@ -106,12 +109,28 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	"${EASYTLS_RM}" -f "${client_metadata_file}"
-	print "${status_msg}"
+	delete_metadata_files
+	verbose_print "<STAT> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
+
+# Delete all metadata files
+delete_metadata_files ()
+{
+	"${EASYTLS_RM}" -f \
+		"${generic_metadata_file}" \
+		"${generic_ext_md_file}" \
+		"${generic_trusted_md_file}" \
+		"${client_metadata_file}" \
+		"${client_ext_md_file}" \
+		"${client_trusted_md_file}" \
+		"${stage1_file}" \
+		"${g_x509_serial_md_file}" \
+
+	update_status "*** temp files deleted"
+}
 
 # Log fatal warnings
 warn_die ()
@@ -157,11 +176,35 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
+# Create stage-1 file
+create_stage1_file ()
+{
+	if [ -f "${stage1_file}" ]
+	then
+		print "*** Stage-1 file exists"
+		exit 96
+	else
+		"${EASYTLS_PRINTF}" '%s' '1' > "${stage1_file}" || return 1
+		update_status "Stage-1 file created"
+	fi
+}
+
+# Create stage-1 file
+delete_stage1_file ()
+{
+	if [ -f "${stage1_file}" ]
+	then
+		"${EASYTLS_RM}" "${stage1_file}" || return 1
+		update_status "Stage-1 file deleted"
+	else
+		print "*** Stage-1 file missing"
+		exit 97
+	fi
+}
+
 # Initialise
 init ()
 {
-	NL='
-'
 	# Fail by design
 	absolute_fail=1
 
@@ -172,7 +215,7 @@ init ()
 	status_msg="* EasyTLS-verify"
 
 	# Default stale-metadata-output-file time-out
-	stale_sec=30
+	#stale_sec=30
 
 	# Identify Windows
 	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
@@ -239,8 +282,8 @@ deps ()
 
 	# Easy-TLS required files
 	TLS_dir="${CA_dir}/easytls/data"
-	disabled_list="${TLS_dir}/easytls-disabled-list.txt"
-	tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
+	#disabled_list="${TLS_dir}/easytls-disabled-list.txt"
+	#tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
 
 	# Check TLS files
 	[ -d "${TLS_dir}" ] || {
@@ -275,6 +318,48 @@ deps ()
 		}
 }
 
+# generic metadata_string into variables
+generic_metadata_string_to_vars ()
+{
+	g_tlskey_serial="${1%%-*}"
+	g_md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	g_md_easytls_ver="${1#*--}"
+	g_md_easytls="${md_easytls_ver%-*.*}"
+
+	g_md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	g_md_serial="${3}"
+	g_md_date="${4}"
+	g_md_custom_g="${5}"
+	g_md_name="${6}"
+	g_md_subkey="${7}"
+	g_md_opt="${8}"
+	g_md_hwadds="${9}"
+} # => metadata_string_to_vars ()
+
+# client metadata_string into variables
+client_metadata_string_to_vars ()
+{
+	c_tlskey_serial="${1%%-*}"
+	c_md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	c_md_easytls_ver="${1#*--}"
+	c_md_easytls="${md_easytls_ver%-*.*}"
+
+	c_md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	c_md_serial="${3}"
+	c_md_date="${4}"
+	c_md_custom_g="${5}"
+	c_md_name="${6}"
+	c_md_subkey="${7}"
+	c_md_opt="${8}"
+	c_md_hwadds="${9}"
+} # => metadata_string_to_vars ()
+
 #######################################
 
 # Initialise
@@ -308,9 +393,17 @@ do
 		empty_ok=1
 		x509_check=1
 	;;
+	-m|ignore-mismatch) # tlskey-x509 does not match openvpn-x509
+		empty_ok=1
+		ignore_x509_mismatch=1
+	;;
 	-p|--ignore-expired)
 		empty_ok=1
 		ignore_expired=1
+	;;
+	-q|--ignore-required)
+		empty_ok=1
+		ignore_required=1
 	;;
 	-r|--ignore-revoked)
 		empty_ok=1
@@ -330,17 +423,16 @@ do
 	;;
 	0)
 		empty_ok=1
-		# cert_depth="0" # Currently not used
+		EASYTLS_cert_depth="0"
 	;;
 	1)
 		# DISABLE CA verify
-		warn_log '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
 		empty_ok=1
-		ignore_ca_verify=1
+		EASYTLS_cert_depth="1"
 	;;
 	CN)
 		empty_ok=1
-		# CN # Currently not used
+		EASYTLS_CN="${val}" # Currently not used
 	;;
 	*)
 		empty_ok=1
@@ -372,61 +464,193 @@ warn_die
 warn_log
 
 # Ignore CA verify
-[ $ignore_ca_verify ] && exit 0
+#[ $ignore_ca_verify ] && {
+#	echo '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
+#	exit 0
+#	}
+
+#echo "EASYTLS_CN: ${EASYTLS_CN}"
+env > env.tls-verify.${EASYTLS_cert_depth}
 
 # Update log message
-update_status "CN:${X509_0_CN}"
+case ${EASYTLS_cert_depth} in
+1)	update_status "CN:${X509_1_CN}" ;;
+0)	update_status "CN:${X509_0_CN}" ;;
+*)	die "Unsupported certificate depth: ${EASYTLS_cert_depth}" ;;
+esac
 
 # TLS verify checks
 
+# Work around for double call of --tls-verify
+stage1_file="${EASYTLS_tmp_dir}/${EASYTLS_srv_pid}"
+stage1_file="${stage1_file}-${untrusted_ip}-${untrusted_port}.stage-1"
+
+# Mitigate running tls-verify twice - Remember: This is an OpenVPN bug
+if [ -f "${stage1_file}" ]
+then
+	# Remove stage-1 file, all metadata files are in place
+	delete_stage1_file || die "Failed to remove stage-1 file" 252
+
+	# ----------
+	# generic metadata file
+	generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
+
+	# extended generic metadata file
+	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
+
+	# generic trusted file - For float
+	generic_trusted_md_file="${generic_metadata_file}-${trusted_ip}-${trusted_port}"
+
+	# Move generic to generic-ext
+	if [ -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
+	then
+		# Initial connection only - Always succeeds
+		"${EASYTLS_MV}" "${generic_metadata_file}" "${generic_ext_md_file}" || \
+			die "mv generic_metadata_file failed"
+		update_status "generic_ext_md_file READY"
+	elif [ ! -f "${generic_metadata_file}" ] && [ -f "${generic_ext_md_file}" ]
+	then
+		# File names must match or client has floated
+		[ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ] || {
+			"${EASYTLS_MV}" \
+				"${generic_ext_md_file}" "${generic_trusted_md_file}" || \
+					die "mv generic_ext_md_file failed"
+			update_status "untrusted/trusted file mismatch- client floated"
+			}
+		# Renegotiation only - Always succeeds
+		# Files are in place
+		update_status "generic reneg ok"
+	elif [ ! -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
+	then
+		# No generic files means --tls-auth/crypt v1 only
+		not_tls_crypt_v2=1
+	else
+		# Something else is wrong - maybe a connection over-lap
+		die "problem with generic files"
+	fi
+
+	[ $not_tls_crypt_v2 ] || {
+		# Get client metadata_string
+		metadata_string="$("${EASYTLS_CAT}" "${generic_ext_md_file}")"
+		[ -n "${metadata_string}" ] || \
+			fail_and_exit "failed to read generic_ext_md_file" 18
+		# Populate metadata variables
+		generic_metadata_string_to_vars $metadata_string
+		[ -n "${g_tlskey_serial}" ] || \
+			fail_and_exit "failed to set g_tlskey_serial" 19
+		unset metadata_string
+		update_status "generic metadata processed"
+		}
+	# ----------
+
+	# generic metadata X509 serial file - not tlskey-x509-serial
+	g_x509_serial_md_file="${EASYTLS_tmp_dir}/${g_md_serial}.${EASYTLS_srv_pid}"
+
+	# ----------
 	# Set Client certificate serial number from Openvpn env
 	client_serial="$(format_number "${tls_serial_hex_0}")"
 
 	# Verify Client certificate serial number
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
-	# There will ONLY be a hardware file
-	# if the client does have a --tls-crypt-v2 key
-	# --tls-crypt-v2, --tls-auth and --tls-crypt
-	# are mutually exclusive in client mode
-	# Set hwaddr file name TLS Crypt V2 only
+	# client metadata file
 	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
 
-	# --tls-verify output to --client-connect
+	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# Required for reneg
+	# client trusted file - For float
 	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
-	# Current date
-	local_date_sec=$("${EASYTLS_DATE}" +%s)
-
-	# Work around for double call of --tls-verify
-	client_stage1_file="${client_ext_md_file}.stage-1"
-
-	# Mitigate running tls-verify twice
-	if [ -f "${client_stage1_file}" ]
+	# Move client to client-ext
+	if [ -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
 	then
-		# Remove stage-1 file, all metadata files are in place
-		"${EASYTLS_RM}" "${client_stage1_file}" || \
-			die "Failed to remove stage-1 file" 252
-		update_status "Stage-1 file deleted"
+		# Initial connection only - tlskey x509 match
+		"${EASYTLS_MV}" "${client_metadata_file}" "${client_ext_md_file}" || \
+			die "mv client_metadata_file failed"
+		update_status "client_ext_md_file READY"
+	elif [ ! -f "${client_metadata_file}" ] && [ -f "${client_ext_md_file}" ]
+	then
+		# File names must match or client has floated
+		# This does not actually work but I cannot find a solution
+		[ "${client_ext_md_file}" = "${client_trusted_md_file}" ] || {
+			"${EASYTLS_MV}" \
+				"${client_ext_md_file}" "${client_trusted_md_file}" || \
+					die "mv client_ext_md_file failed"
+			update_status "untrusted/trusted file mismatch - client floated"
+			}
+		# Renegotiation only - tlskey x509 match
+		# Files are in place
+		update_status "client reneg ok"
+	elif [ ! -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
+	then
+		# Initial connection only - tlskey x509 mismatch
+		# Or --tls-auth/crypt-v1
+		if [ $not_tls_crypt_v2 ]
+		then
+			# This is correct bebaviour for --tls-auth/crypt v1
+			# Create a dummy extended metadata file
+			"${EASYTLS_PRINTF}" '%s' ' 000000000000' > "${client_ext_md_file}" || \
+				die "Failed to write client_ext_md_file"
+			update_status "Not TLS-Crypt-V2"
+		else
+			[ $ignore_x509_mismatch ] || {
+				failure_msg="TLS-key is being used by the wrong client certificate"
+				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
+				}
+			update_status "Ignored tlskey X509 mismatch!"
+			# Move generic file in place of the non-existant client_ext_md_file
+			"${EASYTLS_MV}" "${g_x509_serial_md_file}" "${client_ext_md_file}"
+			update_status "client_ext_md_file READY(generic)"
+		fi
 	else
-		# Create Stage-1 file
-		"${EASYTLS_PRINTF}" '%s' '1' > "${client_stage1_file}" || \
-			die "Failed to write client_stage1_file"
-		update_status "Stage-1 file created"
+		# ?
+		die "problem with client files"
+	fi
+
+	# Get client metadata_string
+	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
+	[ -n "${metadata_string}" ] || \
+		fail_and_exit "failed to read client_ext_md_file" 18
+	# Populate metadata variables
+	client_metadata_string_to_vars $metadata_string
+	[ -n "${c_tlskey_serial}" ] || \
+		fail_and_exit "failed to set c_tlskey_serial" 19
+	unset metadata_string
+	update_status "client_ext_md_file processed"
+	# ----------
+
+	# Checks for all
+	if [ "${c_md_serial}" = "${client_serial}" ]
+	then
+		update_status "tlskey x509 matched"
+	else
+		if [ $not_tls_crypt_v2 ]
+		then
+			# Nothing more required
+			:
+		else
+			[ $ignore_x509_mismatch ] || {
+				failure_msg="TLS-key is being used by the wrong client certificate"
+				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 6
+				}
+			update_status "Ignored tlskey X509 mismatch!"
+		fi
+	fi
 
 	if [ $EASYTLS_NO_CA ]
-	# BEGIN: No-CA checks
 	then
+	# BEGIN: No-CA checks
 
 		# Certificate expire date
 		expire_date=$(
-			"${EASYTLS_OPENSSL}" x509 -in "$peer_cert" -noout -enddate |
+			"${EASYTLS_OPENSSL}" x509 -in "${peer_cert}" -noout -enddate |
 			"${EASYTLS_SED}" 's/^notAfter=//'
 			)
 		expire_date_sec=$("${EASYTLS_DATE}" -d "$expire_date" +%s)
+
+		# Current date
+		local_date_sec=$("${EASYTLS_DATE}" +%s)
 
 		# Check for expire
 		if [ ${expire_date_sec} -lt ${local_date_sec} ]
@@ -440,10 +664,11 @@ update_status "CN:${X509_0_CN}"
 		fi
 	# END: No-CA checks
 
-	# BEGIN: CA checks
 	else
+	# BEGIN: CA checks
+
 		# Check cert serial is known by index.txt
-		serial="^.*[[:blank:]][[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
+		serial="^.[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
 		valids="^V[[:blank:]]*[[:digit:]]*Z[[:blank:]]*${client_serial}[[:blank:]]"
 		if "${EASYTLS_GREP}" -q "${serial}" "${index_txt}"
 		then
@@ -469,60 +694,13 @@ update_status "CN:${X509_0_CN}"
 	fi
 	# END: CA checks
 
-	# Verify tlskey-serial is in index
-	if "${EASYTLS_GREP}" -q "${client_serial}" "${tlskey_serial_index}"
-	then
-		# This client is using TLS Crypt V2 - there will be a HWADDR file
-		# If not then the TLS Key is being used by the wrong X509 client
-		# --tls-crypt-v2 does not have any X509 so check is done here
-		[ -f "${client_metadata_file}" ] || {
-			# No output file then tls-crypt-v2 key is being used by wrong cert
-			failure_msg="Client cert is being used by wrong config"
-			fail_and_exit "CLIENT TLS CRYPT V2 KEY X509 SERIAL MISMATCH" 5
-			}
-		# Move tls-crypt-v2-verify output file to tls-verify output file
-		"${EASYTLS_CP}" "${client_metadata_file}" "${client_ext_md_file}"
-		update_status "client_metadata_file copied -> client_ext_md_file"
-	else
-		# Client X509 is not in TLS key index but is in CA index
-		# This client is not using TLS Crypt V2
-		# https://github.com/TinCanTech/easy-tls/issues/179
-		# If there is no hwaddr file then
-		# create a simple hwaddr file for client-connect
-		# This implies that the client is not bound to a hwaddr
-		if [ -f "${client_ext_md_file}" ]
-		then
-			md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_ext_md_file}")"
-			if [ ${local_date_sec} -gt ${md_file_date_sec} ]
-			then
-				"${EASYTLS_RM}" "${client_ext_md_file}"
-				update_status "Stale file deleted"
-			else
-				"${EASYTLS_RM}" "${client_ext_md_file}"
-				update_status "Duplicate file deleted"
-				failure_msg="client_ext_md_file exits"
-				fail_and_exit "DUPLICATE_SESSION" 6
-			fi
-		fi
-		# X509 not in TLS key index and HWADDR file missing
-		# This is correct behaviour for --tls-crypt/--tls-auth keys
-		"${EASYTLS_PRINTF}" '%s' '000000000000' > \
-			"${client_ext_md_file}" || \
-				die "Failed to write client_ext_md_file"
-		update_status "Client using --tls-crypt (V1)"
-	fi # TLS crypt v2 or v1
+else
+	# Create stage-1 file
+	create_stage1_file || die "Failed to create stage-1 file" 251
+fi # stage1_file
 
-	fi # client_stage1_file
-
-	# Remove trusted metadata file, if this is a reneg ..
-	if [ -f "${client_trusted_md_file}" ]
-	then
-		"${EASYTLS_RM}" "${client_trusted_md_file}"
-		update_status "client_trusted_md_file file deleted"
-	fi
-
-	# Allow this connection
-	connection_allowed
+# Allow this connection
+connection_allowed
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
@@ -535,7 +713,9 @@ update_status "CN:${X509_0_CN}"
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "
+<EXOK> ${status_msg}
+"
 	exit 0
 fi
 
