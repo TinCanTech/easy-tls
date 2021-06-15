@@ -2,7 +2,13 @@ https://github.com/TinCanTech/easy-tls
   Change log:
 
 Version 2.2
-* TBD - Commit
+* 2021-06-15 - Commit 32ccb2d52ad6c9cbd66a869c744f0c159ff88dc1
+  Move to libera.chat IRC
+    Commit 32ccb2d52ad6c9cbd66a869c744f0c159ff88dc1
+  Complete overhaul of easytls-verify.sh
+    Commit 3df16cf70d6ed7ae785b5fc7cfdb9f128aee5a50
+      Easy-TLS now fully supports 'no-ca' mode.
+      This is a complete replacement of Easy-RSA.
   Complete script support for --tls-auth and --tls-crypt keys
     Commit 1dab7536cce344c931861bdb75c76f7c06333ed6
   Add build self signed server/client certificates
