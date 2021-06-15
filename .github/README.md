@@ -35,7 +35,7 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 
 ## Support
 Please use the issues section here on github. <br>
-For live support you can use IRC channel: **Freenode/#easytls**<br>
+For live support you can use IRC channel: **libera.chat/#easytls**<br>
 Wiki: https://github.com/TinCanTech/easy-tls/wiki<br>
 Howto: https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md<br>
 

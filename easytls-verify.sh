@@ -598,7 +598,7 @@ then
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
 				}
-			update_status "Ignored tlskey X509 mismatch!"
+			update_status "Ignored tlskey X509 mismatch!*1"
 			# Move generic file in place of the non-existant client_ext_md_file
 			"${EASYTLS_MV}" "${g_x509_serial_md_file}" "${client_ext_md_file}"
 			update_status "client_ext_md_file READY(generic)"
@@ -634,7 +634,7 @@ then
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 6
 				}
-			update_status "Ignored tlskey X509 mismatch!"
+			update_status "Ignored tlskey X509 mismatch!*2"
 		fi
 	fi
 
