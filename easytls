@@ -6611,13 +6611,6 @@ case "$cmd" in
 	# When no-ca is true use these versions of commands
 	if [ $EASYTLS_NO_CA ]
 	then
-		# Set self-sign dir
-		#EASYTLS_SELF_SIGN_DIR="${EASYTLS}/peer-fpr"
-
-		# Verify self-sign dir
-		#[ -d "${EASYTLS_SELF_SIGN_DIR}" ] || \
-		#	warn "Missing required directory: ${EASYTLS_SELF_SIGN_DIR}"
-
 		# Possible commands
 		case "$cmd" in
 			Done): ;; # Ignore
