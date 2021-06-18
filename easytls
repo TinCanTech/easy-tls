@@ -6032,8 +6032,11 @@ verify_wiscii_hash ()
 # Don't wait for Easy-RSA3 to be patched because that is futile
 external_deps ()
 {
+	# Working directory
+	EASYTLS_work_dir="${PWD}"
+
 	# Identify Windows
-	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+	[ "${KSH_VERSION}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
 	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.
@@ -6059,26 +6062,21 @@ external_deps ()
 	then
 		# Windows
 		host_drv="${PATH%%\:*}"
-		#EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
 		EASYTLS_ovpnbin_dir="${EASYTLS_ovpnbin_dir:-${base_dir}/bin}"
 
 		setup_err=0
-		#[ -d "$EASYTLS_tmp_dir" ] || {
-		#	echo "Missing: $EASYTLS_tmp_dir"
-		#	setup_err=1
-		#	}
-		[ -d "$EASYTLS_ersabin_dir" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir"
+		[ -d "${EASYTLS_ersabin_dir}" ] || {
+			echo "Missing: ${EASYTLS_ersabin_dir}"
 			setup_err=1
 			}
-		[ -d "$EASYTLS_ersabin_dir" ] || {
-			echo "Missing: $EASYTLS_ersabin_dir"
+		[ -d "${EASYTLS_ersabin_dir}" ] || {
+			echo "Missing: ${EASYTLS_ersabin_dir}"
 			setup_err=1
 			}
-		[ -d "$EASYTLS_ovpnbin_dir" ] || {
-			echo "Missing: $EASYTLS_ovpnbin_dir"
+		[ -d "${EASYTLS_ovpnbin_dir}" ] || {
+			echo "Missing: ${EASYTLS_ovpnbin_dir}"
 			setup_err=1
 			}
 
@@ -6120,18 +6118,17 @@ external_deps ()
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
 
-		EASYTLS_work_dir="$PWD"
-		if [ "${EASYTLS_work_dir% *}" = "$EASYTLS_work_dir" ]; then
+		if [ "${EASYTLS_work_dir% *}" = "${EASYTLS_work_dir}" ]; then
 			: # No spaces
 		elif [ "${EASYTLS_work_dir% *}" = "${host_drv}:/Program" ]; then
 			# Only one space found: ?:/Program Files/foo
 			last_part="${EASYTLS_work_dir#* Files/}"
 			EASYTLS="${host_drv}:/Progra~1/${last_part}"
-			[ -d "$EASYTLS" ] || die "Error translating EASYTLS: $EASYTLS"
+			[ -d "${EASYTLS}" ] || die "Error translating EASYTLS: ${EASYTLS}"
 		else
 			# Not in recognised path or more than one space found
 			error_msg "EasyTLS will not function correctly in this directory:"
-			error_msg "* Name: $EASYTLS_work_dir"
+			error_msg "* Name: ${EASYTLS_work_dir}"
 			help_note="Remove spaces from PATH using CD to select short name."
 			die "EasyTLS tools will not function correctly in this path."
 		fi
@@ -6142,7 +6139,7 @@ external_deps ()
 	[ -f "${OPENSSL_CONF}" ] || {
 		EASYTLS_github="https://raw.githubusercontent.com"
 		EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
-		error_msg "Missing openssl config file: easytls_openssl.cnf"
+		error_msg "Missing openssl config file: ${OPENSSL_CONF}"
 		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
 		die "Download the file from the URL above."
 		}
