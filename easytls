@@ -1777,7 +1777,7 @@ status_easytls_tlskeys ()
 
 		[ -f "$key_file" ] || "$EASYTLS_PRINTF" '%s\t'   "  Missing key"
 
-		if  [ "$tlskey_serial" = '0000000000000000000000000000000000000000' ]
+		if  [ "$tlskey_serial" = "${cv2_Srv_Serial}" ]
 		then
 			# Must be a server key with no metadata
 			# All server key tls-serial are only 40 chars, no need for SHA256
@@ -5272,6 +5272,7 @@ interactive_opt_no_md ()
 {
 	unset opt_no_md
 	default='Y'
+	[ $no_metadata ] && default='N'
 	ia_question_help="
 * Do you want to include the client metadata in the inline file ?
 
@@ -5307,6 +5308,7 @@ interactive_opt_add_hw ()
 	[ -n "$opt_no_md" ] && return 0
 	unset opt_add_hw
 	default='N'
+	[ $add_hardware ] && default='Y'
 	ia_question_help="
 * Do you want to include the hardware addresses in the client metadata ?
 
@@ -5387,19 +5389,40 @@ interactive_ca_path ()
 
 		# Check for absolute path
 		# Because the server does not run from the script directory
-		if [ "${ans_ca_path%%/*}" = "." ]
+		if [ $EASYTLS_FOR_WINDOWS ]
 		then
-			# Relative path
-			ans_ca_path="${PWD}/${ans_ca_path#./}"
-		elif [ "${ans_ca_path%%/*}" != "" ]
-		then
-			# Naked path
-			ans_ca_path="${PWD}/${ans_ca_path}"
+			# Windows
+			if [ "${ans_ca_path%%?:*}" = "" ]
+			then
+				# Full path
+				:
+			elif [ "${ans_ca_path%%/*}" = "." ]
+			then
+				# Relative path
+				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path#./}"
+			elif [ "${ans_ca_path%%/*}" = "" ]
+			then
+				# Naked path
+				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path}"
+			else
+				# Unknown
+				:
+			fi
 		else
-			# Full path
-			:
+			# *nix
+			if [ "${ans_ca_path%%/*}" = "." ]
+			then
+				# Relative path
+				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path#./}"
+			elif [ "${ans_ca_path%%/*}" != "" ]
+			then
+				# Naked path
+				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path}"
+			else
+				# Full path
+				:
+			fi
 		fi
-
 
 		# check for ${ia_answer}/easytls/data/easytls-key-index.txt
 		# because it is always used by easytls-verify
