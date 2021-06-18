@@ -147,6 +147,7 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
+	delete_metadata_files
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
@@ -158,6 +159,7 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
+	delete_metadata_files
 	if [ "${EASYTLS_VERBOSE}" ]
 	then
 		print "${status_msg}"
@@ -186,6 +188,16 @@ fail_and_exit ()
 		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
+
+# Delete all metadata files
+delete_metadata_files ()
+{
+	"${EASYTLS_RM}" -f \
+		"${generic_metadata_file}" \
+		"${client_metadata_file}" \
+
+	update_status "temp-files deleted"
+}
 
 # Log fatal warnings
 warn_die ()
