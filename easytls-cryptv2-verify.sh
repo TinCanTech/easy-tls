@@ -148,7 +148,10 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 die ()
 {
 	[ -n "${help_note}" ] && print "${help_note}"
+	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-255}"
 }
 
@@ -179,6 +182,8 @@ fail_and_exit ()
 		print "${failure_msg}"
 		print "${1}"
 	fi
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -606,6 +611,8 @@ deps ()
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
 
+	# Windows log
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tcv2v.log"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -989,9 +996,9 @@ fi
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "
-<EXOK> ${status_msg}
-"
+	verbose_print "<EXOK> ${status_msg}"
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
+		"<EXOK> ${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
 
