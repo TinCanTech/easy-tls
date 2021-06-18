@@ -91,8 +91,11 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 die ()
 {
 	"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	verbose_print "<ERROR> ${status_msg}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-255}"
 }
 
@@ -100,9 +103,12 @@ die ()
 fail_and_exit ()
 {
 	"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	verbose_print "<FAIL> ${status_msg}"
 	print "${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -217,6 +223,9 @@ deps ()
 		help_note="You must create the temporary directory."
 		die "Temporary dirictory does not exist ${EASYTLS_tmp_dir}" 60
 		}
+
+	# Windows log
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log"
 }
 
 #######################################
@@ -393,9 +402,9 @@ fi
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "
-<EXOK> ${status_msg}
-"
+	verbose_print "<EXOK> ${status_msg}"
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
+		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
 
