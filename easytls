@@ -477,8 +477,6 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
-	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir##*/}" = "easytls" ] && \
-		rm -rf "${EASYTLS_tmp_dir}"/*
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		set -o echo
@@ -6035,7 +6033,7 @@ verify_wiscii_hash ()
 external_deps ()
 {
 	# Identify Windows
-	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
+	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
 	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.
@@ -6140,10 +6138,10 @@ external_deps ()
 	fi
 
 	# OpenSSL config
-	export OPENSSL_CONF="${PWD}/easytls-openssl.cnf"
-	EASYTLS_github="https://raw.githubusercontent.com"
-	EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
+	export OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
 	[ -f "${OPENSSL_CONF}" ] || {
+		EASYTLS_github="https://raw.githubusercontent.com"
+		EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
 		error_msg "Missing openssl config file: easytls_openssl.cnf"
 		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
 		die "Download the file from the URL above."
