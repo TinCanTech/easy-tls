@@ -90,7 +90,7 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	delete_metadata_files
 	verbose_print "<ERROR> ${status_msg}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
@@ -102,7 +102,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	delete_metadata_files
 	verbose_print "<FAIL> ${status_msg}"
 	print "${status_msg}"
 	print "${failure_msg}"
@@ -111,6 +111,22 @@ fail_and_exit ()
 		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
+
+# Delete all metadata files
+delete_metadata_files ()
+{
+	"${EASYTLS_RM}" -f \
+		"${generic_metadata_file}" \
+		"${generic_ext_md_file}" \
+		"${generic_trusted_md_file}" \
+		"${client_metadata_file}" \
+		"${client_ext_md_file}" \
+		"${client_trusted_md_file}" \
+		"${stage1_file}" \
+		"${g_x509_serial_md_file}" \
+
+	update_status "temp-files deleted"
+}
 
 # Log fatal warnings
 warn_die ()
@@ -152,7 +168,7 @@ format_number ()
 # Allow connection
 connection_allowed ()
 {
-	#"${EASYTLS_RM}" -f "${client_ext_md_file}"
+	delete_metadata_files
 	absolute_fail=0
 	update_status "connection allowed"
 }
@@ -303,8 +319,6 @@ warn_die
 # Report option warnings
 warn_log
 
-env > env.client-connect
-
 # Update log message
 update_status "CN:${X509_0_CN}"
 
@@ -318,13 +332,12 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # easytls client metadata file
+generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
 client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
 
 # --tls-verify output to --client-connect
+generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
-
-# Append file extensions
-client_metadata_file="${client_metadata_file}.tcv2md"
 
 # Verify client_ext_md_file
 if [ -f "${client_ext_md_file}" ]
