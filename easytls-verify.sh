@@ -218,7 +218,7 @@ init ()
 	#stale_sec=30
 
 	# Identify Windows
-	[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
+	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
@@ -262,7 +262,7 @@ deps ()
 {
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
-		WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
+		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}/easytls}"
 	else
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp/easytls}"
