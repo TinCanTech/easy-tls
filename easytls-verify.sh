@@ -133,7 +133,7 @@ delete_metadata_files ()
 		"${stage1_file}" \
 		"${g_x509_serial_md_file}" \
 
-	update_status "*** temp files deleted"
+	update_status "temp-files deleted"
 }
 
 # Log fatal warnings
@@ -470,15 +470,6 @@ warn_die
 # Report option warnings
 warn_log
 
-# Ignore CA verify
-#[ $ignore_ca_verify ] && {
-#	echo '>< >< >< DISABLE CA CERTIFICATE VERIFY >< >< ><'
-#	exit 0
-#	}
-
-#echo "EASYTLS_CN: ${EASYTLS_CN}"
-env > env.tls-verify.${EASYTLS_cert_depth}
-
 # Update log message
 case ${EASYTLS_cert_depth} in
 1)	update_status "CN:${X509_1_CN}" ;;
@@ -488,11 +479,10 @@ esac
 
 # TLS verify checks
 
-# Work around for double call of --tls-verify
+# Work around for double call of --tls-verify in peer-fingerprint mode
 stage1_file="${EASYTLS_tmp_dir}/${EASYTLS_srv_pid}"
 stage1_file="${stage1_file}-${untrusted_ip}-${untrusted_port}.stage-1"
 
-# Mitigate running tls-verify twice - Remember: This is an OpenVPN bug
 if [ -f "${stage1_file}" ]
 then
 	# Remove stage-1 file, all metadata files are in place
@@ -505,38 +495,53 @@ then
 	# extended generic metadata file
 	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# generic trusted file - For float
+	# generic trusted file - For reneg - TODO: float
 	generic_trusted_md_file="${generic_metadata_file}-${trusted_ip}-${trusted_port}"
 
+	# TLS-Crypt-V2 key flag
+	g_tls_crypt_v2=1
+
 	# Move generic to generic-ext
-	if [ -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
+	# If these file-names match then this is a renegotiation
+	if [ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ]
+	then
+		# Renegotiation only
+		reneg_only=1
+		#unset g_tls_crypt_v2
+		update_status "Reneg ok(g1)"
+
+	elif [ -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
 	then
 		# Initial connection only - Always succeeds
 		"${EASYTLS_MV}" "${generic_metadata_file}" "${generic_ext_md_file}" || \
 			die "mv generic_metadata_file failed"
 		update_status "generic_ext_md_file READY"
+
 	elif [ ! -f "${generic_metadata_file}" ] && [ -f "${generic_ext_md_file}" ]
 	then
 		# File names must match or client has floated
-		[ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ] || {
-			"${EASYTLS_MV}" \
-				"${generic_ext_md_file}" "${generic_trusted_md_file}" || \
-					die "mv generic_ext_md_file failed"
-			update_status "untrusted/trusted file mismatch- client floated"
-			}
+		#[ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ] || {
+		#	"${EASYTLS_MV}" \
+		#		"${generic_ext_md_file}" "${generic_trusted_md_file}" || \
+		#			die "mv generic_ext_md_file failed"
+		#	update_status "untrusted/trusted file mismatch- client floated"
+		#	}
 		# Renegotiation only - Always succeeds
 		# Files are in place
-		update_status "generic reneg ok"
+		die "problem with generic files(g1)"
+
 	elif [ ! -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
 	then
-		# No generic files means --tls-auth/crypt v1 only
-		not_tls_crypt_v2=1
+		# No generic files means --tls-auth/crypt v1 only and not reneg
+		unset g_tls_crypt_v2
+
 	else
 		# Something else is wrong - maybe a connection over-lap
-		die "problem with generic files"
+		die "Problem with temp files(g2)"
 	fi
 
-	[ $not_tls_crypt_v2 ] || {
+	if [ $g_tls_crypt_v2 ] && [ ! $reneg_only ]
+	then
 		# Get client metadata_string
 		metadata_string="$("${EASYTLS_CAT}" "${generic_ext_md_file}")"
 		[ -n "${metadata_string}" ] || \
@@ -546,12 +551,21 @@ then
 		[ -n "${g_tlskey_serial}" ] || \
 			fail_and_exit "failed to set g_tlskey_serial" 19
 		unset metadata_string
-		update_status "generic metadata processed"
-		}
+		update_status "generic metadata loaded"
+
+	elif [ $g_tls_crypt_v2 ] && [ $reneg_only ]
+	then
+		update_status "Renegotiation ok(g2)"
+
+	else
+		# Must be TLS-auth/crypt-v1
+		unset g_tls_crypt_v2
+		update_status "TLS-Auth/Crypt(g1)"
+	fi
 	# ----------
 
-	# generic metadata X509 serial file - not tlskey-x509-serial
-	g_x509_serial_md_file="${EASYTLS_tmp_dir}/${g_md_serial}.${EASYTLS_srv_pid}"
+	# generic metadata X509 serial file - not openvpn x509-serial
+	g_md_x509_serial_md_file="${EASYTLS_tmp_dir}/${g_md_serial}.${EASYTLS_srv_pid}"
 
 	# ----------
 	# Set Client certificate serial number from Openvpn env
@@ -566,83 +580,126 @@ then
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# client trusted file - For float
+	# client trusted file - For reneg - TODO: float
 	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
+	# TLS-Crypt-V2 key flag
+	c_tls_crypt_v2=1
+
 	# Move client to client-ext
-	if [ -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
+	# If these file-names match then this is a renegotiation
+	if [ "${client_ext_md_file}" = "${client_trusted_md_file}" ]
+	then
+		# Renegotiation
+		reneg_only=1
+		#unset c_tls_crypt_v2
+		update_status "Renegotiation ok(c1)"
+
+	elif [ -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
 	then
 		# Initial connection only - tlskey x509 match
 		"${EASYTLS_MV}" "${client_metadata_file}" "${client_ext_md_file}" || \
 			die "mv client_metadata_file failed"
 		update_status "client_ext_md_file READY"
+
 	elif [ ! -f "${client_metadata_file}" ] && [ -f "${client_ext_md_file}" ]
 	then
 		# File names must match or client has floated
 		# This does not actually work but I cannot find a solution
-		[ "${client_ext_md_file}" = "${client_trusted_md_file}" ] || {
-			"${EASYTLS_MV}" \
-				"${client_ext_md_file}" "${client_trusted_md_file}" || \
-					die "mv client_ext_md_file failed"
-			update_status "untrusted/trusted file mismatch - client floated"
-			}
+		#[ "${client_ext_md_file}" = "${client_trusted_md_file}" ] || {
+		#	"${EASYTLS_MV}" \
+		#		"${client_ext_md_file}" "${client_trusted_md_file}" || \
+		#			die "mv client_ext_md_file failed"
+		#	update_status "untrusted/trusted file mismatch - client floated"
+		#	}
 		# Renegotiation only - tlskey x509 match
 		# Files are in place
-		update_status "client reneg ok"
+		die "problem with generic files(c1)"
+
 	elif [ ! -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
 	then
 		# Initial connection only - tlskey x509 mismatch
 		# Or --tls-auth/crypt-v1
-		if [ $not_tls_crypt_v2 ]
+		if [ $g_tls_crypt_v2 ]
 		then
-			# This is correct bebaviour for --tls-auth/crypt v1
-			# Create a dummy extended metadata file
-			"${EASYTLS_PRINTF}" '%s' ' 000000000000' > "${client_ext_md_file}" || \
-				die "Failed to write client_ext_md_file"
-			update_status "Not TLS-Crypt-V2"
-		else
 			[ $ignore_x509_mismatch ] || {
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
 				}
-			update_status "Ignored tlskey X509 mismatch!*1"
+			update_status "Ignored tlskey X509 mismatch!(c1)"
 			# Move generic file in place of the non-existant client_ext_md_file
-			"${EASYTLS_MV}" "${g_x509_serial_md_file}" "${client_ext_md_file}"
-			update_status "client_ext_md_file READY(generic)"
+			if [ -f "${g_md_x509_serial_md_file}" ]
+			then
+				"${EASYTLS_MV}" \
+					"${g_md_x509_serial_md_file}" "${client_ext_md_file}"
+			else
+				die "Failed to move g_md_x509_serial_md_file"
+			fi
+			update_status "g_md_x509_serial_md_file READY(generic)"
+		else
+			# This is correct behaviour for --tls-auth/crypt v1
+			# Create a fake extended metadata file
+			"${EASYTLS_PRINTF}" '%s' ' 000000000000' > "${client_ext_md_file}" || \
+				die "Failed to create fake client_ext_md_file"
+			c_tls_crypt_v1=1
+			update_status "TLS-Auth/Crypt(c1)"
 		fi
+
 	else
-		# ?
 		die "problem with client files"
 	fi
 
-	# Get client metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
-	[ -n "${metadata_string}" ] || \
-		fail_and_exit "failed to read client_ext_md_file" 18
-	# Populate metadata variables
-	client_metadata_string_to_vars $metadata_string
-	[ -n "${c_tlskey_serial}" ] || \
-		fail_and_exit "failed to set c_tlskey_serial" 19
-	unset metadata_string
-	update_status "client_ext_md_file processed"
+	if [ $c_tls_crypt_v2 ] && [ ! $reneg_only ]
+	then
+		# Get client metadata_string
+		metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
+		[ -n "${metadata_string}" ] || \
+			fail_and_exit "failed to read client_ext_md_file" 18
+		# Populate metadata variables
+		client_metadata_string_to_vars $metadata_string
+		[ -n "${c_tlskey_serial}" ] || \
+			fail_and_exit "failed to set c_tlskey_serial" 19
+		unset metadata_string
+		update_status "client_ext_md_file loaded"
+
+	elif [ $c_tls_crypt_v2 ] && [ $reneg_only ]
+	then
+		update_status "Renegotiation ok(c2)"
+
+	elif [ $c_tls_crypt_v1 ]
+	then
+		update_status "TLS-Auth/Crypt(c2)"
+
+	else
+		die "Unknown(c1)"
+	fi
 	# ----------
 
 	# Checks for all
 	if [ "${c_md_serial}" = "${client_serial}" ]
 	then
 		update_status "tlskey x509 matched"
+
+	elif [ "${g_md_serial}" = "${client_serial}" ]
+	then
+		[ $ignore_x509_mismatch ] || {
+			failure_msg="TLS-key is being used by the wrong client certificate"
+			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 6
+			}
+		update_status "Ignored tlskey X509 mismatch!(a1)"
+
+	elif [ $reneg_only ]
+	then
+		# Nothing more required
+		:
+
+	elif [ $c_tls_crypt_v1 ]
+	then
+		# Nothing more required
+		:
+
 	else
-		if [ $not_tls_crypt_v2 ]
-		then
-			# Nothing more required
-			:
-		else
-			[ $ignore_x509_mismatch ] || {
-				failure_msg="TLS-key is being used by the wrong client certificate"
-				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 6
-				}
-			update_status "Ignored tlskey X509 mismatch!*2"
-		fi
+		die "Unknown(c2)"
 	fi
 
 	if [ $EASYTLS_NO_CA ]
