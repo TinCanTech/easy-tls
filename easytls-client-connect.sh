@@ -55,6 +55,7 @@ help_text ()
   2   - Disallow connection, pushed hwaddr does not match.
   3   - Disallow connection, hwaddr required and not pushed.
   4   - Disallow connection, hwaddr required and not keyed.
+  5   - Disallow connection, Kill client.
   7   - Disallow connection, X509 certificate incorrect for this TLS-key.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
@@ -108,7 +109,7 @@ fail_and_exit ()
 	print "${failure_msg}"
 	print "${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
-		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
+		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -124,6 +125,7 @@ delete_metadata_files ()
 		"${client_trusted_md_file}" \
 		"${stage1_file}" \
 		"${g_x509_serial_md_file}" \
+		"${EASYTLS_KILL_FILE}" \
 
 	update_status "temp-files deleted"
 }
@@ -176,8 +178,6 @@ connection_allowed ()
 # Initialise
 init ()
 {
-	NL='
-'
 	# Fail by design
 	absolute_fail=1
 
@@ -242,6 +242,9 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
 }
 
 #######################################
@@ -338,6 +341,14 @@ client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
 # --tls-verify output to --client-connect
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
+
+# Check for kill signal
+if [ -f "${EASYTLS_KILL_FILE}" ] && \
+	grep -q "${client_serial}" "${EASYTLS_KILL_FILE}"
+then
+	# Kill client
+	fail_and_exit "KILL_CLIENT" 5
+fi
 
 # Verify client_ext_md_file
 if [ -f "${client_ext_md_file}" ]

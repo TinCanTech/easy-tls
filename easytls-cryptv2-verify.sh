@@ -4,7 +4,7 @@
 copyright ()
 {
 : << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
-# tls-crypt-v2-verify.sh -- Do simple magic
+# easytls-cryptv2-verify.sh -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
 # https://github.com/TinCanTech/easy-tls
@@ -52,6 +52,10 @@ help_text ()
                          TLS Crypt V2 Key allowable age in days (default: 1825).
                          To disable age check use 0
   -d|--disable-list      Disable the temporary disabled-list check.
+  -k|kill-client         Use easytls-client-connect script to kill client.
+                         Killing a client can only be done once a client has
+                         connected, so a failed connection must roll-over, then
+                         easytls-client-connect.sh immediately kills the client.
   -s|--pid-file=<FILE>   The PID file for the openvpn server instance.
   --v1|--via-crl         Do X509 certificate checks via x509_method 1, CRL check.
   --v2|--via-ca          Do X509 certificate checks via x509_method 2,
@@ -184,8 +188,16 @@ fail_and_exit ()
 		print "${failure_msg}"
 		print "${1}"
 	fi
-	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
-		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
+
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
+		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
+			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
+
+	[ $kill_client ] && {
+		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
+		exit 0
+		}
+
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -625,6 +637,9 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tcv2v.log"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -689,6 +704,10 @@ do
 	-d|--disable-list)
 		empty_ok=1
 		unset use_disable_list
+	;;
+	-k|--kill-client) # Use client-connect to kill client
+		empty_ok=1
+		kill_client=1
 	;;
 	--hash)
 		EASYTLS_HASH_ALGO="${val}"
@@ -755,7 +774,7 @@ warn_log
 
 	# Get metadata_string
 	metadata_string="$("${EASYTLS_CAT}" "${OPENVPN_METADATA_FILE}")"
-	[ -z "${metadata_string}" ] && fail_and_exit "failed to read metadata_file" 8
+	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
 	# Populate metadata variables
 	metadata_string_to_vars $metadata_string

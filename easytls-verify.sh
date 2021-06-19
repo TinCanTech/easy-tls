@@ -4,7 +4,7 @@
 copyright ()
 {
 : << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
-# easytls-cryptv2-client-connect.sh -- Do simple magic
+# easytls-verify.sh -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
 # https://github.com/TinCanTech/easy-tls
@@ -36,11 +36,16 @@ help_text ()
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
   -c|--ca=<DIR>          Path to CA *REQUIRED*
   -z|--no-ca             Run in No CA mode. Still requires --ca=<PATH>
-  -x|--x509              Check X509 certificate validity
-                         (Only works in full PKI mode)
+  -k|kill-client)        Use easytls-client-connect script to kill client.
+                         Killing a client can only be done once a client has
+                         connected, so a failed connection must roll-over, then
+                         easytls-client-connect.sh immediately kills the client.
+  -m|--ignore-mismatch   Ignore tlskey-x509 vs openvpn-x509 mismatch.
   -p|--ignore-expired    Ignore expiry and allow connection of expired clients
   -q|--ignore-require    Ignore TLS-Crypt-V2 key requirement
   -r|--ignore-revoked    Ignore revocation and allow connection of revoked clients
+                         (Only works in full PKI mode)
+  -x|--x509              Check X509 certificate validity
                          (Only works in full PKI mode)
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
@@ -115,8 +120,18 @@ fail_and_exit ()
 	verbose_print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
-	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
-		"<FAIL> ${status_msg}" "${failure_msg}}" "${1}" > "${EASYTLS_WLOG}"
+
+	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
+		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
+			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
+
+	[ $kill_client ] && {
+		"${EASYTLS_PRINTF}" "%s\n%s\n%s\n%s\n" "${client_serial}" \
+			"${kill_client_serial}" "${g_md_serial}" "${c_md_serial}" \
+			> "${EASYTLS_KILL_FILE}"
+		exit 0
+		}
+
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -131,7 +146,7 @@ delete_metadata_files ()
 		"${client_ext_md_file}" \
 		"${client_trusted_md_file}" \
 		"${stage1_file}" \
-		"${g_x509_serial_md_file}" \
+		"${g_md_x509_serial_md_file}" \
 
 	update_status "temp-files deleted"
 }
@@ -323,6 +338,9 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tv.log"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
 } # => deps ()
 
 # generic metadata_string into variables
@@ -404,9 +422,9 @@ do
 		empty_ok=1
 		ignore_x509_mismatch=1
 	;;
-	-d|deny-mismatch) # tlskey-x509 does not match openvpn-x509
+	-k|kill-client) # Use client-connect to kill client
 		empty_ok=1
-		deny_x509_mismatch=1 # Use client-connect to kill client
+		kill_client=1
 	;;
 	-p|--ignore-expired)
 		empty_ok=1
@@ -492,6 +510,18 @@ then
 	# Remove stage-1 file, all metadata files are in place
 	delete_stage1_file || die "Failed to remove stage-1 file" 252
 
+	# Set Client certificate serial number from Openvpn env
+	client_serial="$(format_number "${tls_serial_hex_0}")"
+
+	# Verify Client certificate serial number
+	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
+
+	# Load kill-client file
+	if [ -f "${EASYTLS_KILL_FILE}" ]
+	then
+		kill_client_serial="$("${EASYTLS_CAT}" "${EASYTLS_KILL_FILE}")"
+	fi
+
 	# ----------
 	# generic metadata file
 	generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
@@ -572,12 +602,6 @@ then
 	g_md_x509_serial_md_file="${EASYTLS_tmp_dir}/${g_md_serial}.${EASYTLS_srv_pid}"
 
 	# ----------
-	# Set Client certificate serial number from Openvpn env
-	client_serial="$(format_number "${tls_serial_hex_0}")"
-
-	# Verify Client certificate serial number
-	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
-
 	# client metadata file
 	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
 
@@ -626,9 +650,9 @@ then
 		# Or --tls-auth/crypt-v1
 		if [ $g_tls_crypt_v2 ]
 		then
-			if [ $deny_x509_mismatch ]
+			if [ $kill_client ]
 			then
-				kill_client=1
+				kill_this_client=1
 				update_status "Killing client(c1)"
 			elif [ $ignore_x509_mismatch ]
 			then
@@ -637,21 +661,18 @@ then
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
 			fi
+
 			# Move generic file in place of the non-existant client_ext_md_file
 			if [ -f "${g_md_x509_serial_md_file}" ]
 			then
-				[ $kill_client ] || "${EASYTLS_MV}" \
-					"${g_md_x509_serial_md_file}" "${client_ext_md_file}"
+				"${EASYTLS_MV}" \
+					"${g_md_x509_serial_md_file}" "${client_ext_md_file}" || \
+						die "Failed to move g_md_x509_serial_md_file"
+				update_status "g_md_x509_serial_md_file READY(generic)"
 			else
-				die "Failed to move g_md_x509_serial_md_file"
+				die "Failed to find g_md_x509_serial_md_file"
 			fi
 
-			if [ $kill_client ]
-			then
-				update_status "Killing client(c2)"
-			else
-				update_status "g_md_x509_serial_md_file READY(generic)"
-			fi
 		else
 			# This is correct behaviour for --tls-auth/crypt v1
 			# Create a fake extended metadata file
@@ -665,7 +686,7 @@ then
 		die "problem with client files"
 	fi
 
-	if [ $c_tls_crypt_v2 ] && [ ! $reneg_only ] && [ ! $kill_client ]
+	if [ $c_tls_crypt_v2 ] && [ ! $reneg_only ] && [ ! $kill_this_client ]
 	then
 		# Get client metadata_string
 		metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
@@ -678,17 +699,17 @@ then
 		unset metadata_string
 		update_status "client_ext_md_file loaded"
 
-	elif [ $c_tls_crypt_v2 ] && [ $reneg_only ] && [ ! $kill_client ]
+	elif [ $c_tls_crypt_v2 ] && [ $reneg_only ] && [ ! $kill_this_client ]
 	then
 		update_status "Renegotiation ok(c2)"
 
-	elif [ $c_tls_crypt_v1 ] && [ ! $kill_client ]
+	elif [ $c_tls_crypt_v1 ] && [ ! $kill_this_client ]
 	then
 		update_status "TLS-Auth/Crypt(c2)"
 
-	elif [ $kill_client ]
+	elif [ $kill_this_client ]
 	then
-		update_status "Killing client(c3)"
+		update_status "Killing client(c2)"
 
 	else
 		die "Unknown(c1)"
@@ -723,9 +744,9 @@ then
 		if [ $ignore_x509_mismatch ]
 		then
 			update_status "Ignored tlskey X509 mismatch!(a2)"
-		elif [ $kill_client ]
+		elif [ $kill_this_client ]
 		then
-			update_status "Kill client(c4)"
+			update_status "Kill client(c3)"
 		else
 			failure_msg="TLS-key is being used by the wrong client certificate"
 			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*3" 8
@@ -810,6 +831,9 @@ then
 	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"<EXOK> ${status_msg}" > "${EASYTLS_WLOG}"
+	[ $kill_this_client ] && "${EASYTLS_PRINTF}" "%s\n%s\n%s\n%s\n" \
+		"${client_serial}" "${kill_client_serial}" \
+		"${g_md_serial}" "${c_md_serial}" > "${EASYTLS_KILL_FILE}"
 	exit 0
 fi
 
