@@ -2491,7 +2491,7 @@ tls_crypt_v2_serial_number ()
 # tlskey name subkeyname to tls serial
 tlskey_index_full_name_to_tls_serial ()
 {
-	script="{if(\$3 \$4 ~ /${name}${TLSKEY_SUBNAME}/) print \$1}"
+	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$1}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 } # => tlskey_index_full_name_to_tls_serial ()
@@ -2499,7 +2499,7 @@ tlskey_index_full_name_to_tls_serial ()
 # tlskey name subkeyname to x509 serial
 tlskey_index_full_name_to_x509_serial ()
 {
-	script="{if(\$3 \$4 ~ /${name}${TLSKEY_SUBNAME}/) print \$2}"
+	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$2}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
 } # => tlskey_index_full_name_to_x509_serial ()
@@ -3786,9 +3786,9 @@ save_id ()
 # Manage easytls/disabled-list.txt - Used by easytls-cryptv2-verify.sh
 disabled_list_manager ()
 {
-	action="$1"
+	action="${1}"
 
-	case $action in
+	case ${action} in
 	rehash)
 		# This needs more work to recreate the Date stamps.
 		disabled_list_update_and_hash || die "Failed to rehash disabled-list."
@@ -3799,21 +3799,21 @@ disabled_list_manager ()
 		: # Allow
 	;;
 	*)
-		die "disabled_list_manager - Invalid action: $action"
+		die "disabled_list_manager - Invalid action: ${action}"
 	;;
 	esac
 
 	# Verify disabled-list Hash
 	disabled_list_verify_hash || die "Disabled list is corrupt."
 
-	name="$2"
+	name="${2}"
 	if [ $EASYTLS_NO_CA ]
 	then
-		crt_file="$EASYTLS_PKI/$name.crt"
-		[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+		crt_file="${EASYTLS_PKI}/${name}.crt"
+		[ -f "${crt_file}" ] || die "Cannot find certificate: ${crt_file}"
 	else
-		crt_file="$EASYRSA_PKI/issued/$name.crt"
-		[ -f "$crt_file" ] || die "Cannot find certificate: $crt_file"
+		crt_file="${EASYRSA_PKI}/issued/${name}.crt"
+		[ -f "${crt_file}" ] || die "Cannot find certificate: ${crt_file}"
 	fi
 
 	# get the serial number of the certificate from OpenSSL
@@ -3822,22 +3822,23 @@ disabled_list_manager ()
 	openssl_crt_serial
 
 	# Check unique record from tlskey-index
-	"$EASYTLS_GREP" -q \
+	"${EASYTLS_GREP}" -q \
 		"${crt_serial}[[:blank:]]${name}[[:blank:]]${TLSKEY_SUBNAME}" \
-		"$EASYTLS_KEY_INDEX" || die "There is no tlskey for this certificate"
+		"${EASYTLS_KEY_INDEX}" || die "There is no tlskey for this certificate"
 
 	# Get tlskey-serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
 
 	# Test it
-	validate_hash "$tlskey_serial" || {
-		error_msg "disabled_list_manager - tlskey_serial failed: $tlskey_serial"
+	validate_hash "${tlskey_serial}" || {
+		error_msg "disabled_list_manager - tlskey_serial failed: ${tlskey_serial}"
 		unset tlskey_serial
 		return 1
 		}
 
 	# Check disabled-list for this tlskey-serial
-	if "$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$EASYTLS_DISABLED_LIST"
+	if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
+		"${EASYTLS_DISABLED_LIST}"
 	then
 		is_disabled=1
 	else
@@ -3846,7 +3847,7 @@ disabled_list_manager ()
 	fi
 
 	# Update disabled-list
-	case $action in
+	case ${action} in
 	disable) # Add serial number to the disabled-list
 		if [ $is_disabled ]
 		then
@@ -3854,23 +3855,31 @@ disabled_list_manager ()
 			:
 		else
 			# Create temp record file
-			"$EASYTLS_PRINTF" '%s\n' \
-				"$tlskey_serial $crt_serial $name $TLSKEY_SUBNAME" > \
-				"$EASYTLS_TEMP_RECORD"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"${tlskey_serial} ${crt_serial} ${name} ${TLSKEY_SUBNAME}" > \
+				"${EASYTLS_TEMP_RECORD}" || {
+					error_msg "disabled_list_manager - temp record failed"
+					return 1
+					}
 
 			# Append temp record to disabled-list
-			"$EASYTLS_CP"  "$EASYTLS_DISABLED_LIST" "$EASYTLS_TEMP_LIST"
-			"$EASYTLS_CAT" "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD" > \
-				"$EASYTLS_DISABLED_LIST"
+			"${EASYTLS_CP}"  "${EASYTLS_DISABLED_LIST}" "${EASYTLS_TEMP_LIST}"
+			"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
+				"${EASYTLS_DISABLED_LIST}" || {
+					error_msg "disabled_list_manager - append record failed"
+					return 1
+					}
 
 			# Verify serial was added
-			"$EASYTLS_GREP" -q \
+			"${EASYTLS_GREP}" -q \
 				"^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
-				"$EASYTLS_DISABLED_LIST" || \
-					die "Failed to update disabled-list"
+				"${EASYTLS_DISABLED_LIST}" || {
+					error_msg "disabled_list_manager - verify append failed"
+					return 1
+					}
 
 			# Remove temp files
-			rm -f "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD"
+			rm -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
 
 			disabled_list_updated=1
 		fi
@@ -3878,19 +3887,19 @@ disabled_list_manager ()
 	enable) # Remove serial number from the disabled-list
 		if [ $is_disabled ]
 		then
-			"$EASYTLS_SED" -i \
+			"${EASYTLS_SED}" -i \
 				"/^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]/d" \
-				"$EASYTLS_DISABLED_LIST" || {
-					error_msg "Failed to update disabled-list"
-					exit 99
+				"${EASYTLS_DISABLED_LIST}" || {
+					error_msg "disabled_list_manager - sed failed"
+					return 1
 					}
 
 			# Verify serial was removed
-			"$EASYTLS_GREP" -q \
+			"${EASYTLS_GREP}" -q \
 				"^${tlskey_serial}[[:blank:]]${crt_serial}[[:blank:]]" \
-				"$EASYTLS_DISABLED_LIST" && {
-					error_msg "Failed to update disabled-list"
-					exit 99
+				"${EASYTLS_DISABLED_LIST}" && {
+					error_msg "disabled_list_manager - verify remove failed"
+					return 1
 					}
 
 			disabled_list_updated=1
@@ -3899,51 +3908,58 @@ disabled_list_manager ()
 			:
 		fi
 	;;
-	*) die "disabled-list action invalid: $1"
+	*) die "disabled-list action invalid: ${1}"
 	;;
 	esac
+
+	# Append sub-key-name
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || name="${name}-${TLSKEY_SUBNAME}"
 
 	# Update and/or Notify
 	if [ $disabled_list_updated ]
 	then
-		disabled_list_update_and_hash
-		notice "Updated disabled-list: $name ${1}d"
+		disabled_list_update_and_hash || {
+			error_msg "disabled_list_update_and_hash - failed"
+			return 1
+			}
+
+		notice "Updated disabled-list: ${name} ${1}d"
 	else
-		notice "No change: $name is already ${1}d"
+		notice "No change: ${name} is already ${1}d"
 	fi
 } # => disabled_list_manager ()
-
-# Search disabled-list for serial number
-#disabled_list_serial_search ()
-#{
-#	"$EASYTLS_GREP" -c "^${crt_serial}[[:blank:]]${name}$" \
-#		"$EASYTLS_DISABLED_LIST"
-#} # => disabled_list_serial_search ()
 
 # Update disabled-list footer and hash
 # TODO: is footer necessary ?
 disabled_list_update_and_hash ()
 {
 	# Update time-stamp
-	update_text="# Updated: $(date) -- $action: $name"
-	"$EASYTLS_SED" -i -e '/^# Updated: .*$/d' "$EASYTLS_DISABLED_LIST" || {
-		error_msg "disabled_list_update_and_hash - Failed delete"
+	update_text="# Updated: $(date) -- ${action}: ${name}"
+	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
+		error_msg "disabled_list_update_and_hash - sed failed"
 		return 1
 		}
 
 	# Create temp record file
-	"$EASYTLS_PRINTF" '%s\n' "$update_text" > "$EASYTLS_TEMP_RECORD" || {
-		error_msg "disabled_list_update_and_hash - Failed update"
+	"${EASYTLS_PRINTF}" '%s\n' "${update_text}" > "${EASYTLS_TEMP_RECORD}" || {
+		error_msg "disabled_list_update_and_hash - printf failed"
 		return 1
 		}
 
 	# Append temp record to disabled-list
-	"$EASYTLS_CP"  "$EASYTLS_DISABLED_LIST" "$EASYTLS_TEMP_LIST"
-	"$EASYTLS_CAT" "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD" > \
-		"$EASYTLS_DISABLED_LIST"
+	"${EASYTLS_CP}"  "${EASYTLS_DISABLED_LIST}" "${EASYTLS_TEMP_LIST}" || {
+		error_msg "disabled_list_update_and_hash - cp failed"
+		return 1
+		}
+
+	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
+		"${EASYTLS_DISABLED_LIST}" || {
+			error_msg "disabled_list_update_and_hash - cat failed"
+			return 1
+			}
 
 	# Remove temp files
-	rm -f "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD"
+	rm -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
 
 	# Save new disabled-list Hash
 	disabled_list_save_hash || {
@@ -3956,8 +3972,8 @@ disabled_list_update_and_hash ()
 disabled_list_verify_hash ()
 {
 	generate_and_match_valid_hash \
-		"$EASYTLS_DISABLED_LIST" "$EASYTLS_DISABLED_HASH" || {
-			error_msg "disabled_list_verify_hash fail"
+		"${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_HASH}" || {
+			error_msg "disabled_list_verify_hash - fail"
 			return 1
 			}
 	easytls_verbose "Disabled-list hash check OK"
@@ -3967,8 +3983,8 @@ disabled_list_verify_hash ()
 disabled_list_save_hash ()
 {
 	generate_and_save_file_hash \
-		"$EASYTLS_DISABLED_LIST" "$EASYTLS_DISABLED_HASH"|| {
-			error_msg "disabled_list_save_hash - generate_and_save_file_hash"
+		"${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_HASH}"|| {
+			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
 	easytls_verbose "Disabled-list hash save OK"
