@@ -404,6 +404,10 @@ do
 		empty_ok=1
 		ignore_x509_mismatch=1
 	;;
+	-d|deny-mismatch) # tlskey-x509 does not match openvpn-x509
+		empty_ok=1
+		deny_x509_mismatch=1 # Use client-connect to kill client
+	;;
 	-p|--ignore-expired)
 		empty_ok=1
 		ignore_expired=1
@@ -622,20 +626,32 @@ then
 		# Or --tls-auth/crypt-v1
 		if [ $g_tls_crypt_v2 ]
 		then
-			[ $ignore_x509_mismatch ] || {
+			if [ $deny_x509_mismatch ]
+			then
+				kill_client=1
+				update_status "Killing client(c1)"
+			elif [ $ignore_x509_mismatch ]
+			then
+				update_status "Ignored tlskey X509 mismatch!(c1)"
+			else
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
-				}
-			update_status "Ignored tlskey X509 mismatch!(c1)"
+			fi
 			# Move generic file in place of the non-existant client_ext_md_file
 			if [ -f "${g_md_x509_serial_md_file}" ]
 			then
-				"${EASYTLS_MV}" \
+				[ $kill_client ] || "${EASYTLS_MV}" \
 					"${g_md_x509_serial_md_file}" "${client_ext_md_file}"
 			else
 				die "Failed to move g_md_x509_serial_md_file"
 			fi
-			update_status "g_md_x509_serial_md_file READY(generic)"
+
+			if [ $kill_client ]
+			then
+				update_status "Killing client(c2)"
+			else
+				update_status "g_md_x509_serial_md_file READY(generic)"
+			fi
 		else
 			# This is correct behaviour for --tls-auth/crypt v1
 			# Create a fake extended metadata file
@@ -649,7 +665,7 @@ then
 		die "problem with client files"
 	fi
 
-	if [ $c_tls_crypt_v2 ] && [ ! $reneg_only ]
+	if [ $c_tls_crypt_v2 ] && [ ! $reneg_only ] && [ ! $kill_client ]
 	then
 		# Get client metadata_string
 		metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
@@ -662,13 +678,17 @@ then
 		unset metadata_string
 		update_status "client_ext_md_file loaded"
 
-	elif [ $c_tls_crypt_v2 ] && [ $reneg_only ]
+	elif [ $c_tls_crypt_v2 ] && [ $reneg_only ] && [ ! $kill_client ]
 	then
 		update_status "Renegotiation ok(c2)"
 
-	elif [ $c_tls_crypt_v1 ]
+	elif [ $c_tls_crypt_v1 ] && [ ! $kill_client ]
 	then
 		update_status "TLS-Auth/Crypt(c2)"
+
+	elif [ $kill_client ]
+	then
+		update_status "Killing client(c3)"
 
 	else
 		die "Unknown(c1)"
@@ -684,7 +704,7 @@ then
 	then
 		[ $ignore_x509_mismatch ] || {
 			failure_msg="TLS-key is being used by the wrong client certificate"
-			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 6
+			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*2" 7
 			}
 		update_status "Ignored tlskey X509 mismatch!(a1)"
 
@@ -699,7 +719,17 @@ then
 		:
 
 	else
-		die "Unknown(c2)"
+		# tls-key X509 serial does not match openvpn X509 serial
+		if [ $ignore_x509_mismatch ]
+		then
+			update_status "Ignored tlskey X509 mismatch!(a2)"
+		elif [ $kill_client ]
+		then
+			update_status "Kill client(c4)"
+		else
+			failure_msg="TLS-key is being used by the wrong client certificate"
+			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*3" 8
+		fi
 	fi
 
 	if [ $EASYTLS_NO_CA ]
