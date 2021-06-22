@@ -2,18 +2,22 @@
 
 shellcheck_bin='shellcheck'
 [ -f '../shellcheck' ] && shellcheck_bin='../shellcheck'
+[ -f "${shellcheck_bin}" ] || {
+	echo "shellcheck binary not found"
+	exit 1
+	}
 
-$shellcheck_bin --version
+"${shellcheck_bin}" --version
 export SHELLCHECK_OPTS="-S warning"
 
 printf '\n\n%s\n' '*** shellcheck easytls'
-  $shellcheck_bin easytls && sc_easytls=$?
+  "${shellcheck_bin}" easytls && sc_easytls=$?
 printf '\n\n%s\n' '*** shellcheck easytls-cryptv2-verify.sh'
-  $shellcheck_bin easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
+  "${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
 printf '\n\n%s\n' '*** shellcheck easytls-verify.sh'
-  $shellcheck_bin easytls-verify.sh && sc_easytls_verify=$?
+  "${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
 printf '\n\n%s\n' '*** shellcheck easytls-client-connect.sh'
-  $shellcheck_bin easytls-client-connect.sh && sc_easytls_client_connect=$?
+  "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
 
 exit_status=$(( \
 					sc_easytls + \
