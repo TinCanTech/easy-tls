@@ -126,10 +126,10 @@ cmd_help()
 		btc|build-tls-crypt) text="
   build-tls-crypt
       Create an OpenVPN TLS crypt PSK (tls-crypt.key)" ;;
-		btc2s|btcv2s|build-tls-crypt-v2-server) text="
+		btc2s|btc2s|btcv2s|build-tls-crypt-v2-server) text="
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
-		btv2c|btcv2c|build-tls-crypt-v2-client)
+		btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
 		EASYTLS_github="https://github.com/TinCanTech/easy-tls/wiki"
 		EASYTLS_url="15-=-Multiple-TLS-Crypt-V2-Keys-per-X509-Certificate"
 		text="
@@ -191,7 +191,7 @@ cmd_help()
         add-dh  - inline Diffie-Hellman parameters file (Server only)
                   Default file is easyrsa3/pki/dh.pem
                   To specify an alternative file use the --dh option" ;;
-		itv2|itcv2|inline-tls-crypt-v2) text="
+		itc2|itv2|itcv2|inline-tls-crypt-v2) text="
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
@@ -304,17 +304,17 @@ non-empty values to options are mandatory.
 
 General options:
 
---openvpn='FILE'    The full (or relative) <path-to> and <file-name-of>
-                    your preferred openvpn(.exe) executable openvpn file.
--n|--no-auto-check  For performance you can disable auto-check.
 --batch             Set automatic (no-prompts when possible) mode.
 -v|--verbose        Verbose output.
 -s|--silent         Silence all message output except prompts.
 -p|--pki-dir=<DIR>  Declare the EasyRSA PKI directory.
+-i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
+              (Fix: This only accepts default options for inline-tls-crypt-v2)
 --vars='FILE'       Define a specific 'vars' file to use for Easy-RSA config.
 --dh='FILE'         Define an alternate Diffie-Hellman parameters file.
--i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
-                    (This only accepts default options for inline-tls-crypt-v2)
+--openvpn='FILE'    The full (or relative) <path-to> and <file-name-of>
+                    your preferred openvpn(.exe) executable openvpn file.
+-n|--no-auto-check  For performance you can disable auto-check.
 
 -y|--why-disable-file-hash
                     To temporarily disable file hash verification.
@@ -322,18 +322,19 @@ General options:
 -g|--custom-group=<GROUP-NAME>
 
       <CUSTOM-GROUP> is an optional single word which will be used
-      in .inline files to identify the group to which this PKI belongs.
-      Also added to TLS-Crypt-V2 client key metadata.
+      in .inline files and TLS-Crypt-V2 client key metadata to identify
+      the group to which this TLS-Crypt-V2 client key belongs.
+      Once set and used, the <CUSTOM-GROUP> must not be changed.
 
-      The <CUSTOM-GROUP> can also be matched against in easytls-cryptv2-verify.sh
+      The <CUSTOM-GROUP> is also matched in easytls-cryptv2-verify.sh
       by using the command line switch --c|custom-group=XYZ
 
 -k|--sub-key-name=<SUBKEY-NAME>
 
       This allows for one single X509 client certificate to have multiple
-      TLS Crypt V2 client keys associated with it.  For example, the same
+      TLS-Crypt-V2 client keys associated with it.  For example, the same
       X509 certificate can be used from different locations with unique
-      TLS crypt V2 keys.
+      TLS-Crypt-V2 client keys.
 
 -a|--ss-age=<AGE>   Self-signed certificate age. (Default: 3650 days)
 -w|--ss-password    Prompt for a password to encrypt a self-signed key.
@@ -363,8 +364,8 @@ Easy-TLS abbreviations:
   init-tls                      - init
   build-tls-auth                - bta
   build-tls-crypt               - btc
-  build-tls-crypt-v2-server     - btv2s | btcv2s
-  build-tls-crypt-v2-client     - btv2c | btcv2c
+  build-tls-crypt-v2-server     - btc2s | btv2s | btcv2s
+  build-tls-crypt-v2-client     - btc2c | btv2c | btcv2c
   remove-tlskey                 - rt | rk | rtk
   save-id                       - sid
 
@@ -378,7 +379,7 @@ Easy-TLS abbreviations:
 
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
-  inline-tls-crypt-v2           - itv2 | itcv2
+  inline-tls-crypt-v2           - itc2 | itv2 | itcv2
   remove-inline                 - ri
   inline-show                   - is
   inline-index-rebuild          - No abbreviation
@@ -6567,17 +6568,17 @@ case "$cmd" in
 				die "Error: inline_tls_crypt_v1"
 			cmd='Done'
 		;;
-		btv2s|btcv2s|build-tls-crypt-v2-server)
+		btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
 			build_tls_crypt_v2_server "$@" || \
 				die "Error: build_tls_crypt_v2_server"
 			cmd='Done'
 		;;
-		btv2c|btcv2c|build-tls-crypt-v2-client)
+		btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
 			build_tls_crypt_v2_client "$@" || \
 				die "Error: build_tls_crypt_v2_client"
 			cmd='Done'
 		;;
-		itv2|itcv2|inline-tls-crypt-v2)
+		itc2|itv2|itcv2|inline-tls-crypt-v2)
 			inline_tls_crypt_v2 "$@" || \
 				die "Error: inline_tls_crypt_v2"
 			cmd='Done'
