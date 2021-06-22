@@ -6,6 +6,7 @@ Easy-TLS is an Easy-RSA extension utility to help manage:
 + Concise OpenVPN TLS-Crypt-V2 Client Key Metadata definition
 + X509 Certificate **and matched** Easy-TLS Inline-file Expiry management tools
 + Complete **Inter-active Menus**
+
 # Additional tools
 EasyTLS scripts to interogate EasyTLS-CryptV2 metadata:
 + `easytls-cryptv2-verify.sh` - TLS-Crypt-V2 key metadata access policy tool.
@@ -17,17 +18,17 @@ Simply copy `easytls` to your `easyrsa` working directory.
 
 For full support, you will also need these scripts for use by your OpenVPN Server:
 + `easytls-cryptv2-verify.sh`<br>
-  This script manages EasyTLS Crypt V2 Metadata field access policy rules.
+  This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.
 
 + `easytls-verify.sh`<br>
-  This script is required for EasyTLS Crypt V2 Metadata hardware-address access policy rules.
+  This script is  is used by Openvpn-Server to manage TLS verification.<br>
+  Required for EasyTLS hardware-address access policy rules.
 
 + `easytls-cryptv2-client-connect.sh`<br>
-  This script manages EasyTLS Crypt V2 Metadata hardware-address access policy rules.
+  This script is used by Openvpn-Server to manage hardware-address access policy rules.
 
 ## Environment
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
-**Except on macOS, where only Openvpn clients are allowed and cannot generate keys.**
 
 ## Requirements
 + Easy-RSA Version 3.0.5+
