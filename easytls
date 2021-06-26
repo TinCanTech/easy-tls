@@ -2827,7 +2827,7 @@ inline_base ()
 		return 1
 	fi
 
-	if [ "$no_x509_key" ]
+	if [ $no_x509_key ]
 	then
 		# Key file is not required
 		:
@@ -2839,7 +2839,7 @@ inline_base ()
 			}
 	fi
 
-	if [ "$inline_dh_file" ] && [ ! $EASYTLS_NO_CA ]
+	if [ $inline_dh_file ] && [ ! $EASYTLS_NO_CA ]
 	then
 		# dh file is required
 		default_dh_file="$EASYRSA_PKI/dh.pem"
@@ -2875,7 +2875,7 @@ inline_base ()
 		# Key
 		"$EASYTLS_PRINTF" '%s\n' "<key>"
 
-		if [ "$no_x509_key" ]
+		if [ $no_x509_key ]
 		then
 			"$EASYTLS_PRINTF" '%s\n' \
 			'# * Replace this line with your complete x509 key file *'
@@ -2895,12 +2895,14 @@ inline_base ()
 			}
 
 		# DH
-		if [ "$inline_dh_file" ] && [ ! $EASYTLS_NO_CA ]
+		if [ $inline_dh_file ] && [ ! $EASYTLS_NO_CA ]
 		then
 			"$EASYTLS_PRINTF" '%s\n' "<dh>"
 			"$EASYTLS_CAT" "$EASYRSA_DH_FILE"
 			"$EASYTLS_PRINTF" '%s\n' "</dh>"
 			"$EASYTLS_PRINTF" '%s\n' ""
+		else
+			"$EASYTLS_PRINTF" '%s\n\n' "dh none"
 		fi
 
 	} > "$inline_base" || {
