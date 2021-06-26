@@ -2817,11 +2817,17 @@ inline_base ()
 
 	if [ -f "$crt_file" ]
 	then
+		# Cert fingerprint
 		crt_fpr="$(generate_fingerprint)" || {
 			error_msg "generate_fingerprint failed"
 			return 1
 			}
 		crt_fpr="${crt_fpr##*=}"
+
+		# Cert purpose
+		cert_purpose='Client'
+		verify_cert_purpose "$cert_file" "SSL client : Yes" || \
+			cert_purpose='Server'
 	else
 		error_msg "Certificate file missing or revoked: $crt_file"
 		return 1
@@ -2902,7 +2908,8 @@ inline_base ()
 			"$EASYTLS_PRINTF" '%s\n' "</dh>"
 			"$EASYTLS_PRINTF" '%s\n' ""
 		else
-			"$EASYTLS_PRINTF" '%s\n\n' "dh none"
+			[ "${cert_purpose}" = "Client" ] || \
+				"$EASYTLS_PRINTF" '%s\n\n' "dh none"
 		fi
 
 	} > "$inline_base" || {
