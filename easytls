@@ -126,7 +126,7 @@ cmd_help()
 		btc|build-tls-crypt) text="
   build-tls-crypt
       Create an OpenVPN TLS crypt PSK (tls-crypt.key)" ;;
-		btc2s|btc2s|btcv2s|build-tls-crypt-v2-server) text="
+		btc2s|btv2s|btcv2s|build-tls-crypt-v2-server) text="
   build-tls-crypt-v2-server <server_filename_base>
       Create an OpenVPN TLS crypt V2 Server key" ;;
 		btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
@@ -464,7 +464,8 @@ die ()
 # Specific error messages from sub-functions which do not use die()
 error_msg ()
 {
-	print "ERROR: $1"
+	[ -z "${1}" ] && print && return 0
+	print "ERROR: ${1}"
 } # => error_msg ()
 
 # Fatal errors prior to deps
@@ -785,6 +786,7 @@ easytls_config ()
 	# Write config
 	config_update || die "Error updating config."
 	config_save_hash || die "Error hashing config."
+	config_use || die "config_use (updated) - Error: $?"
 } # => easytls_config ()
 
 # Update config
@@ -5391,6 +5393,47 @@ interactive_hwaddr ()
 	cmd_line="${cmd_line} ${opt_hardware}"
 } # => interactive_hwaddr ()
 
+# Get Full path
+get_full_path ()
+{
+	[ -n "${1}" ] || return 1
+	part_path="${1}"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		# Windows
+		if [ "${part_path%%?:*}" = "" ]
+		then
+			# Full path
+			:
+		elif [ "${part_path%%/*}" = "." ]
+		then
+			# Relative path
+			part_path="${EASYTLS_work_dir}/${part_path#./}"
+		elif [ "${part_path%%/*}" = "" ]
+		then
+			# Naked path
+			part_path="${EASYTLS_work_dir}/${part_path}"
+		else
+			# Unknown
+			return 1
+		fi
+	else
+		# *nix
+		if [ "${part_path%%/*}" = "." ]
+		then
+			# Relative path
+			part_path="${EASYTLS_work_dir}/${part_path#./}"
+		elif [ "${part_path%%/*}" != "" ]
+		then
+			# Naked path
+			part_path="${EASYTLS_work_dir}/${part_path}"
+		else
+			# Full path
+			:
+		fi
+	fi
+	"${EASYTLS_PRINTF}" "%s" "${part_path}"
+}
 # Set CA path
 interactive_ca_path ()
 {
@@ -5415,40 +5458,7 @@ interactive_ca_path ()
 
 		# Check for absolute path
 		# Because the server does not run from the script directory
-		if [ $EASYTLS_FOR_WINDOWS ]
-		then
-			# Windows
-			if [ "${ans_ca_path%%?:*}" = "" ]
-			then
-				# Full path
-				:
-			elif [ "${ans_ca_path%%/*}" = "." ]
-			then
-				# Relative path
-				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path#./}"
-			elif [ "${ans_ca_path%%/*}" = "" ]
-			then
-				# Naked path
-				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path}"
-			else
-				# Unknown
-				:
-			fi
-		else
-			# *nix
-			if [ "${ans_ca_path%%/*}" = "." ]
-			then
-				# Relative path
-				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path#./}"
-			elif [ "${ans_ca_path%%/*}" != "" ]
-			then
-				# Naked path
-				ans_ca_path="${EASYTLS_work_dir}/${ans_ca_path}"
-			else
-				# Full path
-				:
-			fi
-		fi
+		ans_ca_path="$(get_full_path "${ans_ca_path}")"
 
 		# check for ${ia_answer}/easytls/data/easytls-key-index.txt
 		# because it is always used by easytls-verify
@@ -5596,18 +5606,50 @@ interactive_tmp_dir ()
   * Default: $default"
 	ia_question_text='
   Enter the path name:'
+
+	# Verify tmp.dir is set
+	[ -n "$EASYTLS_tmp_dir" ] || {
+		error_msg
+		error_msg "Server script tmp.dir is not configured."
+		error_msg "Please use './easytls config tmp.dir <directory>"
+		error_msg "to configure a temporary directory."
+		error_msg "Recommended setting:"
+		if [ $EASYTLS_FOR_WINDOWS ]
+		then
+			error_msg " Windows - ${host_drv}/Windows/Temp"
+		else
+			error_msg " *nix - /var/easytls (Create with sudo)"
+		fi
+		die "Missing setting tmp.dir"
+		}
+
 	while :
 	do
 		interactive_question
 		ans_tmp_dir="${ia_answer:-$default}"
-		[ -d "$ans_tmp_dir" ] && {
-			opt_tmp_dir="${ans_tmp_dir}"
-			break
+
+		# Check for absolute path
+		# Because the server does not run from the script directory
+		ans_tmp_dir="$(get_full_path "${ans_tmp_dir}")"
+
+		# Verify tmp.dir exists
+		[ -d "${ans_tmp_dir}" ] || {
+			error_msg
+			error_msg "Server script tmp.dir is not created."
+			error_msg "Please create your chosen temporary directory"
+			error_msg "Recommended setting:"
+			if [ $EASYTLS_FOR_WINDOWS ]
+			then
+				error_msg " Windows - ${host_drv}/Windows/Temp"
+			else
+				error_msg " *nix - /var/easytls (Create with sudo)"
+			fi
+			die "Missing directory: ${ans_tmp_dir}"
 			}
-		print "
-  This path is not valid: $ans_tmp_dir"
+		break
 	done
-	easytls_verbose "Config: $opt_tmp_dir"
+	opt_tmp_dir="${ans_tmp_dir}"
+	easytls_verbose "Config: -t=$opt_tmp_dir"
 } # => interactive_tmp_dir ()
 
 # Set the X509 method
@@ -6194,33 +6236,6 @@ external_deps ()
 		}
 } # => external_deps ()
 
-# Append easytls to tmp_dir and create it and save it in config
-make_tmp_dir ()
-{
-	flash_config=1
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${host_drv}:/Windows/Temp}"
-	else
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
-	fi
-	[ "${EASYTLS_tmp_dir##*/}" = "easytls" ] || \
-		EASYTLS_tmp_dir="${EASYTLS_tmp_dir}/easytls"
-	if [ ! -d "${EASYTLS_tmp_dir}" ]
-	then
-		mkdir -p "${EASYTLS_tmp_dir}" || {
-		error_msg "Create the directory: ${EASYTLS_tmp_dir}"
-		die "Failed to create temporary directory: ${EASYTLS_tmp_dir}"
-		}
-	fi
-	[ $config_tmp_dir ] || easytls_config "tmp.dir" "${EASYTLS_tmp_dir}"
-	unset flash_config
-
-	# Any variables requiring EASYTLS_tmp_dir go here
-	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_tmp_dir}/ecp.tmp"
-}
-
-
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
@@ -6326,6 +6341,7 @@ vars_setup()
 
 	set_var EASYTLS_SS_AGE          "3650"
 	set_var EASYTLS_EC_CURVE        "secp384r1"
+	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_DATA_DIR}/ecp.tmp"
 } # vars_setup()
 
 # variable assignment by indirection when undefined; merely exports
@@ -6523,8 +6539,14 @@ case "$cmd" in
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
 				}
-			# Manage temporary directory
-			make_tmp_dir || die "make_tmp_dir: failed"
+			# Edit config now
+			case "$cmd" in
+				cf|cfg|config)
+					easytls_config "$@" || \
+						die "Error: easytls_config"
+					cmd='Done'
+				;;
+			esac
 		;;
 	esac
 
@@ -6550,11 +6572,6 @@ case "$cmd" in
 		script)
 			interactive_scripts || \
 				die "Error: interactive_scripts"
-			cmd='Done'
-		;;
-		cf|cfg|config)
-			easytls_config "$@" || \
-				die "Error: easytls_config"
 			cmd='Done'
 		;;
 		bta|build-tls-auth)
