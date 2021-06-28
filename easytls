@@ -5523,17 +5523,17 @@ interactive_custom_group ()
   Enter your Custom-Group or leave this blank to continue:'
 		interactive_question
 		opt_customg="${ia_answer:-$default}"
-		if [ -n "$opt_customg" ]
+
+		if [ "$opt_customg" = "EASYTLS" ]
 		then
+			# Forget default
+			unset opt_customg
+		else
 			# This will only show if user enters a Custom-Group
 			# Otherwise, the Custom-Group is what-ever is configured
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
 			export TLSKEY_CUSTOM_GRP="${opt_customg}"
 			opt_customg="-g=${opt_customg}"
-		else
-			# This is for scripts
-			#opt_customg="$TLSKEY_CUSTOM_GRP"
-			unset opt_customg
 		fi
 	easytls_verbose "Config: $opt_customg"
 } # => interactive_custom_group ()
