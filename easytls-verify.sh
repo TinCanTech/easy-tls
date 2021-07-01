@@ -642,7 +642,7 @@ then
 		#	}
 		# Renegotiation only - tlskey x509 match
 		# Files are in place
-		die "problem with generic files(c1)"
+		die "problem with client files(c1)"
 
 	elif [ ! -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
 	then
