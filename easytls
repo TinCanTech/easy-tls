@@ -1218,12 +1218,23 @@ and initialize a fresh TLS PKI here."
     $EASYTLS_PKI"
 
 	notice "To configure your Easy-TLS custom group now, use:
-
     'easytls config custom.group YOUR_GROUP'"
 
 	notice "To configure your Easy-TLS temporary directory now, use:
-
     'easytls config tmp.dir YOUR_DIR'"
+
+	print
+	print "Recommended temporary directory setting:"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		print \
+			"    Windows - ${host_drv}:/Windows/Temp (Use '/' NOT '\')"
+	else
+		print \
+			"    *nix    - /var/easytls (Create with sudo)"
+		print \
+			"    systemd - /tmp (Use systemd unit file openvpn-server@.service)"
+	fi
 } # => init_tls ()
 
 # Auto-check for invalid inline files
@@ -5619,6 +5630,7 @@ interactive_tmp_dir ()
 			error_msg " Windows - ${host_drv}/Windows/Temp"
 		else
 			error_msg " *nix - /var/easytls (Create with sudo)"
+			error_msg " systemd - /tmp"
 		fi
 		die "Missing setting tmp.dir"
 		}
@@ -5643,6 +5655,7 @@ interactive_tmp_dir ()
 				error_msg " Windows - ${host_drv}/Windows/Temp"
 			else
 				error_msg " *nix - /var/easytls (Create with sudo)"
+				error_msg " systemd - /tmp"
 			fi
 			die "Missing directory: ${ans_tmp_dir}"
 			}

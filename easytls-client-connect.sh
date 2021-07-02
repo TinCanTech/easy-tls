@@ -229,9 +229,9 @@ deps ()
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
-		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}/easytls}"
+		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
 	else
-		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp/easytls}"
+		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-/tmp}"
 	fi
 
 	# Test temp dir
