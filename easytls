@@ -1315,7 +1315,7 @@ generate_valid_file_hash ()
 		return 1
 		}
 
-	# Set gerated_valid_hash
+	# Set generated_valid_hash
 	generated_valid_hash=$generated_hash
 	# Clean up
 	unset openssl_hash generated_hash
@@ -1366,14 +1366,13 @@ match_two_hashes ()
 {
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
+	# Using file-hash-disabled mode will taint the TLS PKI
 	[ $1 = $fixed_hash ] && return 0
 	[ $2 = $fixed_hash ] && return 0
-
-	# hash match
-	[ $1 = $2 ] || {
-		error_msg "match_two_hashes: match failed"
-		return 1
-		}
+	# Match real hash
+	[ $1 = $2 ] && return 0
+	# Error is implicit
+	return 1
 } # => match_two_hashes ()
 
 # Save file hash
@@ -5018,8 +5017,8 @@ interactive_scripts ()
 		{
 			# easytls-cryptv2-verify.sh
 			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${opt_tmp_dir}'"
-			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${opt_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${EASYTLS_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s\n' \
 				'# If your clients have username/password then set this to level 3'
 			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
@@ -5135,18 +5134,6 @@ interactive_verify_cert ()
 		return 1
 		}
 } # => interactive_verify_cert ()
-
-# Automatically detect certificate type
-interactive_auto_cert_type ()
-{
-	unset cert_type
-	"$EASYTLS_GREP" -q 'TLS Web Server' "$cert_file" && is_server=1
-	"$EASYTLS_GREP" -q 'TLS Web Client' "$cert_file" && is_client=1
-	[ $is_server ] && [ $is_client ] && \
-		die "Unsupported certificate: Server&Client"
-	[ $is_server ] && cert_type='Server'
-	[ $is_client ] && cert_type='Client'
-} # => interactive_auto_cert_type ()
 
 # Set option --sub-key-name
 interactive_sub_key_name ()
@@ -5661,8 +5648,18 @@ interactive_tmp_dir ()
 			}
 		break
 	done
-	opt_tmp_dir="${ans_tmp_dir}"
-	easytls_verbose "Config: -t=$opt_tmp_dir"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		[ "${ans_tmp_dir}" = "${host_drv}/Windows/Temp" ] || {
+			opt_tmp_dir="${ans_tmp_dir}"
+			easytls_verbose "Config: -t=$opt_tmp_dir"
+			}
+	else
+		[ "${ans_tmp_dir}" = "/tmp" ] || {
+			opt_tmp_dir="${ans_tmp_dir}"
+			easytls_verbose "Config: -t=$opt_tmp_dir"
+			}
+	fi
 } # => interactive_tmp_dir ()
 
 # Set the X509 method
@@ -5868,11 +5865,23 @@ interactive_hw_required ()
 	easytls_verbose "Config: $opt_hw_required"
 } # => interactive_hw_required ()
 
-# Detect no-ca mode
+# Automatically detect no-ca mode
 automatic_no_ca ()
 {
 	[ $EASYTLS_NO_CA ] && opt_no_ca='-z'
 }
+
+# Automatically detect certificate type
+automatic_cert_type ()
+{
+	unset cert_type
+	"$EASYTLS_GREP" -q 'TLS Web Server' "$cert_file" && is_server=1
+	"$EASYTLS_GREP" -q 'TLS Web Client' "$cert_file" && is_client=1
+	[ $is_server ] && [ $is_client ] && \
+		die "Unsupported certificate: Server&Client"
+	[ $is_server ] && cert_type='Server'
+	[ $is_client ] && cert_type='Client'
+} # => interactive_auto_cert_type ()
 
 ############################################################################
 #
