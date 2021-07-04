@@ -5872,16 +5872,16 @@ automatic_no_ca ()
 }
 
 # Automatically detect certificate type
-automatic_cert_type ()
-{
-	unset cert_type
-	"$EASYTLS_GREP" -q 'TLS Web Server' "$cert_file" && is_server=1
-	"$EASYTLS_GREP" -q 'TLS Web Client' "$cert_file" && is_client=1
-	[ $is_server ] && [ $is_client ] && \
-		die "Unsupported certificate: Server&Client"
-	[ $is_server ] && cert_type='Server'
-	[ $is_client ] && cert_type='Client'
-} # => interactive_auto_cert_type ()
+#automatic_cert_type ()
+#{
+#	unset cert_type
+#	"$EASYTLS_GREP" -q 'TLS Web Server' "$cert_file" && is_server=1
+#	"$EASYTLS_GREP" -q 'TLS Web Client' "$cert_file" && is_client=1
+#	[ $is_server ] && [ $is_client ] && \
+#		die "Unsupported certificate: Server&Client"
+#	[ $is_server ] && cert_type='Server'
+#	[ $is_client ] && cert_type='Client'
+#} # => automatic_cert_type ()
 
 ############################################################################
 #
