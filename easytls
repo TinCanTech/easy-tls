@@ -2376,53 +2376,71 @@ inline_index_rebuild_reset ()
 # Update tlskey-index
 tlskey_index_update ()
 {
-	update_index_action="$1"
+	update_index_action="${1}"
 
 	# Verify tlskey-index Hash
-	tlskey_index_verify_hash || {
-		error_msg "tlskey-index is corrupt"
-		return 1
-		}
+	tlskey_index_verify_hash || return 1
 
-	case "$update_index_action" in
+	# Update
+	case "${update_index_action}" in
 	add)
 		# Create new record
-		new_record="$tlskey_serial $crt_serial $cli_name $TLSKEY_SUBNAME"
+		new_record="${tlskey_serial} ${crt_serial} ${cli_name} ${TLSKEY_SUBNAME}"
 
-		easytls_verbose "  ADD: $new_record"
+		# Verify new record does not exist
+		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_KEY_INDEX}" && {
+			error_msg "tlskey_index_update - add: Cannot add duplicate record"
+			return 1
+			}
+
+		easytls_verbose "  ADD: ${new_record}"
 
 		# Write new record
-		"$EASYTLS_PRINTF" '%s\n' "$new_record" > "$EASYTLS_TEMP_RECORD" || {
-			error_msg "tlskey_index_update - add: Failed te create temp record"
+		"${EASYTLS_PRINTF}" '%s\n' "${new_record}" > "${EASYTLS_TEMP_RECORD}" || {
+			error_msg "tlskey_index_update - add: Failed to create temp record"
 			return 1
 			}
 
 		# Append temp record to TLS key index
-		"$EASYTLS_CP"  "$EASYTLS_KEY_INDEX" "$EASYTLS_TEMP_LIST"
-		"$EASYTLS_CAT" "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD" > \
-			"$EASYTLS_KEY_INDEX"
+		"${EASYTLS_CP}" "${EASYTLS_KEY_INDEX}" "${EASYTLS_TEMP_LIST}"
+		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
+			"${EASYTLS_KEY_INDEX}"
+
+		# Verify new record does exist
+		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_KEY_INDEX}" || {
+			# Restore original TLS key index
+			"${EASYTLS_CP}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_KEY_INDEX}"
+			error_msg "tlskey_index_update - add: failed to add record"
+			return 1
+			}
 
 		# Remove temp files
-		rm -f "$EASYTLS_TEMP_LIST" "$EASYTLS_TEMP_RECORD"
+		"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
 	;;
 	del)
 		# Note:
 		# Client tlskey_serial is unique, regardless of --sub-key-name
-		# Server tlskey_serial is always 0000000000000000000000000000000000000000
+		# Server tlskey_serial is always 40 or 64 zeros
 		# Identify old record
 		old_record="${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]"
 
-		easytls_verbose "  DEL: $old_record"
-
-		# Find old record - Do not $ terminate regex
-		"$EASYTLS_GREP" -q "^${old_record}" "$EASYTLS_KEY_INDEX" || {
-			error_msg "tlskey_index_update del: Failed to find old record"
+		# Find old record - Do not $ terminate regexp
+		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_KEY_INDEX}" || {
+			error_msg "tlskey_index_update - del: Failed to find old record"
 			return 1
 			}
 
+		easytls_verbose "  DEL: ${old_record}"
+
 		# Remove old record
-		"$EASYTLS_SED" -i -e "/^${old_record}.*$/d" "$EASYTLS_KEY_INDEX" || {
-			error_msg "tlskey_index_update del: Failed write"
+		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" "${EASYTLS_KEY_INDEX}" || {
+			error_msg "tlskey_index_update - del: Failed write"
+			return 1
+			}
+
+		# Verify old record does not exist
+		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_KEY_INDEX}" && {
+			error_msg "tlskey_index_update - del: Failed to delete old record"
 			return 1
 			}
 	;;
@@ -2434,7 +2452,7 @@ tlskey_index_update ()
 			return 1
 	;;
 	*)
-		error_msg "Unknown index action: $update_index_action"
+		error_msg "Unknown index action: ${update_index_action}"
 		return 1
 	;;
 	esac
@@ -2452,7 +2470,7 @@ tlskey_index_update ()
 tlskey_index_verify_hash ()
 {
 	generate_and_match_valid_hash \
-		"$EASYTLS_KEY_INDEX" "$EASYTLS_KEY_X_HASH" || {
+		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
 			error_msg "tlskey_index_verify_hash fail"
 			return 1
 			}
@@ -2463,8 +2481,8 @@ tlskey_index_verify_hash ()
 tlskey_index_save_hash ()
 {
 	generate_and_save_file_hash \
-		"$EASYTLS_KEY_INDEX" "$EASYTLS_KEY_X_HASH"|| {
-			error_msg "tlskey_index_save_hash - generate_and_save_file_hash"
+		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
+			error_msg "tlskey_index_save_hash fail"
 			return 1
 			}
 	easytls_verbose "tlskey-index hash save OK"
