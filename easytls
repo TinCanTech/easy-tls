@@ -1364,13 +1364,15 @@ validate_hash ()
 # Verify two hashes Match
 match_two_hashes ()
 {
+	[ -z $1 ] && return 1
+	[ $1 = $forbidden_hash ] && return 1
+	[ $2 = $forbidden_hash ] && return 1
+	[ $1 = $2 ] && return 0
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
 	# Using file-hash-disabled mode will taint the TLS PKI
 	[ $1 = $fixed_hash ] && return 0
 	[ $2 = $fixed_hash ] && return 0
-	# Match real hash
-	[ $1 = $2 ] && return 0
 	# Error is implicit
 	return 1
 } # => match_two_hashes ()
