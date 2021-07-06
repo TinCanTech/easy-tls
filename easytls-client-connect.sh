@@ -241,7 +241,7 @@ deps ()
 		}
 
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log"
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log.${EASYTLS_srv_pid}"
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
