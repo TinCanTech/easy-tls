@@ -5,6 +5,8 @@ Version 2.3
 *
   Add kill-client option
     Commit 51af501989b1185a9af5b12e705488a599daad93
+  Change HWADDR field format (Maintain old format compat)
+    Commit 9dd07b90260c64a39b32eba75a98c37e25427dfd
 
 Version 2.2
 * 2021-06-15 - Commit 32ccb2d52ad6c9cbd66a869c744f0c159ff88dc1
