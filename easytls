@@ -2973,38 +2973,38 @@ inline_tls_auth ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	name="$1"
+	name="${1}"
 	shift
 
 	cmd_opts=""
-	while [ -n "$1" ]; do
-		case "$1" in
-			0|1)	key_direction="$1" ;;
-			add-dh)	cmd_opts="$cmd_opts add-dh" ;;
-			no-key)	cmd_opts="$cmd_opts no-key" ;;
-			*)		warn "Ignoring unknown command option: '$1'" ;;
+	while [ -n "${1}" ]; do
+		case "${1}" in
+			0|1)	key_direction="${1}" ;;
+			add-dh)	cmd_opts="${cmd_opts} add-dh" ;;
+			no-key)	cmd_opts="${cmd_opts} no-key" ;;
+			*)		warn "Ignoring unknown command option: '${1}'" ;;
 		esac
 		shift
 	done
 
-	tlskey_file="$EASYTLS_PKI/tls-auth.key"
-	inline_file="$EASYTLS_PKI/$name.inline"
-	inline_temp="$EASYTLS_PKI/$name.temp"
-	inline_base="$EASYTLS_PKI/$name.base"
+	tlskey_file="${EASYTLS_PKI}/tls-auth.key"
+	inline_file="${EASYTLS_PKI}/${name}.inline"
+	inline_temp="${EASYTLS_PKI}/${name}.temp"
+	inline_base="${EASYTLS_PKI}/${name}.base"
 
 	# Check inline file does not exist
-	[ -f "$inline_file" ] && {
+	[ -f "${inline_file}" ] && {
 		help_note="Use 'easytls remove' to delete the old inline file."
-		die "Inline file already exists: $inline_file"
+		die "Inline file already exists: ${inline_file}"
 		}
 
 	# Check tls-auth key exists
-	[ -f "$tlskey_file" ] || {
+	[ -f "${tlskey_file}" ] || {
 		help_note="Use 'easytls build' to create a TLS-Auth key."
-		die "TLS key file does not exist: $tlskey_file"
+		die "TLS key file does not exist: ${tlskey_file}"
 		}
 
-	case "$key_direction" in
+	case "${key_direction}" in
 		0|1)
 			# Using user specified --key-direction
 			:
@@ -3016,29 +3016,26 @@ inline_tls_auth ()
 	esac
 
 	# Inline base file
-	inline_base "$name" $cmd_opts || die "Failed to create inline base file"
+	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
 
-	{	"$EASYTLS_PRINTF" "%s\n" "# TLS auth"
-		"$EASYTLS_PRINTF" "%s\n" ""
-		"$EASYTLS_PRINTF" "%s\n" "key-direction $key_direction"
-		"$EASYTLS_PRINTF" "%s\n" ""
-		"$EASYTLS_PRINTF" "%s\n" "<tls-auth>"
-		"$EASYTLS_CAT" "$tlskey_file"
-		"$EASYTLS_PRINTF" "%s\n" "</tls-auth>"
-		"$EASYTLS_PRINTF" "%s\n" ""
-	} > "$inline_temp" || die "Failed to create inline file: $inline_temp"
+	{	"${EASYTLS_PRINTF}" "%s\n\n" "# TLS auth"
+		"${EASYTLS_PRINTF}" "%s\n\n" "key-direction ${key_direction}"
+		"${EASYTLS_PRINTF}" "%s\n" "<tls-auth>"
+		"${EASYTLS_CAT}" "${tlskey_file}"
+		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-auth>"
+	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended porpose
-	"$EASYTLS_CAT" "$inline_base" "$inline_temp" > "$inline_file"
+	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
-	rm -f "$inline_base" "$inline_temp"
+	rm -f "${inline_base}" "${inline_temp}"
 
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
 	[ $silent_inline ] || \
-		notice "Inline TLS auth file created: $inline_file"
+		notice "Inline TLS auth file created: ${inline_file}"
 
 	# explicitly return success for callers
 	return 0
