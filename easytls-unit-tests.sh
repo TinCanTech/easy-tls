@@ -197,7 +197,7 @@ done
 echo "============================================================"
 
 [ $NOCA_ONLY ] && exit 0
-rm -rf "$PKI_DIR"
+#rm -rf "$PKI_DIR"
 
 export EASYRSA_CERT_RENEW=1000
 
