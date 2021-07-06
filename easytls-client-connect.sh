@@ -361,9 +361,13 @@ else
 fi
 
 # Set only for NO keyed hwaddr
-# regexp should be '+000000000000+' - Version update!
-if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' \
-		"${client_ext_md_file}"
+# Old field
+if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${client_ext_md_file}"
+then
+	key_hwaddr_missing=1
+fi
+# New field
+if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
 then
 	key_hwaddr_missing=1
 fi

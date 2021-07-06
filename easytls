@@ -3640,11 +3640,11 @@ b64_enc_metadata ()
 		MD_HW_LIST=''
 		for i in ${EASYTLS_TLSCV2_HWLIST}
 		do
-			MD_HW_LIST="${MD_HW_LIST}+${i}"
+			MD_HW_LIST="${MD_HW_LIST}=${i}"
 		done
-		metadata="${metadata} ${MD_HW_LIST}+"
+		metadata="${metadata} ${MD_HW_LIST}="
 	else
-		metadata="${metadata} +000000000000+"
+		metadata="${metadata} =000000000000="
 	fi
 
 	# TLS Crypt v2 client key serial number
