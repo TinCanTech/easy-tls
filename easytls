@@ -3337,21 +3337,21 @@ build_tls_crypt_v1 ()
 {
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case $openvpn_version in
+	case ${openvpn_version} in
 		2.5|2.6) build_string="--genkey tls-crypt" ;;
 		2.4) build_string="--genkey --secret" ;;
-		*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
-	tlskey_file="$EASYTLS_PKI/tls-crypt.key"
+	tlskey_file="${EASYTLS_PKI}/tls-crypt.key"
 
-	[ -f "$tlskey_file" ] && \
-		die "TLS crypt v1 key already exists: $tlskey_file"
+	[ -f "${tlskey_file}" ] && \
+		die "TLS crypt v1 key already exists: ${tlskey_file}"
 
-	"$EASYTLS_OPENVPN" $build_string "$tlskey_file" || \
-		die "Failed to create TLS crypt v1 key: $tlskey_file"
+	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+		die "Failed to create TLS crypt v1 key: ${tlskey_file}"
 
-	notice "TLS crypt v1 key created: $tlskey_file"
+	notice "TLS crypt v1 key created: ${tlskey_file}"
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
