@@ -2184,24 +2184,24 @@ inline_show ()
 {
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
-	name="$1"
-	inline_file="$EASYTLS_PKI/$name.inline"
+	name="${1}"
+	inline_file="${EASYTLS_PKI}/${name}.inline"
 
-	[ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ] || {
-		inline_file="$EASYTLS_PKI/$name-$TLSKEY_SUBNAME.inline"
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
 		}
 
-	[ -f "$inline_file" ] || die "Missing: $inline_file"
+	[ -f "${inline_file}" ] || die "Missing: ${inline_file}"
 
 	# Inline serial
 	inline_serial=""
 	inline_crt_serial
 
 	#Check inline hash
-	inline_file_verify_hash || die "Failed HASH: $inline_file"
+	inline_file_verify_hash || die "Failed HASH: ${inline_file}"
 
 	# Copy inline to stdout
-	"$EASYTLS_CAT" "$inline_file" || die "Failed to open: $inline_file"
+	"${EASYTLS_CAT}" "${inline_file}" || die "Failed to open: ${inline_file}"
 } # => inline_show ()
 
 # Remove .inline file
