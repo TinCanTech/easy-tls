@@ -477,8 +477,8 @@ do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		warn_die "Missing value to option: $opt"
+	if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+		warn_die "Missing value to option: ${opt}"
 	fi
 	shift
 done
