@@ -307,8 +307,8 @@ do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		warn_die "Missing value to option: $opt"
+	if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+		warn_die "Missing value to option: ${opt}"
 	fi
 	shift
 done
@@ -344,7 +344,7 @@ client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
 # Check for kill signal
 if [ -f "${EASYTLS_KILL_FILE}" ] && \
-	grep -q "${client_serial}" "${EASYTLS_KILL_FILE}"
+	"${EASYTLS_GREP}" -q "${client_serial}" "${EASYTLS_KILL_FILE}"
 then
 	# Kill client
 	fail_and_exit "KILL_CLIENT" 5
