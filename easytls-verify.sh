@@ -529,7 +529,7 @@ then
 	# extended generic metadata file
 	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# generic trusted file - For reneg - TODO: float
+	# generic trusted file - For reneg - float does not require any script
 	generic_trusted_md_file="${generic_metadata_file}-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
@@ -553,15 +553,9 @@ then
 
 	elif [ ! -f "${generic_metadata_file}" ] && [ -f "${generic_ext_md_file}" ]
 	then
-		# File names must match or client has floated
-		#[ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ] || {
-		#	"${EASYTLS_MV}" \
-		#		"${generic_ext_md_file}" "${generic_trusted_md_file}" || \
-		#			die "mv generic_ext_md_file failed"
-		#	update_status "untrusted/trusted file mismatch- client floated"
-		#	}
-		# Renegotiation only - Always succeeds
-		# Files are in place
+		# Something else is wrong - maybe a connection over-lap
+		# Have not managed to trigger this situation .. yet
+		# Which is probably a good indicator that the script is sound
 		die "problem with generic files(g1)"
 
 	elif [ ! -f "${generic_metadata_file}" ] && [ ! -f "${generic_ext_md_file}" ]
@@ -571,16 +565,18 @@ then
 
 	else
 		# Something else is wrong - maybe a connection over-lap
+		# Have not managed to trigger this situation .. yet
+		# Which is probably a good indicator that the script is sound
 		die "Problem with temp files(g2)"
 	fi
 
 	if [ $g_tls_crypt_v2 ] && [ ! $reneg_only ]
 	then
-		# Get client metadata_string
+		# Get generic metadata_string
 		metadata_string="$("${EASYTLS_CAT}" "${generic_ext_md_file}")"
 		[ -n "${metadata_string}" ] || \
 			fail_and_exit "failed to read generic_ext_md_file" 18
-		# Populate metadata variables
+		# Populate generic metadata variables
 		generic_metadata_string_to_vars $metadata_string
 		[ -n "${g_tlskey_serial}" ] || \
 			fail_and_exit "failed to set g_tlskey_serial" 19
@@ -632,16 +628,9 @@ then
 
 	elif [ ! -f "${client_metadata_file}" ] && [ -f "${client_ext_md_file}" ]
 	then
-		# File names must match or client has floated
-		# This does not actually work but I cannot find a solution
-		#[ "${client_ext_md_file}" = "${client_trusted_md_file}" ] || {
-		#	"${EASYTLS_MV}" \
-		#		"${client_ext_md_file}" "${client_trusted_md_file}" || \
-		#			die "mv client_ext_md_file failed"
-		#	update_status "untrusted/trusted file mismatch - client floated"
-		#	}
-		# Renegotiation only - tlskey x509 match
-		# Files are in place
+		# Something else is wrong - maybe a connection over-lap
+		# Have not managed to trigger this situation .. yet
+		# Which is probably a good indicator that the script is sound
 		die "problem with client files(c1)"
 
 	elif [ ! -f "${client_metadata_file}" ] && [ ! -f "${client_ext_md_file}" ]
@@ -676,13 +665,16 @@ then
 		else
 			# This is correct behaviour for --tls-auth/crypt v1
 			# Create a fake extended metadata file
-			"${EASYTLS_PRINTF}" '%s' ' 000000000000' > "${client_ext_md_file}" || \
+			"${EASYTLS_PRINTF}" '%s' '=000000000000=' > "${client_ext_md_file}" || \
 				die "Failed to create fake client_ext_md_file"
 			c_tls_crypt_v1=1
 			update_status "TLS-Auth/Crypt(c1)"
 		fi
 
 	else
+		# Something else is wrong - maybe a connection over-lap
+		# Have not managed to trigger this situation .. yet
+		# Which is probably a good indicator that the script is sound
 		die "problem with client files"
 	fi
 
@@ -692,7 +684,7 @@ then
 		metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
 		[ -n "${metadata_string}" ] || \
 			fail_and_exit "failed to read client_ext_md_file" 18
-		# Populate metadata variables
+		# Populate client metadata variables
 		client_metadata_string_to_vars $metadata_string
 		[ -n "${c_tlskey_serial}" ] || \
 			fail_and_exit "failed to set c_tlskey_serial" 19
@@ -712,6 +704,9 @@ then
 		update_status "Killing client(c2)"
 
 	else
+		# Something else is wrong - maybe a connection over-lap
+		# Have not managed to trigger this situation .. yet
+		# Which is probably a good indicator that the script is sound
 		die "Unknown(c1)"
 	fi
 	# ----------
