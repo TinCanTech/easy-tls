@@ -3315,21 +3315,21 @@ build_tls_auth ()
 {
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case $openvpn_version in
+	case ${openvpn_version} in
 		2.5|2.6) build_string="--genkey tls-auth" ;;
 		2.4) build_string="--genkey --secret" ;;
-		*) die "Unsupported OpenVPN version $openvpn_version" ;;
+		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
-	tlskey_file="$EASYTLS_PKI/tls-auth.key"
+	tlskey_file="${EASYTLS_PKI}/tls-auth.key"
 
-	[ -f "$tlskey_file" ] && \
-		die "TLS auth key already exists: $tlskey_file"
+	[ -f "${tlskey_file}" ] && \
+		die "TLS auth key already exists: ${tlskey_file}"
 
-	"$EASYTLS_OPENVPN" $build_string "$tlskey_file" || \
-		die "Failed to create TLS auth key: $tlskey_file"
+	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+		die "Failed to create TLS auth key: ${tlskey_file}"
 
-	notice "TLS auth key created: $tlskey_file"
+	notice "TLS auth key created: ${tlskey_file}"
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
