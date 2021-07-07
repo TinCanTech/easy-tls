@@ -492,6 +492,7 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
+	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		set -o echo
@@ -938,14 +939,24 @@ config_use ()
 		}
 
 	# Verify the Config hash
-	generate_and_match_valid_hash \
-		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
+	config_verify_hash || {
 			error_msg "config_verify_hash fail"
 			return 1
 			}
 	easytls_verbose "config-file hash check OK"
 	easytls_verbose "config-file loaded OK"
 } # => config_use ()
+
+# verify config file hash
+config_verify_hash ()
+{
+	generate_and_match_valid_hash \
+		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
+			error_msg "config_verify_hash - generate_and_match_valid_hash"
+			return 1
+			}
+	easytls_verbose "config_verify_hash OK"
+} # => config_save_hash ()
 
 # Hash config-file
 config_save_hash ()
@@ -1686,7 +1697,7 @@ status_easyrsa_revoked ()
 status_easytls_inline ()
 {
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0
-	etls_valid_name_list="$(inline_index_common_name_sub_name_list)"
+	etls_valid_name_list="$(inline_index_cn_subname_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 	[ $silent_status ] || \
@@ -1706,8 +1717,8 @@ status_easytls_invalid ()
 		[ -z "$known_inline_hash" ] && die "status invalid: known_inline_hash ?"
 
 		# This needs to handle duplicate-ish names.
-		name="$(inline_index_ilhash_to_common_name)"
-		sub_name="$(inline_index_ilhash_to_sub_name)"
+		name="$(inline_index_ilhash_2_cn)"
+		sub_name="$(inline_index_ilhash_2_subname)"
 
 		if [ "$sub_name" = 'NOSUBKEY' ]
 		then
@@ -1888,12 +1899,12 @@ inline_index_ilhash_number_list ()
 } # => inline_index_ilhash_number_list ()
 
 # Get a list of Common_name + Sub-key name from inline-index
-inline_index_common_name_sub_name_list ()
+inline_index_cn_subname_list ()
 {
 	"$EASYTLS_AWK" '{if($1 ~ /[^#]/)
 		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
 		 }' "$EASYTLS_INLINE_INDEX"
-} # => inline_index_common_name_sub_name_list ()
+} # => inline_index_cn_subname_list ()
 
 # Get x509 certificate expiry Date
 cert_expire ()
@@ -1969,7 +1980,7 @@ inline_expire ()
 		print " Certificate: $name.inline   Expire-date: $inline_expire"
 	else
 	# Get a list of Valid names from easytls-inline-index
-	etls_valid_name_list="$(inline_index_common_name_sub_name_list)"
+	etls_valid_name_list="$(inline_index_cn_subname_list)"
 		for name in $etls_valid_name_list
 		do
 			inline_file="$EASYTLS_PKI/$name.inline"
@@ -2146,20 +2157,20 @@ inline_file_verify_hash ()
 } # => inline_file_verify_hash ()
 
 # Get Common name from inline index file using inline hash as key
-inline_index_ilhash_to_common_name ()
+inline_index_ilhash_2_cn ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$3}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
-} # => inline_index_ilhash_to_common_name ()
+} # => inline_index_ilhash_2_cn ()
 
 # Get sub name from inline index file using inline hash as key
-inline_index_ilhash_to_sub_name ()
+inline_index_ilhash_2_subname ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$4}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_INLINE_INDEX"
 	unset script
-} # => inline_index_ilhash_to_sub_name ()
+} # => inline_index_ilhash_2_subname ()
 
 # Get cert serial number from inline index file using inline hash as key
 inline_index_ilhash_to_serial ()
@@ -2319,7 +2330,7 @@ inline_index_rebuild ()
 	index_rebuild=1
 
 	# Get list of inline file names by extracting CN and sub from index
-	etls_inline_CNsub_name_list="$(inline_index_common_name_sub_name_list)"
+	etls_inline_CNsub_name_list="$(inline_index_cn_subname_list)"
 
 	# Create tls dir index file
 	head_text="# EastTLS inline-index - Created: $("${EASYTLS_DATE}")"
@@ -2574,20 +2585,20 @@ tls_crypt_v2_serial_number ()
 } # => tls_crypt_v2_serial_number ()
 
 # tlskey name subkeyname to tls serial
-tlskey_index_full_name_to_tls_serial ()
+tlskey_index_fname_2_tlskser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$1}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
-} # => tlskey_index_full_name_to_tls_serial ()
+} # => tlskey_index_fname_2_tlskser ()
 
 # tlskey name subkeyname to x509 serial
-tlskey_index_full_name_to_x509_serial ()
+tlskey_index_fname_2_x509ser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$2}"
 	"$EASYTLS_AWK" "$script" "$EASYTLS_KEY_INDEX"
 	unset script
-} # => tlskey_index_full_name_to_x509_serial ()
+} # => tlskey_index_fname_2_x509ser ()
 
 # tlskey verify serial number is valid
 verify_cert_serial ()
@@ -2690,7 +2701,7 @@ remove_tlskey ()
 	[ -f "$tlskey_file" ] || die "Missing: $tlskey_file"
 
 	# Get tlskey serial number from tlskey-index
-	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
+	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
 
 	# Verify this tlskey-serial
 	validate_hash "$tlskey_serial" || {
@@ -2700,7 +2711,7 @@ remove_tlskey ()
 		}
 
 	# Get tlskey serial number from tlskey-index
-	cert_serial="$(tlskey_index_full_name_to_x509_serial)"
+	cert_serial="$(tlskey_index_fname_2_x509ser)"
 
 	# Verify this cert-serial
 	verify_cert_serial || die "verify_cert_serial: failed"
@@ -3915,7 +3926,7 @@ disabled_list_manager ()
 		"${EASYTLS_KEY_INDEX}" || die "There is no tlskey for this certificate"
 
 	# Get tlskey-serial number from tlskey-index
-	tlskey_serial="$(tlskey_index_full_name_to_tls_serial)"
+	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
 
 	# Test it
 	validate_hash "${tlskey_serial}" || {
@@ -6419,6 +6430,7 @@ vars_setup()
 
 	set_var EASYTLS_TEMP_LIST       "$EASYTLS_DATA_DIR/easytls-temp.list"
 	set_var EASYTLS_TEMP_RECORD     "$EASYTLS_DATA_DIR/easytls-temp.record"
+	set_var EASYTLS_TEMP_LOCK       "$EASYTLS_DATA_DIR/easytls-temp.lock"
 
 	set_var EASYTLS_CA_IDENTITY     "$EASYTLS_DATA_DIR/easytls-ca-identity.txt"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
@@ -6460,136 +6472,139 @@ easytls_version ()
 # EASYTLS COMMAND Section
 #
 
-########################################
-# Invocation entry point:
+# Top level function
+main ()
+{
 
-EASYTLS_VERSION="2.3"
+	EASYTLS_VERSION="2.3"
 
-# Be secure with a restrictive umask
-[ -z "$EASYTLS_NO_UMASK" ] && umask 077
+	# Be secure with a restrictive umask
+	[ -z "$EASYTLS_NO_UMASK" ] && umask 077
 
-# Parse options
-while :; do
-	# Separate option from value:
-	opt="${1%%=*}"
-	val="${1#*=}"
-	empty_ok="" # Empty values are not allowed unless excepted
+	# Parse options
+	while :; do
+		# Separate option from value:
+		opt="${1%%=*}"
+		val="${1#*=}"
+		empty_ok="" # Empty values are not allowed unless excepted
 
-	case "$opt" in
-	''|help|-h|--help|--usage)
-		cmd='help'
-		break
-	;;
-	--batch)
-		empty_ok=1
-		export EASYTLS_BATCH=1
-	;;
-	-p|--pki-dir)
-		export EASYRSA_PKI="$val"
-	;;
-	--vars)
-		export EASYRSA_VARS_FILE="$val"
-	;;
-	-v|--verbose)
-		empty_ok=1
-		export EASYTLS_VERBOSE=1
-	;;
-	-s|--silent)
-		empty_ok=1
-		export EASYTLS_SILENT=1
-	;;
-	-i|--inline)
-		empty_ok=1
-		export EASYTLS_BINLINE=1
-	;;
-	--dh)
-		export EASYRSA_DH_FILE="$val"
-	;;
-	-g|--custom-group)
-		export TLSKEY_CUSTOM_GRP="$val"
-	;;
-	-k|--sub-key-name)
-		export TLSKEY_SUBNAME="$val"
-	;;
-	-w|--ss-pass)
-		empty_ok=1
-		export EASYTLS_PASSWORD=1
-	;;
-	-c|--ss-curve)
-		export EASYTLS_EC_CURVE="${val}"
-	;;
-	-a|--ss-age)
-		export EASYTLS_SS_AGE="${val}"
-	;;
-	--openvpn)
-		export EASYTLS_OPENVPN="$val"
-	;;
-	-n|--no-auto-check)
-		empty_ok=1
-		auto_check_disabled=1
-	;;
-	-y|--why-disable-file-hash)
-		empty_ok=1
-		file_hash_disabled=1
-	;;
-	-b|--base-dir)
-		EASYTLS_base_dir="$val"
-	;;
-	-t|--tmp-dir)
-		EASYTLS_tmp_dir="$val"
-	;;
-	-e|--easyrsa-bin-dir)
-		EASYTLS_ersabin_dir="$val"
-	;;
-	-o|--openvpn-bin-dir)
-		EASYTLS_ovpnbin_dir="$val"
-	;;
-	-*)
-		fatal_opt "Unknown option: ${opt}"
+		case "$opt" in
+		''|help|-h|--help|--usage)
+			cmd='help'
+			break
+		;;
+		--batch)
+			empty_ok=1
+			export EASYTLS_BATCH=1
+		;;
+		-p|--pki-dir)
+			export EASYRSA_PKI="${val}"
+		;;
+		--vars)
+			export EASYRSA_VARS_FILE="${val}"
+		;;
+		-v|--verbose)
+			empty_ok=1
+			export EASYTLS_VERBOSE=1
+		;;
+		-s|--silent)
+			empty_ok=1
+			export EASYTLS_SILENT=1
+		;;
+		-i|--inline)
+			empty_ok=1
+			export EASYTLS_BINLINE=1
+		;;
+		--dh)
+			export EASYRSA_DH_FILE="${val}"
+		;;
+		-g|--custom-group)
+		export TLSKEY_CUSTOM_GRP="${val}"
+		;;
+		-k|--sub-key-name)
+			export TLSKEY_SUBNAME="${val}"
+		;;
+		-w|--ss-pass)
+			empty_ok=1
+			export EASYTLS_PASSWORD=1
+		;;
+		-c|--ss-curve)
+			export EASYTLS_EC_CURVE="${val}"
+		;;
+		-a|--ss-age)
+			export EASYTLS_SS_AGE="${val}"
+		;;
+		--openvpn)
+			export EASYTLS_OPENVPN="${val}"
+		;;
+		-n|--no-auto-check)
+			empty_ok=1
+			auto_check_disabled=1
+		;;
+		-y|--why-disable-file-hash)
+			empty_ok=1
+			file_hash_disabled=1
+		;;
+		-b|--base-dir)
+			EASYTLS_base_dir="${val}"
+		;;
+		-t|--tmp-dir)
+			EASYTLS_tmp_dir="${val}"
+		;;
+		-e|--easyrsa-bin-dir)
+			EASYTLS_ersabin_dir="${val}"
+		;;
+		-o|--openvpn-bin-dir)
+			EASYTLS_ovpnbin_dir="${val}"
+		;;
+		-*)
+			fatal_opt "Unknown option: ${opt}"
+			shift
+			continue
+		;;
+		*)
+			break
+		;;
+		esac
+
+		# fatal error when no value was provided
+		if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+			fatal_opt "Missing value to option: ${opt}"
+		fi
 		shift
-		continue ;;
-	*)
-		break ;;
-	esac
+	done
 
-	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "$val" = "$1" ] || [ -z "$val" ]; }; then
-		fatal_opt "Missing value to option: $opt"
-	fi
-	shift
-done
+	# Verify binary dependecies are present
+	external_deps
 
-# Verify binary dependecies are present
-external_deps
+	# Die on fatal opt error
+	fatal_opt
+	unset fatal_msg
 
-# Die on fatal opt error
-fatal_opt
-unset fatal_msg
+	# Intelligent env-var detection and auto-loading:
+	vars_setup
 
-# Intelligent env-var detection and auto-loading:
-vars_setup
+	# Register cleanup on EXIT
+	trap "cleanup" EXIT
+	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
+	# explicitly exit to signal EXIT (non-bash shells)
+	trap "exit 1" 1
+	trap "exit 2" 2
+	trap "exit 3" 3
+	trap "exit 6" 6
+	trap "exit 14" 15
 
-# Register cleanup on EXIT
-trap "cleanup" EXIT
-# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
-# explicitly exit to signal EXIT (non-bash shells)
-trap "exit 1" 1
-trap "exit 2" 2
-trap "exit 3" 3
-trap "exit 6" 6
-trap "exit 14" 15
+	# determine how we were called, then hand off to the function responsible
+	cmd="$1"
+	[ -n "$1" ] && shift # scrape off command
 
-# determine how we were called, then hand off to the function responsible
-cmd="$1"
-[ -n "$1" ] && shift # scrape off command
-
-case "$cmd" in
+	case "$cmd" in
 	# Initialise only
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
 		cmd='Done'
-		;;
+	;;
 	*)
 	# Other commands
 
@@ -6629,6 +6644,14 @@ case "$cmd" in
 				help_note='
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
+				}
+			# Check lock-file - Implies interactive menu is still open
+			[ -f "${EASYTLS_TEMP_LOCK}" ] && {
+				die "lock-file exists: ${EASYTLS_TEMP_LOCK}"
+				}
+			# Create lock-file - Implies openssl works and write-access
+			"${EASYRSA_OPENSSL}" version > "${EASYTLS_TEMP_LOCK}" || {
+				die "lock-file fail"
 				}
 			# Edit config now
 			case "$cmd" in
@@ -6773,41 +6796,44 @@ case "$cmd" in
 
 	# Everything else
 	case "$cmd" in
-	Done): ;; # Ignore
+		Done): ;; # Ignore
 
-	sid|save-id)
-		save_id || \
-			die "Error: save_id"
+		sid|save-id)
+			save_id || \
+				die "Error: save_id"
 		;;
-	s|status)
-		status "$@" || \
-			die "Error: status"
-		unset status_disabled_auto_check
+		s|status)
+			status "$@" || \
+				die "Error: status"
+			unset status_disabled_auto_check
 		;;
-	irn|irw|inline-renew)
-		inline_renew "$@" || \
-			die "Error: inline_renew"
+		irn|irw|inline-renew)
+			inline_renew "$@" || \
+				die "Error: inline_renew"
 		;;
-	inline-index-rebuild)
-		inline_index_rebuild "$@" || \
-			die "Error: inline_index_rebuild"
+		inline-index-rebuild)
+			inline_index_rebuild "$@" || \
+				die "Error: inline_index_rebuild"
 		;;
-	import-key)
-		import_key "$@" || \
-			die "Error: import_key"
+		import-key)
+			import_key "$@" || \
+				die "Error: import_key"
 		;;
-	*)
-		die "Unknown command '$cmd'. Run without commands for help."
+		*)
+			die "Unknown command '${cmd}'. Run without commands for help."
 		;;
 	esac # Everything else
 
 	;;
-esac # Initialise
+	esac # Initialise
 
-# EasyTLS auto-check
-easytls_auto_check || die "Error: easytls_auto_check"
+	# EasyTLS auto-check
+	easytls_auto_check || die "Error: easytls_auto_check"
 
-# save me!
-save_wiscii_hash || die "Master hash save failed"
+	# save me!
+	save_wiscii_hash || die "Master hash save failed"
+} # => main ()
+
+main "${@}"
 
 # Done
