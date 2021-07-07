@@ -1253,9 +1253,9 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ $EASYTLS_REMOTE_CI ] && return 0
+	#[ $EASYTLS_REMOTE_CI ] && return 0
 	[ $status_disabled_auto_check ] && return 0
-	[ $auto_check_disabled ] && return 0
+	[ $auto_check_disabled ] && easytls_verbose "auto-check disabled" && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "$EASYTLS_INLINE_INDEX" ] || return 0

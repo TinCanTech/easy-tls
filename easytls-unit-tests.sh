@@ -123,7 +123,7 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch --no-auto-check"
+EASYTLS_OPTS="--verbose --batch"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_OPTS="-v"
@@ -141,8 +141,7 @@ CLICON_OPTS="-v"
 	}
 
 # Identify Windows
-[ "$SystemRoot" ] && EASYTLS_FOR_WINDOWS=1
-
+[ "${KSH_VERSION}" ] && EASYTLS_FOR_WINDOWS=1
 
 if [ "$EASYTLS_FOR_WINDOWS" ]
 then
@@ -186,7 +185,8 @@ echo "--------------------"
 print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 "$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
 
-for cmd in "init no-ca" "cf cg easytls-unit-test" "sss s01" "ssc c01" \
+for cmd in "init no-ca" "cf cg easytls-unit-test" \
+			"sss s01" "ssc c01" \
 			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 ${hwaddr}" \
 			"itcv2 s01" "itcv2 c01" "-k=hw itcv2 c01 add-hw"
 do
@@ -264,7 +264,7 @@ do
 	done
 
 	# Test EasyTLS
-	for i in "init-tls" "config"\
+	for i in "init-tls" "cf ac off" "config"\
 		"build-tls-auth" "build-tls-crypt" \
 		"build-tls-crypt-v2-server s01" \
 		"--inline --custom-group=tincantech build-tls-crypt-v2-server s02" \
@@ -706,7 +706,13 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	set -e
 
 	# Re-enable file-hashing and auto-check
-	EASYTLS_OPTS="--verbose --batch"
+	# Use error code 64 because inline-index-rebuild is disabled
+	print "============================================================"
+	print "$EASYTLS_CMD $EASYTLS_OPTS cf ac on"
+	"$EASYTLS_CMD" $EASYTLS_OPTS cf ac on || \
+		fail "Unit test error 64: cf ac on"
+	print "============================================================"
+
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
 	"$EASYTLS_CMD" $EASYTLS_OPTS status || \
