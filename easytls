@@ -32,6 +32,12 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 #
 
 
+
+############################################################################
+#
+# EASYTLS HELP Section
+#
+
 # Help/usage output to stdout
 usage()
 {
@@ -98,9 +104,9 @@ Easy-TLS also has a useful Howto and wiki with expanded help and examples:
 	tls_dir="${EASYTLS_PKI:-$err_source}"
 	print "
 DIRECTORY STATUS (commands would take effect on these locations)
-  EASYTLS: $work_dir
-      PKI: $pki_dir
-      TLS: $tls_dir"
+  EASYTLS: ${work_dir}
+      PKI: ${pki_dir}
+      TLS: ${tls_dir}"
 } # => usage()
 
 # Detailed command help
@@ -109,7 +115,7 @@ cmd_help()
 {
 	text=""
 	opts=""
-	case "$1" in
+	case "${1}" in
 		init|init-tls) text="
   init-tls <hash_algorithm> no-ca
       Removes & re-initializes the TLS key directory.
@@ -281,14 +287,14 @@ cmd_help()
 		"")
 			usage ;;
 		*) text="
-  Unknown command: '$1' (try without commands for a list of commands)" ;;
+  Unknown command: '${1}' (try without commands for a list of commands)" ;;
 	esac
 
 	# display the help text
-	[ -n "$text" ] && print "$text"
-	[ -n "$opts" ] && print "
+	[ -n "${text}" ] && print "${text}"
+	[ -n "${opts}" ] && print "
       cmd-opts is an optional set of command options from this list:
-$opts"
+${opts}"
 	return 0
 } # => cmd_help()
 
@@ -394,7 +400,7 @@ Easy-TLS abbreviations:
 "
 } # => opt_abbreviations ()
 
-# Option abbreviations
+# Option config
 opt_config ()
 {
 	print "
@@ -444,11 +450,18 @@ Easy-TLS configurable options:
 "
 } #=> opt_config ()
 
+
+
+############################################################################
+#
+# EASYTLS TO EASYRSA3 COMPATIBILITY Section
+#
+
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 print ()
 {
-	[ "$EASYTLS_SILENT" ] && return 0
-	"$EASYTLS_PRINTF" "%s\n" "$*"
+	[ $EASYTLS_SILENT ] && return 0
+	"${EASYTLS_PRINTF}" "%s\n" "${*}"
 } # => print ()
 
 # Exit fatally with a message to stderr
@@ -456,8 +469,8 @@ print ()
 die ()
 {
 	easytls_version
-	[ -n "$help_note" ] && print "$help_note"
-	error_msg "$1" 1>&2
+	[ -n "${help_note}" ] && print "${help_note}"
+	error_msg "${1}" 1>&2
 	exit "${2:-1}"
 } # => die ()
 
@@ -491,47 +504,46 @@ cleanup ()
 # non-fatal warning output
 warn ()
 {
-	[ "$EASYTLS_SILENT" ] && return 0
+	[ $EASYTLS_SILENT ] && return 0
 		print "
 WARNING:
-  $1
+  ${1}
 " 1>&2
 } # => warn ()
 
 # informational notices to stdout
 notice ()
 {
-	[ "$EASYTLS_SILENT" ] && return 0
+	[ $EASYTLS_SILENT ] && return 0
 	[ $flash_config ] && return 0
 		print "
-$1"
+${1}"
 } # => notice ()
 
 # intent confirmation helper func
 # returns without prompting in EASYTLS_BATCH
 confirm ()
 {
-	[ "$batch_mode" ] && return 0
-	[ "$EASYTLS_BATCH" ] && return 0
-	prompt="$1"
-	value="$2"
-	msg="$3"
+	[ $batch_mode ] && return 0
+	[ $EASYTLS_BATCH ] && return 0
+	prompt="${1}"
+	value="${2}"
+	msg="${3}"
 	input=""
 	print "
-$msg
+${msg}
 
-  Type the word '$value' to continue, or any other input to abort."
-	"$EASYTLS_PRINTF" '\n%s' "  $prompt"
+  Type the word '${value}' to continue, or any other input to abort."
+	"${EASYTLS_PRINTF}" '\n%s' "  ${prompt}"
 	read -r input
-	[ "$input" = "$value" ] && "$EASYTLS_PRINTF" "\n" && return 0
+	[ "${input}" = "${value}" ] && "${EASYTLS_PRINTF}" "\n" && return 0
 	notice "Aborting without confirmation."
 	exit 9
 } # => confirm ()
 
 vars_source_check () {
 	# Check for defined EASYRSA_PKI
-	[ -n "$EASYRSA_PKI" ] || die "\
-EASYRSA_PKI env-var undefined"
+	[ -n "${EASYRSA_PKI}" ] || die "EASYRSA_PKI env-var undefined"
 } # => vars_source_check ()
 
 # Basic sanity-check of PKI init and complain if missing
@@ -540,24 +552,24 @@ verify_pki_init () {
 
 	# check that the pki dir exists
 	vars_source_check
-	[ -d "$EASYRSA_PKI" ] || die "\
+	[ -d "${EASYRSA_PKI}" ] || die "\
 Easy-TLS requires that you have initialised your Easy-RSA PKI.
 
 Easy-RSA error:
 
 EASYRSA_PKI does not exist (perhaps you need to run init-pki)?
-Expected to find the EASYRSA_PKI at: $EASYRSA_PKI
-$help_note"
+Expected to find the EASYRSA_PKI at: ${EASYRSA_PKI}
+${help_note}"
 
 	# verify expected dirs present:
 	for i in private reqs; do
-		[ -d "$EASYRSA_PKI/$i" ] || die "\
+		[ -d "${EASYRSA_PKI}/${i}" ] || die "\
 Easy-TLS requires that you have initialised your Easy-RSA PKI.
 
 Easy-RSA error:
 
-Missing expected directory: $i (perhaps you need to run init-pki?)
-$help_note"
+Missing expected directory: ${i} (perhaps you need to run init-pki?)
+${help_note}"
 	done
 } # => verify_pki_init ()
 
@@ -571,15 +583,15 @@ verify_ca_init () {
 	# Verify expected files are present. Allow files to be regular files
 	# (or symlinks), but also pipes, for flexibility with ca.key
 	for i in serial index.txt index.txt.attr ca.crt private/ca.key; do
-		if [ ! -f "$EASYRSA_PKI/$i" ] && [ ! -p "$EASYRSA_PKI/$i" ]; then
+		if [ ! -f "${EASYRSA_PKI}/${i}" ] && [ ! -p "${EASYRSA_PKI}/${i}" ]; then
 			#[ "$1" = "test" ] && return 1
 			die "
 Easy-TLS requires that you have built your EASY-RSA CA.
 
   Easy-RSA error:
 
-Missing expected CA file: $i (perhaps you need to run build-ca?)
-$help_note"
+Missing expected CA file: ${i} (perhaps you need to run build-ca?)
+${help_note}"
 		fi
 	done
 
@@ -590,13 +602,13 @@ $help_note"
 	# verify expected CA-specific dirs:
 	for i in issued certs_by_serial
 	do
-		[ -d "$EASYRSA_PKI/$i" ] || die "
+		[ -d "${EASYRSA_PKI}/${i}" ] || die "
 Easy-TLS requires that you have built your EASY-RSA CA.
 
   Easy-RSA error:
 
-Missing expected CA dir: $i (perhaps you need to run build-ca?)
-$help_note"
+Missing expected CA dir: ${i} (perhaps you need to run build-ca?)
+${help_note}"
 	done
 
 	# explicitly return success for callers
@@ -1835,6 +1847,13 @@ status_disabled_list ()
 {
 	"$EASYTLS_CAT" "$EASYTLS_DISABLED_LIST"
 } # => status_disabled_list ()
+
+
+
+############################################################################
+#
+# EASYTLS INLINE-INDEX Section
+#
 
 # Verify certificate purpose
 verify_cert_purpose ()
