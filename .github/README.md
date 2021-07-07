@@ -1,3 +1,4 @@
+[![CI](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml/badge.svg)](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml)
 # Easy-TLS Features
 Easy-TLS is an Easy-RSA extension utility to help manage:
 + Easy-RSA based x509 security credentials
