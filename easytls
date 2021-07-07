@@ -629,9 +629,9 @@ easytls_verbose ()
 	[ $EASYTLS_VERBOSE ] || return 0
 	[ $EASYTLS_SILENT ] && return 0
 	[ $flash_config ] && return 0
-	verbose_message="$*"
-	[ -z "$verbose_message" ] && print "" && return 0
-	print "* $verbose_message"
+	verbose_message="${*}"
+	[ -z "${verbose_message}" ] && print "" && return 0
+	print "* ${verbose_message}"
 } # => easytls_verbose ()
 
 # Configurable options
@@ -639,9 +639,9 @@ easytls_config ()
 {
 	# Verify config-file and hash has already been done by config_use()
 
-	case "$1" in
+	case "${1}" in
 		addition)
-			cfg_opt=$2
+			cfg_opt=${2}
 			[ -z "${cfg_opt}" ] && {
 				error_msg "Missing addition option"
 				return 1
@@ -653,7 +653,7 @@ easytls_config ()
 			return 0
 		;;
 		deletion)
-			cfg_opt=$2
+			cfg_opt=${2}
 			[ -z "${cfg_opt}" ] && {
 				error_msg "Missing addition option"
 				return 1
@@ -666,97 +666,98 @@ easytls_config ()
 		;;
 		nc|no.ca)
 			cfg_opt="no.ca"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		ha|hash.algorithm)
 			cfg_opt="hash.algorithm"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		td|tmp.dir)
 			cfg_opt="tmp.dir"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		ac|auto.check)
 			cfg_opt="auto.check"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		cg|custom.group)
 			cfg_opt="custom.group"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		id|ca.id)
 			cfg_opt="ca.id"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		co|custom.openvpn)
 			cfg_opt="custom.openvpn"
-			cfg_val=$2
+			# This may need to be quoted for spaces
+			cfg_val=${2}
 		;;
 		im|inline.metadata)
 			cfg_opt="inline.metadata"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		ih|inline.hardware)
 			cfg_opt="inline.hardware"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		status)
 			cfg_opt="status"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		test.bool)
 			cfg_opt="test.bool"
-			cfg_val=$2
+			cfg_val=${2}
 		;;
 		'')
-			"$EASYTLS_PRINTF" "%s\n" "easytls = $EASYTLS_VERSION"
-			"$EASYTLS_GREP" -v 'status' "$EASYTLS_CONFIG_FILE"
+			"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
+			"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
 			return 0
 		;;
 		*)
-			error_msg "Unknown option: $1"
+			error_msg "Unknown option: ${1}"
 			return 1
 		;;
 	esac
 
-	case "$cfg_opt" in
+	case "${cfg_opt}" in
 		test.bool|no.ca)
-			case "$cfg_val" in
+			case "${cfg_val}" in
 				0|1)
 					:
 				;;
 				*)
 					help_note="Supported options:  0 | 1"
-					die "Unsupported value for $cfg_opt: $cfg_val"
+					die "Unsupported value for ${cfg_opt}: ${cfg_val}"
 				;;
 			esac
 		;;
 		tmp.dir)
-			:
 			#[ -d "$cfg_val" ] || {
 			#	help_note="First create directory: $cfg_val"
 			#	die "Directory does not exists: $cfg_val"
 			#	}
+			:
 		;;
 		auto.check|inline.metadata|inline.hardware)
-			case "$cfg_val" in
+			case "${cfg_val}" in
 				on|off)
 					:
 				;;
 				*)
 					help_note="Supported options:  on | off"
-					die "Unsupported value for $cfg_opt: $cfg_val"
+					die "Unsupported value for ${cfg_opt}: ${cfg_val}"
 				;;
 			esac
 		;;
 		custom.group)
 			# Cannot be empty
-			[ -z "$cfg_val" ] && die "Unsupported value for $cfg_opt: $cfg_val"
+			[ -z "${cfg_val}" ] && die "custom.group cannot be empty"
 			# spaces ?
 			test_val="${cfg_val%% *}"
-			[ "$cfg_val" = "$test_val" ] || {
+			[ "${cfg_val}" = "${test_val}" ] || {
 				help_note="custom.group does not support spaces."
-				die "Unsupported value for $cfg_opt: $cfg_val"
+				die "Unsupported value for ${cfg_opt}: ${cfg_val}"
 				}
 
 			confirm "Change your Custom-Group: " "yes" \
@@ -769,14 +770,14 @@ easytls_config ()
   for the easytls-crypt-v2-verify.sh script."
 		;;
 		custom.openvpn)
-			if [ -n "$cfg_val" ]
+			if [ -n "${cfg_val}" ]
 			then
 				# Test for file
-				[ -f "$cfg_val" ] || die "Missing: $cfg_val"
+				[ -f "${cfg_val}" ] || die "Missing file: ${cfg_val}"
 			fi
 		;;
 		ca.id)
-			[ -n "$EASYTLS_MASTER_ID" ] && {
+			[ -n "${EASYTLS_MASTER_ID}" ] && {
 				help_note="To change your CA-ID you must create a new Easy-RSA CA"
 				die "The CA-ID cannot be changed"
 				}
@@ -791,31 +792,31 @@ easytls_config ()
 		;;
 		status) [ $flash_config ] || return 0 ;;
 		*)
-			die "Unknown option: $cfg_opt"
+			die "Unknown option: ${cfg_opt}"
 		;;
 	esac
 
 	# Write config
 	config_update || die "Error updating config."
 	config_save_hash || die "Error hashing config."
-	config_use || die "config_use (updated) - Error: $?"
+	config_use || die "config_use (updated) - Error: ${?}"
 } # => easytls_config ()
 
 # Update config
 config_update ()
 {
 	# Find the pattern
-	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
-		"$EASYTLS_CONFIG_FILE" || {
+	"${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_update - input error: ${cfg_opt}"
 			return 1
 			}
 
 	# Replace the pattern
 	[ "${cfg_val}" = "0" ] && unset cfg_val
-	"$EASYTLS_SED" -i \
+	"${EASYTLS_SED}" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
-		"$EASYTLS_CONFIG_FILE" || {
+		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_update - replace error: ${cfg_opt}"
 			return 1
 			}
@@ -837,76 +838,73 @@ config_use ()
 	while read -r cfg_opt cfg_equ cfg_val
 	do
 		# May as well check it for shellcheck
-		[ "$cfg_equ" = "=" ] || {
+		[ "${cfg_equ}" = "=" ] || {
 			error_msg "Config error: Invalid syntax: Missing '='"
 			config_error=2
 			}
 
 		# These settings do not change command line
-		case "$cfg_opt" in
+		case "${cfg_opt}" in
 			test.bool) : ;;
 			auto.check)
-				case "$cfg_val" in
+				case "${cfg_val}" in
 					off)	set_var auto_check_disabled 1 ;;
 					on)		: ;;
 					*)
-							error_msg "Config error: Invalid value: $cfg_val"
+							error_msg "Config error: Invalid value: ${cfg_val}"
 							config_error=3 ;;
 				esac
 				;;
 			inline.metadata)
-				case "$cfg_val" in
+				case "${cfg_val}" in
 					off)	set_var no_metadata 1 ;;
 					on)		: ;;
 					*)
-							error_msg "Config error: Invalid value: $cfg_val"
+							error_msg "Config error: Invalid value: ${cfg_val}"
 							config_error=4 ;;
 				esac
 				;;
 			inline.hardware)
-				case "$cfg_val" in
+				case "${cfg_val}" in
 					off)	: ;;
 					on)		set_var add_hardware 1 ;;
 					*)
-							error_msg "Config error: Invalid value: $cfg_val"
+							error_msg "Config error: Invalid value: ${cfg_val}"
 							config_error=5 ;;
 				esac
 				;;
 			custom.group)
-				[ -n "$cfg_val" ] && set_var TLSKEY_CUSTOM_GRP "$cfg_val"
+				[ -n "${cfg_val}" ] && set_var TLSKEY_CUSTOM_GRP "${cfg_val}"
 				set_var TLSKEY_CUSTOM_GRP "EASYTLS"
 				;;
 			custom.openvpn)
-				[ -n "$cfg_val" ] && set_var EASYTLS_OPENVPN "$cfg_val"
+				[ -n "${cfg_val}" ] && set_var EASYTLS_OPENVPN "${cfg_val}"
 				set_var EASYTLS_OPENVPN "openvpn"
 				;;
 			tmp.dir)
-				[ -n "$cfg_val" ] && {
-					set_var EASYTLS_tmp_dir "$cfg_val"
-					config_tmp_dir=1
-					}
+				[ -n "${cfg_val}" ] && set_var EASYTLS_tmp_dir "${cfg_val}"
 				;;
 			no.ca)
 				# This is set explicitly here to protect config
-				[ -n "$cfg_val" ] && export EASYTLS_NO_CA="$cfg_val"
+				[ -n "${cfg_val}" ] && export EASYTLS_NO_CA="${cfg_val}"
 				;;
 			hash.algorithm)
 				# This is set explicitly here to protect config
-				[ -n "$cfg_val" ] && export EASYTLS_HASH_ALGO="$cfg_val"
+				[ -n "${cfg_val}" ] && export EASYTLS_HASH_ALGO="${cfg_val}"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
-				export EASYTLS_MASTER_ID="$cfg_val"
+				export EASYTLS_MASTER_ID="${cfg_val}"
 				;;
 			status)
 				EASYTLS_STATUS="${cfg_val}"
 				unset flash_config ;;
 			*)
-				error_msg "Config error: Ignored option: $cfg_opt"
+				error_msg "Config error: Ignored option: ${cfg_opt}"
 				;;
 		esac
-	done < "$EASYTLS_CONFIG_FILE"
-	[ $config_error ] && return "$config_error"
+	done < "${EASYTLS_CONFIG_FILE}"
+	[ $config_error ] && return "${config_error}"
 
 	# Set default hash.algorithm
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -941,7 +939,7 @@ config_use ()
 
 	# Verify the Config hash
 	generate_and_match_valid_hash \
-		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_verify_hash fail"
 			return 1
 			}
@@ -953,7 +951,7 @@ config_use ()
 config_save_hash ()
 {
 	generate_and_save_file_hash \
-		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
@@ -965,21 +963,21 @@ config_addition ()
 {
 	# Verify the Config hash
 	generate_and_match_valid_hash \
-		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_addition hash fail"
 			return 1
 			}
 
 	# Only allow alpha caracters and '.'
-	"$EASYTLS_PRINTF" "%s" "${cfg_opt}" | \
-		"$EASYTLS_GREP" -q '[^abcdefghijklmnopqrstuvwxyz\.]' && {
+	"${EASYTLS_PRINTF}" "%s" "${cfg_opt}" | \
+		"${EASYTLS_GREP}" -q '[^abcdefghijklmnopqrstuvwxyz\.]' && {
 			error_msg "config_addition - label error: ${cfg_opt}"
 			return 1
 			}
 
 	# Find the pattern - Fail if found
-	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
-		"$EASYTLS_CONFIG_FILE" && {
+	"${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"${EASYTLS_CONFIG_FILE}" && {
 			error_msg "config_addition - duplication error: ${cfg_opt}"
 			return 1
 			}
@@ -988,7 +986,7 @@ config_addition ()
 	"${EASYTLS_CP}" "${EASYTLS_CONFIG_FILE}" "${EASYTLS_TEMP_LIST}"
 	"${EASYTLS_PRINTF}" "%s\n" "${cfg_opt} = " > "${EASYTLS_TEMP_RECORD}"
 	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-		"$EASYTLS_CONFIG_FILE" || {
+		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_addition - addition error: ${cfg_opt}"
 			return 1
 			}
@@ -1003,22 +1001,22 @@ config_deletion ()
 {
 	# Verify the Config hash
 	generate_and_match_valid_hash \
-		"$EASYTLS_CONFIG_FILE" "$EASYTLS_CONFIG_HASH" || {
+		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_deletion hash fail"
 			return 1
 			}
 
 	# Find the pattern
-	"$EASYTLS_GREP" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
-		"$EASYTLS_CONFIG_FILE" || {
+	"${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_deletion - verify error: ${cfg_opt}"
 			return 1
 			}
 
 	# Remove the pattern
-	"$EASYTLS_SED" -i \
+	"${EASYTLS_SED}" -i \
 	-e "/^${cfg_opt}[[:blank:]]=[[:blank:]].*$/d" \
-		"$EASYTLS_CONFIG_FILE" || {
+		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_deletion - delete error: ${cfg_opt}"
 			return 1
 			}
@@ -1034,7 +1032,7 @@ config_version ()
 	flash_config=1
 	unset save_me
 	# Add status
-	if "${EASYTLS_GREP}" -q "status = " "$EASYTLS_CONFIG_FILE"
+	if "${EASYTLS_GREP}" -q "status = " "${EASYTLS_CONFIG_FILE}"
 	then
 		:
 	else
@@ -1048,7 +1046,7 @@ config_version ()
 	fi
 
 	#Add tmp.dir
-	if "${EASYTLS_GREP}" -q "tmp.dir = " "$EASYTLS_CONFIG_FILE"
+	if "${EASYTLS_GREP}" -q "tmp.dir = " "${EASYTLS_CONFIG_FILE}"
 	then
 		:
 	else
