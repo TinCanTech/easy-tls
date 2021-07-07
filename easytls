@@ -1286,8 +1286,8 @@ easytls_auto_check ()
 generate_valid_file_hash ()
 {
 	# Test for file
-	[ -f "$1" ] || {
-		error_msg "generate_valid_file_hash - Missing file: $1"
+	[ -f "${1}" ] || {
+		error_msg "generate_valid_file_hash - Missing file: ${1}"
 		return 1
 		}
 
@@ -1295,28 +1295,31 @@ generate_valid_file_hash ()
 	if [ ! $force_hash ] && [ $file_hash_disabled ]
 	then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
-		generated_hash=$fixed_hash
-		#generated_valid_hash=$fixed_hash
-		#return 0
+		generated_hash=${fixed_hash}
 	else
 		[ -z "${EASYTLS_HASH_ALGO}" ] && {
 			error_msg "generate_valid_file_hash - Missing EASYTLS_HASH_ALGO"
 			return 1
 			}
 
-		openssl_hash="$("$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r "$1")"
+		openssl_hash="$("${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${1}")" || {
+			error_msg "generate_valid_file_hash - hash fail"
+			return 1
+			}
+
 		# Only need hash
 		generated_hash="${openssl_hash%% *}"
+
+		# Verify generated hash
+		validate_hash "${generated_hash}" || {
+			error_msg "generate_valid_file_hash - Hash failed: ${generated_hash}"
+			unset openssl_hash generated_hash
+			return 1
+			}
 	fi
 
-	# Verify hash
-	validate_hash "$generated_hash" || {
-		error_msg "generate_valid_file_hash - Hash failed: $generated_hash"
-		return 1
-		}
-
 	# Set generated_valid_hash
-	generated_valid_hash=$generated_hash
+	generated_valid_hash=${generated_hash}
 	# Clean up
 	unset openssl_hash generated_hash
 } # => generate_valid_file_hash ()
@@ -1324,18 +1327,17 @@ generate_valid_file_hash ()
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
-	# Local var
+	# Capture all parameters passed
 	test_hash="$*"
 
 	# Set length
 	test_length=${#test_hash}
 
 	# Verify length
-	[ $test_length -eq $fixed_length ] || {
+	[ ${test_length} -eq ${fixed_length} ] || {
 		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} hash Size:"
-		error_msg "Actual: $test_length - Expected: $fixed_length"
-		unset test_hash
-		unset test_length
+		error_msg "Actual: ${test_length} - Expected: ${fixed_length}"
+		unset test_length test_hash
 		return 1
 		}
 
@@ -1344,15 +1346,15 @@ validate_hash ()
 
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
-	[ "$test_hash" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
-		error_msg "validate_hash - !Hex: $test_hash"
+	[ "${test_hash}" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
+		error_msg "validate_hash - !Hex: ${test_hash}"
 		unset test_hash
 		return 1
 		}
 
 	# Test for empty input hash
-	[ $test_hash = $forbidden_hash ] && {
-		error_msg "validate_hash - ${EASYTLS_HASH_ALGO} forbidden hash"
+	[ ${test_hash} = ${forbidden_hash} ] && {
+		error_msg "validate_hash - ${test_hash} is forbidden hash"
 		unset test_hash
 		return 1
 		}
@@ -1364,15 +1366,15 @@ validate_hash ()
 # Verify two hashes Match
 match_two_hashes ()
 {
-	[ -z $1 ] && return 1
-	[ $1 = $forbidden_hash ] && return 1
-	[ $2 = $forbidden_hash ] && return 1
-	[ $1 = $2 ] && return 0
+	[ -z ${1} ] && return 1
+	[ ${1} = ${forbidden_hash} ] && return 1
+	[ ${2} = ${forbidden_hash} ] && return 1
+	[ ${1} = ${2} ] && return 0
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
 	# Using file-hash-disabled mode will taint the TLS PKI
-	[ $1 = $fixed_hash ] && return 0
-	[ $2 = $fixed_hash ] && return 0
+	[ ${1} = ${fixed_hash} ] && return 0
+	[ ${2} = ${fixed_hash} ] && return 0
 	# Error is implicit
 	return 1
 } # => match_two_hashes ()
@@ -1380,11 +1382,23 @@ match_two_hashes ()
 # Save file hash
 save_file_hash ()
 {
-	[ -z "$1" ] && {
-		error_msg "save_file_hash - No target file specified"
+	# Must be a valid target fle
+	unset valid_target
+	[ "${1}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
+	[ "${1}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
+	[ "${1}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
+	[ "${1}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
+	[ "${1}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
+	[ $valid_target ] || {
+		error_msg "save_file_hash - invalid target ${1}"
 		return 1
 		}
-	"$EASYTLS_PRINTF" '%s' "$generated_valid_hash" > "$1" || return 1
+	unset valid_target
+	# Save hash to target
+	"${EASYTLS_PRINTF}" '%s' "${generated_valid_hash}" > "${1}" || {
+		error_msg "save_file_hash - save hash fail"
+		return 1
+		}
 } # => save_file_hash ()
 
 # generate_and_match_valid_hash
@@ -1393,22 +1407,26 @@ generate_and_match_valid_hash ()
 	# $1 - File to be hashed
 	# $2 - File to read the hash from
 
-	[ "$1" = "$2" ] && {
+	[ "${1}" = "${2}" ] && {
 		error_msg "generate_and_match_valid_hash - Source file is target file!"
 		return 1
 		}
 
 	unset generated_valid_hash
 	# Generate $generated_valid_hash
-	generate_valid_file_hash "$1" || {
+	generate_valid_file_hash "${1}" || {
 		error_msg "generate_and_match_valid_hash - generate_valid_file_hash fail"
 		return 1
 		}
 
-	saved_file_hash="$("$EASYTLS_CAT" "$2")"
+	# Load saved hash
+	saved_file_hash="$("${EASYTLS_CAT}" "${2}")" || {
+		error_msg "generate_and_match_valid_hash - Load saved hash fail"
+		return 1
+		}
 
 	# Validate and match $generated_valid_hash
-	match_two_hashes "$generated_valid_hash" "$saved_file_hash" || {
+	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
 		error_msg "generate_and_match_valid_hash - match_two_hashes fail"
 		return 1
 		}
@@ -1421,20 +1439,20 @@ generate_and_save_file_hash ()
 	# $1 - File to be hashed
 	# $2 - File to save the hash to
 
-	[ "$1" = "$2" ] && {
+	[ "${1}" = "${2}" ] && {
 		error_msg "generate_and_save_file_hash - Source file is target file!"
 		return 1
 		}
 
 	unset generated_valid_hash
 	# Generate $generated_valid_hash
-	generate_valid_file_hash "$1" || {
+	generate_valid_file_hash "${1}" || {
 		error_msg "generate_and_save_file_hash - generate_valid_file_hash fail"
 		return 1
 		}
 
 	# Save $generated_valid_hash
-	save_file_hash "$2" || {
+	save_file_hash "${2}" || {
 		error_msg "generate_and_save_file_hash - save_file_hash fail"
 		return 1
 		}
@@ -6342,7 +6360,6 @@ vars_setup()
 	# Set defaults, preferring existing env-vars if present
 	set_var
 	set_var EASYRSA                 "$prog_dir"
-	set_var EASYRSA_OPENSSL         "openssl"
 	set_var EASYRSA_PKI             "$PWD/pki"
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
