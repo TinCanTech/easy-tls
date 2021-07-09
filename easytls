@@ -33,6 +33,12 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # + OpenVPN Version 2.5
 #
 
+# Set the Easy-TLS version
+easytls_version ()
+{
+	print "Easy-TLS version: ${EASYTLS_VERSION}"
+} # => easytls_version ()
+
 
 
 ############################################################################
@@ -471,16 +477,25 @@ print ()
 die ()
 {
 	easytls_version
-	[ -n "${help_note}" ] && print "${help_note}"
-	error_msg "${1}" 1>&2
+	print "${1}" 1>&2
+	error_msg
+	[ -n "${help_note}" ] && print "+ ${help_note}"
 	exit "${2:-1}"
 } # => die ()
 
 # Specific error messages from sub-functions which do not use die()
 error_msg ()
 {
-	[ -z "${1}" ] && print && return 0
-	print "ERROR: ${1}"
+	[ -n "${1}" ] || {
+		[ -z "${error_log}" ] || {
+			print "${error_log}"
+			}
+		return 0
+		}
+
+	error_log="${error_log:-ERROR: }
+${1}"
+	#print "ERROR: ${1}"
 } # => error_msg ()
 
 # Fatal errors prior to deps
@@ -563,7 +578,7 @@ Easy-RSA error:
 
 EASYRSA_PKI does not exist (perhaps you need to run init-pki)?
 Expected to find the EASYRSA_PKI at: ${EASYRSA_PKI}
-${help_note}"
+"
 
 	# verify expected dirs present:
 	for i in private reqs; do
@@ -573,8 +588,9 @@ Easy-TLS requires that you have initialised your Easy-RSA PKI.
 Easy-RSA error:
 
 Missing expected directory: ${i} (perhaps you need to run init-pki?)
-${help_note}"
+"
 	done
+	unset help_note
 } # => verify_pki_init ()
 
 # Verify core CA files present
@@ -614,6 +630,7 @@ Easy-TLS requires that you have built your EASY-RSA CA.
 Missing expected CA dir: ${i} (perhaps you need to run build-ca?)
 ${help_note}"
 	done
+	unset help_note
 
 	# explicitly return success for callers
 	return 0
@@ -716,6 +733,7 @@ easytls_config ()
 		'')
 			"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
 			"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
+			easytls_verbose
 			return 0
 		;;
 		*)
@@ -825,7 +843,8 @@ config_update ()
 			return 1
 			}
 
-	notice "config-file updated: ${cfg_opt} = ${cfg_val}"
+	print "config-file updated: ${cfg_opt} = ${cfg_val}"
+	easytls_verbose
 } # => config_update ()
 
 # Use config
@@ -833,7 +852,7 @@ config_use ()
 {
 	# Verify once for config and then again later for other commands
 	# Don't load config if it does not exist
-	verify_tls_init || return 0
+		[ -f "${EASYTLS_CONFIG_FILE}" ] || return 0
 
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
@@ -946,8 +965,7 @@ config_use ()
 			error_msg "config_verify_hash fail"
 			return 1
 			}
-	easytls_verbose "config-file hash check OK"
-	easytls_verbose "config-file loaded OK"
+	easytls_verbose "config_use OK"
 } # => config_use ()
 
 # verify config file hash
@@ -1059,7 +1077,7 @@ config_version ()
 		EASYTLS_STATUS=2
 	fi
 
-	#Add tmp.dir
+	# Add tmp.dir
 	if "${EASYTLS_GREP}" -q "tmp.dir = " "${EASYTLS_CONFIG_FILE}"
 	then
 		:
@@ -1107,7 +1125,7 @@ verify_openvpn ()
 # Verify TLS has been initialised
 verify_tls_init ()
 {
-	{
+	if \
 		[ -d "${EASYTLS_PKI}" ] && \
 		[ -f "${EASYTLS_WISCII_HASH}" ] && \
 		[ -f "${EASYTLS_CONFIG_FILE}" ] && \
@@ -1118,7 +1136,13 @@ verify_tls_init ()
 		[ -f "${EASYTLS_KEY_X_HASH}" ] && \
 		[ -f "${EASYTLS_DISABLED_LIST}" ] && \
 		[ -f "${EASYTLS_DISABLED_HASH}" ]
-	} || return 1
+	then
+		easytls_verbose "verify_tls_init OK"
+		:
+	else
+		easytls_verbose "verify_tls_init fail"
+		return 1
+	fi
 } # => verify_tls_init ()
 
 # init-tls backend:
@@ -1261,6 +1285,7 @@ and initialize a fresh TLS PKI here."
 			"    *nix    - /var/easytls (Create with sudo)"
 		print \
 			"    systemd - /tmp (Use systemd unit file openvpn-server@.service)"
+		print
 	fi
 } # => init_tls ()
 
@@ -1268,6 +1293,7 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
+	##verify_tls_init || return 0
 	[ $status_disabled_auto_check ] && return 0
 	[ $auto_check_disabled ] && easytls_verbose "auto-check disabled" && return 0
 
@@ -1278,8 +1304,6 @@ easytls_auto_check ()
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
-	easytls_verbose ""
-	easytls_verbose "auto-check"
 
 	# ALL status failures MUST be FATAL in future
 
@@ -1305,18 +1329,22 @@ easytls_auto_check ()
 	disabled_list_verify_hash || warn "disabled-list hash failed."
 
 	unset auto_check
-	easytls_verbose "auto-check complete."
 } # => easytls_auto_check ()
 
 # Generate file hash - Return $generated_valid_hash
 generate_valid_file_hash ()
 {
-	[ $# -eq 1 ] || die "generate_valid_file_hash - input error"
-	file_name="${1}"
+	[ ${#} -eq 1 ] || {
+		help_note="input: ${*}"
+		die "generate_valid_file_hash - invalid input"
+		}
 
-	# Test for file
-	[ -f "${file_name}" ] || {
-		error_msg "generate_valid_file_hash - Missing: ${file_name}"
+	target="${1}"
+
+	# Test for target
+	[ -f "${target}" ] || {
+		error_msg "generate_valid_file_hash - target"
+		unset target openssl_hash generated_hash
 		return 1
 		}
 
@@ -1326,18 +1354,18 @@ generate_valid_file_hash ()
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
 	else
-		[ -z "${EASYTLS_HASH_ALGO}" ] && {
+		[ -n "${EASYTLS_HASH_ALGO}" ] || {
 			error_msg "generate_valid_file_hash - EASYTLS_HASH_ALGO"
-			unset file_name openssl_hash generated_hash
+			unset target openssl_hash generated_hash
 			return 1
 			}
 
 		# Generate hash
 		openssl_hash="$(
-			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${file_name}"
+			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${target}"
 			)" || {
 				error_msg "generate_valid_file_hash - openssl_hash"
-				unset file_name openssl_hash generated_hash
+			unset target openssl_hash generated_hash
 				return 1
 				}
 
@@ -1347,7 +1375,7 @@ generate_valid_file_hash ()
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
 			error_msg "generate_valid_file_hash - validate_hash"
-			unset file_name openssl_hash generated_hash
+			unset target openssl_hash generated_hash
 			return 1
 			}
 	fi
@@ -1356,14 +1384,19 @@ generate_valid_file_hash ()
 	"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
 
 	# Clean up
-	unset file_name openssl_hash generated_hash
+	unset target openssl_hash generated_hash
+
 } # => generate_valid_file_hash ()
 
 # Generate data hash
 generate_valid_data_hash ()
 {
-	[ $# -eq 1 ] || die "generate_valid_file_hash - input error"
-	data="${1}"
+	[ ${#} -eq 1 ] || {
+		help_note="input: ${*}"
+		die "generate_valid_data_hash - invalid input"
+		}
+
+	target="${1}"
 
 	# hash the data
 	if [ ! $force_hash ] && [ $file_hash_disabled ]
@@ -1372,18 +1405,18 @@ generate_valid_data_hash ()
 		generated_hash=${fixed_hash}
 	else
 		[ -z "${EASYTLS_HASH_ALGO}" ] && {
-			error_msg "generate_valid_data_hash - Missing EASYTLS_HASH_ALGO"
-			unset data openssl_hash generated_hash
+			error_msg "generate_valid_data_hash - EASYTLS_HASH_ALGO"
+			unset target openssl_hash generated_hash
 			return 1
 			}
 
 		# Generate hash
 		openssl_hash="$(
-			"${EASYTLS_PRINTF}" "${data}" |
+			"${EASYTLS_PRINTF}" "${target}" |
 			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r
 			)" || {
 					error_msg "generate_valid_data_hash - openssl_hash"
-					unset data openssl_hash generated_hash
+					unset target openssl_hash generated_hash
 					return 1
 					}
 
@@ -1392,8 +1425,8 @@ generate_valid_data_hash ()
 
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
-			error_msg "generate_valid_data_hash - Verify hash: ${generated_hash}"
-			unset data openssl_hash generated_hash
+			error_msg "generate_valid_data_hash - validate_hash"
+			unset target openssl_hash generated_hash
 			return 1
 			}
 	fi
@@ -1401,51 +1434,50 @@ generate_valid_data_hash ()
 	# Return validated generated_hash
 	"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
 	# Clean up
-	unset data openssl_hash generated_hash
+	unset target openssl_hash generated_hash
 } # => generate_valid_data_hash ()
 
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
-	[ $# -eq 1 ] || die "validate_hash - input error"
-	test_hash="${1}"
+	[ ${#} -eq 1 ] || {
+		help_note="input: ${*}"
+		die "validate_hash - invalid input"
+		}
 
-	# Set length
+	test_hash="${1}"
 	test_length=${#test_hash}
 
 	# Verify length
 	[ ${test_length} -eq ${fixed_length} ] || {
-		error_msg "validate_hash - incorrect length"
-		unset test_length test_hash
+		error_msg "validate_hash - test_length"
+		unset test_hash test_length
 		return 1
 		}
-
-	# Clean up
-	unset test_length
 
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
 	[ "${test_hash}" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
-		error_msg "validate_hash - not hex"
-		unset test_hash
+		error_msg "validate_hash - !hex"
+		unset test_hash test_length
 		return 1
 		}
 
 	# Test for empty input hash
 	[ ${test_hash} = ${forbidden_hash} ] && {
-		error_msg "validate_hash - forbidden hash"
-		unset test_hash
+		error_msg "validate_hash - forbidden_hash"
+		unset test_hash test_length
 		return 1
 		}
 
-	# Clean up
-	unset test_hash
+	unset test_hash test_length
 } # => validate_hash ()
 
 # Verify two hashes Match
 match_two_hashes ()
 {
-	[ $# -eq 2 ] || die "match_two_hashes - input error"
+	[ ${#} -eq 2 ] || return 1
+	# $1 & $2 ARE hash values
 	[ ${1} = ${forbidden_hash} ] && return 1
 	[ ${2} = ${forbidden_hash} ] && return 1
 	[ ${1} = ${2} ] && return 0
@@ -1461,81 +1493,111 @@ match_two_hashes ()
 # Save file hash
 save_file_hash ()
 {
+	[ ${#} -eq 2 ] || {
+		help_note="input: ${*}"
+		die "save_file_hash - invalid input"
+		}
+
+	hash_file="${1}" # File to save hash to
+	valid_hash="${2}" # hash to save
+
 	# Must be a valid target fle
 	unset valid_target
-	[ "${1}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
-	[ "${1}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
-	[ "${1}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
-	[ "${1}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
-	[ "${1}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
+	[ "${hash_file}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
+	[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
+	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
+	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
+	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
 	[ $valid_target ] || {
 		error_msg "save_file_hash - invalid target ${1}"
+		unset hash_file valid_hash valid_target
 		return 1
 		}
-	unset valid_target
+
 	# Save hash to target
-	"${EASYTLS_PRINTF}" '%s' "${generated_valid_hash}" > "${1}" || {
-		error_msg "save_file_hash - save hash fail"
+	"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
+		error_msg "save_file_hash - save hash"
 		return 1
 		}
+
+	unset hash_file valid_hash valid_target
 } # => save_file_hash ()
 
 # generate_and_match_valid_hash
 generate_and_match_valid_hash ()
 {
-	# $1 - File to be hashed
-	# $2 - File to read the hash from
+	[ ${#} -eq 2 ] || {
+		help_note="input: ${*}"
+		die "generate_and_match_valid_hash - invalid input"
+		}
+
+	target_file="${1}" # File to be hashed
+	hash_file="${2}" # File to read the hash from
 
 	[ "${1}" = "${2}" ] && {
-		error_msg "generate_and_match_valid_hash - Source file is target file!"
+		error_msg "generate_and_match_valid_hash - invalid input"
+		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
-	unset generated_valid_hash
 	# Generate $generated_valid_hash
 	generated_valid_hash="$(generate_valid_file_hash "${1}")" || {
-		error_msg "generate_and_match_valid_hash - generate_valid_file_hash"
+		error_msg "generate_and_match_valid_hash"
+		error_msg " - ${generated_valid_hash}"
+		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
 	# Load saved hash
 	saved_file_hash="$("${EASYTLS_CAT}" "${2}")" || {
-		error_msg "generate_and_match_valid_hash - Load saved hash"
+		error_msg "generate_and_match_valid_hash - saved_file_hash"
+		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
 		error_msg "generate_and_match_valid_hash - match_two_hashes"
+		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
-	unset generated_valid_hash
+
+	unset target_file hash_file generated_valid_hash saved_file_hash
 } # => generate_and_match_valid_hash ()
 
 # generate and save file hash
 generate_and_save_file_hash ()
 {
-	# $1 - File to be hashed
-	# $2 - File to save the hash to
+	[ ${#} -eq 2 ] || {
+		unset help_note
+		die "generate_and_save_file_hash - invalid input"
+		}
 
-	[ "${1}" = "${2}" ] && {
-		error_msg "generate_and_save_file_hash - Source file is target file!"
+	in_file="${1}" # File to hash
+	out_file="${2}" # File to save the hash to
+
+	[ "${in_file}" = "${out_file}" ] && {
+		error_msg "generate_and_save_file_hash - Source=target"
+		unset in_file out_file generated_valid_hash
 		return 1
 		}
 
-	unset generated_valid_hash
 	# Generate $generated_valid_hash
-	generated_valid_hash="$(generate_valid_file_hash "${1}")" || {
-		error_msg "generate_and_save_file_hash - generate_valid_file_hash fail"
+	generated_valid_hash="$(generate_valid_file_hash "${in_file}")" || {
+		error_msg "generate_and_save_file_hash"
+		error_msg " - ${generated_valid_hash}"
+		unset in_file out_file generated_valid_hash
 		return 1
 		}
 
 	# Save $generated_valid_hash
-	save_file_hash "${2}" || {
-		error_msg "generate_and_save_file_hash - save_file_hash fail"
+	save_file_hash "${out_file}" ${generated_valid_hash} || {
+		error_msg "generate_and_save_file_hash - save_file_hash"
+		unset in_file out_file generated_valid_hash
 		return 1
 		}
-	unset generated_valid_hash
+
+	unset in_file out_file generated_valid_hash
 } # => generate_and_save_file_hash ()
 
 
@@ -2303,7 +2365,7 @@ inline_show ()
 	inline_serial=""
 	inline_crt_serial
 
-	#Check inline hash
+	# Check inline hash
 	inline_file_verify_hash || die "Failed HASH: ${inline_file}"
 
 	# Copy inline to stdout
@@ -5229,8 +5291,6 @@ interactive_scripts ()
 	;;
 	esac
 
-	#easytls_verbose "hiding an error ?"
-
 } # => interactive_scripts ()
 
 # Set commonName
@@ -5742,17 +5802,19 @@ interactive_tmp_dir ()
 
 	# Verify tmp.dir is set
 	[ -n "$EASYTLS_tmp_dir" ] || {
-		error_msg
 		error_msg "Server script tmp.dir is not configured."
-		error_msg "Please use './easytls config tmp.dir <directory>"
-		error_msg "to configure a temporary directory."
-		error_msg "Recommended setting:"
+		error_msg "To configure a temporary directory use:
+"
+		error_msg "  ./easytls config tmp.dir <directory>
+"
+		error_msg "Recommended setting for tmp.dir:
+"
 		if [ $EASYTLS_FOR_WINDOWS ]
 		then
-			error_msg " Windows - ${host_drv}/Windows/Temp"
+			error_msg "  Windows - ${host_drv}/Windows/Temp"
 		else
-			error_msg " *nix - /var/easytls (Create with sudo)"
-			error_msg " systemd - /tmp"
+			error_msg "  *nix - /var/easytls (Create with sudo)"
+			error_msg "  systemd - /tmp (Use openvpn-server@.service)"
 		fi
 		die "Missing setting tmp.dir"
 		}
@@ -5768,7 +5830,6 @@ interactive_tmp_dir ()
 
 		# Verify tmp.dir exists
 		[ -d "${ans_tmp_dir}" ] || {
-			error_msg
 			error_msg "Server script tmp.dir is not created."
 			error_msg "Please create your chosen temporary directory"
 			error_msg "Recommended setting:"
@@ -6006,17 +6067,7 @@ automatic_no_ca ()
 	[ $EASYTLS_NO_CA ] && opt_no_ca='-z'
 }
 
-# Automatically detect certificate type
-#automatic_cert_type ()
-#{
-#	unset cert_type
-#	"$EASYTLS_GREP" -q 'TLS Web Server' "$cert_file" && is_server=1
-#	"$EASYTLS_GREP" -q 'TLS Web Client' "$cert_file" && is_client=1
-#	[ $is_server ] && [ $is_client ] && \
-#		die "Unsupported certificate: Server&Client"
-#	[ $is_server ] && cert_type='Server'
-#	[ $is_client ] && cert_type='Client'
-#} # => automatic_cert_type ()
+
 
 ############################################################################
 #
@@ -6273,20 +6324,15 @@ save_wiscii_hash ()
 		return 1
 		}
 
-	easytls_verbose
-	easytls_verbose "Master hash save OK: $counted_wiscii"
+	easytls_verbose "save_master_hash OK"
 } # => save_wiscii_hash ()
 
 # Verify wiscii hash
 verify_wiscii_hash ()
 {
-	if [ -f "$EASYTLS_WISCII_HASH" ]
-	then
-		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
-	else
-		bottled_wiscii=""
-	fi
+	[ -f "$EASYTLS_WISCII_HASH" ] || return 0
 
+	bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
 	generate_wiscii_hash
 
 	# TLS not initialised
@@ -6298,7 +6344,7 @@ verify_wiscii_hash ()
 		error_msg "counted_wiscii: $counted_wiscii"
 		return 1
 		}
-	easytls_verbose "Master hash check OK: $counted_wiscii"
+	easytls_verbose "verify_master_hash OK"
 	easytls_verbose
 } # => verify_wiscii_hash ()
 
@@ -6310,7 +6356,6 @@ verify_wiscii_hash ()
 #
 
 # Ensure required external binaries can be found
-# Don't wait for Easy-RSA3 to be patched because that is futile
 external_deps ()
 {
 	# Working directory
@@ -6552,12 +6597,6 @@ set_var()
 	eval "export $var=\"\${$var-$value}\""
 } #=> set_var()
 
-# Set the Easy-TLS version
-easytls_version ()
-{
-	notice "Easy-TLS version: ${EASYTLS_VERSION}"
-} # => easytls_version ()
-
 
 
 ############################################################################
@@ -6693,44 +6732,45 @@ main ()
 
 	case "$cmd" in
 	# Initialise only
+	''|help|-h|--help|--usage)
+		cmd_help "$1" || \
+			die "Error: cmd_help"
+		cmd='Done'
+	;;
+	v|version)
+		easytls_version || \
+			die "Error: easytls_version"
+		cmd='Done'
+	;;
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
 		cmd='Done'
+
+		# EasyTLS auto-check
+		easytls_auto_check || die "Error: easytls_auto_check"
+
+		# save me!
+		save_wiscii_hash || die "Master hash save failed"
 	;;
 	*)
 	# Other commands
 
-	# Load config options - Does not change command line options
-	# Using the config does an internal init-tls check
-	config_use || die "config_use - Error: $?"
+		# Load config options - Does not change command line options
+		# Using the config does an internal init-tls check
+		config_use || die "config_use - Error: $?"
 
-	# Commands which do not require init-tls
-	case "$cmd" in
-		Done) : ;; # Ignore
-
-		''|help|-h|--help|--usage)
-			cmd_help "$1" || \
-				die "Error: cmd_help"
-			cmd='Done'
-		;;
-		v|version)
-			easytls_version || \
-				die "Error: easytls_version"
-			cmd='Done'
-		;;
-	esac
-
-	# Everything else requires init-tls
-	case "$cmd" in
+		# Everything else requires init-tls
+		case "$cmd" in
 		Done) : ;; # Ignore
 
 		*)
-			# Must have init TLS now
+			# Must have init PKI & TLS now
+			verify_pki_init
 			verify_tls_init || {
 				error_msg "./easytls help init-tls - See help below:"
 				cmd_help init-tls
-				die "EasyTLS has not been initialised"
+				exit 1
 				}
 			# Verify me!
 			verify_wiscii_hash || {
@@ -6755,10 +6795,10 @@ main ()
 				;;
 			esac
 		;;
-	esac
+		esac
 
-	# Commands which can run with or without a PKI
-	case "$cmd" in
+		# Commands which can run with or without a PKI
+		case "$cmd" in
 		Done) : ;; # Ignore
 
 		build)
@@ -6856,13 +6896,13 @@ main ()
 				die "Error: disabled_list_manager rehash"
 			cmd='Done'
 		;;
-	esac
+		esac
 
-	# When no-ca is true use these versions of commands
-	if [ $EASYTLS_NO_CA ]
-	then
-		# Possible commands
-		case "$cmd" in
+		# When no-ca is true use these versions of commands
+		if [ $EASYTLS_NO_CA ]
+		then
+			# Possible commands
+			case "$cmd" in
 			Done): ;; # Ignore
 
 			sss|self-sign-server)
@@ -6884,11 +6924,11 @@ main ()
 				error_msg "Command '${cmd}' does not support 'no-ca' mode"
 				cmd='Done'
 			;;
-		esac
-	fi
+			esac
+		fi
 
-	# Everything else
-	case "$cmd" in
+		# Everything else
+		case "$cmd" in
 		Done): ;; # Ignore
 
 		sid|save-id)
@@ -6915,16 +6955,16 @@ main ()
 		*)
 			die "Unknown command '${cmd}'. Run without commands for help."
 		;;
-	esac # Everything else
+		esac # Everything else
 
+		# EasyTLS auto-check
+		easytls_auto_check || die "Error: easytls_auto_check"
+
+		# save me!
+		save_wiscii_hash || die "Master hash save failed"
 	;;
-	esac # Initialise
+	esac # help/versiom/Initialise
 
-	# EasyTLS auto-check
-	easytls_auto_check || die "Error: easytls_auto_check"
-
-	# save me!
-	save_wiscii_hash || die "Master hash save failed"
 } # => main ()
 
 main "${@}"
