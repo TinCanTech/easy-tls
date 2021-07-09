@@ -1891,7 +1891,7 @@ status_easyrsa_renewed ()
 	[ -f "$inline_file" ] || die "Not found: inline_file = $inline_file"
 	# Inline serial
 	inline_serial=""
-	inline_crt_serial
+	inline_cert_serial
 
 	cert_file="$EASYRSA_PKI/issued/$name.crt"
 	if [ -f "$cert_file" ]
@@ -2125,7 +2125,7 @@ inline_index_update ()
 		# Add the inline_serial not the crt_serial
 		# Inline serial
 		inline_serial=""
-		inline_crt_serial
+		inline_cert_serial
 
 		# Create new inline file HASH
 		force_hash=1
@@ -2308,11 +2308,11 @@ inline_crt_common_name ()
 } # => inline_crt_common_name ()
 
 # Get serial number from inline file
-inline_crt_serial ()
+inline_cert_serial ()
 {
 	inline_serial="$("${EASYTLS_GREP}" '^# X509 serial: .*$' "${inline_file}")"
 	inline_serial="${inline_serial##*serial: }"
-} # => inline_crt_serial ()
+} # => inline_cert_serial ()
 
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_common_name ()
@@ -2363,7 +2363,7 @@ inline_show ()
 
 	# Inline serial
 	inline_serial=""
-	inline_crt_serial
+	inline_cert_serial
 
 	# Check inline hash
 	inline_file_verify_hash || die "Failed HASH: ${inline_file}"
@@ -2388,7 +2388,7 @@ remove_inline ()
 
 	# Get cert serial number from inline file
 	inline_serial=""
-	inline_crt_serial
+	inline_cert_serial
 
 	# Check .inline HASH prior to removal
 	inline_file_verify_hash || die "inline_remove Failed HASH: ${inline_file}"
@@ -2484,7 +2484,7 @@ inline_index_rebuild ()
 			inline_index_rebuild_reset "Missing Inline file: $inline_file"
 
 		inline_serial=""
-		inline_crt_serial
+		inline_cert_serial
 		easytls_verbose "inline_serial: ^$inline_serial^"
 		[ -z "$inline_serial" ] && \
 			inline_index_rebuild_reset "inline_index_rebuild: No inline_serial"
