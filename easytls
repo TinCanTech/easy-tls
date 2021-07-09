@@ -278,7 +278,9 @@ cmd_help()
           Imported key name: ./pki/easytls/server-tls-crypt-v2.key
 
         * 'import-key tls-crypt-v2 ./cli2-v2.key client02'
-          Imported key name: ./pki/easytls/client02-tls-crypt-v2.key" ;;
+          Imported key name: ./pki/easytls/client02-tls-crypt-v2.key
+
+        * DISABLED *" ;;
 		sss|self-sign-server) text="
   self-sign-server
        Build a self signed server certificate and key." ;;
@@ -1899,7 +1901,7 @@ status_easyrsa_renewed ()
 
 		# Certificate serial
 		cert_serial="$(openssl_cert_serial "$cert_file")" || \
-			die "openssl_cert_serial"
+			die "status_easyrsa_renewed ${cert_serial}"
 
 		if [ "$inline_serial" = "$cert_serial" ]
 		then
@@ -2317,11 +2319,28 @@ inline_cert_serial ()
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_common_name ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$crt_file" \
-		-noout -subject -nameopt sep_multiline | \
-		"$EASYTLS_GREP" '^[[:blank:]]\{1,\}CN=.*$' | \
-		"$EASYTLS_SED" 's/^[[:blank:]]*CN=//g'
+	# This is ONLY use to import a certificate and importing is DISABLED
+	return 1
+	temp_name="$(get_openssl_crt_common_name "$crt_file")" || {
+		error_msg ""
+		return 1
+		}
+	temp_name="${temp_name##*, CN = }"
+	temp_name="${temp_name%%, emailAddress = *}"
+	"${EASYTLS_PRINTF}" "%s" "${temp_name}"
 } # => openssl_crt_common_name ()
+
+# Extract the CommonName from OpenSSL -subject
+get_openssl_crt_common_name ()
+{
+	# This is ONLY use to import a certificate and importing is DISABLED
+	return 1
+	[ -f "${1}" ] || {
+		error_msg "get_openssl_crt_common_name missing file"
+		return 1
+		}
+	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject || return 1
+} # => get_openssl_crt_common_name ()
 
 # Format OpenSSL serial number output
 openssl_cert_serial ()
@@ -2332,20 +2351,21 @@ openssl_cert_serial ()
 		}
 
 	temp_out="$(get_openssl_cert_serial "${1}")" || {
-		error_msg "get_openssl_cert_serial fail"
+		error_msg "openssl_cert_serial ${temp_out}"
+		unset temp_out
 		return 1
 		}
 
 	temp_out="${temp_out##serial=}"
 	"${EASYTLS_PRINTF}" '%s' "${temp_out}"
 	unset temp_out
-}
+} # => openssl_cert_serial ()
 
 # Get OpenSSL serial number output
 get_openssl_cert_serial ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -serial || return 1
-} # => openssl_cert_serial ()
+} # => get_openssl_cert_serial ()
 
 # Check inline hash and Copy inline to stdout
 inline_show ()
@@ -3076,7 +3096,7 @@ inline_base ()
 
 	# get the serial number of the certificate from OpenSSL
 	cert_serial="$(openssl_cert_serial "${cert_file}")" || \
-		die "inline_base - cert_serial fail"
+		die "inline_base - ${cert_serial}"
 
 	# Build .base file
 	{
@@ -3392,7 +3412,7 @@ inline_tls_crypt_v2 ()
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${srv_name}.crt"
 			cert_serial="$(openssl_cert_serial "${cert_file}")" || \
-				die "cert_serial"
+				die "inline_tls_crypt_v2 ${cert_serial}"
 			srv_serial="${cert_serial}"
 		else
 			# Get the CA serial number
@@ -3552,7 +3572,7 @@ build_tls_crypt_v2_server ()
 
 	# get the serial number of the certificate from OpenSSL
 	cert_serial="$(openssl_cert_serial "${srv_cert}")" || \
-		die "build_tls_crypt_v2_server - cert_serial fail"
+		die "build_tls_crypt_v2_server - ${cert_serial}"
 
 	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
@@ -3768,7 +3788,7 @@ b64_enc_metadata ()
 
 	# get the serial number of the certificate from OpenSSL
 	cert_serial="$(openssl_cert_serial "$cli_cert")" || \
-		die "b64_enc_metadata - cert_serial fail"
+		die "b64_enc_metadata - ${cert_serial}"
 
 	# Set creation Date
 	key_date="$("${EASYTLS_DATE}" +%s)"
@@ -4038,7 +4058,7 @@ disabled_list_manager ()
 	# get the serial number of the certificate from OpenSSL
 	# https://github.com/TinCanTech/easy-tls/issues/80
 	cert_serial="$(openssl_cert_serial "${cert_file}")" || \
-		die "disabled_list_manager - cert_serial fail"
+		die "disabled_list_manager - ${cert_serial}"
 
 	# Check unique record from tlskey-index
 	"${EASYTLS_GREP}" -q \
