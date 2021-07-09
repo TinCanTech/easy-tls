@@ -135,11 +135,6 @@ CLICON_CMD="./easytls-client-connect.sh"
 CLICON_OPTS="-v"
 
 
-[ $EASYTLS_REMOTE_CI ] && {
-	EASYTLS_OPTS="${EASYTLS_OPTS} -y"
-	printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
-	}
-
 # Identify Windows
 [ "${KSH_VERSION}" ] && EASYTLS_FOR_WINDOWS=1
 
@@ -227,6 +222,11 @@ do
 		exit 1
 	fi
 
+	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
+		EASYTLS_OPTS="${EASYTLS_OPTS} -y"
+		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
+		}
+
 	# Switch to SHA1
 	[ $loops -eq 3 ] && TLSCV2V_OPTS="-v --hash=SHA1"
 
@@ -309,11 +309,12 @@ do
 		## EOL
 	do
 		test_cmd="$i"
+		[ $loops -eq 1 ] && [ "$test_cmd" = "cf ac off" ] && continue
 		#[ $loops -eq 2 ] && [ "$test_cmd" = "init-tls" ] && \
 		#	EASYTLS_OPTS="--verbose --batch --no-auto-check" ### "-y"
 		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && {
 			test_cmd="$test_cmd SHA1"
-		#	EASYTLS_OPTS="--verbose --batch --no-auto-check"
+		#	EASYTLS_OPTS="--verbose --batch"
 			}
 		print "============================================================"
 		echo "==> $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
