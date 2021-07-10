@@ -494,10 +494,8 @@ error_msg ()
 			}
 		return 0
 		}
-
 	error_log="${error_log:-ERROR: }
 ${1}"
-	#print "ERROR: ${1}"
 } # => error_msg ()
 
 # Fatal errors prior to deps
@@ -1366,8 +1364,9 @@ generate_valid_file_hash ()
 		openssl_hash="$(
 			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${target}"
 			)" || {
-				error_msg "generate_valid_file_hash - openssl_hash"
-			unset target openssl_hash generated_hash
+				error_msg "generate_valid_file_hash"
+				error_msg "= ${openssl_hash}"
+				unset target openssl_hash generated_hash
 				return 1
 				}
 
@@ -1417,7 +1416,8 @@ generate_valid_data_hash ()
 			"${EASYTLS_PRINTF}" "${target}" |
 			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r
 			)" || {
-					error_msg "generate_valid_data_hash - openssl_hash"
+					error_msg "generate_valid_data_hash"
+					error_msg "= ${openssl_hash}"
 					unset target openssl_hash generated_hash
 					return 1
 					}
@@ -1543,7 +1543,7 @@ generate_and_match_valid_hash ()
 		}
 
 	# Generate $generated_valid_hash
-	generated_valid_hash="$(generate_valid_file_hash "${1}")" || {
+	generated_valid_hash="$(generate_valid_file_hash "${target_file}")" || {
 		error_msg "generate_and_match_valid_hash"
 		error_msg " - ${generated_valid_hash}"
 		unset target_file hash_file generated_valid_hash saved_file_hash
@@ -1551,7 +1551,7 @@ generate_and_match_valid_hash ()
 		}
 
 	# Load saved hash
-	saved_file_hash="$("${EASYTLS_CAT}" "${2}")" || {
+	saved_file_hash="$("${EASYTLS_CAT}" "${hash_file}")" || {
 		error_msg "generate_and_match_valid_hash - saved_file_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
@@ -1986,10 +1986,56 @@ status_disabled_list ()
 # EASYTLS INLINE-INDEX Section
 #
 
+get_openssl_cert_purpose ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose || return 1
+} # => get_openssl_cert_purpose ()
+
 # Verify certificate purpose
 verify_cert_purpose ()
 {
-	"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose | "$EASYTLS_GREP" -q "$2"
+	[ -f "${1}" ] || {
+		error_msg "verify_cert_purpose - Missing file"
+		return 1
+		}
+
+	[ -n "${2}" ] || {
+		error_msg "verify_cert_purpose - Missing variable"
+		return 1
+		}
+
+	p_l="$(get_openssl_cert_purpose "${1}")" || {
+		error_msg "verify_cert_purpose - get_openssl_cert_purpose"
+		error_msg "= ${p_l}"
+		unset p_l p_c p_s is_c is_s
+		return 1
+		}
+
+	p_c='SSL client : Yes'
+	p_s='SSL server : Yes'
+	unset is_c is_s
+	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "$EASYTLS_GREP" -q "${p_c}" && is_c=1
+	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "$EASYTLS_GREP" -q "${p_s}" && is_s=1
+
+	if [ $is_c ] && [ $is_s ]; then
+		error_msg "Unsupported certificate purpose"
+		error_msg "= ${p_l}"
+		unset p_l p_c p_s is_c is_s
+		return 1
+
+	elif [ $is_c ]; then
+		eval ${2}="Client"
+
+	elif [ $is_s ]; then
+		eval ${2}="Server"
+
+	else
+		error_msg "Unknown certificate purpose"
+		error_msg "= ${p_l}"
+		unset p_l p_c p_s is_c is_s
+		return 1
+	fi
+	unset p_l p_c p_s is_c is_s
 } # => verify_cert_purpose ()
 
 # Cut to only certificate enddate
@@ -2042,6 +2088,7 @@ cert_expire ()
 		crt_expire_date
 		print " Certificate: ${crt_file}   Expire-date: ${crt_expire}"
 	else
+		# TODO
 		easytls_valid_list="$("${EASYTLS_LS}" -1 "${EASYTLS_PKI}"/*.crt)"
 		for name in $easytls_valid_list
 		do
@@ -3062,9 +3109,10 @@ inline_base ()
 		cert_fpr="${cert_fpr##*=}"
 
 		# Cert purpose
-		cert_purpose='Client'
-		verify_cert_purpose "${cert_file}" "SSL client : Yes" || \
-			cert_purpose='Server'
+		verify_cert_purpose "${cert_file}" cert_purpose || {
+			error_msg "verify_cert_purpose failed"
+			return 1
+			}
 	else
 		error_msg "Certificate file missing or revoked: ${cert_file}"
 		return 1
@@ -3313,8 +3361,12 @@ inline_tls_crypt_v2 ()
 	cert_file="$EASYRSA_PKI/issued/$name.crt"
 	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/$name.crt"
 	[ -f "$cert_file" ] || die "Missing cert file: $cert_file"
-	cert_purpose='Client'
-	verify_cert_purpose "$cert_file" "SSL client : Yes" || cert_purpose='Server'
+
+	# Cert purpose
+	verify_cert_purpose "$cert_file" cert_purpose || {
+		error_msg "verify_cert_purpose failed"
+		return 1
+		}
 
 	tlskey_file="$EASYTLS_PKI/$name-tls-crypt-v2.key"
 	inline_file="$EASYTLS_PKI/$name.inline"
@@ -3565,7 +3617,12 @@ build_tls_crypt_v2_server ()
 		die "Missing file: ${srv_cert}"
 		}
 
-	verify_cert_purpose "${srv_cert}" 'SSL server : Yes' || \
+	# Cert purpose
+	verify_cert_purpose "$srv_cert" cert_purpose || {
+		error_msg "verify_cert_purpose failed"
+		return 1
+		}
+	[ "${cert_purpose}" = 'Server' ] || \
 		die "Certificate must be a Server: ${srv_cert}"
 
 	[ -f "${tlskey_file}" ] && die "Server file already exists: ${tlskey_file}"
@@ -3641,18 +3698,30 @@ build_tls_crypt_v2_client ()
 	[ "${srv_name}" = "${cli_name}" ] && \
 		die "Server name cannot be the same as the client name."
 
+	# Server cert
 	[ -f "${srv_cert}" ] || \
 		die "Easy-TLS requires that the X509 Server certificate has been built.
 * Missing Server certificate: ${srv_cert}"
 
-	verify_cert_purpose "${srv_cert}" 'SSL server : Yes' || \
+	# Cert purpose
+	verify_cert_purpose "${srv_cert}" srv_cert_purpose || {
+		error_msg "verify_cert_purpose failed"
+		return 1
+		}
+	[ "${srv_cert_purpose}" = 'Server' ] || \
 		die "Certificate must be a Server: ${srv_cert}"
 
+	# Client cert
 	[ -f "${cli_cert}" ] || \
 		die "Easy-TLS requires that the X509 Client certificate has been built.
 * Missing Client certificate: ${cli_cert}"
 
-	verify_cert_purpose "${cli_cert}" 'SSL client : Yes' || \
+	# Cert purpose
+	verify_cert_purpose "${cli_cert}" cli_cert_purpose || {
+		error_msg "verify_cert_purpose failed"
+		return 1
+		}
+	[ "${cli_cert_purpose}" = 'Client' ] || \
 		die "Certificate must be a Client: ${cli_cert}"
 
 	[ -f "${in_file}" ] || {
