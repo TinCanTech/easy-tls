@@ -1392,11 +1392,11 @@ openssl_generate_file_hash ()
 }
 
 # Generate data hash
-generate_valid_data_hash ()
+generate_and_validate_data_hash ()
 {
-	[ ${#} -eq 1 ] || {
+	[ ${#} -eq 2 ] || {
 		help_note="input: ${*}"
-		die "generate_valid_data_hash - invalid input"
+		die "generate_and_validate_data_hash - invalid input"
 		}
 
 	target="${1}"
@@ -1408,17 +1408,16 @@ generate_valid_data_hash ()
 		generated_hash=${fixed_hash}
 	else
 		[ -z "${EASYTLS_HASH_ALGO}" ] && {
-			error_msg "generate_valid_data_hash - EASYTLS_HASH_ALGO"
+			error_msg "generate_and_validate_data_hash - EASYTLS_HASH_ALGO"
 			unset target openssl_hash generated_hash
 			return 1
 			}
 
 		# Generate hash
 		openssl_hash="$(
-			"${EASYTLS_PRINTF}" "${target}" |
-			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r
+			"${EASYTLS_PRINTF}" "${target}" | openssl_generate_data_hash
 			)" || {
-					error_msg "generate_valid_data_hash"
+					error_msg "generate_and_validate_data_hash"
 					error_msg "= ${openssl_hash}"
 					unset target openssl_hash generated_hash
 					return 1
@@ -1429,18 +1428,24 @@ generate_valid_data_hash ()
 
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
-			error_msg "generate_valid_data_hash - validate_hash"
+			error_msg "generate_and_validate_data_hash - validate_hash"
 			unset target openssl_hash generated_hash
 			return 1
 			}
 	fi
 
 	# Return validated generated_hash
-	"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
+	#"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
+	eval ${2}=${generated_hash}
+
 	# Clean up
 	unset target openssl_hash generated_hash
-} # => generate_valid_data_hash ()
+} # => generate_and_validate_data_hash ()
 
+openssl_generate_data_hash ()
+{
+		"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r
+}
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
@@ -6289,8 +6294,8 @@ generate_wiscii_hash ()
 	# Hash inline_seed
 	if [ ${inline_seed} ]
 	then
-		inline_seed_hash="$(generate_valid_data_hash "$inline_seed")" || {
-			error_msg "generate_wiscii_hash - generate_valid_data_hash"
+		generate_and_validate_data_hash "$inline_seed" inline_seed_hash || {
+			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "inline_seed '${inline_seed}'"
 			error_msg "inline_seed_hash '${inline_seed_hash}'"
 			return 1
@@ -6353,8 +6358,8 @@ generate_wiscii_hash ()
 	# Hash tlskey_seed
 	if [ ${tlskey_seed} ]
 	then
-		tlskey_seed_hash="$(generate_valid_data_hash "$tlskey_seed")" || {
-			error_msg "generate_wiscii_hash - generate_valid_data_hash"
+		generate_and_validate_data_hash "$tlskey_seed" tlskey_seed_hash || {
+			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "tlskey_seed ${tlskey_seed}"
 			error_msg "tlskey_seed_hash ${tlskey_seed_hash}"
 			return 1
@@ -6375,8 +6380,8 @@ generate_wiscii_hash ()
 	wiscii_seed=${wiscii_seed}${disabled_list_file_hash}
 
 	# master a.k.a. wiscii hash
-	wiscii_hash="$(generate_valid_data_hash "$wiscii_seed")" || {
-		error_msg "generate_wiscii_hash - generate_valid_data_hash"
+	generate_and_validate_data_hash "$wiscii_seed" wiscii_hash || {
+		error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 		error_msg "wiscii_seed ${wiscii_seed}"
 		error_msg "wiscii_hash ${wiscii_hash}"
 		return 1
