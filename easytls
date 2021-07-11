@@ -534,7 +534,6 @@ WARNING:
 notice ()
 {
 	[ $EASYTLS_SILENT ] && return 0
-	[ $flash_config ] && return 0
 		print "
 ${1}"
 } # => notice ()
@@ -843,7 +842,8 @@ config_update ()
 			return 1
 			}
 
-	print "config-file updated: ${cfg_opt} = ${cfg_val}"
+	easytls_verbose
+	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 	easytls_verbose
 } # => config_update ()
 
@@ -1479,9 +1479,8 @@ validate_hash ()
 match_two_hashes ()
 {
 	[ ${#} -eq 2 ] || return 1
-	# $1 & $2 ARE hash values
-	[ ${1} = ${forbidden_hash} ] && return 1
-	[ ${2} = ${forbidden_hash} ] && return 1
+	validate_hash ${1} || return 1
+	validate_hash ${2} || return 1
 	[ ${1} = ${2} ] && return 0
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
@@ -6826,11 +6825,6 @@ main ()
 			die "Error: cmd_help"
 		cmd='Done'
 	;;
-	v|version)
-		easytls_version || \
-			die "Error: easytls_version"
-		cmd='Done'
-	;;
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
@@ -6853,6 +6847,11 @@ main ()
 		case "$cmd" in
 		Done) : ;; # Ignore
 
+		v|version)
+			easytls_version || \
+				die "Error: easytls_version"
+			cmd='Done'
+		;;
 		*)
 			# Must have init PKI & TLS now
 			verify_pki_init
