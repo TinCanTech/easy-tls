@@ -1386,10 +1386,11 @@ generate_and_validate_file_hash ()
 
 } # => generate_and_validate_file_hash ()
 
+# OpenSSL hash file
 openssl_generate_file_hash ()
 {
 	"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${1}" || return 1
-}
+} # => openssl_generate_file_hash ()
 
 # Generate data hash
 generate_and_validate_data_hash ()
@@ -1442,10 +1443,12 @@ generate_and_validate_data_hash ()
 	unset target openssl_hash generated_hash
 } # => generate_and_validate_data_hash ()
 
+# OpenSSL hash data
 openssl_generate_data_hash ()
 {
-		"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r
-}
+		"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r || return 1
+} # => openssl_generate_data_hash ()
+
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
@@ -1517,7 +1520,7 @@ save_file_hash ()
 	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
 	[ $valid_target ] || {
-		error_msg "save_file_hash - invalid hash_file}"
+		error_msg "save_file_hash - invalid hash_file"
 		unset hash_file valid_hash valid_target
 		return 1
 		}
@@ -2045,9 +2048,18 @@ verify_cert_purpose ()
 # Cut to only certificate enddate
 crt_expire_date ()
 {
-	crt_expire="$("$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate)"
+	crt_expire="$(openssl_cert_expire_date)" || {
+		error_msg "crt_expire_date - ${crt_expire}"
+		return 1
+		}
 	crt_expire="${crt_expire##*=}"
 } # => crt_expire_date ()
+
+# OpenSSL cert expire date
+openssl_cert_expire_date ()
+{
+	"$EASYRSA_OPENSSL" x509 -in "$crt_file" -noout -enddate || return 1
+} # => openssl_cert_expire_date ()
 
 # Extract enddate from .inline certificate
 inline_expire_date ()
@@ -2089,7 +2101,7 @@ cert_expire ()
 	then
 		crt_file="${EASYTLS_PKI}/${name}.crt"
 		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
-		crt_expire_date
+		crt_expire_date || return 1
 		print " Certificate: ${crt_file}   Expire-date: ${crt_expire}"
 	else
 		# TODO
@@ -2098,7 +2110,7 @@ cert_expire ()
 		do
 			crt_file="$name"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
-			crt_expire_date
+			crt_expire_date || return 1
 		print " Certificate: $name.crt   Expire-date: $crt_expire"
 		done
 	fi
@@ -2112,13 +2124,13 @@ cert_expire ()
 	then
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire_date
+		crt_expire_date || return 1
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
 	elif [ -n "$name" ]
 	then
 		crt_file="$EASYRSA_PKI/issued/$name.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire_date
+		crt_expire_date || return 1
 		print " Certificate: $name.crt   Expire-date: $crt_expire"
 	else
 		easyrsa_valid_list="$("$EASYTLS_GREP" '^V' "$EASYRSA_INDEX"|status_cn)"
@@ -2126,12 +2138,12 @@ cert_expire ()
 		do
 			crt_file="$EASYRSA_PKI/issued/$name.crt"
 			[ -f "$crt_file" ] || die "Missing: $crt_file"
-			crt_expire_date
+			crt_expire_date || return 1
 		print " Certificate: $name.crt   Expire-date: $crt_expire"
 		done
 		crt_file="$EASYRSA_PKI/ca.crt"
 		[ -f "$crt_file" ] || die "Missing: $crt_file"
-		crt_expire_date
+		crt_expire_date || return 1
 		print " Certificate: ca.crt   Expire-date: $crt_expire"
 	fi
 	# End CA MODE
