@@ -1332,21 +1332,20 @@ easytls_auto_check ()
 } # => easytls_auto_check ()
 
 # Generate file hash - Return $generated_valid_hash
-generate_valid_file_hash ()
+generate_and_validate_file_hash ()
 {
-	[ ${#} -eq 1 ] || {
-		help_note="input: ${*}"
-		die "generate_valid_file_hash - invalid input"
-		}
-
-	target="${1}"
-
-	# Test for target
-	[ -f "${target}" ] || {
-		error_msg "generate_valid_file_hash - target"
+	[ -f "${1}" ] || {
+		error_msg "generate_and_validate_file_hash - input file"
 		unset target openssl_hash generated_hash
 		return 1
 		}
+
+	[ -n "${2}" ] || {
+		error_msg "generate_and_validate_file_hash - input variable"
+		return 1
+		}
+
+	target="${1}"
 
 	# hash the file
 	if [ ! $force_hash ] && [ $file_hash_disabled ]
@@ -1355,16 +1354,14 @@ generate_valid_file_hash ()
 		generated_hash=${fixed_hash}
 	else
 		[ -n "${EASYTLS_HASH_ALGO}" ] || {
-			error_msg "generate_valid_file_hash - EASYTLS_HASH_ALGO"
+			error_msg "generate_and_validate_file_hash - EASYTLS_HASH_ALGO"
 			unset target openssl_hash generated_hash
 			return 1
 			}
 
 		# Generate hash
-		openssl_hash="$(
-			"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${target}"
-			)" || {
-				error_msg "generate_valid_file_hash"
+		openssl_hash="$(openssl_generate_file_hash "${target}")" || {
+				error_msg "generate_and_validate_file_hash"
 				error_msg "= ${openssl_hash}"
 				unset target openssl_hash generated_hash
 				return 1
@@ -1375,19 +1372,24 @@ generate_valid_file_hash ()
 
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
-			error_msg "generate_valid_file_hash - validate_hash"
+			error_msg "generate_and_validate_file_hash - validate_hash"
 			unset target openssl_hash generated_hash
 			return 1
 			}
 	fi
 
 	# Return validated generated_hash
-	"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
+	eval ${2}=${generated_hash}
 
 	# Clean up
 	unset target openssl_hash generated_hash
 
-} # => generate_valid_file_hash ()
+} # => generate_and_validate_file_hash ()
+
+openssl_generate_file_hash ()
+{
+	"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${1}" || return 1
+}
 
 # Generate data hash
 generate_valid_data_hash ()
@@ -1510,7 +1512,7 @@ save_file_hash ()
 	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
 	[ $valid_target ] || {
-		error_msg "save_file_hash - invalid target ${1}"
+		error_msg "save_file_hash - invalid hash_file}"
 		unset hash_file valid_hash valid_target
 		return 1
 		}
@@ -1542,9 +1544,8 @@ generate_and_match_valid_hash ()
 		}
 
 	# Generate $generated_valid_hash
-	generated_valid_hash="$(generate_valid_file_hash "${target_file}")" || {
-		error_msg "generate_and_match_valid_hash"
-		error_msg " - ${generated_valid_hash}"
+	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
+		error_msg "generate_and_match_valid_hash - generate_and_validate_file_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
@@ -1574,31 +1575,30 @@ generate_and_save_file_hash ()
 		die "generate_and_save_file_hash - invalid input"
 		}
 
-	in_file="${1}" # File to hash
-	out_file="${2}" # File to save the hash to
+	target_file="${1}" # File to hash
+	hash_file="${2}" # File to save the hash to
 
-	[ "${in_file}" = "${out_file}" ] && {
-		error_msg "generate_and_save_file_hash - Source=target"
-		unset in_file out_file generated_valid_hash
+	[ "${target_file}" = "${hash_file}" ] && {
+		error_msg "generate_and_save_file_hash - input file"
+		unset target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Generate $generated_valid_hash
-	generated_valid_hash="$(generate_valid_file_hash "${in_file}")" || {
-		error_msg "generate_and_save_file_hash"
-		error_msg " - ${generated_valid_hash}"
-		unset in_file out_file generated_valid_hash
+	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
+		error_msg "generate_and_save_file_hash - generate_and_validate_file_hash"
+		unset target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Save $generated_valid_hash
-	save_file_hash "${out_file}" ${generated_valid_hash} || {
+	save_file_hash "${hash_file}" ${generated_valid_hash} || {
 		error_msg "generate_and_save_file_hash - save_file_hash"
-		unset in_file out_file generated_valid_hash
+		unset target_file hash_file generated_valid_hash
 		return 1
 		}
 
-	unset in_file out_file generated_valid_hash
+	unset target_file hash_file generated_valid_hash
 } # => generate_and_save_file_hash ()
 
 
@@ -1985,7 +1985,7 @@ status_disabled_list ()
 # EASYTLS INLINE-INDEX Section
 #
 
-get_openssl_cert_purpose ()
+openssl_cert_purpose ()
 {
 	"$EASYRSA_OPENSSL" x509 -in "$1" -noout -purpose || return 1
 } # => get_openssl_cert_purpose ()
@@ -1994,16 +1994,16 @@ get_openssl_cert_purpose ()
 verify_cert_purpose ()
 {
 	[ -f "${1}" ] || {
-		error_msg "verify_cert_purpose - Missing file"
+		error_msg "verify_cert_purpose - input file"
 		return 1
 		}
 
 	[ -n "${2}" ] || {
-		error_msg "verify_cert_purpose - Missing variable"
+		error_msg "verify_cert_purpose - input variable"
 		return 1
 		}
 
-	p_l="$(get_openssl_cert_purpose "${1}")" || {
+	p_l="$(openssl_cert_purpose "${1}")" || {
 		error_msg "verify_cert_purpose - get_openssl_cert_purpose"
 		error_msg "= ${p_l}"
 		unset p_l p_c p_s is_c is_s
@@ -2177,10 +2177,11 @@ inline_index_update ()
 
 		# Create new inline file HASH
 		force_hash=1
-		generated_valid_hash="$(generate_valid_file_hash "${inline_file}")" || {
-			error_msg "inline_index_update add - generate_valid_file_hash"
-			return 1
-			}
+		generate_and_validate_file_hash \
+			"${inline_file}" generated_valid_hash || {
+				error_msg "inline_index_update - generate_and_validate_file_hash"
+				return 1
+				}
 		unset force_hash
 
 		# Set new inline file HASH
@@ -2299,8 +2300,8 @@ inline_file_verify_hash ()
 
 	# generate current file HASH
 	force_hash=1
-	generated_valid_hash="$(generate_valid_file_hash "${inline_file}")" || {
-		die "inline_index_update add - generate_valid_file_hash"
+	generate_and_validate_file_hash "${inline_file}" generated_valid_hash || {
+		die "inline_index_update add - generate_and_validate_file_hash"
 		}
 
 	# Use the hash
@@ -6262,24 +6263,27 @@ generate_wiscii_hash ()
 		[ -f "${inline_file}" ] || die "Missing inline_file: ${inline_file}"
 
 		# Hash inline_file
-		inline_hash="$(generate_valid_file_hash "${inline_file}")" || {
-			error_msg "generate_wiscii_hash - generate_valid_file_hash"
+		generate_and_validate_file_hash \
+			"${inline_file}" generated_valid_hash || {
+			error_msg "generate_wiscii_hash - generate_and_validate_file_hash"
 			error_msg "inline_file ${inline_file}"
-			error_msg "inline_hash ${inline_hash}"
 			return 1
 			}
 
 		# Deep check
-		[ "${inline_hash}" = "${saved_inline_hash}" ] || \
-			die "inline_hash mismatch: ${inline_hash} != ${saved_inline_hash}"
+		match_two_hashes "${generated_valid_hash}" "${saved_inline_hash}" || {
+			error_msg "generated_valid_hash: ${generated_valid_hash}"
+			error_msg "saved_inline_hash:    ${saved_inline_hash}"
+			die "generate_wiscii_hash: match_two_hashes"
+			}
 
 		# Append hash to seed
-		inline_seed=${inline_seed}${inline_hash}
+		inline_seed=${inline_seed}${generated_valid_hash}
 
 	done < "${EASYTLS_INLINE_INDEX}"
 
 	# Clean up
-	unset inline_file inline_hash \
+	unset inline_file generated_valid_hash \
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Hash inline_seed
@@ -6306,13 +6310,13 @@ generate_wiscii_hash ()
 	do
 		if [ -f "${tlskey_file}" ]
 		then
-			tlskey_hash="$(generate_valid_file_hash "${tlskey_file}")" || {
-				error_msg "generate_wiscii_hash - generate_valid_file_hash"
+			generate_and_validate_file_hash \
+				"${tlskey_file}" generated_valid_hash || {
+				error_msg "generate_wiscii_hash - generate_and_validate_file_hash"
 				error_msg "tlskey_file ${tlskey_file}"
-				error_msg "tlskey_hash ${tlskey_hash}"
 				return 1
 				}
-			tlskey_seed=${tlskey_seed}${tlskey_hash}
+			tlskey_seed=${tlskey_seed}${generated_valid_hash}
 		fi
 	done
 
@@ -6332,18 +6336,18 @@ generate_wiscii_hash ()
 		[ -f "$tlskey_file" ] || die "Missing tlskey_file: ${tlskey_file}"
 
 		# Hash tlskey_file
-		tlskey_hash="$(generate_valid_file_hash "$tlskey_file")" || {
-			error_msg "generate_wiscii_hash - generate_valid_file_hash"
-			error_msg "tlskey_file ${tlskey_file}"
-			error_msg "tlskey_hash ${tlskey_hash}"
-			return 1
-			}
+		generate_and_validate_file_hash \
+			"${tlskey_file}" generated_valid_hash || {
+				error_msg "generate_wiscii_hash - generate_and_validate_file_hash"
+				error_msg "tlskey_file ${tlskey_file}"
+				return 1
+				}
 
 		# Append hash to seed
-		tlskey_seed=${tlskey_seed}${tlskey_hash}
+		tlskey_seed=${tlskey_seed}${generated_valid_hash}
 
 	done < "$EASYTLS_KEY_INDEX"
-	unset tlskey_file tlskey_hash \
+	unset tlskey_file generated_valid_hash \
 		tlskey_serial cert_serial_UNUSED CN sub_key
 
 	# Hash tlskey_seed
