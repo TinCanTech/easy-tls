@@ -1940,7 +1940,7 @@ status_easyrsa_renewed ()
 	then
 
 		# Certificate serial
-		cert_serial="$(openssl_cert_serial "$cert_file")" || \
+		x509_cert_serial "$cert_file" cert_serial || \
 			die "status_easyrsa_renewed ${cert_serial}"
 
 		if [ "$inline_serial" = "$cert_serial" ]
@@ -2440,29 +2440,37 @@ get_openssl_crt_common_name ()
 } # => get_openssl_crt_common_name ()
 
 # Format OpenSSL serial number output
-openssl_cert_serial ()
+x509_cert_serial ()
 {
 	[ -f "${1}" ] || {
-		error_msg "openssl_cert_serial - File not found: ${1}"
+		error_msg "x509_cert_serial - input file"
 		return 1
 		}
 
-	temp_out="$(get_openssl_cert_serial "${1}")" || {
-		error_msg "openssl_cert_serial ${temp_out}"
+	[ -n "${2}" ] || {
+		error_msg "x509_cert_serial - input variable"
+		return 1
+		}
+
+	temp_out="$(openssl_cert_serial "${1}")" || {
+		error_msg "x509_cert_serial - temp_out"
 		unset temp_out
 		return 1
 		}
-
 	temp_out="${temp_out##serial=}"
-	"${EASYTLS_PRINTF}" '%s' "${temp_out}"
+
+	# Assign cert-serial to variable
+	eval ${2}="${temp_out}"
+
+	# Clean up
 	unset temp_out
-} # => openssl_cert_serial ()
+} # => x509_cert_serial ()
 
 # Get OpenSSL serial number output
-get_openssl_cert_serial ()
+openssl_cert_serial ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -serial || return 1
-} # => get_openssl_cert_serial ()
+} # => openssl_cert_serial ()
 
 # Check inline hash and Copy inline to stdout
 inline_show ()
@@ -3013,7 +3021,7 @@ inline_renew ()
 	[ -f "$inline_file" ] || die "inline_renew: Missing: $inline_file"
 	[ -f "$crt_file" ] || die "inline_renew: Missing: $crt_file"
 	# This is very borked
-	#openssl_cert_serial
+	#x509_cert_serial
 	die "inline_renew is borked"
 
 	# Collect the attributes of .inline file
@@ -3192,7 +3200,7 @@ inline_base ()
 	fi
 
 	# get the serial number of the certificate from OpenSSL
-	cert_serial="$(openssl_cert_serial "${cert_file}")" || \
+	x509_cert_serial "${cert_file}" cert_serial || \
 		die "inline_base - ${cert_serial}"
 
 	# Build .base file
@@ -3512,14 +3520,14 @@ inline_tls_crypt_v2 ()
 		then
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${srv_name}.crt"
-			cert_serial="$(openssl_cert_serial "${cert_file}")" || \
-				die "inline_tls_crypt_v2 ${cert_serial}"
+			x509_cert_serial "${cert_file}" cert_serial || \
+				die "inline_tls_crypt_v2 - cert_serial"
 			srv_serial="${cert_serial}"
 		else
 			# Get the CA serial number
 			ca_cert="$EASYRSA_PKI/ca.crt"
-			ca_serial="$(fn_ca_serial)"
-			ca_serial="${ca_serial#*=}"
+			x509_cert_serial "${ca_cert}" ca_serial || \
+				die "inline_tls_crypt_v2 - ca_serial"
 		fi
 	else
 		# Must be a server
@@ -3677,8 +3685,8 @@ build_tls_crypt_v2_server ()
 	[ -f "${tlskey_file}" ] && die "Server file already exists: ${tlskey_file}"
 
 	# get the serial number of the certificate from OpenSSL
-	cert_serial="$(openssl_cert_serial "${srv_cert}")" || \
-		die "build_tls_crypt_v2_server - ${cert_serial}"
+	x509_cert_serial "${srv_cert}" cert_serial || \
+		die "build_tls_crypt_v2_server - cert_serial"
 
 	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
@@ -3905,8 +3913,8 @@ b64_enc_metadata ()
 	ca_identity="${ca_identity}-${srv_name}"
 
 	# get the serial number of the certificate from OpenSSL
-	cert_serial="$(openssl_cert_serial "$cli_cert")" || \
-		die "b64_enc_metadata - ${cert_serial}"
+	x509_cert_serial "${cli_cert}" cert_serial || \
+		die "b64_enc_metadata - cert_serial"
 
 	# Set creation Date
 	key_date="$("${EASYTLS_DATE}" +%s)"
@@ -4177,8 +4185,8 @@ disabled_list_manager ()
 
 	# get the serial number of the certificate from OpenSSL
 	# https://github.com/TinCanTech/easy-tls/issues/80
-	cert_serial="$(openssl_cert_serial "${cert_file}")" || \
-		die "disabled_list_manager - ${cert_serial}"
+	x509_cert_serial "${cert_file}" cert_serial || \
+		die "disabled_list_manager - cert_serial"
 
 	# Check unique record from tlskey-index
 	"${EASYTLS_GREP}" -q \
