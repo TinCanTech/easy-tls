@@ -1416,7 +1416,7 @@ generate_and_validate_data_hash ()
 
 		# Generate hash
 		openssl_hash="$(
-			"${EASYTLS_PRINTF}" "${target}" | openssl_generate_data_hash
+			"${EASYTLS_PRINTF}" "%s" "${target}" | openssl_generate_data_hash
 			)" || {
 					error_msg "generate_and_validate_data_hash"
 					error_msg "= ${openssl_hash}"
@@ -1448,6 +1448,39 @@ openssl_generate_data_hash ()
 {
 		"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r || return 1
 } # => openssl_generate_data_hash ()
+
+# Wrapper for base64 encoding
+generate_base64_data ()
+{
+	[ ${#} -eq 2 ] || {
+		help_note="input: ${*}"
+		die "generate_and_validate_data_hash - invalid input"
+		}
+
+	target="${1}"
+
+	# hash the data
+	openssl_b64="$(
+			"${EASYTLS_PRINTF}" "%s" "${target}" | openssl_base64_data
+			)" || {
+					error_msg "generate_base64_data"
+					error_msg "= ${openssl_b64}"
+					unset target openssl_b64
+					return 1
+					}
+
+	# Assign base64 to return var
+	eval ${2}="${openssl_b64}"
+
+	# Clean up
+	unset target openssl_b64
+} # => generate_base64_data ()
+
+# Base64 encode data
+openssl_base64_data ()
+{
+	"${EASYRSA_OPENSSL}" enc -e -a -A || return 1
+} # => openssl_base64_data ()
 
 # Verify valid hash - Only return success or fail
 validate_hash ()
@@ -3929,8 +3962,10 @@ b64_enc_metadata ()
 
 	easytls_verbose "metadata: ${metadata}"
 	# Base64 encode metadata
-	b64_metadata="$("${EASYTLS_PRINTF}" "%s" "${metadata}" | \
-		"${EASYRSA_OPENSSL}" enc -e -a -A)"
+	generate_base64_data "${metadata}" b64_metadata || {
+		error_msg "b64_enc_metadata - generate_base64_data"
+		return 1
+		}
 } # => b64_enc_metadata ()
 
 # Generate CA Identity from CA fingerprint
