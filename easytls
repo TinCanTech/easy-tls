@@ -2766,19 +2766,14 @@ tls_crypt_v2_serial_number ()
 		}
 	metadata="${metadata_padding}--${metadata}"
 
-	# What ever OpenSSL says ..
-	md_hash="$("$EASYTLS_PRINTF" '%s' "$metadata" | \
-		"$EASYRSA_OPENSSL" ${EASYTLS_HASH_ALGO} -r)"
-
-	# Assume it is a valid HASH
-	tlskey_serial="${md_hash%% *}"
-
-	# Verify hash
-	validate_hash "$tlskey_serial" || {
+	# Generate and validate tlskey_serial from metadata string
+	force_hash=1
+	generate_and_validate_data_hash "$metadata" tlskey_serial || {
 		error_msg "tls_crypt_v2_serial_number - tlskey_serial"
 		unset tlskey_serial
 		return 1
 		}
+	unset force_hash
 
 	# Check for duplicate
 	"$EASYTLS_GREP" -q "^${tlskey_serial}[[:blank:]]" "$EASYTLS_KEY_INDEX" && {
