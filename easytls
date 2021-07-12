@@ -2759,7 +2759,11 @@ tlskey_index_save_hash ()
 tls_crypt_v2_serial_number ()
 {
 	# Prepend random padding to metadata
-	metadata_padding="$("$EASYRSA_OPENSSL" rand -hex 4)"
+	metadata_padding="$("$EASYRSA_OPENSSL" rand -hex 4)" || {
+		error_msg "tls_crypt_v2_serial_number - metadata_padding"
+		unset metadata_padding
+		return 1
+		}
 	metadata="${metadata_padding}--${metadata}"
 
 	# What ever OpenSSL says ..
@@ -2771,7 +2775,7 @@ tls_crypt_v2_serial_number ()
 
 	# Verify hash
 	validate_hash "$tlskey_serial" || {
-		error_msg "tls_crypt_v2_serial_number fail: $tlskey_serial"
+		error_msg "tls_crypt_v2_serial_number - tlskey_serial"
 		unset tlskey_serial
 		return 1
 		}
