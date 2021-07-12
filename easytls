@@ -3187,8 +3187,8 @@ inline_base ()
 			"${EASYTLS_PRINTF}" '%s\n' \
 			'# * Replace this line with your complete x509 key file *'
 		else
-			[ $EASYTLS_NO_CA ] && "${EASYRSA_OPENSSL}" \
-				ecparam -name "${EASYTLS_EC_CURVE}" -in "${key_file}" -text
+			#[ $EASYTLS_NO_CA ] && "${EASYRSA_OPENSSL}" \
+			#	ecparam -name "${EASYTLS_EC_CURVE}" -in "${key_file}" -text
 			"${EASYTLS_CAT}" "${key_file}"
 		fi
 
