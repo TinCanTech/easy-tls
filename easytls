@@ -3159,8 +3159,8 @@ inline_base ()
 	if [ -f "${cert_file}" ]
 	then
 		# Cert fingerprint
-		cert_fpr="$(generate_fingerprint "${cert_file}")" || {
-			error_msg "generate_fingerprint failed"
+		cert_fpr="$(openssl_generate_fingerprint "${cert_file}")" || {
+			error_msg "openssl_generate_fingerprint failed"
 			return 1
 			}
 		cert_fpr="${cert_fpr##*=}"
@@ -3907,7 +3907,10 @@ b64_enc_metadata ()
 	metadata_version="easytls-${EASYTLS_VERSION}"
 
 	# CA Identity
-	generate_ca_identity
+	generate_ca_identity || {
+		error_msg "b64_enc_metadata - generate_ca_identity"
+		return 1
+		}
 
 	# Append Server name to CA-ID
 	ca_identity="${ca_identity}-${srv_name}"
@@ -3983,7 +3986,7 @@ generate_ca_identity ()
 	ca_fingerprint="$(fn_ca_fingerprint)"
 
 	# CA Identity
-	ca_identity="$(fn_ca_identity)"
+	ca_identity="$(easytls_ca_identity)"
 } # => generate_ca_identity ()
 
 # Collect CA serial number
@@ -4002,12 +4005,12 @@ fn_ca_fingerprint ()
 } # => fn_ca_fingerprint ()
 
 # Collect CA Identity
-fn_ca_identity ()
+easytls_ca_identity ()
 {
 	"$EASYTLS_PRINTF" '%s' "$ca_fingerprint" | \
 		"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g' || \
-			die "fn_ca_identity fail"
-} # => fn_ca_identity ()
+			die "easytls_ca_identity fail"
+} # => easytls_ca_identity ()
 
 # Build self-signed server cert and key
 build_self_sign ()
@@ -4095,16 +4098,16 @@ create_self_sign_cert_pair ()
 # Create fingerprint file for self-signed cert
 create_fingerprint ()
 {
-	cert_fpr="$(generate_fingerprint "${cert_file}")" || return 1
+	cert_fpr="$(openssl_generate_fingerprint "${cert_file}")" || return 1
 	cert_fpr="${cert_fpr##*=}"
 	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" > "${fpr_file}" || return 1
 } # => create_fingerprint ()
 
 # Fingerprint
-generate_fingerprint ()
+openssl_generate_fingerprint ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -sha256 -fingerprint || return 1
-} # => generate_fingerprint ()
+} # => openssl_generate_fingerprint ()
 
 # Save the ID
 save_id ()
