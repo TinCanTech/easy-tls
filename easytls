@@ -3458,7 +3458,8 @@ inline_tls_crypt_v2 ()
 		[ -f "$metadata_file" ] || die "Missing metadata_file: $metadata_file"
 
 		# Get metadata
-		metadata_string="$("$EASYTLS_CAT" "$metadata_file")"
+		metadata_string="$("$EASYTLS_CAT" "$metadata_file")" || \
+			die "Failed to read metadata_file: $metadata_file"
 
 		# Extract tlskey-serial
 		tlskey_serial="${metadata_string%%-*}"
@@ -6421,9 +6422,15 @@ generate_wiscii_hash ()
 	unset tlskey_seed tlskey_seed_hash
 
 	# Include other file hashes
-	config_file_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")"
+	config_file_hash="$("$EASYTLS_CAT" "$EASYTLS_CONFIG_HASH")" || {
+		error_msg "read EASYTLS_CONFIG_HASH"
+		return 1
+		}
 	wiscii_seed=${wiscii_seed}${config_file_hash}
-	disabled_list_file_hash="$("$EASYTLS_CAT" "$EASYTLS_DISABLED_HASH")"
+	disabled_list_file_hash="$("$EASYTLS_CAT" "$EASYTLS_DISABLED_HASH")" || {
+		error_msg "read EASYTLS_DISABLED_HASH"
+		return 1
+		}
 	wiscii_seed=${wiscii_seed}${disabled_list_file_hash}
 
 	# master a.k.a. wiscii hash
@@ -6444,7 +6451,10 @@ save_wiscii_hash ()
 
 	if [ -f "$EASYTLS_WISCII_HASH" ]
 	then
-		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
+		bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")" || {
+		error_msg "read EASYTLS_WISCII_HASH"
+		return 1
+		}
 	else
 		bottled_wiscii=""
 	fi
@@ -6476,7 +6486,10 @@ verify_wiscii_hash ()
 {
 	[ -f "$EASYTLS_WISCII_HASH" ] || return 0
 
-	bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")"
+	bottled_wiscii="$("$EASYTLS_CAT" "$EASYTLS_WISCII_HASH")" || {
+		error_msg "read EASYTLS_WISCII_HASH"
+		return 1
+		}
 	generate_wiscii_hash
 
 	# TLS not initialised
