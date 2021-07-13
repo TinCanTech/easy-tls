@@ -11,6 +11,7 @@ vars.example
 openssl-easyrsa.cnf
 safessl-easyrsa.cnf
 openvpn
+unit-test-tmp/*
 debug/*
 test/*
 pki/*
