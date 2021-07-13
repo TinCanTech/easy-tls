@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # Copyright - negotiable
 copyright ()
 {
@@ -31,12 +33,19 @@ fail ()
 expected_errors ()
 {
 	[ $1 -eq 99 ] && exit 99
+	subtot_expected_errors=$((subtot_expected_errors + 1))
+	echo "** subtot_expected_errors $subtot_expected_errors"
 	total_expected_errors=$((total_expected_errors + 1))
 	[ $SHALLOW ] && return 0
 	printf '%s ' "PRESS ENTER TO CONTINUE"
 	read input
 }
 
+clean_up ()
+{
+	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir}" != "/" ] && \
+		rm -rfv "${EASYTLS_tmp_dir}"/*
+}
 # Wrapper around printf - clobber print since it's not POSIX anyway
 print() { printf "%s\n" "$*"; }
 
@@ -117,7 +126,7 @@ build_vars ()
 echo '===[  Easy-TLS Unit Tests ]==='
 
 WORK_DIR="$(pwd)"
-mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
+#mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
 
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
@@ -145,7 +154,7 @@ then
 	[ -z "$EASYTLS_tmp_dir" ] && export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
 	mkdir -p "$EASYTLS_tmp_dir"
 else
-	export EASYTLS_tmp_dir="/tmp/easytls-unit-tests"
+	export EASYTLS_tmp_dir="${WORK_DIR}/unit-test-tmp"
 	mkdir -p "$EASYTLS_tmp_dir"
 	if [ -f ./openvpn ]
 	then
@@ -158,12 +167,12 @@ fi
 
 # Test help
 "${EASYTLS_CMD}" --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
-"${TLSCV2V_CMD}" --help
-[ $? -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} --help ($?)"
-"${TLSVERIFY_CMD}" --help
-[ $? -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
-"${CLICON_CMD}" --help
-[ $? -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
+"${TLSCV2V_CMD}" --help || exit_code=$?
+[ $exit_code -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} --help ($?)"
+"${TLSVERIFY_CMD}" --help || exit_code=$?
+[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
+"${CLICON_CMD}" --help || exit_code=$?
+[ $exit_code -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
 
 # No-CA test
 PKI_DIR="${WORK_DIR}/noca"
@@ -199,12 +208,17 @@ export EASYRSA_CERT_RENEW=1000
 build_easyrsa
 
 total_expected_errors=0
+subtot_1=0
+subtot_2=0
+subtot_3=0
+
 
 for loops in 1 2 3
 do
 	# Set errexit for all easytls
-	set -e
+	#set -e
 
+	subtot_expected_errors=0
 	PKI_DIR="${WORK_DIR}/et-tdir${loops}"
 	ETLS_DIR="${PKI_DIR}/easytls"
 	DBUG_DIR="${ETLS_DIR}/metadata"
@@ -386,7 +400,7 @@ do
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
 	# because errors are expected and accounted for manually
-	set +e
+	#set +e
 
 	for c in "c01" "c05" "c06" "c07-nomd" "c09"
 	do
@@ -396,63 +410,46 @@ do
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+		clean_up
 
 	# Set errexit for all easytls
 	#set -e
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
-		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c" || expected_errors $?
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
 	# because errors are expected and accounted for manually
@@ -460,53 +457,39 @@ do
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+		clean_up
 
 		echo
 	done
@@ -517,34 +500,27 @@ do
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 	# Set errexit for all easytls
-	set -e
+	#set -e
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
 		     "$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
 	# because errors are expected and accounted for manually
-	set +e
+	#set +e
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] || expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 	# Set errexit for all easytls
-	set -e
+	#set -e
 
 	print "============================================================"
 	print "$EASYTLS_CMD $EASYTLS_OPTS status"
@@ -558,7 +534,15 @@ do
 		fail "Unit test error 64: inline-index-rebuild"
 	print "============================================================"
 
+	printf '\n\n\n'
+	print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+	print "subtot_expected_errors: $subtot_expected_errors"
 	print "total_expected_errors: $total_expected_errors"
+	print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+	printf '\n\n\n'
+
+	eval subtot_${loops}=${subtot_expected_errors}
+	subtot_expected_errors=0
 
 done # => loops
 
@@ -574,7 +558,7 @@ printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
 	# because errors are expected and accounted for manually
-	set +e
+	#set +e
 
 DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
@@ -587,124 +571,91 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$EASYTLS_CMD" --batch disable "$c"
-		     "$EASYTLS_CMD" --batch disable "$c"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$EASYTLS_CMD" --batch disable "$c" || expected_errors $?
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+		clean_up
 
 		print "------------------------------------------------------------"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid"
-		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid"
-		exit_code=$?
-		echo "exit: $exit_code"
-		[ $exit_code -eq 0 ] && expected_errors $exit_code
+		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid" || expected_errors $?
+		clean_up
 
 		echo
 	done
 
 	# Set errexit for all easytls
-	set -e
+	#set -e
 
 	# Re-enable file-hashing and auto-check
 	# Use error code 64 because inline-index-rebuild is disabled
@@ -798,14 +749,19 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 echo "============================================================"
 echo "Clean up"
-echo "rm -r $EASYTLS_tmp_dir"
-[ -n "$EASYTLS_tmp_dir" ] && [ "$EASYTLS_tmp_dir" != "/" ] && rm -rv "$EASYTLS_tmp_dir"
+clean_up
+
 echo "============================================================"
-echo "total_expected_errors=$total_expected_errors (Expected 165 Verified)"
+echo "subtot_1 $subtot_1 (Expected 54 Verified)"
+echo "subtot_2 $subtot_2 (Expected 54 Verified)"
+echo "subtot_3 $subtot_3 (Expected 54 Verified)"
+echo "Last part cross-polinated: $subtot_expected_errors  (Expected 77 Verified)"
+
+echo "total_expected_errors=$total_expected_errors (Expected 239 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 echo
-[ $total_expected_errors -eq 165 ] || {
+[ $total_expected_errors -eq 239 ] || {
 	echo "Expected ERROR count incorrect!"
 	exit 9
 	}
