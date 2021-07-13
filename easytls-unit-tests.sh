@@ -212,6 +212,7 @@ subtot_1=0
 subtot_2=0
 subtot_3=0
 
+QUIT_LOOP=${QUIT_LOOP:-0}
 
 for loops in 1 2 3
 do
@@ -543,6 +544,8 @@ do
 
 	eval subtot_${loops}=${subtot_expected_errors}
 	subtot_expected_errors=0
+
+	[ $loops -eq $QUIT_LOOP ] && exit 0
 
 done # => loops
 

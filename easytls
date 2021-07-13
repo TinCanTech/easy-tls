@@ -730,6 +730,7 @@ easytls_config ()
 			cfg_val=${2}
 		;;
 		'')
+			easytls_verbose
 			"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
 			"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
 			easytls_verbose
@@ -1675,6 +1676,7 @@ status ()
 	#easytls_revoked_serial_list="" # Not used
 	etls_valid_tlskey_list=""
 
+	[ $auto_check ] || easytls_verbose
 	# Invoke sub-section if specified
 	if [ -n "$subsection" ]
 	then
@@ -1765,6 +1767,7 @@ status ()
 		print "  No TLS keys found"
 
 	easytls_verbose "Status complete"
+	[ $auto_check ] || easytls_verbose
 } #=> status ()
 
 # Format status output from Easy-RSA
@@ -2127,6 +2130,7 @@ inline_index_cn_subname_list ()
 # Get x509 certificate expiry Date
 cert_expire ()
 {
+	easytls_verbose
 	name="${1}"
 
 	if [ $EASYTLS_NO_CA ]
@@ -2184,11 +2188,13 @@ cert_expire ()
 	fi
 	# End CA MODE
 	fi
+	easytls_verbose
 } # => cert_expire ()
 
 # Get inline certificate expiry Date
 inline_expire ()
 {
+	easytls_verbose
 	name="$1"
 
 	if [ -n "$name" ]
@@ -2208,6 +2214,7 @@ inline_expire ()
 		print " Inline-file: $name.inline   Expire-date: $inline_expire"
 		done
 	fi
+	easytls_verbose
 } # => inline_expire ()
 
 # Keep an inline-index file for inline certs to manage revoke/renew
@@ -2410,12 +2417,6 @@ inline_crt_common_name ()
 	inline_common_name="${inline_common_name##*name: }"
 } # => inline_crt_common_name ()
 
-# OpenSSL - Extract cert serial from inline-file
-openssl_inline_cert_serial ()
-{
-	"$(openssl_cert_serial "${1}")" || return 1
-} # => openssl_inline_cert_serial ()
-
 # Get OpenSSL serial number output
 openssl_cert_serial ()
 {
@@ -2539,7 +2540,8 @@ remove_inline ()
 	# Logically, this *cannot* be removed -- tct
 	unset inline_hash
 
-	[ ! $silent_remove ] && notice "Inline file removed: ${inline_file}"
+	notice "Inline file removed: ${inline_file}"
+	easytls_verbose
 
 	# explicitly return success for callers
 	return 0
@@ -2990,6 +2992,7 @@ remove_tlskey ()
 		}
 
 	[ ! $silent_remove ] && notice "TLS-Crypt-V2 key removed: $tlskey_file"
+	easytls_verbose
 
 	# explicitly return success for callers
 	return 0
@@ -3101,7 +3104,7 @@ inline_renew ()
 	inline_remove "$name"
 
 	# Disable completion notices from sub processes
-	silent_inline=1
+	#silent_inline=1
 
 	# Build the new .inline file
 	case "$inline_type" in
@@ -3339,12 +3342,13 @@ inline_tls_auth ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ $silent_inline ] || \
-		notice "Inline TLS auth file created: ${inline_file}"
+	#[ $silent_inline ] || \
+
+	notice "Inline TLS auth file created: ${inline_file}"
+	easytls_verbose
 
 	# explicitly return success for callers
 	return 0
-
 } # => inline_tls_auth ()
 
 # Append TLS crypt file to base file
@@ -3400,8 +3404,10 @@ inline_tls_crypt_v1 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ $silent_inline ] || \
-		notice "Inline TLS crypt file created: ${inline_file}"
+	#[ $silent_inline ] || \
+
+	notice "Inline TLS crypt file created: ${inline_file}"
+	easytls_verbose
 
 	# explicitly return success for callers
 	return 0
@@ -3601,8 +3607,10 @@ inline_tls_crypt_v2 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	[ $silent_inline ] || \
-		notice "Inline TLS crypt v2 file created: $inline_file"
+	#[ $silent_inline ] || \
+
+	notice "Inline TLS crypt v2 file created: $inline_file"
+	easytls_verbose
 
 	# explicitly return success for callers
 	return 0
@@ -3635,6 +3643,7 @@ build_tls_auth ()
 		die "Failed to create TLS auth key: ${tlskey_file}"
 
 	notice "TLS auth key created: ${tlskey_file}"
+	easytls_verbose
 } # => build_tls_auth ()
 
 # Create TLS crypt v1 file
@@ -3657,6 +3666,7 @@ build_tls_crypt_v1 ()
 		die "Failed to create TLS crypt v1 key: ${tlskey_file}"
 
 	notice "TLS crypt v1 key created: ${tlskey_file}"
+	easytls_verbose
 } # => build_tls_crypt_v1 ()
 
 # Create TLS crypt v2 server file
@@ -3710,6 +3720,7 @@ build_tls_crypt_v2_server ()
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS crypt v2 server key created: ${tlskey_file}"
+	easytls_verbose
 
 	if [ $EASYTLS_BINLINE ]
 	then
@@ -3830,7 +3841,8 @@ build_tls_crypt_v2_client ()
 
 	# Confirm metadata Hardware-Address(es)
 	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
-		notice "All Hardware-Addresses are valid length hexidecimal values."
+		[ $EASYTLS_BATCH ] || \
+			print "All Hardware-Addresses are valid length hexidecimal values."
 		confirm "Is the Hardware-Address field correct ? " "yes" \
 		"Hardware-Address field for metadata: ${EASYTLS_TLSCV2_HWLIST}"
 		}
@@ -3848,6 +3860,7 @@ build_tls_crypt_v2_client ()
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS crypt v2 client key created: ${tlskey_file}"
+	easytls_verbose
 
 	if [ $EASYTLS_BINLINE ]
 	then
@@ -4069,8 +4082,10 @@ build_self_sign ()
 		die "Failed to create fingerprint for ${cert_name}"
 
 	notice "Self signed ${cert_type} certificate/key created for ${cert_name}"
-	notice " * Cert: ${cert_file}"
-	notice " *  Key: ${key_file}"
+	notice " * Certificate: ${cert_file}"
+	notice " *         Key: ${key_file}"
+	notice " * Fingerprint: ${fpr_file}"
+	easytls_verbose
 
 	if [ $EASYTLS_BINLINE ]
 	then
@@ -4086,10 +4101,10 @@ build_self_sign ()
 # Create an EC key/cert pair
 create_self_sign_cert_pair ()
 {
+	easytls_verbose
 	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_EC_CURVE}" \
 		> "${EASYTLS_ECPARAM_TMP}"
 	# If ecparams fail then so does req
-	notice "Creating private-key and public-certificate"
 	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
 		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text \
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
@@ -4197,7 +4212,7 @@ disabled_list_manager ()
 	# Check unique record from tlskey-index
 	"${EASYTLS_GREP}" -q \
 		"${cert_serial}[[:blank:]]${name}[[:blank:]]${TLSKEY_SUBNAME}" \
-		"${EASYTLS_KEY_INDEX}" || die "There is no tlskey for this certificate"
+		"${EASYTLS_KEY_INDEX}" || die "No valid tlskey for this certificate"
 
 	# Get tlskey-serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
@@ -4300,6 +4315,7 @@ disabled_list_manager ()
 	else
 		notice "No change: ${name} is already ${1}d"
 	fi
+	easytls_verbose
 } # => disabled_list_manager ()
 
 # Update disabled-list footer and hash
@@ -6514,7 +6530,7 @@ verify_wiscii_hash ()
 		return 1
 		}
 	easytls_verbose "verify_master_hash OK"
-	easytls_verbose
+	##easytls_verbose
 } # => verify_wiscii_hash ()
 
 
