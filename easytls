@@ -3983,33 +3983,23 @@ b64_enc_metadata ()
 generate_ca_identity ()
 {
 	# CA fingerprint
-	ca_fingerprint="$(fn_ca_fingerprint)"
+	ca_fingerprint="$(openssl_generate_fingerprint "${ca_cert}")" || {
+		error_msg "generate_ca_identity ca_fingerprint"
+		return 1
+		}
 
 	# CA Identity
-	ca_identity="$(easytls_ca_identity)"
+	ca_identity="$(easytls_generate_identity "${ca_fingerprint}")" || {
+		error_msg "generate_ca_identity ca_identity"
+		return 1
+		}
 } # => generate_ca_identity ()
 
-# Collect CA serial number
-fn_ca_serial ()
-{
-	"$EASYRSA_OPENSSL" x509 -in "$ca_cert" -noout -serial || \
-		die "fn_ca_serial fail"
-} # => fn_ca_serial ()
-
-# Collect CA fingerprint
-fn_ca_fingerprint ()
-{
-	"$EASYRSA_OPENSSL" \
-		x509 -in "$ca_cert" -noout -${EASYTLS_HASH_ALGO} -fingerprint || \
-			die "fn_ca_fingerprint fail"
-} # => fn_ca_fingerprint ()
-
 # Collect CA Identity
-easytls_ca_identity ()
+easytls_generate_identity ()
 {
-	"$EASYTLS_PRINTF" '%s' "$ca_fingerprint" | \
-		"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g' || \
-			die "easytls_ca_identity fail"
+	"$EASYTLS_PRINTF" '%s' "${1}" | \
+		"$EASYTLS_SED" -e 's/^.*=//g' -e 's/://g' || return 1
 } # => easytls_ca_identity ()
 
 # Build self-signed server cert and key
