@@ -251,7 +251,7 @@ verify_ca ()
 fn_local_identity ()
 {
 	"${EASYTLS_OPENSSL}" x509 -in "${ca_cert}" \
-		-noout -${EASYTLS_HASH_ALGO} -fingerprint | \
+		-noout -SHA256 -fingerprint | \
 			"${EASYTLS_SED}" -e 's/^.*=//g' -e 's/://g'
 }
 
@@ -541,7 +541,7 @@ deps ()
 	# Test temp dir
 	[ -d "${EASYTLS_tmp_dir}" ] || {
 		help_note="You must create the temporary directory."
-		die "Temporary dirictory does not exist ${EASYTLS_tmp_dir}" 60
+		die "Temporary directory does not exist ${EASYTLS_tmp_dir}" 60
 		}
 
 	# HASH
