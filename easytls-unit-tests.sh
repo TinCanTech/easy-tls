@@ -755,7 +755,7 @@ echo "============================================================"
 echo "subtot_1 $subtot_1 (Expected 54 Verified)"
 echo "subtot_2 $subtot_2 (Expected 54 Verified)"
 echo "subtot_3 $subtot_3 (Expected 54 Verified)"
-echo "Last part cross-polinated: $subtot_expected_errors  (Expected 77 Verified)"
+echo "Last part cross-polinated: $subtot_expected_errors (Expected 77 Verified)"
 
 echo "total_expected_errors=$total_expected_errors (Expected 239 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
