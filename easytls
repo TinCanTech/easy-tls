@@ -1223,8 +1223,11 @@ and initialize a fresh TLS PKI here."
 	# Save config-file hash
 	config_save_hash || die "Failed to hash config-file"
 
+	# Get date
+	generate_valid_date_now head_date
+
 	# Create inline-index
-	head_text="# EasyTLS inline-index - Created: $("${EASYTLS_DATE}")"
+	head_text="# EasyTLS inline-index - Created: ${head_date}"
 	head_text="${head_text} - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
 	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_INLINE_INDEX}" || \
 		die "Failed to create inline-index"
@@ -1233,7 +1236,7 @@ and initialize a fresh TLS PKI here."
 	inline_index_save_hash || die "Failed to hash inline-index"
 
 	# Create tlskey-index
-	head_text="# EasyTLS tlskey-index - Created: $("${EASYTLS_DATE}")"
+	head_text="# EasyTLS tlskey-index - Created: ${head_date}"
 	head_text="${head_text} - tlskey-serial|cert-serial|CN|sub-key"
 	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_KEY_INDEX}" || \
 		die "Failed to create tlskey-index"
@@ -1242,7 +1245,7 @@ and initialize a fresh TLS PKI here."
 	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
 
 	# Create disabled-list
-	head_text="# EastTLS disabled-list - Created: $("${EASYTLS_DATE}")"
+	head_text="# EastTLS disabled-list - Created: ${head_date}"
 	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_DISABLED_LIST}" || \
 		die "Failed to create disabled-list"
 
@@ -1642,6 +1645,106 @@ generate_and_save_file_hash ()
 
 	unset target_file hash_file generated_valid_hash
 } # => generate_and_save_file_hash ()
+
+# Generate a valid date at now
+generate_valid_date_now ()
+{
+	[ -n "${1}" ] || {
+		error_msg "generate_valid_date_now - output variable"
+		return 1
+		}
+
+	# Format
+	format="+%Y/%m/%d-%T"
+	[ "${2}" = "epoch" ] && format="+%s"
+
+	# Generate date
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		g_d="$("${EASYTLS_DATE}" ${format})" || {
+			error_msg "generate_valid_date_now - g_d"
+			unset g_d
+			return 1
+			}
+	else
+		g_d="$("${EASYTLS_DATE}" ${format})" || {
+			error_msg "generate_valid_date_now - g_d"
+			unset g_d
+			return 1
+			}
+	fi
+
+	# Minimal validate
+	[ -n "${g_d}" ] || { error_msg "generate_valid_date_now - $g_d"; return 1; }
+
+	# Set return variable
+	eval ${1}="${g_d}"
+	unset g_d
+}
+
+# Generate and validate a date from epoc seconds
+easytls_sec_to_date ()
+{
+	[ -n "${1}" ] || {
+		error_msg "easytls_sec_to_date - input date"
+		return 1
+		}
+	[ -n "${2}" ] || {
+		error_msg "easytls_sec_to_date - output variable"
+		return 1
+		}
+
+	format="+%Y/%m/%d-%T"
+
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		t_d="$("$EASYTLS_DATE" -u -d "1970-01-01 ${1} seconds" ${format})" || {
+			error_msg "easytls_sec_to_date - generate date"
+			unset t_d
+			return 1
+			}
+	else
+		t_d="$("$EASYTLS_DATE" --date=@${1} ${format})" || {
+			error_msg "easytls_sec_to_date - generate date"
+			unset t_d
+			return 1
+			}
+	fi
+
+	# Set return variable
+	eval ${2}="${t_d}"
+	unset t_d
+} # => easytls_sec_to_date ()
+
+# Generate and validate epoc seconds from a full date
+easytls_date_to_sec ()
+{
+	[ -n "${1}" ] || {
+		error_msg "easytls_date_to_sec - input date"
+		return 1
+		}
+	[ -n "${2}" ] || {
+		error_msg "easytls_date_to_sec - output variable"
+		return 1
+		}
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		t_d="$("$EASYTLS_DATE" --date="${1}" +%s)" || {
+			error_msg "easytls_date_to_sec - generate date"
+			unset t_d
+			return 1
+			}
+	else
+		t_d="$("$EASYTLS_DATE" --date="${1}" +%s)" || {
+			error_msg "easytls_date_to_sec - generate date"
+			unset t_d
+			return 1
+			}
+	fi
+	# Set return variable
+	eval ${2}="${t_d}"
+	unset t_d
+} # => easytls_sec_to_date ()
 
 
 
@@ -2588,7 +2691,8 @@ inline_index_rebuild ()
 	etls_inline_CNsub_name_list="$(inline_index_cn_subname_list)"
 
 	# Create tls dir index file
-	head_text="# EastTLS inline-index - Created: $("${EASYTLS_DATE}")"
+	generate_and_validate_date head_date
+	head_text="# EastTLS inline-index - Created: $head_date"
 	"$EASYTLS_PRINTF" '%s\n' "$head_text" > "$EASYTLS_INLINE_INDEX" || \
 		inline_index_rebuild_reset "Failed to create inline-index"
 
@@ -3479,7 +3583,7 @@ inline_tls_crypt_v2 ()
 		metadata_string="$("$EASYTLS_CAT" "$metadata_file")" || \
 			die "Failed to read metadata_file: $metadata_file"
 
-		# Extract tlskey-serial
+		# Set tlskey-serial
 		tlskey_serial="${metadata_string%%-*}"
 
 		# Drop EasyTLS header and version
@@ -3488,8 +3592,9 @@ inline_tls_crypt_v2 ()
 		# Drop CA fingerprint
 		metadata_string="${metadata_string#*-}"
 
-		# Extract Server name and drop it
+		# Set Server name
 		srv_name="${metadata_string%% *}"
+		# Drop Server name
 		metadata_string="${metadata_string#* }"
 
 		# Drop x509 cert-serial
@@ -3497,10 +3602,8 @@ inline_tls_crypt_v2 ()
 
 		# Set creation Date
 		MD_date_sec="${metadata_string%% *}"
-		MD_date="$("$EASYTLS_DATE" --date=@${MD_date_sec} +%F)" 2>/dev/null || {
-			MD_date="$("$EASYTLS_DATE" \
-				-u -d "1970-01-01 ${MD_date_sec} seconds" +"%Y-%m-%d")"
-			}
+		easytls_sec_to_date "${MD_date_sec}" MD_date || \
+			die "Failed to create metadata date"
 		# Drop Date
 		metadata_string="${metadata_string#* }"
 
@@ -3942,11 +4045,16 @@ b64_enc_metadata ()
 	ca_identity="${ca_identity}-${srv_name}"
 
 	# get the serial number of the certificate from OpenSSL
-	x509_cert_serial "${cli_cert}" cert_serial || \
-		die "b64_enc_metadata - cert_serial"
+	x509_cert_serial "${cli_cert}" cert_serial || {
+		error_msg "b64_enc_metadata - cert_serial"
+		return 1
+		}
 
 	# Set creation Date
-	key_date="$("${EASYTLS_DATE}" +%s)"
+	generate_valid_date_now key_date epoch || {
+		error_msg "b64_enc_metadata - key_date"
+		return 1
+		}
 
 	# Build metadata
 	metadata="${metadata_version} ${ca_identity} ${cert_serial} ${key_date}"
@@ -3987,13 +4095,13 @@ b64_enc_metadata ()
 
 	# TLS Crypt v2 client key serial number
 	tls_crypt_v2_serial_number || {
-		error_msg "Failed to create serial number"
+		error_msg "b64_enc_metadata - tls_crypt_v2_serial_number"
 		return 1
 		}
 
 	# Save metadata in plain text
 	"${EASYTLS_PRINTF}" "%s\n" "${metadata}" > "${metadata_debug}" || {
-		error_msg "Save metadata failed"
+		error_msg "b64_enc_metadata - Save metadata_debug"
 		return 1
 		}
 
@@ -4058,12 +4166,12 @@ build_self_sign ()
 		server)
 			# Certificate extension: TLS Web Server
 			EASYTLS_EKU="serverAuth"
-			openssl_eku="-addext extendedKeyUsage="
+			openssl_eku="-addext extendedKeyUsage"
 		;;
 		client)
 			# Certificate extension: TLS Web Server
 			EASYTLS_EKU="clientAuth"
-			openssl_eku="-addext extendedKeyUsage="
+			openssl_eku="-addext extendedKeyUsage"
 		;;
 		*)
 			die "Unknown certificate type: ${cert_type}"
@@ -4108,8 +4216,7 @@ create_self_sign_cert_pair ()
 	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
 		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text \
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
-		${openssl_eku}${EASYTLS_EKU} \
-		|| return 1
+		${openssl_eku}=${EASYTLS_EKU} || return 1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
 } # => create_self_sign_cert_pair ()
 
@@ -4323,7 +4430,12 @@ disabled_list_manager ()
 disabled_list_update_and_hash ()
 {
 	# Update time-stamp
-	update_text="# Updated: $("${EASYTLS_DATE}") -- ${action}: ${name}"
+	generate_valid_date_now update_date || {
+		error_msg "disabled_list_update_and_hash - generate_valid_date_now"
+		return 1
+		}
+
+	update_text="# Updated: ${update_date} -- ${action}: ${name}"
 	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
 		error_msg "disabled_list_update_and_hash - sed failed"
 		return 1
@@ -6654,6 +6766,9 @@ external_deps ()
 		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
 		die "Download the file from the URL above."
 		}
+
+	# Get the date/time now
+	# TODO
 
 	# Other ways to satify shellcheck
 	EASYTLS_KEY_INDEX=''; unset EASYTLS_KEY_INDEX
