@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 # Copyright - negotiable
 copyright ()
 {
