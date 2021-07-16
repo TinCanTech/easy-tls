@@ -1222,7 +1222,7 @@ and initialize a fresh TLS PKI here."
 	config_save_hash || die "Failed to hash config-file"
 
 	# Get date
-	generate_valid_date_now head_date
+	generate_valid_date_now head_date || die "Failed to set date"
 
 	# Create inline-index
 	head_text="# EasyTLS inline-index - Created: ${head_date}"
