@@ -1,5 +1,7 @@
 #!/bin/sh
 
+
+
 # Copyright - negotiable
 copyright ()
 {
@@ -507,6 +509,7 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
+	exec 6<&-
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
@@ -7014,6 +7017,22 @@ main ()
 	# Intelligent env-var detection and auto-loading:
 	vars_setup
 
+	# Create lock-file
+	if [ -d "$EASYTLS_DATA_DIR" ]
+	then
+		(	exec 2>/dev/null
+			set -o noclobber
+			exec 6> "${EASYTLS_TEMP_LOCK}" || return 1
+			printf "%s" "$$" >&6 || return 1
+		) || die "write lock-file"
+		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
+		read <&6 EASYTLS_lock_PID
+		[ $$ -eq $EASYTLS_lock_PID ] || die "PID mismatch: $$ $EASYTLS_lock_PID"
+	else
+		# Easy-TLS us not initialised
+		:
+	fi
+
 	# Register cleanup on EXIT
 	trap "cleanup" EXIT
 	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
@@ -7075,14 +7094,6 @@ main ()
 				help_note='
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
-				}
-			# Check lock-file - Implies interactive menu is still open
-			[ -f "${EASYTLS_TEMP_LOCK}" ] && {
-				die "lock-file exists: ${EASYTLS_TEMP_LOCK}"
-				}
-			# Create lock-file - Implies openssl works and write-access
-			"${EASYRSA_OPENSSL}" version > "${EASYTLS_TEMP_LOCK}" || {
-				die "lock-file fail"
 				}
 			# Edit config now
 			case "$cmd" in
