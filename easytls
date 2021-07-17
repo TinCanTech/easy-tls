@@ -1,7 +1,5 @@
 #!/bin/sh
 
-
-
 # Copyright - negotiable
 copyright ()
 {
@@ -6921,7 +6919,7 @@ main ()
 		val="${1#*=}"
 		empty_ok="" # Empty values are not allowed unless excepted
 
-		case "$opt" in
+		case "${opt}" in
 		''|help|-h|--help|--usage)
 			cmd='help'
 			break
@@ -7027,7 +7025,8 @@ main ()
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
 		read <&6 EASYTLS_lock_PID
-		[ $$ -eq $EASYTLS_lock_PID ] || die "PID mismatch: $$ $EASYTLS_lock_PID"
+		[ $$ -eq ${EASYTLS_lock_PID} ] || \
+			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
 	else
 		# Easy-TLS us not initialised
 		:
