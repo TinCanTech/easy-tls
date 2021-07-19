@@ -237,7 +237,8 @@ init ()
 	#stale_sec=30
 
 	# Identify Windows
-	[ "$KSH_VERSION" ] && EASYTLS_FOR_WINDOWS=1
+	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
+	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
