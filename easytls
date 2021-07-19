@@ -1223,6 +1223,7 @@ and initialize a fresh TLS PKI here."
 	config_save_hash || die "Failed to hash config-file"
 
 	# Get date
+	head_date=
 	generate_valid_date_now head_date || die "Failed to set date"
 
 	# Create inline-index
@@ -1296,7 +1297,6 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	##verify_tls_init || return 0
 	[ $status_disabled_auto_check ] && return 0
 	[ $auto_check_disabled ] && easytls_verbose "auto-check disabled" && return 0
 
@@ -1588,6 +1588,7 @@ generate_and_match_valid_hash ()
 		}
 
 	# Generate $generated_valid_hash
+	generated_valid_hash=
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
 		error_msg "generate_and_match_valid_hash - generate_and_validate_file_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
@@ -1595,7 +1596,7 @@ generate_and_match_valid_hash ()
 		}
 
 	# Load saved hash - If this fails then match_two_hashes will fail
-	read < "${hash_file}" saved_file_hash
+	read -r < "${hash_file}" saved_file_hash
 
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
@@ -1972,9 +1973,6 @@ status_easytls_inline ()
 # Check Easy-TLS valid vs Easy-RSA revoked
 status_easytls_invalid ()
 {
-	[ $index_rebuild ] && [ -z "${etls_valid_il_hash_list}" ] && \
-		die "empty etls_valid_il_hash_list"
-
 	revoked_mismatch_count=0
 	for i in ${etls_valid_il_hash_list}
 	do
@@ -3109,7 +3107,7 @@ remove_tlskey ()
 			die "Failed to remove: ${metadata_file}"
 		}
 
-	[ ! $silent_remove ] && notice "TLS-Crypt-V2 key removed: ${tlskey_file}"
+	notice "TLS-Crypt-V2 key removed: ${tlskey_file}"
 	easytls_verbose
 
 	# explicitly return success for callers
@@ -3304,6 +3302,7 @@ inline_base ()
 		cert_fpr="${cert_fpr##*=}"
 
 		# Cert purpose
+		cert_purpose=
 		verify_cert_purpose "${cert_file}" cert_purpose || {
 			error_msg "verify_cert_purpose failed"
 			return 1
@@ -3621,6 +3620,7 @@ inline_tls_crypt_v2 ()
 
 		# Set creation Date
 		MD_date_sec="${metadata_string%% *}"
+		MD_date=
 		easytls_sec_to_date "${MD_date_sec}" MD_date || \
 			die "Failed to create metadata date"
 		# Drop Date
@@ -3667,6 +3667,7 @@ inline_tls_crypt_v2 ()
 		else
 			# Get the CA serial number
 			ca_cert="${EASYRSA_PKI}/ca.crt"
+			ca_serial=
 			x509_cert_serial "${ca_cert}" ca_serial || \
 				die "inline_tls_crypt_v2 - ca_serial"
 		fi
@@ -3908,6 +3909,7 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Cert purpose
+	srv_cert_purpose=
 	verify_cert_purpose "${srv_cert}" srv_cert_purpose || {
 		error_msg "verify_cert_purpose failed"
 		return 1
@@ -3922,6 +3924,7 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Cert purpose
+	cli_cert_purpose=
 	verify_cert_purpose "${cli_cert}" cli_cert_purpose || {
 		error_msg "verify_cert_purpose failed"
 		return 1
@@ -4074,6 +4077,7 @@ b64_enc_metadata ()
 		}
 
 	# Set creation Date
+	key_date=
 	generate_valid_date_now key_date epoch || {
 		error_msg "b64_enc_metadata - key_date"
 		return 1
@@ -4454,6 +4458,7 @@ disabled_list_manager ()
 disabled_list_update_and_hash ()
 {
 	# Update time-stamp
+	update_date=
 	generate_valid_date_now update_date || {
 		error_msg "disabled_list_update_and_hash - generate_valid_date_now"
 		return 1
@@ -6504,6 +6509,7 @@ generate_wiscii_hash ()
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Hash inline_seed
+	inline_seed_hash=
 	if [ ${inline_seed} ]
 	then
 		generate_and_validate_data_hash "${inline_seed}" inline_seed_hash || {
@@ -6568,6 +6574,7 @@ generate_wiscii_hash ()
 		tlskey_serial cert_serial_UNUSED CN sub_key
 
 	# Hash tlskey_seed
+	tlskey_seed_hash=
 	if [ ${tlskey_seed} ]
 	then
 		generate_and_validate_data_hash "${tlskey_seed}" tlskey_seed_hash || {
@@ -6598,6 +6605,7 @@ generate_wiscii_hash ()
 	wiscii_seed=${wiscii_seed}${disabled_list_file_hash}
 
 	# master a.k.a. wiscii hash
+	wiscii_hash=
 	generate_and_validate_data_hash "${wiscii_seed}" wiscii_hash || {
 		error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 		error_msg "wiscii_seed ${wiscii_seed}"
@@ -6666,7 +6674,6 @@ verify_wiscii_hash ()
 		return 1
 		}
 	easytls_verbose "verify_master_hash OK"
-	##easytls_verbose
 } # => verify_wiscii_hash ()
 
 
@@ -7053,7 +7060,7 @@ main ()
 			printf "%s" "$$" >&6 || return 1
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
-		read <&6 EASYTLS_lock_PID
+		read -r <&6 EASYTLS_lock_PID
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
 	else
