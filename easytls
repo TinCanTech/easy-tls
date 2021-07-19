@@ -1581,7 +1581,7 @@ generate_and_match_valid_hash ()
 	target_file="${1}" # File to be hashed
 	hash_file="${2}" # File to read the hash from
 
-	[ "${1}" = "${2}" ] && {
+	[ "${target_file}" = "${hash_file}" ] && {
 		error_msg "generate_and_match_valid_hash - invalid input"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
@@ -1594,12 +1594,8 @@ generate_and_match_valid_hash ()
 		return 1
 		}
 
-	# Load saved hash
-	saved_file_hash="$("${EASYTLS_CAT}" "${hash_file}")" || {
-		error_msg "generate_and_match_valid_hash - saved_file_hash"
-		unset target_file hash_file generated_valid_hash saved_file_hash
-		return 1
-		}
+	# Load saved hash - If this fails then match_two_hashes will fail
+	read < "${hash_file}" saved_file_hash
 
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
