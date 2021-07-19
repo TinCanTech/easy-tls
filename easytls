@@ -479,7 +479,7 @@ die ()
 	easytls_version
 	print "${1}" 1>&2
 	error_msg
-	[ -z "${help_note}" ] || print "+ ${help_note}"
+	[ -z "${help_note}" ] || print "Note: ${help_note}"
 	exit "${2:-1}"
 } # => die ()
 
@@ -495,6 +495,12 @@ error_msg ()
 	error_log="${error_log:-ERROR: }
 ${1}"
 } # => error_msg ()
+
+# Missing files
+missing_file ()
+{
+	die "Missing file: ${1}"
+} # => missing_file ()
 
 # Fatal errors prior to deps
 fatal_opt ()
@@ -662,7 +668,7 @@ easytls_config ()
 		addition)
 			cfg_opt=${2}
 			[ -z "${cfg_opt}" ] && {
-				error_msg "Missing addition option"
+				error_msg "Required: option"
 				return 1
 				}
 			config_addition || {
@@ -674,7 +680,7 @@ easytls_config ()
 		deletion)
 			cfg_opt=${2}
 			[ -z "${cfg_opt}" ] && {
-				error_msg "Missing addition option"
+				error_msg "Required: option"
 				return 1
 				}
 			config_deletion || {
@@ -794,7 +800,7 @@ easytls_config ()
 			if [ -n "${cfg_val}" ]
 			then
 				# Test for file
-				[ -f "${cfg_val}" ] || die "Missing file: ${cfg_val}"
+				[ -f "${cfg_val}" ] || missing_file "${cfg_val}"
 			fi
 		;;
 		ca.id)
@@ -862,7 +868,7 @@ config_use ()
 	do
 		# May as well check it for shellcheck
 		[ "${cfg_equ}" = "=" ] || {
-			error_msg "Config error: Invalid syntax: Missing '='"
+			error_msg "Config error: Require '='"
 			config_error=2
 			}
 
@@ -1991,8 +1997,7 @@ status_easytls_invalid ()
 			# Append '-$sub_name' to inline file name
 			inline_file="${EASYTLS_PKI}/${name}-${sub_name}.inline"
 		fi
-		[ -f "${inline_file}" ] || \
-			die "status_easytls_invalid - Missing inline_file: ${inline_file} ?"
+		[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 		inline_serial="$(inline_index_ilhash_to_serial)"
 
@@ -2033,7 +2038,7 @@ status_easyrsa_renewed ()
 
 	name="${i}"
 	inline_file="${EASYTLS_PKI}/${name}.inline"
-	[ -f "${inline_file}" ] || die "Not found: ${inline_file}"
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
 	x509_cert_serial "${inline_file}" inline_serial || {
@@ -2242,7 +2247,7 @@ cert_expire ()
 	if [ -n "${name}" ]
 	then
 		crt_file="${EASYTLS_PKI}/${name}.crt"
-		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+		[ -f "${crt_file}" ] || missing_file "${crt_file}"
 		crt_expire_date || return 1
 		print " Certificate: ${crt_file}   Expire-date: ${crt_expire}"
 	else
@@ -2251,7 +2256,7 @@ cert_expire ()
 		for name in ${easytls_valid_list}
 		do
 			crt_file="${name}"
-			[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+			[ -f "${crt_file}" ] || missing_file "${crt_file}"
 			crt_expire_date || return 1
 		print " Certificate: ${name}.crt   Expire-date: ${crt_expire}"
 		done
@@ -2265,13 +2270,13 @@ cert_expire ()
 	if [ "${name}" = "ca" ]
 	then
 		crt_file="${EASYRSA_PKI}/ca.crt"
-		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+		[ -f "${crt_file}" ] || missing_file "${crt_file}"
 		crt_expire_date || return 1
 		print " Certificate: ca.crt   Expire-date: ${crt_expire}"
 	elif [ -n "${name}" ]
 	then
 		crt_file="${EASYRSA_PKI}/issued/${name}.crt"
-		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+		[ -f "${crt_file}" ] || missing_file "${crt_file}"
 		crt_expire_date || return 1
 		print " Certificate: ${name}.crt   Expire-date: ${crt_expire}"
 	else
@@ -2279,12 +2284,12 @@ cert_expire ()
 		for name in ${easyrsa_valid_list}
 		do
 			crt_file="${EASYRSA_PKI}/issued/${name}.crt"
-			[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+			[ -f "${crt_file}" ] || missing_file "${crt_file}"
 			crt_expire_date || return 1
 		print " Certificate: ${name}.crt   Expire-date: ${crt_expire}"
 		done
 		crt_file="${EASYRSA_PKI}/ca.crt"
-		[ -f "${crt_file}" ] || die "Missing: ${crt_file}"
+		[ -f "${crt_file}" ] || missing_file "${crt_file}"
 		crt_expire_date || return 1
 		print " Certificate: ca.crt   Expire-date: ${crt_expire}"
 	fi
@@ -2302,7 +2307,7 @@ inline_expire ()
 	if [ -n "${name}" ]
 	then
 		inline_file="${EASYTLS_PKI}/${name}.inline"
-		[ -f "${inline_file}" ] || die "Missing: ${inline_file}"
+		[ -f "${inline_file}" ] || missing_file "${inline_file}"
 		inline_expire_date
 		print " Certificate: ${name}.inline   Expire-date: ${inline_expire}"
 	else
@@ -2311,7 +2316,7 @@ inline_expire ()
 		for name in ${etls_valid_name_list}
 		do
 			inline_file="${EASYTLS_PKI}/${name}.inline"
-			[ -f "${inline_file}" ] || die "Missing: ${inline_file}"
+			[ -f "${inline_file}" ] || missing_file "${inline_file}"
 			inline_expire_date
 		print " Inline-file: ${name}.inline   Expire-date: ${inline_expire}"
 		done
@@ -2459,8 +2464,7 @@ inline_file_verify_hash ()
 	# Not so during an index rebuild
 	[ -z "${inline_file}" ] && \
 		die "inline_file_verify_hash: Missing value: inline_file"
-	[ -f "${inline_file}" ] || \
-		die "inline_file_verify_hash: Missing file: ${inline_file}"
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# generate current file HASH
 	force_hash=1
@@ -2592,7 +2596,7 @@ inline_show ()
 		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
 		}
 
-	[ -f "${inline_file}" ] || die "Missing: ${inline_file}"
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
 	x509_cert_serial "${inline_file}" inline_serial || {
@@ -2619,7 +2623,7 @@ remove_inline ()
 		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
 		}
 
-	[ -f "${inline_file}" ] || die "Missing: ${inline_file}"
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
 	x509_cert_serial "${inline_file}" inline_serial || {
@@ -2684,7 +2688,7 @@ inline_index_rebuild ()
 		die "Failed to backup: $EASYTLS_INLINE_X_HASH"
 
 	# Check OpenSSL index.txt
-	[ -f "$EASYRSA_INDEX" ] || die "Missing: $EASYRSA_INDEX"
+	[ -f "$EASYRSA_INDEX" ] || missing_file "$EASYRSA_INDEX"
 
 	# Flag for functions which need to know the index is being rebuilt
 	index_rebuild=1
@@ -3070,8 +3074,8 @@ remove_tlskey ()
 		}
 
 	# Check required files (No metadata_file for servers)
-	[ -f "${cert_file}" ] || die "Missing file: ${cert_file}"
-	[ -f "${tlskey_file}" ] || die "Missing: ${tlskey_file}"
+	[ -f "${cert_file}" ] || missing_file "${cert_file}"
+	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
 
 	# Get tlskey serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
@@ -3557,7 +3561,7 @@ inline_tls_crypt_v2 ()
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
 	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${name}.crt"
-	[ -f "${cert_file}" ] || die "Missing cert file: ${cert_file}"
+	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
 	verify_cert_purpose "${cert_file}" cert_purpose || {
@@ -3595,7 +3599,7 @@ inline_tls_crypt_v2 ()
 	if [ "${cert_purpose}" = 'Client' ]
 	then
 		# Must be a client
-		[ -f "${metadata_file}" ] || die "Missing: ${metadata_file}"
+		[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
 
 		# Get metadata
 		metadata_string="$("${EASYTLS_CAT}" "${metadata_file}")" || \
@@ -3817,7 +3821,7 @@ build_tls_crypt_v2_server ()
 
 	[ -f "${srv_cert}" ] || {
 		help_note="Easy-TLS requires that the x509 certificate has been built."
-		die "Missing file: ${srv_cert}"
+		missing_file "${srv_cert}"
 		}
 
 	# Cert purpose
@@ -3905,7 +3909,7 @@ build_tls_crypt_v2_client ()
 	# Server cert
 	[ -f "${srv_cert}" ] || {
 		help_note="Easy-TLS requires that the X509 certificate has been built."
-		die "* Missing Server certificate: ${srv_cert}"
+		missing_file "${srv_cert}"
 		}
 
 	# Cert purpose
@@ -3920,7 +3924,7 @@ build_tls_crypt_v2_client ()
 	# Client cert
 	[ -f "${cli_cert}" ] || {
 		help_note="Easy-TLS requires that the X509 certificate has been built."
-		die "Missing Client certificate: ${cli_cert}"
+		missing_file "${cli_cert}"
 		}
 
 	# Cert purpose
@@ -4333,10 +4337,10 @@ disabled_list_manager ()
 	if [ $EASYTLS_NO_CA ]
 	then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
-		[ -f "${cert_file}" ] || die "Cannot find certificate: ${cert_file}"
+		[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	else
 		cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-		[ -f "${cert_file}" ] || die "Cannot find certificate: ${cert_file}"
+		[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	fi
 
 	# get the serial number of the certificate from OpenSSL
@@ -5170,7 +5174,7 @@ interactive_remove ()
 		unset ia_extra_help
 
 		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
-		[ -f "$inline_file" ] || die "Missing inline-file: $inline_file"
+		[ -f "$inline_file" ] || missing_file "$inline_file"
 
 		# Confirm
 		interactive_remove_warning 'remove-tls-crypt-v2-server-inline'
@@ -5224,8 +5228,7 @@ interactive_remove ()
 		if [ $remove_inline_and_tlskey ]
 		then
 		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
-		[ -f "$key_file" ] || \
-			die "TLS-Crypt-V2 key does not exist: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 
 		# Confirm
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
@@ -5267,8 +5270,7 @@ interactive_remove ()
 		opt_name="$common_name"
 
 		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
-		[ -f "$key_file" ] || \
-			die "TLS-Crypt-V2 key does not exist: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 
 		# Confirm
 		interactive_remove_warning 'remove-tls-crypt-v2-server-key'
@@ -5296,8 +5298,7 @@ interactive_remove ()
 		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-crypt.key"
-		[ -f "$key_file" ] || \
-			die "TLS-Crypt key does not exist: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 
 		# Confirm
 		interactive_remove_warning 'remove-tls-crypt-key'
@@ -5323,8 +5324,7 @@ interactive_remove ()
 		cmd_line="${cmd_line}-tlskey"
 
 		key_file="${EASYTLS_PKI}/tls-auth.key"
-		[ -f "$key_file" ] || \
-			die "TLS-Auth key does not exist: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 
 		# Confirm
 		interactive_remove_warning 'remove-tls-auth-key'
@@ -5360,7 +5360,7 @@ interactive_remove_warning ()
 	case $1 in
 	remove-tls-auth-key)
 	# TLS-Auth key
-		[ -f "$key_file" ] || die "Missing file: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
 * If you remove a TLS-Auth key which has been used to build any
@@ -5371,7 +5371,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-key)
 		# TLS-Crypt key
-		[ -f "$key_file" ] || die "Missing file: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
 * If you remove a TLS-Crypt key which has been used to build any
@@ -5382,7 +5382,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-v2-server-key)
 		# TLS-Crypt-V2 Server key
-		[ -f "$key_file" ] || die "Missing file: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
 * If you remove a TLS-Crypt-V2 Server key which has been used
@@ -5394,7 +5394,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-v2-client-key)
 		# TLS-Crypt-V2 Client key
-		[ -f "$key_file" ] || die "Missing file: $key_file"
+		[ -f "$key_file" ] || missing_file "$key_file"
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
 * If you remove a TLS-Crypt-V2 Client key then you can easily
@@ -5405,7 +5405,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-auth-inline)
 		# TLS-Auth inline
-		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+		[ -f "$inline_file" ] || missing_file "$inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
 * When you remove an inline-file you can easily build a new one.
@@ -5415,7 +5415,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-inline)
 		# TLS-Crypt inline
-		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+		[ -f "$inline_file" ] || missing_file "$inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
 * When you remove an inline-file you can easily build a new one.
@@ -5425,7 +5425,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-v2-server-inline)
 		# TLS-Crypt-V2 Server inline
-		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+		[ -f "$inline_file" ] || missing_file "$inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
 * When you remove an inline-file you can easily build a new one.
@@ -5435,7 +5435,7 @@ interactive_remove_warning ()
 	;;
 	remove-tls-crypt-v2-client-inline)
 		# TLS-Crypt-V2 Client inline
-		[ -f "$inline_file" ] || die "Missing file: $inline_file"
+		[ -f "$inline_file" ] || missing_file "$inline_file"
 		confirm 'Are you sure you want to delete this inline-file: ' \
 			'yes' "
 * When you remove an inline-file you can easily build a new one.
@@ -6482,7 +6482,7 @@ generate_wiscii_hash ()
 			}
 
 		# inline_file MUST exist
-		[ -f "${inline_file}" ] || die "Missing inline_file: ${inline_file}"
+		[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 		# Hash inline_file
 		generate_and_validate_file_hash \
@@ -6556,7 +6556,7 @@ generate_wiscii_hash ()
 			}
 
 		# tlskey_file MUST exist
-		[ -f "${tlskey_file}" ] || die "Missing tlskey_file: ${tlskey_file}"
+		[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
 
 		# Hash tlskey_file
 		generate_and_validate_file_hash \
