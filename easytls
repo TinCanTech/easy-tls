@@ -6780,6 +6780,8 @@ external_deps ()
 			last_part="${EASYTLS_work_dir#* Files/}"
 			EASYTLS="${host_drv}:/Progra~1/${last_part}"
 			[ -d "${EASYTLS}" ] || die "Error translating EASYTLS: ${EASYTLS}"
+			# Set EASYRSA here because the path is verified
+			EASYRSA="${EASYTLS}"
 		else
 			# Not in recognised path or more than one space found
 			error_msg "EasyTLS will not function correctly in this directory:"
@@ -6864,25 +6866,6 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 	set_var EASYRSA_RAND_SN         "yes"
-
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
-		if [ "${EASYRSA_PKI% *}" = "$EASYRSA_PKI" ]; then
-			: # No spaces
-		elif [ "${EASYRSA_PKI% *}" = "${host_drv}:/Program" ]; then
-			# Only one space found: ?:/Program Files/foo
-			last_part="${EASYRSA_PKI#* Files/}"
-			EASYRSA_PKI="${host_drv}:/Progra~1/${last_part}"
-			[ -d "$EASYRSA_PKI" ] || \
-				die "Error translating EASYRSA_PKI: $EASYRSA_PKI"
-		else
-			# Not in recognised path or more than one space found
-			error_msg "EasyTLS will not function correctly in this directory:"
-			error_msg "* Name: $EASYRSA_PKI"
-			help_note="Remove spaces from PATH using CD to select short name."
-			die "EasyTLS tools will not function correctly in this path."
-		fi
-	fi
 
 	set_var EASYTLS                 "${PWD}"
 	set_var EASYTLS_PKI             "${EASYRSA_PKI}/easytls"
