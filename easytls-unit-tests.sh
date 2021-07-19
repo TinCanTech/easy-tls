@@ -192,6 +192,7 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 ${hwaddr}" \
 			"itcv2 s01" "itcv2 c01" "-k=hw itcv2 c01 add-hw"
 do
+	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
 	print "$EASYTLS_CMD ${EASYTLS_OPTS} ${cmd}"
 	"$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || fail "No-CA test: ${cmd}"
