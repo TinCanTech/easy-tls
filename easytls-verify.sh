@@ -604,7 +604,8 @@ then
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# client trusted file - For reneg - TODO: float
+	# client trusted file - For reneg
+	# float does not trigger any script
 	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
