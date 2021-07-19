@@ -232,9 +232,11 @@ do
 	then
 		print "Total verified expected errors = 54"
 		print "total_expected_errors = $total_expected_errors"
-		[ $total_expected_errors -eq 54 ] && exit 0
-		print "***** EXPECTED ERROR COUNT INCORRECT *****"
-		exit 1
+		[ $total_expected_errors -eq 54 ] || {
+			print "***** EXPECTED ERROR COUNT INCORRECT *****"
+			exit 1
+			}
+		[ $EASYTLS_REMOTE_CI ] && exit 0
 	fi
 
 	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
