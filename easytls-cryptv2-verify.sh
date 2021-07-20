@@ -223,18 +223,6 @@ ${1}"
 	fi
 }
 
-# Log warnings
-warn_log ()
-{
-	if [ -n "${1}" ]
-	then
-		warn_msg="${warn_msg}
-${1}"
-	else
-		[ -z "${warn_msg}" ] || print "${warn_msg}"
-	fi
-}
-
 # Update status message
 update_status ()
 {
@@ -767,9 +755,6 @@ deps
 
 # Report and die on fatal warnings
 warn_die
-
-# Report option warnings
-warn_log
 
 # Get metadata
 

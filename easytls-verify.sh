@@ -163,18 +163,6 @@ ${1}"
 	fi
 }
 
-# Log warnings
-warn_log ()
-{
-	if [ -n "${1}" ]
-	then
-		warn_msg="${warn_msg}
-${1}"
-	else
-		[ -z "${warn_msg}" ] || verbose_print "${warn_msg}"
-	fi
-}
-
 # Update status message
 update_status ()
 {
@@ -469,10 +457,10 @@ do
 		if [ -f "${opt}" ]
 		then
 			# Do not need this in the log but keep it here for reference
-			#[ $EASYTLS_VERBOSE ] && warn_log "Ignoring temp file: $opt"
+			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
 			:
 		else
-			[ "${EASYTLS_VERBOSE}" ] && warn_log "Ignoring unknown option: ${opt}"
+			[ "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
 		fi
 	;;
 	esac
@@ -489,9 +477,6 @@ deps
 
 # Report and die on fatal warnings
 warn_die
-
-# Report option warnings
-warn_log
 
 # Update log message
 case ${EASYTLS_cert_depth} in
