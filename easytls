@@ -2520,6 +2520,7 @@ inline_index_ilhash_to_serial ()
 # Get common_name from inline file
 inline_crt_common_name ()
 {
+	die "inline_crt_common_name DISABLED"
 	inline_common_name="$("${EASYTLS_GREP}" '^# Common name: .*$' "${inline_file}")"
 	inline_common_name="${inline_common_name##*name: }"
 } # => inline_crt_common_name ()
@@ -2562,7 +2563,7 @@ x509_cert_serial ()
 openssl_crt_common_name ()
 {
 	# This is ONLY use to import a certificate and importing is DISABLED
-	return 1
+	die "openssl_crt_common_name DISABLED"
 	temp_name="$(get_openssl_crt_common_name "${crt_file}")" || {
 		error_msg ""
 		return 1
@@ -2576,7 +2577,7 @@ openssl_crt_common_name ()
 get_openssl_crt_common_name ()
 {
 	# This is ONLY use to import a certificate and importing is DISABLED
-	return 1
+	die "get_openssl_crt_common_name DISABLED"
 	[ -f "${1}" ] || {
 		error_msg "get_openssl_crt_common_name missing file"
 		return 1
@@ -3015,6 +3016,7 @@ verify_cert_serial ()
 # tlskey verify serial number is valid
 verify_tlskey_serial ()
 {
+	die "verify_tlskey_serial DISABLED"
 	# Test it
 	[ "${tlskey_serial}" = "${tlskey_serial%[!0123456789abcdefABCDEF]*}" ] || {
 			error_msg "verify_tlskey_serial - !Hex: ${tlskey_serial}"
@@ -3087,7 +3089,7 @@ remove_tlskey ()
 		return 1
 		}
 
-	# Get tlskey serial number from tlskey-index
+	# Get x509 serial number from tlskey-index
 	cert_serial="$(tlskey_index_fname_2_x509ser)"
 
 	# Verify this cert-serial
@@ -3261,6 +3263,7 @@ DISABLED_INLINE_RENEW
 # Get current inline key direction
 inline_renew_key_direction ()
 {
+	die "inline_renew_key_direction - DISABLED"
 	"${EASYTLS_GREP}" '^key-direction [01]$' "${inline_file}" | \
 		"${EASYTLS_AWK}" '{print $2}'
 } # => inline_renew_key_direction ()
@@ -3468,13 +3471,8 @@ inline_tls_auth ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	#[ $silent_inline ] || \
-
 	notice "Inline TLS auth file created: ${inline_file}"
 	easytls_verbose
-
-	# explicitly return success for callers
-	return 0
 } # => inline_tls_auth ()
 
 # Append TLS crypt file to base file
@@ -3530,13 +3528,8 @@ inline_tls_crypt_v1 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	#[ $silent_inline ] || \
-
 	notice "Inline TLS crypt file created: ${inline_file}"
 	easytls_verbose
-
-	# explicitly return success for callers
-	return 0
 } # => inline_tls_crypt_v1 ()
 
 # Append TLS crypt v2 file to base file
@@ -3734,13 +3727,8 @@ inline_tls_crypt_v2 ()
 	# Hash inline file and add hash to index
 	inline_index_update add || die "Failed to update inline-index"
 
-	#[ $silent_inline ] || \
-
 	notice "Inline TLS crypt v2 file created: ${inline_file}"
 	easytls_verbose
-
-	# explicitly return success for callers
-	return 0
 } # => inline_tls_crypt_v2 ()
 
 
@@ -4218,7 +4206,7 @@ build_self_sign ()
 		die "Failed to create self-signed ${cert_type} cert/key for ${cert_name}"
 
 	# Fingerprint file - Always over-write any current file
-	create_fingerprint || \
+	create_fingerprint "${cert_file}" "${fpr_file}" || \
 		die "Failed to create fingerprint for ${cert_name}"
 
 	notice "Self signed ${cert_type} certificate/key created for ${cert_name}"
@@ -4255,9 +4243,10 @@ create_self_sign_cert_pair ()
 # Create fingerprint file for self-signed cert
 create_fingerprint ()
 {
-	cert_fpr="$(openssl_generate_fingerprint "${cert_file}")" || return 1
+	cert_fpr="$(openssl_generate_fingerprint "${1}")" || return 1
 	cert_fpr="${cert_fpr##*=}"
-	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" > "${fpr_file}" || return 1
+	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" > "${2}" || return 1
+	unset cert_fpr
 } # => create_fingerprint ()
 
 # Fingerprint
