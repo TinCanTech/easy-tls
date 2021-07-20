@@ -2974,12 +2974,17 @@ tlskey_index_fname_2_x509ser ()
 verify_cert_serial ()
 {
 	# Test it
-	[ "${cert_serial}" = "${cert_serial%[!0123456789abcdefABCDEF]*}" ] || {
-			error_msg "verify_cert_serial - !Hex: ${cert_serial}"
-			return 1
-			}
+	[ -n "${1}" ] || {
+		error_msg "verify_cert_serial - empty"
+		return 1
+		}
 
-	serial_size=${#cert_serial}
+	[ "${1}" = "${1%[!0123456789abcdefABCDEF]*}" ] || {
+		error_msg "verify_cert_serial - !Hex: ${1}"
+		return 1
+		}
+
+	serial_size=${#1}
 
 	# This test is invalid - random serial numbers are not always 32 hex
 	# I could keep hashes of certificates (fingerprint) instead
@@ -3082,10 +3087,12 @@ remove_tlskey ()
 		}
 
 	# Get x509 serial number from tlskey-index
-	cert_serial="$(tlskey_index_fname_2_x509ser)"
+	cert_serial="$(tlskey_index_fname_2_x509ser)" || \
+		die "remove_tlskey - cert_serial"
 
 	# Verify this cert-serial
-	verify_cert_serial || die "verify_cert_serial: failed"
+	verify_cert_serial "${cert_serial}" || \
+		die "remove_tlskey - verify_cert_serial"
 
 	# Check this tlskey is not in use by an .inline file
 	tlskey_verify_in_use && {
