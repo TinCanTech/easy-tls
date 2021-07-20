@@ -34,7 +34,9 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Set the Easy-TLS version
 easytls_version ()
 {
+	easytls_verbose
 	print "Easy-TLS version: ${EASYTLS_VERSION}"
+	easytls_verbose
 } # => easytls_version ()
 
 
@@ -7035,7 +7037,7 @@ main ()
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
 	else
-		# Easy-TLS us not initialised
+		# Easy-TLS is not initialised
 		:
 	fi
 
@@ -7108,9 +7110,9 @@ main ()
 						die "Error: easytls_config"
 					cmd='Done'
 				;;
-			esac
+			esac # Edit config
 		;;
-		esac
+		esac # Init required has been checked
 
 		# Commands which can run with or without a PKI
 		case "${cmd}" in
@@ -7211,7 +7213,7 @@ main ()
 				die "Error: disabled_list_manager rehash"
 			cmd='Done'
 		;;
-		esac
+		esac # With or without a PKI
 
 		# When no-ca is true use these versions of commands
 		if [ $EASYTLS_NO_CA ]
@@ -7233,10 +7235,6 @@ main ()
 			s|status)
 				noca_status "$@" || \
 					die "Error: noca_status"
-				cmd='Done'
-			;;
-			*)
-				error_msg "Command '${cmd}' does not support 'no-ca' mode"
 				cmd='Done'
 			;;
 			esac
@@ -7278,7 +7276,7 @@ main ()
 		# save me!
 		save_wiscii_hash || die "Master hash save failed"
 	;;
-	esac # help/versiom/Initialise
+	esac # help/version/Initialise
 
 } # => main ()
 
