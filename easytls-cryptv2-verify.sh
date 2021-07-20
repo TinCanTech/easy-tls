@@ -967,7 +967,6 @@ then
 	md_file_age_sec=$((local_date_sec - md_file_date_sec))
 	[ ${md_file_age_sec} -gt ${stale_sec} ] && \
 		"${EASYTLS_RM}" -f "${client_metadata_file}"
-	[ $SHALLOW ] && "${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
 
 # If client_metadata_file still exists then fail the connection
@@ -977,10 +976,6 @@ then
 	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
 	fail_and_exit "STALE_METADATA_FILE" 101
 else
-	#"${EASYTLS_PRINTF}" '%s %s %s\n' \
-	#	"${tlskey_serial}" "${md_hwadds}" "${md_opt}" > \
-	#		"${client_metadata_file}" || \
-	#			die "Failed to write client_metadata file"
 	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_metadata_file}" || \
 		die "Failed to create client_metadata_file" 89
 	update_status "Created client_metadata_file"
