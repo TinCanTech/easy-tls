@@ -1,8 +1,11 @@
 https://github.com/TinCanTech/easy-tls
   Change log:
 
-Version 2.3
+Version 2.4
 *
+
+Version 2.3
+* 2021-06-15 - Commit 939ba157ac113fcbb8d11e2dcfc76f8aaadb689b
   Add kill-client option
     Commit 51af501989b1185a9af5b12e705488a599daad93
   Change HWADDR field format (Maintain old format compat)

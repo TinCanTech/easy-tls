@@ -6916,7 +6916,7 @@ set_var()
 main ()
 {
 
-	EASYTLS_VERSION="2.3"
+	EASYTLS_VERSION="2.4"
 
 	# Be secure with a restrictive umask
 	[ -z "$EASYTLS_NO_UMASK" ] && umask 077
