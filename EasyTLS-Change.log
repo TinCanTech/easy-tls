@@ -2,10 +2,12 @@ https://github.com/TinCanTech/easy-tls
   Change log:
 
 Version 2.4
-*
+* 2021-07-21 - Commit 8160cbc42e377e6fa34b819359e718e75e2a5560
+  Add self-signed certificates to inter-active `build` menu
+    Commit 8160cbc42e377e6fa34b819359e718e75e2a5560
 
 Version 2.3
-* 2021-06-15 - Commit 939ba157ac113fcbb8d11e2dcfc76f8aaadb689b
+* 2021-07-20 - Commit 939ba157ac113fcbb8d11e2dcfc76f8aaadb689b
   Add kill-client option
     Commit 51af501989b1185a9af5b12e705488a599daad93
   Change HWADDR field format (Maintain old format compat)
@@ -32,11 +34,10 @@ Version 2.1
 * 2021-05-23 - Commit 234ced916c9e7e6f3e5bf9205c87a84528d62ad2
   Introduce 'no-ca' mode to support OpenVPN Peer-Fingerprint mode
     Commit 234ced916c9e7e6f3e5bf9205c87a84528d62ad2
-    * Currently requires https://github.com/TinCanTech/easy-pfp
 
 Version 1.28
 * No tag
-  Add an X509 style check for certificate revokation to --tls-verify
+  Add an X509 style check for certificate revocation to --tls-verify
     Commit 38af6f4d23ed4f5eb7afc2356dc42f826af9a35b
   Introduce support for --tls-auth and --tls-crypt(v1) clients
     Commit 4815f858d5af82696ff908cb09f8cbc86a5d022a
@@ -45,6 +46,5 @@ Version 1.27 (First official release)
 * 2021-03-31 - Commit cd52aede5447df145528ca961b832fcb81d2d5ea
 
 Creation date
-* 2020-03-13
-  Initial commit
-    Commit c25717ca613fae34f1b9bce68127846628ef4ec5
+* 2020-03-13 - Commit c25717ca613fae34f1b9bce68127846628ef4ec5
+
