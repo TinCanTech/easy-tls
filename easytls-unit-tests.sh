@@ -189,9 +189,17 @@ print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 "$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
 
 for cmd in "init no-ca" "cf cg easytls-unit-test" \
-			"sss s01" "ssc c01" \
-			"btcv2s s01" "btcv2c s01 c01" "-k=hw btcv2c s01 c01 ${hwaddr}" \
-			"itcv2 s01" "itcv2 c01" "-k=hw itcv2 c01 add-hw"
+			"sss s01" "ssc c01" "ssc c02" \
+			"bta" "ita s01 0" "-r=s01 ita c01 1" "-r=s01 ita c02 1" \
+			"sss s02" "ssc c03" "ssc c04" \
+			"btc" "itc s02" "-r=s02 itc c03" "-r=s02 itc c04" \
+			"sss s03" "ssc c05" "ssc c06" \
+			"btcv2s s03" \
+			"btcv2c s03 c05" "-k=hw btcv2c s03 c05 ${hwaddr}" \
+			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr}" \
+			"itcv2 s03" \
+			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
+			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
