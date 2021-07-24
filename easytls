@@ -1169,6 +1169,15 @@ verify_tls_init ()
 # init-tls backend:
 init_tls ()
 {
+	while [ -n "${1}" ]; do
+		case "${1}" in
+			sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
+			nc|no-ca) EASYTLS_NO_CA=1 ;;
+			*) warn "Ignoring unknown command option: '$1'" ;;
+		esac
+		shift
+	done
+
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
 	[ $EASYTLS_NO_CA ] || verify_pki_init
 
@@ -1210,15 +1219,6 @@ and initialize a fresh TLS PKI here."
 		# Easy-TLS is not initialised
 		:
 	fi
-
-	while [ -n "${1}" ]; do
-		case "${1}" in
-			sha1|SHA1) EASYTLS_HASH_ALGO="${1}" ;;
-			nc|no-ca) EASYTLS_NO_CA=1 ;;
-			*) warn "Ignoring unknown command option: '$1'" ;;
-		esac
-		shift
-	done
 
 	# Explicitly set EASYTLS_HASH_ALGO here
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -7422,7 +7422,7 @@ main ()
 		;;
 		*)
 			# Must have init PKI & TLS now
-			verify_pki_init
+			[ $EASYTLS_NO_CA ] || verify_pki_init
 			verify_tls_init || {
 				error_msg "./easytls help init-tls - See help below:"
 				cmd_help init-tls

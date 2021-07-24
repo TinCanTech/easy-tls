@@ -185,8 +185,9 @@ print "ls -l"
 ls -l
 
 echo "--------------------"
-print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
-"$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
+[ -d "${EASYRSA_PKI}" ] && rm -rf "${EASYRSA_PKI}"
+#print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
+#"$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
 
 for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"sss s01" "ssc c01" "ssc c02" \
