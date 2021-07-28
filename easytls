@@ -3779,7 +3779,6 @@ inline_share_fingerprint ()
 		:
 	else
 		# Don't do it
-		easytls_verbose "Not sharing fingerprint to peer!"
 		return 0
 	fi
 
@@ -7387,41 +7386,34 @@ main ()
 	[ -n "${1}" ] && shift # scrape off command
 
 	case "${cmd}" in
-	# Initialise only
+	# case 1
+
 	''|help|-h|--help|--usage)
 		cmd_help "${1}" || \
 			die "Error: cmd_help"
-		cmd='Done'
+		return 0
 	;;
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
-		cmd='Done'
-
-		# EasyTLS auto-check
-		easytls_auto_check || die "Error: easytls_auto_check"
-
-		# save me!
-		save_wiscii_hash || die "Master hash save failed"
 	;;
 	*)
-	# Other commands
+		# Other commands
 
 		# Load config options - Does not change command line options
-		# Using the config does an internal init-tls check
 		config_use || die "config_use - Error: $?"
 
-		# Everything else requires init-tls
 		case "${cmd}" in
-		Done) : ;; # Ignore
+		# case 2
 
 		v|version)
 			easytls_version || \
 				die "Error: easytls_version"
-			cmd='Done'
 		;;
 		*)
-			# Must have init PKI & TLS now
+			# Everything else
+
+			# Must have init TLS now - and PKI when not No-CA mode
 			[ $EASYTLS_NO_CA ] || verify_pki_init
 			verify_tls_init || {
 				error_msg "./easytls help init-tls - See help below:"
@@ -7434,188 +7426,159 @@ main ()
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
 				}
-			# Edit config now
+
+			# Commands which can run with or without a PKI
 			case "${cmd}" in
-				cf|cfg|config)
-					easytls_config "$@" || \
-						die "Error: easytls_config"
-					cmd='Done'
+			# case 3
+
+			cf|cfg|config)
+				easytls_config "$@" || \
+					die "Error: easytls_config"
+			;;
+			build)
+				interactive_build || \
+					die "Error: interactive_build"
+			;;
+			inline)
+				interactive_inline || \
+					die "Error: interactive_inline"
+			;;
+			remove)
+				interactive_remove || \
+					die "Error: interactive_remove"
+			;;
+			script)
+				interactive_scripts || \
+					die "Error: interactive_scripts"
+			;;
+			ss|selfsign)
+				interactive_selfsign || \
+					die "Error: interactive_selfsign"
+			;;
+			bta|build-tls-auth)
+				build_tls_auth "$@" || \
+					die "Error: build_tls_auth"
+			;;
+			btc|build-tls-crypt)
+				build_tls_crypt_v1 "$@" || \
+					die "Error: build_tls_crypt_v1"
+			;;
+			ita|inline-tls-auth)
+				inline_tls_auth "$@" || \
+					die "Error: inline_tls_auth"
+			;;
+			itc|inline-tls-crypt)
+				inline_tls_crypt_v1 "$@" || \
+					die "Error: inline_tls_crypt_v1"
+			;;
+			btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
+				build_tls_crypt_v2_server "$@" || \
+					die "Error: build_tls_crypt_v2_server"
+			;;
+			btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
+				build_tls_crypt_v2_client "$@" || \
+					die "Error: build_tls_crypt_v2_client"
+			;;
+			itc2|itv2|itcv2|inline-tls-crypt-v2)
+				inline_tls_crypt_v2 "$@" || \
+					die "Error: inline_tls_crypt_v2"
+			;;
+			is|inline-show)
+				inline_show "$@" || \
+					die "Error: inline_show"
+			;;
+			ri|remove-inline)
+				remove_inline "$@" || \
+					die "Error: remove_inline"
+			;;
+			rt|rk|rtk|remove-tlskey)
+				remove_tlskey "$@" || \
+					die "Error: remove_tlskey"
+			;;
+			ix|inline-expire)
+				inline_expire "$@" || \
+					die "Error: inline_expire"
+			;;
+			cx|cert-expire)
+				cert_expire "$@" || \
+					die "Error: cert_expire"
+			;;
+			d|disable)
+				disabled_list_manager "disable" "$@" || \
+					die "Error: disabled_list_manager"
+			;;
+			e|enable)
+				disabled_list_manager "enable" "$@" || \
+					die "Error: disabled_list_manager"
+			;;
+			disabled-list-rehash)
+				disabled_list_manager "rehash" "$@" || \
+					die "Error: disabled_list_manager rehash"
+			;;
+			*)
+			if [ $EASYTLS_NO_CA ]
+			then
+				# No-CA use these versions of commands
+				case "${cmd}" in
+				sss|self-sign-server)
+					build_self_sign 'server' "$@" || \
+						die "Error: self-sign-server"
 				;;
-			esac # Edit config
-		;;
-		esac # Init required has been checked
-
-		# Commands which can run with or without a PKI
-		case "${cmd}" in
-		Done) : ;; # Ignore
-
-		build)
-			interactive_build || \
-				die "Error: interactive_build"
-			cmd='Done'
-		;;
-		inline)
-			interactive_inline || \
-				die "Error: interactive_inline"
-			cmd='Done'
-		;;
-		remove)
-			interactive_remove || \
-				die "Error: interactive_remove"
-			cmd='Done'
-		;;
-		script)
-			interactive_scripts || \
-				die "Error: interactive_scripts"
-			cmd='Done'
-		;;
-		ss|selfsign)
-			interactive_selfsign || \
-				die "Error: interactive_selfsign"
-			cmd='Done'
-		;;
-		bta|build-tls-auth)
-			build_tls_auth "$@" || \
-				die "Error: build_tls_auth"
-			cmd='Done'
-		;;
-		btc|build-tls-crypt)
-			build_tls_crypt_v1 "$@" || \
-				die "Error: build_tls_crypt_v1"
-			cmd='Done'
-		;;
-		ita|inline-tls-auth)
-			inline_tls_auth "$@" || \
-				die "Error: inline_tls_auth"
-			cmd='Done'
-		;;
-		itc|inline-tls-crypt)
-			inline_tls_crypt_v1 "$@" || \
-				die "Error: inline_tls_crypt_v1"
-			cmd='Done'
-		;;
-		btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
-			build_tls_crypt_v2_server "$@" || \
-				die "Error: build_tls_crypt_v2_server"
-			cmd='Done'
-		;;
-		btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
-			build_tls_crypt_v2_client "$@" || \
-				die "Error: build_tls_crypt_v2_client"
-			cmd='Done'
-		;;
-		itc2|itv2|itcv2|inline-tls-crypt-v2)
-			inline_tls_crypt_v2 "$@" || \
-				die "Error: inline_tls_crypt_v2"
-			cmd='Done'
-		;;
-		is|inline-show)
-			inline_show "$@" || \
-				die "Error: inline_show"
-			cmd='Done'
-		;;
-		ri|remove-inline)
-			remove_inline "$@" || \
-				die "Error: remove_inline"
-			cmd='Done'
-		;;
-		rt|rk|rtk|remove-tlskey)
-			remove_tlskey "$@" || \
-				die "Error: remove_tlskey"
-			cmd='Done'
-		;;
-		ix|inline-expire)
-			inline_expire "$@" || \
-				die "Error: inline_expire"
-			cmd='Done'
-		;;
-		cx|cert-expire)
-			cert_expire "$@" || \
-				die "Error: cert_expire"
-			cmd='Done'
-		;;
-		d|disable)
-			disabled_list_manager "disable" "$@" || \
-				die "Error: disabled_list_manager"
-			cmd='Done'
-		;;
-		e|enable)
-			disabled_list_manager "enable" "$@" || \
-				die "Error: disabled_list_manager"
-			cmd='Done'
-		;;
-		disabled-list-rehash)
-			disabled_list_manager "rehash" "$@" || \
-				die "Error: disabled_list_manager rehash"
-			cmd='Done'
-		;;
-		esac # With or without a PKI
-
-		# When no-ca is true use these versions of commands
-		if [ $EASYTLS_NO_CA ]
-		then
-			# Possible commands
-			case "${cmd}" in
-			Done): ;; # Ignore
-
-			sss|self-sign-server)
-				build_self_sign 'server' "$@" || \
-					die "Error: self-sign-server"
-				cmd='Done'
+				ssc|self-sign-client)
+					build_self_sign 'client' "$@" || \
+						die "Error: self-sign-client"
+				;;
+				s|status)
+					noca_status "$@" || \
+						die "Error: noca_status"
+				;;
+				*)
+				die "Unknown command '${cmd}'. Run without commands for help."
+				;;
+				esac # => No-CA mode
+			else
+				# CA mode
+				case "${cmd}" in
+				sid|save-id)
+					save_id || \
+						die "Error: save_id"
+				;;
+				s|status)
+					status "$@" || \
+						die "Error: status"
+					unset status_disabled_auto_check
+				;;
+				irn|irw|inline-renew)
+					inline_renew "$@" || \
+						die "Error: inline_renew"
+				;;
+				inline-index-rebuild)
+					inline_index_rebuild "$@" || \
+						die "Error: inline_index_rebuild"
+				;;
+				import-key)
+					import_key "$@" || \
+						die "Error: import_key"
+				;;
+				*)
+				die "Unknown command '${cmd}'. Run without commands for help."
+				;;
+				esac # CA mode
+			fi
 			;;
-			ssc|self-sign-client)
-				build_self_sign 'client' "$@" || \
-					die "Error: self-sign-client"
-				cmd='Done'
-			;;
-			s|status)
-				noca_status "$@" || \
-					die "Error: noca_status"
-				cmd='Done'
-			;;
-			esac
-		fi
-
-		# Everything else
-		case "${cmd}" in
-		Done): ;; # Ignore
-
-		sid|save-id)
-			save_id || \
-				die "Error: save_id"
+			esac # case 3
 		;;
-		s|status)
-			status "$@" || \
-				die "Error: status"
-			unset status_disabled_auto_check
-		;;
-		irn|irw|inline-renew)
-			inline_renew "$@" || \
-				die "Error: inline_renew"
-		;;
-		inline-index-rebuild)
-			inline_index_rebuild "$@" || \
-				die "Error: inline_index_rebuild"
-		;;
-		import-key)
-			import_key "$@" || \
-				die "Error: import_key"
-		;;
-		*)
-			die "Unknown command '${cmd}'. Run without commands for help."
-		;;
-		esac # Everything else
-
-		# EasyTLS auto-check
-		easytls_auto_check || die "easytls_auto_check fail"
-
-		# save me!
-		save_wiscii_hash || die "save master hash fail"
+		esac # case 2
 	;;
-	esac # help/version/Initialise
+	esac # case 1
 
+	# EasyTLS auto-check
+	easytls_auto_check || die "easytls_auto_check fail"
+
+	# save me!
+	save_wiscii_hash || die "save master hash fail"
 } # => main ()
 
 main "$@" || die "main $*"
 
-# Done
+# Do cleanup
