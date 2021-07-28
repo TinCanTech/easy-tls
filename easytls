@@ -502,6 +502,7 @@ error_msg ()
 	[ -n "${1}" ] || {
 		[ -z "${error_log}" ] || {
 			print "${error_log}"
+			return 1
 			}
 		return 0
 		}
@@ -526,7 +527,6 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
-	error_msg
 	exec 6<&-
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -537,6 +537,7 @@ cleanup ()
 		[ -t 1 ] && stty echo
 	fi
 	[ $EASYTLS_SILENT ] || echo "" # just to get a clean line
+	error_msg || exit 1
 } # => cleanup ()
 
 # non-fatal warning output
@@ -1362,13 +1363,22 @@ easytls_auto_check ()
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	inline_index_verify_hash || warn "inline-index hash failed."
+	inline_index_verify_hash || {
+		error_msg "inline_index_verify_hash - easytls_auto_check"
+		error_msg "* Auto-check: Hash failed for Inline index"
+		}
 
 	# Verify tlskey-index hash
-	tlskey_index_verify_hash || warn "tlskey-index hash failed."
+	tlskey_index_verify_hash || {
+		error_msg "tlskey_index_verify_hash - easytls_auto_check"
+		error_msg "* Auto-check: Hash failed for TLS key index"
+		}
 
 	# Check disabled-list hash
-	disabled_list_verify_hash || warn "disabled-list hash failed."
+	disabled_list_verify_hash || {
+		error_msg "disabled_list_verify_hash - easytls_auto_check"
+		error_msg "* Auto-check: Hash failed for Disabled list"
+		}
 
 	unset auto_check
 } # => easytls_auto_check ()
@@ -1581,7 +1591,7 @@ save_file_hash ()
 {
 	[ ${#} -eq 2 ] || {
 		help_note="input: ${*}"
-		die "save_file_hash - invalid input"
+		die "invalid input - save_file_hash"
 		}
 
 	hash_file="${1}" # File to save hash to
@@ -1595,14 +1605,14 @@ save_file_hash ()
 	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
 	[ $valid_target ] || {
-		error_msg "save_file_hash - invalid hash_file"
+		error_msg "invalid target - save_file_hash"
 		unset hash_file valid_hash valid_target
 		return 1
 		}
 
 	# Save hash to target
 	"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
-		error_msg "save_file_hash - save hash"
+		error_msg "save hash - save_file_hash"
 		return 1
 		}
 
@@ -1614,14 +1624,14 @@ generate_and_match_valid_hash ()
 {
 	[ ${#} -eq 2 ] || {
 		help_note="input: ${*}"
-		die "generate_and_match_valid_hash - invalid input"
+		die "invalid input - generate_and_match_valid_hash"
 		}
 
 	target_file="${1}" # File to be hashed
 	hash_file="${2}" # File to read the hash from
 
 	[ "${target_file}" = "${hash_file}" ] && {
-		error_msg "generate_and_match_valid_hash - invalid input"
+		error_msg "invalid files - generate_and_match_valid_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
@@ -1629,7 +1639,7 @@ generate_and_match_valid_hash ()
 	# Generate $generated_valid_hash
 	generated_valid_hash=
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
-		error_msg "generate_and_match_valid_hash - generate_and_validate_file_hash"
+		error_msg "generate_and_validate_file_hash - generate_and_match_valid_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
@@ -1639,7 +1649,7 @@ generate_and_match_valid_hash ()
 
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
-		error_msg "generate_and_match_valid_hash - match_two_hashes"
+		error_msg "match_two_hashes - generate_and_match_valid_hash"
 		unset target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
@@ -1652,28 +1662,28 @@ generate_and_save_file_hash ()
 {
 	[ ${#} -eq 2 ] || {
 		unset help_note
-		die "generate_and_save_file_hash - invalid input"
+		die "invalid input - generate_and_save_file_hash"
 		}
 
 	target_file="${1}" # File to hash
 	hash_file="${2}" # File to save the hash to
 
 	[ "${target_file}" = "${hash_file}" ] && {
-		error_msg "generate_and_save_file_hash - input file"
+		error_msg "invalid files - generate_and_save_file_hash"
 		unset target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Generate $generated_valid_hash
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
-		error_msg "generate_and_save_file_hash - generate_and_validate_file_hash"
+		error_msg "generate_and_validate_file_hash - generate_and_save_file_hash"
 		unset target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Save $generated_valid_hash
 	save_file_hash "${hash_file}" ${generated_valid_hash} || {
-		error_msg "generate_and_save_file_hash - save_file_hash"
+		error_msg "save_file_hash - generate_and_save_file_hash"
 		unset target_file hash_file generated_valid_hash
 		return 1
 		}
@@ -1791,7 +1801,9 @@ easytls_date_to_sec ()
 # Simple status for No CA mode
 noca_status ()
 {
-	print "Sorry - This is not currently implemented."
+	easytls_verbose
+	print "No-CA 'status' is not currently implemented."
+	easytls_verbose
 }
 
 
@@ -2445,7 +2457,7 @@ inline_index_verify_hash ()
 {
 	generate_and_match_valid_hash \
 		"${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_X_HASH}" || {
-			error_msg "inline_index_verify_hash fail"
+			error_msg "generate_and_match_valid_hash - inline_index_verify_hash"
 			return 1
 			}
 	easytls_verbose "Inline-index hash check OK"
@@ -2456,7 +2468,7 @@ inline_index_save_hash ()
 {
 	generate_and_save_file_hash \
 		"${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_X_HASH}" || {
-			error_msg "inline_index_save_hash - generate_and_save_file_hash"
+			error_msg "generate_and_save_file_hash - inline_index_save_hash"
 			return 1
 			}
 	easytls_verbose "Inline-index hash save OK"
