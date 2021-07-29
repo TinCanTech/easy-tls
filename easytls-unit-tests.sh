@@ -214,7 +214,7 @@ echo "============================================================"
 [ $NOCA_ONLY ] && exit 0
 noca_end_time="$(date +%s)"
 noca_run_mins="$(( (noca_end_time - start_time) / 60 ))"
-noca_run_secs="$(( (noca_end_time - start_time) - ( run_mins * 60 ) ))"
+noca_run_secs="$(( (noca_end_time - start_time) - ( noca_run_mins * 60 ) ))"
 print "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
 #rm -rf "$PKI_DIR"
 
