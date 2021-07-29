@@ -528,10 +528,10 @@ deps ()
 	fi
 
 	# Test temp dir
-	[ -d "${EASYTLS_tmp_dir}" ] || {
-		help_note="You must create the temporary directory."
-		die "Temporary directory does not exist ${EASYTLS_tmp_dir}" 60
-		}
+	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
+
+	# Windows log
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tcv2v.log.${EASYTLS_srv_pid}"
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -623,9 +623,6 @@ deps ()
 		help_note="This script can ONLY be used by a running openvpn server."
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
-
-	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tcv2v.log.${EASYTLS_srv_pid}"
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"

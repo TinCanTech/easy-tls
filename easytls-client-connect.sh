@@ -224,10 +224,7 @@ deps ()
 	fi
 
 	# Test temp dir
-	[ -d "${EASYTLS_tmp_dir}" ] || {
-		help_note="You must create the temporary directory."
-		die "Temporary dirictory does not exist ${EASYTLS_tmp_dir}" 60
-		}
+	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Windows log
 	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log.${EASYTLS_srv_pid}"

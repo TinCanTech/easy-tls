@@ -277,10 +277,10 @@ deps ()
 	fi
 
 	# Test temp dir
-	[ -d "${EASYTLS_tmp_dir}" ] || {
-		help_note="You must create the temporary directory."
-		die "Temporary dirictory does not exist ${EASYTLS_tmp_dir}" 60
-		}
+	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
+
+	# Windows log
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tv.log.${EASYTLS_srv_pid}"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -324,9 +324,6 @@ deps ()
 		help_note="This script requires Openvpn --tls-export-cert"
 		die "Missing peer_cert variable or file: ${peer_cert}" 15
 		}
-
-	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tv.log.${EASYTLS_srv_pid}"
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
