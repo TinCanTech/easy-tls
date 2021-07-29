@@ -123,6 +123,8 @@ build_vars ()
 
 echo '===[  Easy-TLS Unit Tests ]==='
 
+start_time="$(date +%s)"
+
 WORK_DIR="$(pwd)"
 #mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
 
@@ -210,6 +212,10 @@ done
 echo "============================================================"
 
 [ $NOCA_ONLY ] && exit 0
+noca_end_time="$(date +%s)"
+noca_run_mins="$(( (noca_end_time - start_time) / 60 ))"
+noca_run_secs="$(( (noca_end_time - start_time) - ( run_mins * 60 ) ))"
+print "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
 #rm -rf "$PKI_DIR"
 
 export EASYRSA_CERT_RENEW=1000
@@ -225,6 +231,7 @@ QUIT_LOOP=${QUIT_LOOP:-0}
 
 for loops in 1 2 3
 do
+	eval loop_${loops}_start_time="$(date +%s)"
 	# Set errexit for all easytls
 	#set -e
 
@@ -242,10 +249,20 @@ do
 		print "Total verified expected errors = 54"
 		print "total_expected_errors = $total_expected_errors"
 		[ $total_expected_errors -eq 54 ] || {
+			end_time="$(date +%s)"
+			run_mins="$(( (end_time - start_time) / 60 ))"
+			run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
+			print "Duration: $run_mins minutes $run_secs seconds"
 			print "***** EXPECTED ERROR COUNT INCORRECT *****"
 			exit 1
 			}
-		[ $EASYTLS_REMOTE_CI ] && exit 0
+		[ $EASYTLS_REMOTE_CI ] && {
+			end_time="$(date +%s)"
+			run_mins="$(( (end_time - start_time) / 60 ))"
+			run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
+			print "Duration: $run_mins minutes $run_secs seconds"
+			exit 0
+			}
 	fi
 
 	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
@@ -556,11 +573,16 @@ do
 	eval subtot_${loops}=${subtot_expected_errors}
 	subtot_expected_errors=0
 
+	eval loop_${loops}_end_time="$(date +%s)"
+	eval loop_${loops}_run_mins="$(( (loop_${loops}_end_time - loop_${loops}_start_time) / 60 ))"
+	eval loop_${loops}_run_secs="$(( (loop_${loops}_end_time - loop_${loops}_start_time) - ( loop_${loops}_run_mins * 60 ) ))"
+
 	[ $loops -eq $QUIT_LOOP ] && exit 0
 
 done # => loops
 
 # Now test a cross-polinated TCV2 key
+final_start_time="$(date +%s)"
 printf '\n\n\n'
 print "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
@@ -761,6 +783,10 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
 		fail "Unit test error 71: version"
 
+final_end_time="$(date +%s)"
+final_run_mins="$(( (final_end_time - final_start_time) / 60 ))"
+final_run_secs="$(( (final_end_time - final_start_time) - ( final_run_mins * 60 ) ))"
+
 echo "============================================================"
 echo "Clean up"
 clean_up
@@ -774,6 +800,18 @@ echo "Last part cross-polinated: $subtot_expected_errors (Expected 77 Verified)"
 echo "total_expected_errors=$total_expected_errors (Expected 239 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
+
+print "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
+print "loop1 Duration: $loop_1_run_mins minutes $loop_1_run_secs seconds"
+print "loop2 Duration: $loop_2_run_mins minutes $loop_2_run_secs seconds"
+print "loop3 Duration: $loop_3_run_mins minutes $loop_3_run_secs seconds"
+print "Final Duration: $final_run_mins minutes $final_run_secs seconds"
+
+end_time="$(date +%s)"
+run_mins="$(( (end_time - start_time) / 60 ))"
+run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
+print "Total Duration: $run_mins minutes $run_secs seconds"
+
 echo
 [ $total_expected_errors -eq 239 ] || {
 	echo "Expected ERROR count incorrect!"

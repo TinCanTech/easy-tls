@@ -67,4 +67,4 @@ fi
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
 
-	time sh easytls-unit-tests.sh
+	sh easytls-unit-tests.sh
