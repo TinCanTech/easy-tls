@@ -975,6 +975,10 @@ config_use ()
 	;;
 	esac
 
+	# Fixed TLS key serial
+	fixed_tls_auth_serial=7A01
+	fixed_tls_cryptv1_serial=7C01
+
 	EASYTLS_VERSION="${EASYTLS_VERSION}/${EASYTLS_STATUS}"
 
 	# maintenance
@@ -2669,7 +2673,7 @@ remove_inline ()
 
 	# Inline serial
 	x509_cert_serial "${inline_file}" inline_serial || {
-		error_msg "inline_index_update - x509_cert_serial"
+		error_msg "x509_cert_serial - remove_inline"
 		return 1
 		}
 
@@ -2953,7 +2957,7 @@ tlskey_index_verify_hash ()
 {
 	generate_and_match_valid_hash \
 		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
-			error_msg "tlskey_index_verify_hash fail"
+			error_msg "generate_and_match_valid_hash - tlskey_index_verify_hash"
 			return 1
 			}
 	easytls_verbose "tlskey-index hash check OK"
@@ -2964,7 +2968,7 @@ tlskey_index_save_hash ()
 {
 	generate_and_save_file_hash \
 		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
-			error_msg "tlskey_index_save_hash fail"
+			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
 	easytls_verbose "tlskey-index hash save OK"
@@ -3478,10 +3482,20 @@ inline_tls_auth ()
 	inline_base="${EASYTLS_PKI}/${name}.base"
 
 	# Check inline file does not exist
-	[ -f "${inline_file}" ] && {
-		help_note="Use 'easytls remove' to delete the old inline file."
-		die "Inline file already exists: ${inline_file}"
-		}
+	if [ -f "${inline_file}" ]
+	then
+		if "${EASYTLS_GREP}" -q \
+			'# Easy-TLS self-signed certificate base-inline file' \
+			"${inline_file}"
+		then
+			# This file can be over-writen
+			confirm "Are you sure you want to over-write the file? " "yes" \
+				"This base-inline-file already exists: ${inline_file}"
+		else
+			help_note="Use 'easytls remove' to delete the old inline file."
+			die "Inline file already exists: ${inline_file}"
+		fi
+	fi
 
 	# Check tls-auth key exists
 	[ -f "${tlskey_file}" ] || {
@@ -3508,6 +3522,8 @@ inline_tls_auth ()
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-auth>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-auth>"
+
+		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended porpose
@@ -3517,6 +3533,8 @@ inline_tls_auth ()
 	"${EASYTLS_RM}" -f "${inline_base}" "${inline_temp}"
 
 	# Hash inline file and add hash to index
+	# TLS-Crypt-V1 do not have a serial so use preset
+	tlskey_serial=${fixed_tls_auth_serial}
 	inline_index_update add || die "Failed to update inline-index"
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
@@ -3549,10 +3567,20 @@ inline_tls_crypt_v1 ()
 	inline_base="${EASYTLS_PKI}/${name}.base"
 
 	# Check inline file does not exist
-	[ -f "${inline_file}" ] && {
-		help_note="Use 'easytls remove' to delete the old inline file."
-		die "Inline file already exists: ${inline_file}"
-		}
+	if [ -f "${inline_file}" ]
+	then
+		if "${EASYTLS_GREP}" -q \
+			'# Easy-TLS self-signed certificate base-inline file' \
+			"${inline_file}"
+		then
+			# This file can be over-writen
+			confirm "Are you sure you want to over-write the file? " "yes" \
+				"This base-inline-file already exists: ${inline_file}"
+		else
+			help_note="Use 'easytls remove' to delete the old inline file."
+			die "Inline file already exists: ${inline_file}"
+		fi
+	fi
 
 	# Check tls-crypt key exists
 	[ -f "${tlskey_file}" ] || {
@@ -3567,6 +3595,8 @@ inline_tls_crypt_v1 ()
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt>"
+
+		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended porpose
@@ -3576,6 +3606,8 @@ inline_tls_crypt_v1 ()
 	"${EASYTLS_RM}" -f "${inline_base}" "${inline_temp}"
 
 	# Hash inline file and add hash to index
+	# TLS-Crypt-V1 do not have a serial so use preset
+	tlskey_serial=${fixed_tls_cryptv1_serial}
 	inline_index_update add || die "Failed to update inline-index"
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
@@ -3630,10 +3662,20 @@ inline_tls_crypt_v2 ()
 		}
 
 	# Check inline file does not exist
-	[ -f "${inline_file}" ] && {
-		help_note="Use 'easytls remove' to delete the old inline file."
-		die "Inline file already exists: ${inline_file}"
-		}
+	if [ -f "${inline_file}" ]
+	then
+		if "${EASYTLS_GREP}" -q \
+			'# Easy-TLS self-signed certificate base-inline file' \
+			"${inline_file}"
+		then
+			# This file can be over-writen
+			confirm "Are you sure you want to over-write the file? " "yes" \
+				"This base-inline-file already exists: ${inline_file}"
+		else
+			help_note="Use 'easytls remove' to delete the old inline file."
+			die "Inline file already exists: ${inline_file}"
+		fi
+	fi
 
 	# Check tls-crypt key exists
 	[ -f "${tlskey_file}" ] || {
@@ -3751,7 +3793,7 @@ inline_tls_crypt_v2 ()
 			[ "${MD_opt}" = "OPT" ] || \
 				"${EASYTLS_PRINTF}" '%s\n' "# Opt: ${MD_opt}"
 			"${EASYTLS_PRINTF}" '%s' "# Key status: "
-			if [ "${MD_hw}" = "000000000000" ]
+			if [ "${MD_hw}" = "=000000000000=" ]
 			then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
 			else
@@ -3768,6 +3810,8 @@ inline_tls_crypt_v2 ()
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
+
+		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended porpose
@@ -3788,17 +3832,28 @@ inline_tls_crypt_v2 ()
 # Share peer fingerprints
 inline_share_fingerprint ()
 {
-	if [ $EASYTLS_NO_CA ] && [ -n "${EASYTLS_PEER_FPR}" ] && \
-		[ "${cert_purpose}" = "Client" ]
-	then
-		# Do it
-		:
-	else
-		# Don't do it
+	[ $EASYTLS_NO_CA ] || return 0
+	[ $# -eq 0 ] && {
+		# Only add inline tags for fingerprint
+		"${EASYTLS_PRINTF}" '%s\n' "<peer-fingerprint>"
+		"${EASYTLS_PRINTF}" '%s\n' \
+			" * Replace this line with your peer's fingerprint *"
+		"${EASYTLS_PRINTF}" '%s\n' "</peer-fingerprint>"
+		#"${EASYTLS_PRINTF}" '\n%s\n' "# Place a TLS-key below"
+		#"${EASYTLS_PRINTF}" '%s\n\n' \
+		#	"# Valid tags are: <tls-auth>, <tls-crypt> and <tls-crypt-v2>"
 		return 0
-	fi
+		}
 
 	[ $# -ge 1 ] || die "Required option: client commonName"
+	if [ -n "${EASYTLS_PEER_FPR}" ] && {
+		[ "${cert_purpose}" = "Client" ] || [ "${cert_type}" = "Client" ]; }
+	then
+		# share fingerprints of server and client
+		:
+	else
+		return 0
+	fi
 
 	# Client setup
 	cli_name="${1}"
@@ -3806,7 +3861,7 @@ inline_share_fingerprint ()
 	[ -f "${cli_cert}" ] || \
 		missing_file "inline_share_fingerprint - ${cli_cert}"
 	cli_inline="${EASYTLS_PKI}/${cli_name}.inline"
-	cli_fp_list="${EASYTLS_PKI}/${cli_name}.pfp-list"
+	cli_fp_list="${EASYTLS_DATA_DIR}/${cli_name}.pfp-list"
 	# Set TLSKEY_SUBNAME names
 	sub_name="${name}-${TLSKEY_SUBNAME}"
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
@@ -3829,7 +3884,7 @@ inline_share_fingerprint ()
 	srv_inline="${EASYTLS_PKI}/${srv_name}.inline"
 	[ -f "${srv_inline}" ] || \
 		missing_file "inline_share_fingerprint - ${srv_inline}"
-	srv_fp_list="${EASYTLS_PKI}/${srv_name}.pfp-list"
+	srv_fp_list="${EASYTLS_DATA_DIR}/${srv_name}.pfp-list"
 	srv_fpr="$(openssl_generate_fingerprint "${srv_cert}")" || {
 		error_msg "srv_fpr"
 		return 1
@@ -3846,16 +3901,22 @@ inline_share_fingerprint ()
 	done
 	fpr_tplt="${fpr_tplt}.."
 
-	# Remove node from inline index
+	# Actual inline-file hash
 	generate_and_validate_file_hash "${cli_inline}" verified_inline_hash || {
 		error_msg "inline_share_fingerprint - generate_and_validate_file_hash"
 		error_msg "${cli_inline}"
 		return 1
 		}
 
-	known_inline_hash=${verified_inline_hash}
-	inline_serial="$(inline_index_ilhash_to_serial)"
-	inline_index_update del || die "Failed to update inline-index"
+	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
+	then
+		# Remove client from inline index
+		known_inline_hash=${verified_inline_hash}
+		inline_serial="$(inline_index_ilhash_to_serial)"
+		inline_index_update del || die "Failed to update inline-index"
+	else
+		do_not_index_client_inline_file=1
+	fi
 
 	# Give server name and FP to client
 	{	print "# Peer-Server ${srv_name}"
@@ -3864,8 +3925,11 @@ inline_share_fingerprint ()
 	"${EASYTLS_MV}" -f "${cli_fp_list}-temp" "${cli_fp_list}"
 
 	# Delete existing
-	"${EASYTLS_SED}" -i -e "\\\^<peer-fingerprint>\$\\d" \
-		-e "\\\^#[[:blank:]]Peer-Server.*\$\\d" -e "\\\^${fpr_tplt}\$\\d" \
+	"${EASYTLS_SED}" -i \
+		-e "\\\^<peer-fingerprint>\$\\d" \
+		-e "\\\^#[[:blank:]]Peer-Server.*\$\\d" \
+		-e "\\\^.* Replace this line with your peer's fingerprint .*\$\\d" \
+		-e "\\\^${fpr_tplt}\$\\d" \
 		-e "\\\^</peer-fingerprint>\$\\d" "${cli_inline}"
 
 	# Append new
@@ -3876,10 +3940,12 @@ inline_share_fingerprint ()
 	} > "${cli_inline}-temp"
 	"${EASYTLS_MV}" -f "${cli_inline}-temp" "${cli_inline}"
 
-	# Add node to inline-index
-	name="${cli_name}"
-	inline_file="${cli_inline}"
-	inline_index_update add || die "Failed to update inline-index"
+	# Add client to inline-index
+	[ $do_not_index_client_inline_file ] || {
+		name="${cli_name}"
+		inline_file="${cli_inline}"
+		inline_index_update add || die "Failed to update inline-index"
+		}
 
 	# Remove node from inline-index
 	generate_and_validate_file_hash "${srv_inline}" verified_inline_hash || {
@@ -3888,9 +3954,15 @@ inline_share_fingerprint ()
 		return 1
 		}
 
-	known_inline_hash=${verified_inline_hash}
-	inline_serial="$(inline_index_ilhash_to_serial)"
-	inline_index_update del || die "Failed to update inline-index"
+	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
+	then
+		# Remove node from inline index
+		known_inline_hash=${verified_inline_hash}
+		inline_serial="$(inline_index_ilhash_to_serial)"
+		inline_index_update del || die "Failed to update inline-index"
+	else
+		do_not_index_server_inline_file=1
+	fi
 
 	# Add client name and FP to server FP list
 	if [ -f "${srv_fp_list}" ] && \
@@ -3908,9 +3980,13 @@ inline_share_fingerprint ()
 
 	# Update server peer-fingerprint list in inline-file
 	# Delete existing
-	"${EASYTLS_SED}" -i -e "\\\^<peer-fingerprint>\$\\d" \
-		-e "\\\^#[[:blank:]]Peer-Client.*\$\\d" -e "\\\^${fpr_tplt}\$\\d" \
+	"${EASYTLS_SED}" -i \
+		-e "\\\^<peer-fingerprint>\$\\d" \
+		-e "\\\^#[[:blank:]]Peer-Client.*\$\\d" \
+		-e "\\\^.* Replace this line with your peer's fingerprint .*\$\\d" \
+		-e "\\\^${fpr_tplt}\$\\d" \
 		-e "\\\^</peer-fingerprint>\$\\d" "${srv_inline}"
+
 	# Append new
 	{	"${EASYTLS_CAT}" "${srv_inline}"
 		print "<peer-fingerprint>"
@@ -3920,11 +3996,13 @@ inline_share_fingerprint ()
 	"${EASYTLS_MV}" -f "${srv_inline}-temp" "${srv_inline}"
 
 	# Add node to inline-index
-	TLSKEY_SUBNAME='NOSUBKEY'
-	tlskey_serial=${cv2_Srv_Serial}
-	name="${srv_name}"
-	inline_file="${srv_inline}"
-	inline_index_update add || die "Failed to update inline-index"
+	[ $do_not_index_server_inline_file ] || {
+		TLSKEY_SUBNAME='NOSUBKEY'
+		tlskey_serial=${cv2_Srv_Serial}
+		name="${srv_name}"
+		inline_file="${srv_inline}"
+		inline_index_update add || die "Failed to update inline-index"
+		}
 } # => inline_share_fingerprint ()
 
 
@@ -4366,6 +4444,7 @@ build_self_sign ()
 	cert_file="${EASYTLS_PKI}/${cert_name}.crt"
 	key_file="${EASYTLS_PKI}/${cert_name}.key"
 	fpr_file="${EASYTLS_PKI}/${cert_name}.fpr"
+	inline_file="${EASYTLS_PKI}/${cert_name}.inline"
 
 	[ -f "${cert_file}" ] && {
 		help_note="Not over-writing current certificate"
@@ -4377,17 +4456,24 @@ build_self_sign ()
 		die "Key exists: ${key_file}"
 		}
 
+	[ -f "${inline_file}" ] && {
+		help_note="Not over-writing current inline file"
+		die "Inline file exists: ${inline_file}"
+		}
+
 	# Certificate type
 	case "${cert_type}" in
 		[sS]erver)
 			# Certificate extension: TLS Web Server
 			EASYTLS_EKU="serverAuth"
 			openssl_eku="-addext extendedKeyUsage"
+			cert_purpose='Server'
 		;;
 		[cC]lient)
 			# Certificate extension: TLS Web Server
 			EASYTLS_EKU="clientAuth"
 			openssl_eku="-addext extendedKeyUsage"
+			cert_purpose='Client'
 		;;
 		*)
 			die "Unknown certificate type: ${cert_type}"
@@ -4405,17 +4491,38 @@ build_self_sign ()
 	create_fingerprint "${cert_file}" "${fpr_file}" || \
 		die "Failed to create fingerprint for ${cert_name}"
 
+	# Create base-inline-file - Clients cannot generate TLS-keys
+	# Do not add this inline-file to inline-index
+	{
+		"${EASYTLS_PRINTF}" '%s\n' \
+			"# Easy-TLS self-signed certificate base-inline file"
+		"${EASYTLS_PRINTF}" '%s\n' "# ${cert_type}: ${cert_name}"
+		"${EASYTLS_PRINTF}" '%s\n\n' \
+			"# Send this to your peer - Fingerprint: ${cert_fpr}"
+		"${EASYTLS_PRINTF}" '%s\n' "<cert>"
+		"${EASYTLS_CAT}" "${cert_file}"
+		"${EASYTLS_PRINTF}" '%s\n\n' "<\cert>"
+		"${EASYTLS_PRINTF}" '%s\n' "<key>"
+		"${EASYTLS_CAT}" "${key_file}"
+		"${EASYTLS_PRINTF}" '%s\n\n' "<\key>"
+
+		inline_share_fingerprint
+	} > "${inline_file}" || die "Failed to create Inline file for ${cert_name}"
+
+	inline_share_fingerprint "${cert_name}" || \
+		die "inline_share_fingerprint - build_self_sign"
+
 	notice "Self signed ${cert_type} certificate/key created for ${cert_name}"
 	notice " * Certificate: ${cert_file}"
 	notice " *         Key: ${key_file}"
 	notice " * Fingerprint: ${fpr_file}"
+	notice " * Inline file: ${inline_file}"
+	"${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt" "${inline_file}" || \
+		print "   This inline-file requires a TLS-key"
+	"${EASYTLS_GREP}" -q \
+		"^.* Replace this line with your peer's fingerprint .*$" \
+		"${inline_file}" && print "   AND peer-fingerprint"
 	easytls_verbose
-
-	if [ $EASYTLS_BINLINE ]
-	then
-		# TODO: inline cert/key
-		:
-	fi
 
 	# Explicit return success
 	return 0
@@ -4442,7 +4549,8 @@ create_fingerprint ()
 	cert_fpr="$(openssl_generate_fingerprint "${1}")" || return 1
 	cert_fpr="${cert_fpr##*=}"
 	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" > "${2}" || return 1
-	unset cert_fpr
+	# cert_fpr gets used after return
+	#unset cert_fpr
 } # => create_fingerprint ()
 
 # Fingerprint
@@ -4881,6 +4989,7 @@ interactive_build ()
 		interactive_common_name
 		unset ia_extra_help
 		opt_server_name="$common_name"
+		EASYTLS_PEER_FPR="${opt_server_name}"
 
 		# Set Client name
 		opt_client_name=""
@@ -5006,17 +5115,18 @@ interactive_inline ()
   Select the type of Inline-file to build:'
 	interactive_question
 
-	case $ia_answer in
+	case ${ia_answer} in
 	1|2)
 		# Inline TLS Auth Server|Client
 		cert_type='Client'
-		[ "$ia_answer" = '1' ] && cert_type='Server'
+		[ "${ia_answer}" = '1' ] && cert_type='Server'
 
-		"$EASYTLS_PRINTF" '\n%s\n' "* Create TLS-Auth $cert_type inline-file"
+		"${EASYTLS_PRINTF}" '\n%s\n' "* Create TLS-Auth ${cert_type} inline-file"
 		cmd_line="${cmd_line}-tls-auth"
 
 		# Set commonName
 		interactive_common_name
+		opt_common_name="${common_name}"
 
 		# Set key_dir
 		interactive_key_direction
@@ -5025,20 +5135,24 @@ interactive_inline ()
 		interactive_opt_no_key
 
 		# Set opt_add_dh
-		default_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$default_dh_file" ]
+		default_dh_file="${EASYRSA_PKI}/dh.pem"
+		if [ -f "${default_dh_file}" ]
 		then
-			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
+			[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
 		else
-			[ "$cert_type" = 'Server' ] && interactive_custom_dh
+			[ "${cert_type}" = 'Server' ] && interactive_custom_dh
 		fi
+
+		# share fingerprint
+		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
+			interactive_selfsign_peer
 
 		# Print command
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_auth "$common_name" "$key_direction" \
-			${opt_no_key} ${opt_add_dh} ${opt_custom_dh} || {
+		inline_tls_auth "${opt_common_name}" \
+			${key_direction} ${opt_no_key} ${opt_add_dh} ${opt_custom_dh} || {
 				error_msg '**Create inline-file failed'
 				return 1
 				}
@@ -5046,43 +5160,49 @@ interactive_inline ()
 	3|4)
 		# Inline TLS Crypt v1 Server or Client
 		cert_type='Client'
-		[ "$ia_answer" = '3' ] && cert_type='Server'
+		[ "${ia_answer}" = '3' ] && cert_type='Server'
 
-		"$EASYTLS_PRINTF" '\n%s\n' "* Create TLS-Crypt-V1 $cert_type inline-file"
+		"${EASYTLS_PRINTF}" '\n%s\n' "* Create TLS-Crypt-V1 $cert_type inline-file"
 		cmd_line="${cmd_line}-tls-crypt"
 
 		# Set commonName
 		interactive_common_name
+		opt_common_name="${common_name}"
 
 		# Set opt_no_key
 		interactive_opt_no_key
 
 		# Set opt_add_dh
-		default_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$default_dh_file" ]
+		default_dh_file="${EASYRSA_PKI}/dh.pem"
+		if [ -f "${default_dh_file}" ]
 		then
-			[ "$cert_type" = 'Server' ] && interactive_opt_add_dh
+			[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
 		else
-			[ "$cert_type" = 'Server' ] && interactive_custom_dh
+			[ "${cert_type}" = 'Server' ] && interactive_custom_dh
 		fi
+
+		# share fingerprint
+		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
+			interactive_selfsign_peer
 
 		# Print command
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_crypt_v1 "$common_name" \
+		inline_tls_crypt_v1 "${opt_common_name}" \
 			${opt_no_key} ${opt_add_dh} ${opt_custom_dh} || {
 				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
 	5)	# Inline TLS Crypt v2 Server
-		"$EASYTLS_PRINTF" '\n%s\n' '* Create TLS-Crypt-v2 Server inline-file'
+		"${EASYTLS_PRINTF}" '\n%s\n' '* Create TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Server"
 
 		# Set commonName
 		interactive_common_name
+		opt_common_name="${common_name}"
 
 		# Verify purpose
 		interactive_verify_cert
@@ -5091,8 +5211,8 @@ interactive_inline ()
 		interactive_opt_no_key
 
 		# Set opt_add_dh
-		default_dh_file="$EASYRSA_PKI/dh.pem"
-		if [ -f "$default_dh_file" ]
+		default_dh_file="${EASYRSA_PKI}/dh.pem"
+		if [ -f "${default_dh_file}" ]
 		then
 			interactive_opt_add_dh
 		else
@@ -5103,19 +5223,20 @@ interactive_inline ()
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_crypt_v2 "$common_name" \
+		inline_tls_crypt_v2 "${opt_common_name}" \
 			${opt_no_key} ${opt_add_dh} || {
 				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
 	6)	# Inline TLS Crypt v2 Client
-		"$EASYTLS_PRINTF" '\n%s\n' '* Create TLS-Crypt-v2 Client inline-file'
+		"${EASYTLS_PRINTF}" '\n%s\n' '* Create TLS-Crypt-v2 Client inline-file'
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Client"
 
 		# Set commonName
 		interactive_common_name
+		opt_common_name="${common_name}"
 
 		# Verify purpose
 		interactive_verify_cert
@@ -5132,18 +5253,21 @@ interactive_inline ()
 		# Set opt_add_hw
 		interactive_opt_add_hw
 
+		# share fingerprint
+		[ $EASYTLS_NO_CA ] && interactive_selfsign_peer
+
 		# Print command
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_crypt_v2 \
-			"$common_name" ${opt_no_key} ${opt_no_md} ${opt_add_hw} || {
+		inline_tls_crypt_v2 "${opt_common_name}" \
+			${opt_no_key} ${opt_no_md} ${opt_add_hw} || {
 				error_msg '**Create inline-file failed'
 				return 1
 				}
 	;;
 	*)	# Other value -> Quit
-		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+		"${EASYTLS_PRINTF}" '\n%s\n' '  Quit!'
 	esac
 } # => interactive_inline ()
 
@@ -5179,6 +5303,9 @@ interactive_remove ()
 		cert_type='Client'
 		interactive_common_name
 		opt_name="$common_name"
+		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
+		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MD_DIR}/${opt_name}-tls-crypt-v2.metadata"
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
@@ -5258,8 +5385,8 @@ interactive_remove ()
 				"  * TLS-Crypt-V2 Client key removed: $key_file"
 		else
 			"$EASYTLS_PRINTF" '\n%s\n' \
-				"  * Inline-file removed. "
-			"$EASYTLS_PRINTF" '\n%s\n'	'    TLS-Crypt-V2 Key is unchanged.'
+			'  * Inline-file removed. TLS-Crypt-V2 key is unchanged.'
+			easytls_verbose
 		fi
 	;;
 	2)	# Remove client key
@@ -5403,6 +5530,7 @@ interactive_remove ()
 		else
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				'  * Inline-file removed. TLS-Crypt-V2 key is unchanged.'
+			easytls_verbose
 		fi
 	;;
 	4)	# Remove Server key
@@ -5754,30 +5882,24 @@ interactive_selfsign ()
 
 	# Choose Key
 	ia_question_help='
-* Available Self-signed and Inline-file types:'
+* Available Self-signed certificates:'
 	ia_question_text='
-  [1] Self-signed server with TLS-Auth key
-  [2] Self-signed client with TLS-Auth key and shared fingerprints
-  [3] Self-signed server with TLS-Crypt-V1 key
-  [4] Self-signed client with TLS-Crypt-V1 key and shared fingerprints
-  [5] Self-signed server with TLS-Crypt-V2 Server key
-  [6] Self-signed client with TLS-Crypt-V2 Client key and shared fingerprints
+  [1] Self-signed server
+  [2] Self-signed client
 
   Select the type of self-sign certificate to build:'
 	interactive_question
 
 	case $ia_answer in
-	1)	# Self-signed server with TLS-Auth key
+	1)	# Self-signed server
 		cert_type='Server'
 		key_type='tls-auth'
-		[ -f "${EASYTLS_PKI}/tls-auth.key" ] || missing_file "TLS-Auth key"
 		interactive_selfsign_CN
 		svr_name="${common_name}"
 		interactive_selfsign_PW
 		build_self_sign "${cert_type}" "${svr_name}"
-		inline_tls_auth "${svr_name}" 0
 	;;
-	2)	# Self-signed client with TLS-Auth key
+	2)	# Self-signed client
 		cert_type='Client'
 		interactive_selfsign_CN
 		cli_name="${common_name}"
@@ -5785,18 +5907,10 @@ interactive_selfsign ()
 		interactive_selfsign_peer
 		EASYTLS_PEER_FPR="${common_name}"
 		build_self_sign "${cert_type}" "${cli_name}"
-		inline_tls_auth "${cli_name}" 1
-		#inline_share_fingerprint "${cli_name}" || die "try again.."
-	;;
-	3|4)
-		[ -f "${EASYTLS_PKI}/tls-crypt.key" ] || missing_file "TLS-crypt key"
-	;;
-	5)
-	;;
-	6)
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+	;;
 	esac
 }
 
@@ -5845,6 +5959,7 @@ interactive_selfsign_peer ()
 		cert_file="${EASYTLS_PKI}/${common_name}.crt"
 		[ -f "${cert_file}" ] && {
 			cmd_line="${cmd_line} ${common_name}"
+			export EASYTLS_PEER_FPR="${common_name}"
 			break
 			}
 		ia_question_text="  Press enter to continue.."
@@ -5954,6 +6069,7 @@ interactive_sub_key_name ()
 		inline_file="${EASYTLS_PKI}/${full_name}.inline"
 		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
 		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		unset full_name
 		}
 } # => interactive_sub_key_name ()
 
