@@ -4712,27 +4712,6 @@ disabled_list_save_hash ()
 # Inter-active Section - Work in progress
 #
 
-# Verify PKI
-interactive_verify_pki ()
-{
-	if [ -d "$EASYTLS_PKI" ]
-	then
-		# Found easytls pki
-		return 0
-	else
-		# Not Found easytls pki
-		"$EASYTLS_PRINTF" '\n%s\n' "Cannot find your EasyRSA-PKI, expected to be:"
-		"$EASYTLS_PRINTF" '\n%s\n' "  $EASYRSA_PKI"
-		"$EASYTLS_PRINTF" '\n%s\n' "Make sure you have run: ./easytls init-tls"
-		"$EASYTLS_PRINTF" '\n%s\n' \
-			"Please re-run this command and specify your PKI like so:"
-		"$EASYTLS_PRINTF" '\n%s\n' "  ./easytls  --pki-dir=Your-PKI  build"
-		"$EASYTLS_PRINTF" '\n%s\n' "Example for Your-PKI could be: test-pki"
-		"$EASYTLS_PRINTF" '\n%s\n' "Quit!"
-		return 1
-	fi
-} # => interactive_verify_pki ()
-
 # Ask a question
 interactive_question ()
 {
@@ -4768,12 +4747,6 @@ interactive_show_cmd ()
 interactive_build ()
 {
 	"$EASYTLS_PRINTF" '\n%s\n' 'Easy-TLS Inter-active TLS-key builder Menu.'
-
-	# Verify PKI
-	interactive_verify_pki || {
-		error_msg 'Please create and/or specify your PKI directory.'
-		return 1
-		}
 
 	# Capture the command line to build
 	cmd_line='build'
@@ -5012,12 +4985,6 @@ interactive_inline ()
 {
 	"$EASYTLS_PRINTF" '\n%s\n' 'Easy-TLS Inter-active Inline-file builder Menu.'
 
-	# Verify PKI
-	interactive_verify_pki || {
-		error_msg 'Please create and/or specify your PKI directory.'
-		return 1
-		}
-
 	# Capture the command line to inline
 	cmd_line='inline'
 
@@ -5180,12 +5147,6 @@ interactive_inline ()
 interactive_remove ()
 {
 	"$EASYTLS_PRINTF" '\n%s\n' 'Easy-TLS Inter-active Remove Menu.'
-
-	# Verify PKI
-	interactive_verify_pki || {
-		error_msg 'Please create and/or specify your PKI directory.'
-		return 1
-		}
 
 	# Capture the command line to inline
 	cmd_line='remove'
@@ -5634,12 +5595,6 @@ interactive_remove_warning ()
 interactive_scripts ()
 {
 	"$EASYTLS_PRINTF" '\n%s\n' 'Easy-TLS Inter-active Script Configuration Menu.'
-
-	# Verify PKI
-	interactive_verify_pki || {
-		error_msg 'Please create and/or specify your PKI directory.'
-		return 1
-		}
 
 	# Capture the command line to inline
 	cmd_line=''
@@ -7426,7 +7381,6 @@ main ()
 			# Everything else
 
 			# Must have init TLS now - and PKI when not No-CA mode
-			[ $EASYTLS_NO_CA ] || verify_pki_init
 			verify_tls_init || {
 				error_msg "Easy-TLS has not been initialised."
 				error_msg "See help: ./easytls help init-tls"
@@ -7434,6 +7388,8 @@ main ()
 				#cmd_help init-tls
 				exit 1
 				}
+			[ $EASYTLS_NO_CA ] || verify_pki_init
+
 			# Verify me!
 			verify_wiscii_hash || {
 				help_note='
