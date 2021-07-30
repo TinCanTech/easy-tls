@@ -129,11 +129,15 @@ cmd_help()
 	case "${1}" in
 		init|init-tls) text="
   init-tls <hash_algorithm> no-ca
-      Removes & re-initializes the TLS key directory.
+      Removes & re-initializes the TLS-key directory.
+      * Easy-TLS requires that Easy-RSA is also initialised.
 
-        Specify an alternate <hash_algorithm> to use. (Default SHA256)
+        <hash_algorithm> - Specify an alternate hash algorithm. (Default SHA256)
 
-        no-ca - Do not use an Easy-RSA Certificate Authority [CA]." ;;
+        no-ca - Do not use an Easy-RSA Certificate Authority [CA].
+        * Option 'no-ca' allows Easy-TLS to function
+          without initialsing Easy-RSA.
+          Use 'no-ca' to build self-signed certificates and fingerprints." ;;
 		build|inline|remove|script|selfsign) text="
   Inter-active menus to build, inline, remove
   and configure various Easy-TLS files" ;;
@@ -590,24 +594,22 @@ verify_pki_init () {
 
 	# check that the pki dir exists
 	vars_source_check
-	[ -d "${EASYRSA_PKI}" ] || die "\
-Easy-TLS requires that you have initialised your Easy-RSA PKI.
-
-Easy-RSA error:
-
-EASYRSA_PKI does not exist (perhaps you need to run init-pki)?
-Expected to find the EASYRSA_PKI at: ${EASYRSA_PKI}
-"
+	[ -d "${EASYRSA_PKI}" ] || {
+				error_msg "Easy-TLS has not been initialised."
+				error_msg "See help: ./easytls help init-tls"
+				error_msg "$(cmd_help init-tls)"
+				exit 1
+				}
 
 	# verify expected dirs present:
 	for i in private reqs; do
-		[ -d "${EASYRSA_PKI}/${i}" ] || die "\
-Easy-TLS requires that you have initialised your Easy-RSA PKI.
+		[ -d "${EASYRSA_PKI}/${i}" ]  || {
+				error_msg "Easy-TLS has not been initialised."
+				error_msg "See help: ./easytls help init-tls"
+				error_msg "$(cmd_help init-tls)"
+				exit 1
+				}
 
-Easy-RSA error:
-
-Missing expected directory: ${i} (perhaps you need to run init-pki?)
-"
 	done
 	unset help_note
 } # => verify_pki_init ()
@@ -2364,6 +2366,7 @@ inline_expire ()
 # Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
 {
+	[ $EASYTLS_NO_CA ] && return 0
 	update_index_action="${1}"
 
 	# Verify inline-index Hash
@@ -2477,6 +2480,7 @@ inline_index_save_hash ()
 # Check inline-file hash
 inline_file_verify_hash ()
 {
+	[ $EASYTLS_NO_CA ] && return 0
 	# This is a check so check everything here
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
@@ -7385,7 +7389,6 @@ main ()
 				error_msg "Easy-TLS has not been initialised."
 				error_msg "See help: ./easytls help init-tls"
 				error_msg "$(cmd_help init-tls)"
-				#cmd_help init-tls
 				exit 1
 				}
 			[ $EASYTLS_NO_CA ] || verify_pki_init
