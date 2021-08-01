@@ -225,7 +225,7 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 
 [ v3_ca ]
 
-# Easy-PFP self-signed certificate created by Wind(bl)ows
+# Easy-TLS self-signed certificate
 # Required for OpenVPN --remote-cert-tls in Peer-Fingerprint mode
 keyUsage = digitalSignature, keyEncipherment
 
