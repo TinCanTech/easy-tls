@@ -1,5 +1,5 @@
 [![CI](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml/badge.svg)](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml)
-# Easy-TLS Features
+# Standard Features
 Easy-TLS is an Easy-RSA extension utility to help manage:
 + Easy-RSA based x509 security credentials
 + OpenVPN specific TLS keys
@@ -8,8 +8,11 @@ Easy-TLS is an Easy-RSA extension utility to help manage:
 + X509 Certificate **and matched** Easy-TLS Inline-file Expiry management tools
 + Complete **Inter-active Menus**
 
-# Additional tools
-EasyTLS scripts to interogate EasyTLS-CryptV2 metadata:
+# Additional Features
+Easy-TLS also supports No-CA mode, which does not require an Easy-RSA CA:
++ Use Easy-TLS to build **self-signed** X509 Certificates and keys.
+
+Easy-TLS scripts to interogate EasyTLS-CryptV2 metadata:
 + `easytls-cryptv2-verify.sh` - TLS-Crypt-V2 key metadata access policy tool.
 + `easytls-verify.sh` - TLS and X509 level access policy tool.
 + `easytls-client-connect.sh` - Hardware-address access policy tool.
