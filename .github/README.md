@@ -15,24 +15,25 @@ EasyTLS scripts to interogate EasyTLS-CryptV2 metadata:
 + `easytls-client-connect.sh` - Hardware-address access policy tool.
 
 ## Installation
-Simply copy `easytls` to your `easyrsa` working directory.
+Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls) and [**`easytls-openssl.cnf`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf) to your `easyrsa3` working directory.
 
 For full support, you will also need these scripts for use by your OpenVPN Server:
-+ `easytls-cryptv2-verify.sh`<br>
++ [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
   This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.
+  Also required for EasyTLS hardware-address access policy rules.
 
-+ `easytls-verify.sh`<br>
++ [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh<br>
   This script is  is used by Openvpn-Server to manage TLS verification.<br>
-  Required for EasyTLS hardware-address access policy rules.
+  Also required for EasyTLS hardware-address access policy rules.
 
-+ `easytls-cryptv2-client-connect.sh`<br>
++ [**`easytls-cryptv2-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-client-connect.sh)<br>
   This script is used by Openvpn-Server to manage hardware-address access policy rules.
 
 ## Environment
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
 
 ## Requirements
-+ Easy-RSA Version 3.0.5+
++ Easy-RSA Version 3.0.6+
 + OpenVPN Version 2.5.0+
 
 ## Support
