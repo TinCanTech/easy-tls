@@ -8,7 +8,12 @@
  `easytls` requires access to your PKI to verify and create keys.<br>
  It is not necessary to have a separate directory for `easytls`<br>
 
+* Download [easytls-openssl.cnf](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf)<br>
+
 * Download [easytls-cryptv2-verify.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
+  Requires access to the files created by `easytls`.<br>
+
+* Download [easytls-verify.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh)<br>
   Requires access to the files created by `easytls`.<br>
 
 * Download [easytls-cryptv2-client-connect.sh](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-client-connect.sh)<br>
