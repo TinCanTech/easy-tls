@@ -19,7 +19,7 @@ Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/eas
 
 For full support, you will also need these scripts for use by your OpenVPN Server:
 + [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
-  This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.
+  This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.<br>
   Also required for EasyTLS hardware-address access policy rules.
 
 + [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh)<br>

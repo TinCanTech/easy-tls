@@ -595,8 +595,9 @@ verify_pki_init () {
 	# check that the pki dir exists
 	vars_source_check
 	[ -d "${EASYRSA_PKI}" ] || {
-				error_msg "Easy-TLS has not been initialised."
-				error_msg "See help: ./easytls help init-tls"
+				error_msg "Easy-RSA has not been initialised."
+				error_msg "Easy-TLS requires an Easy-RSA CA"
+				error_msg "Otherwise, use Easy-TLS in No-CA mode"
 				error_msg "$(cmd_help init-tls)"
 				exit 1
 				}
@@ -604,8 +605,9 @@ verify_pki_init () {
 	# verify expected dirs present:
 	for i in private reqs; do
 		[ -d "${EASYRSA_PKI}/${i}" ]  || {
-				error_msg "Easy-TLS has not been initialised."
-				error_msg "See help: ./easytls help init-tls"
+				error_msg "Easy-RSA has not been initialised."
+				error_msg "Easy-TLS requires an Easy-RSA CA"
+				error_msg "Otherwise, use Easy-TLS in No-CA mode"
 				error_msg "$(cmd_help init-tls)"
 				exit 1
 				}
@@ -765,7 +767,7 @@ easytls_config ()
 	esac
 
 	case "${cfg_opt}" in
-		test.bool|no.ca)
+		test.bool)
 			case "${cfg_val}" in
 				0|1)
 					:
@@ -775,6 +777,10 @@ easytls_config ()
 					die "Unsupported value for ${cfg_opt}: ${cfg_val}"
 				;;
 			esac
+		;;
+		no.ca)
+			help_note="See help for init-tls"
+			die "To change No-CA mode you must create a new Easy-TLS PKI"
 		;;
 		tmp.dir)
 			#[ -d "$cfg_val" ] || {
