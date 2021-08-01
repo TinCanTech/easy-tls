@@ -22,11 +22,11 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
   This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.
   Also required for EasyTLS hardware-address access policy rules.
 
-+ [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh<br>
++ [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh)<br>
   This script is  is used by Openvpn-Server to manage TLS verification.<br>
   Also required for EasyTLS hardware-address access policy rules.
 
-+ [**`easytls-cryptv2-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-client-connect.sh)<br>
++ [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh)<br>
   This script is used by Openvpn-Server to manage hardware-address access policy rules.
 
 ## Environment
