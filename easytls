@@ -7485,8 +7485,6 @@ main ()
 			die "Error: init_tls"
 	;;
 	*)
-		# Other commands
-
 		# Load config options - Does not change command line options
 		config_use || die "config_use - Error: $?"
 
@@ -7498,8 +7496,6 @@ main ()
 				die "Error: easytls_version"
 		;;
 		*)
-			# Everything else
-
 			# Must have init TLS now - and PKI when not No-CA mode
 			verify_tls_init || {
 				error_msg "Easy-TLS has not been initialised."
