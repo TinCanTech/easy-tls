@@ -3858,7 +3858,17 @@ inline_tls_crypt_v2 ()
 		"${EASYTLS_PRINTF}" "%s\n" \
 			"# Easy-TLS version ${EASYTLS_VERSION} - TLS crypt v2 key"
 
-		[ $no_metadata ] || {
+		if [ $no_metadata ]
+		then
+			[ "${cert_purpose}" = 'Client' ] && {
+				"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
+				[ "${MD_subkey}" = 'NOSUBKEY' ] || \
+					"${EASYTLS_PRINTF}" '%s\n\n' "# Sub-key name: ${MD_subkey}"
+				}
+			"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
+			"${EASYTLS_CAT}" "${tlskey_file}"
+			"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
+		else
 			if [ $EASYTLS_NO_CA ]
 			then
 				"${EASYTLS_PRINTF}" '%s\n' "# Server-serial: ${srv_serial}"
@@ -3886,13 +3896,13 @@ inline_tls_crypt_v2 ()
 					"${EASYTLS_PRINTF}" '%s\n' "Closed"
 				fi
 			fi
-			}
-		[ "${cert_purpose}" = 'Client' ] && \
-			"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
-		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
-		"${EASYTLS_CAT}" "${tlskey_file}"
-		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
+			[ "${cert_purpose}" = 'Client' ] && \
+				"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
+			"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
+			"${EASYTLS_CAT}" "${tlskey_file}"
+			"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
 
+		fi
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
