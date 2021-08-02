@@ -4961,14 +4961,16 @@ interactive_build ()
 
 			# Set opt_add_dh or opt_custom_dh
 			default_dh_file="$EASYRSA_PKI/dh.pem"
-			if [ -f "$default_dh_file" ]
-			then
-				# opt_add_dh
-				interactive_opt_add_dh
-			else
-				# opt_custom_dh
-				interactive_custom_dh
-			fi
+			[ $EASYTLS_NO_CA ] || {
+				if [ -f "$default_dh_file" ]
+				then
+					# opt_add_dh
+					interactive_opt_add_dh
+				else
+					# opt_custom_dh
+					interactive_custom_dh
+				fi
+				}
 
 			# Print command
 			interactive_show_cmd
@@ -5142,12 +5144,14 @@ interactive_inline ()
 
 		# Set opt_add_dh
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
-		if [ -f "${default_dh_file}" ]
-		then
-			[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
-		else
-			[ "${cert_type}" = 'Server' ] && interactive_custom_dh
-		fi
+		[ $EASYTLS_NO_CA ] || {
+			if [ -f "${default_dh_file}" ]
+			then
+				[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
+			else
+				[ "${cert_type}" = 'Server' ] && interactive_custom_dh
+			fi
+			}
 
 		# share fingerprint
 		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
@@ -5180,12 +5184,14 @@ interactive_inline ()
 
 		# Set opt_add_dh
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
-		if [ -f "${default_dh_file}" ]
-		then
-			[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
-		else
-			[ "${cert_type}" = 'Server' ] && interactive_custom_dh
-		fi
+		[ $EASYTLS_NO_CA ] || {
+			if [ -f "${default_dh_file}" ]
+			then
+				[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
+			else
+				[ "${cert_type}" = 'Server' ] && interactive_custom_dh
+			fi
+			}
 
 		# share fingerprint
 		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
