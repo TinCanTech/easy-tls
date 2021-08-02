@@ -202,7 +202,7 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr}" \
 			"itcv2 s03" \
 			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
-			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw"
+			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" "status"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"

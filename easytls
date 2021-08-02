@@ -1813,9 +1813,21 @@ easytls_date_to_sec ()
 # Simple status for No CA mode
 noca_status ()
 {
-	easytls_verbose
-	print "No-CA 'status' is not currently implemented."
-	easytls_verbose
+	print "Easy-RSA: Valid X509 certificates:"
+	noca_status_x509_valid || {
+		error_msg "noca_status_x509_valid - noca_status"
+		return 1
+		}
+	print "Easy-TLS: Known inline files:"
+	noca_status_easytls_inline || {
+		error_msg "noca_status_easytls_inline - noca_status"
+		return 1
+		}
+	print "Easy-TLS: Known TLS keys:"
+	status_easytls_tlskeys || {
+		error_msg "status_easytls_tlskeys - noca_status"
+		return 1
+		}
 }
 
 
@@ -1954,6 +1966,17 @@ status_easytls_output ()
 		}'
 } # => status_easytls_output ()
 
+# Format status output from Easy-TLS
+noca_status_easytls_output ()
+{
+	"${EASYTLS_AWK}" '{
+		if ( NF == 2 )
+		print "  Common-Name " $1 "\t  X509-Serial " $2
+		else
+		print "  Common-Name " $1 "\t  X509-Serial " $2 "\t  Sub-key " $3
+		}'
+} # => status_easytls_output ()
+
 # Format status CN
 status_cn ()
 {
@@ -2001,10 +2024,63 @@ status_easyrsa_valid ()
 	do
 		ersa_valid_cn="$(status_valid_extract_cn)"
 		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
-		[ $silent_status ] || print "${ersa_valid_cn} ${i}" | \
-			status_easyrsa_output
+		[ $silent_status ] || \
+			print "${ersa_valid_cn} ${i}" | status_easyrsa_output
 	done
 } # => status_easyrsa_valid ()
+
+# Print Valid certs from Easy-RSA
+noca_status_x509_valid ()
+{
+	for i in "${EASYTLS_PKI}"/*.crt
+	do
+		ersa_valid_cn="$(get_openssl_crt_common_name "${i}")" || {
+			error_msg "ersa_valid_cn - noca_status_x509_valid"
+			return 1
+			}
+		ersa_valid_cn="${ersa_valid_cn##*=CN = }"
+		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
+		cert_serial=""
+		x509_cert_serial "${i}" cert_serial || {
+			error_msg "x509_cert_serial - noca_status_x509_valid"
+			return 1
+			}
+		[ $silent_status ] || \
+			print "${ersa_valid_cn} ${cert_serial}" | status_easyrsa_output
+	done
+} # => status_easyrsa_valid ()
+
+# Print known inline files from Easy-TLS
+noca_status_easytls_inline ()
+{
+	for i in "${EASYTLS_PKI}"/*.inline
+	do
+		etls_valid_name="$("${EASYTLS_GREP}" '^. Common name: ' "${i}")" || {
+			error_msg "etls_valid_name - noca_status_easytls_inline"
+			return 1
+			}
+		etls_valid_name="${etls_valid_name##*Common name: }"
+
+		etls_valid_subkey="$("${EASYTLS_GREP}" '^. Sub-key name: ' "${i}")" || {
+			etls_valid_subkey=""
+			}
+		etls_valid_subkey="${etls_valid_subkey##*Sub-key name: }"
+
+		etls_valid_serial="$("${EASYTLS_GREP}" '^# X509 serial: ' "${i}")" || {
+			error_msg "etls_valid_serial - noca_status_easytls_inline"
+			return 1
+			}
+		etls_valid_serial="${etls_valid_serial##*X509 serial: }"
+
+		#etls_valid_name_list="$etls_valid_name_list $"
+		#etls_valid_serial_list="$(inline_index_serial_number_list)"
+		#etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
+		[ $silent_status ] || \
+			print "${etls_valid_name} ${etls_valid_serial} ${etls_valid_subkey}" \
+				| noca_status_easytls_output
+		unset etls_valid_name etls_valid_subkey etls_valid_serial
+	done
+} # => status_easytls_inline ()
 
 # Print Revoked certs from Easy-RSA
 status_easyrsa_revoked ()
@@ -2628,7 +2704,7 @@ openssl_crt_common_name ()
 get_openssl_crt_common_name ()
 {
 	# This is ONLY use to import a certificate and importing is DISABLED
-	die "get_openssl_crt_common_name DISABLED"
+	[ $EASYTLS_NO_CA ] || die "get_openssl_crt_common_name DISABLED"
 	[ -f "${1}" ] || {
 		error_msg "get_openssl_crt_common_name missing file"
 		return 1
