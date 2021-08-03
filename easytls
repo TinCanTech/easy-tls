@@ -6833,8 +6833,11 @@ interactive_hw_required ()
 
   [0] Low - Allow all keys to connect, hwaddr verification is not enforced.
   [1] Default - Keys with a hwaddr mismatch will be disconnected.
+      TLS Auth and Crypt-v1 keys can connect.
   [2] Medium - Require all clients to push a hwaddr.
+      TLS Auth and Crypt-v1 keys can connect but must push a hwaddr.
   [3] High - Require all keys to have a hwaddr encrypted.
+      TLS Auth and Crypt-v1 keys can NOT connect.
 
    Leave this blank to use the default
 
