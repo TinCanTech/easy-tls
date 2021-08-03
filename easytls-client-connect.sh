@@ -391,14 +391,22 @@ else
 		# hwaddr is pushed
 		if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
 		then
-			# MATCH!
+			# MATCH! - Old format
 			update_status "hwaddr ${push_hwaddr} pushed and matched"
 			connection_allowed
-		else
-			# push does not match key hwaddr
+		fi
+		if "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
+		then
+			# MATCH! - New format
+			update_status "hwaddr ${push_hwaddr} pushed and matched"
+			connection_allowed
+		fi
+
+		# push does not match key hwaddr
+		[ $absolute_fail -eq 0 ] || {
 			failure_msg="Key does not match pushed hwaddr: ${push_hwaddr}"
 			fail_and_exit "HWADDR MISMATCH" 2
-		fi
+			}
 	fi
 fi
 
