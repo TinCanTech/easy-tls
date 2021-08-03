@@ -1,7 +1,14 @@
+     ________ ________ ________ ___  ___   ________ ___      ________
+    / ______// ____ _//_______// _/\/ _/\ /___ ___// _/\    /_______/\
+    //\__ __\//\__//\//\____ _\//_\ //\\/_\__//\__\//\\/   //_____ _\/
+   /____/\  /____ / /______ /\/_  __/ /___/\// /  // /    /______ /\
+ _//\___\/_//\ _// _\_____// /_/ /\_\/\___\//_/ _//_/___ _\_____// /
+/_______//__/\/__//_______/ //___/\      /___/\/_______//_______/ /
+\_______\\__\/\__\\_______\/ \___\/      \___\/\_______\\_______\/
+
+                                 < (C) Richard T Bonhomme 2020 >
+
 Easy-TLS in detail
-
-
-Introduction:
 
   The main focus of Easy-TLS is to provide an easy way to manage OpenVPN
   and EasyRSA assorted certificates and keys into fully verified 'inline'
@@ -18,57 +25,39 @@ Introduction:
   TLS-crypt-v2 metadata and provide options to manage client connections.
   All this can be done prior to exposing x509 code.
 
-
-Overview:
-
   * OpenVPN '--tls-crypt-v2' keys and '--tls-crypt-v2-verify' script.
 
     These are new keys and a new script hook for OpenVPN.
 
-
   * Usage:
 
     To use the 'easytls' script simply copy it to the same directory that
-    you have installed easyrsa in.  If you prefer to keep the script in
-    a $PATH directory then use option: '--pki-dir=<DIR>' to point the script
-    to your working Easy-RSA PKI directory.
+    you have installed easyrsa in.
 
-    To use the 'easytls-cryptv2-verify.sh' script simply copy it to your server
-    scripts directory and use option: '-c|--ca=<PATH>' to point the script
-    to your working Easy-RSA PKI directory. This is the same directory as above.
-
-    There is also 'easytls-cryptv2-client-connect.sh' which extends the
-    verification process to include client hardware-address lock-down.
+    Easy-TLS comes with full inter-active menus which make usage very easy.
+    Use:
+    * `./easytls build` - Build keys
+    * `./easytls inline` - Inline all required files per node
+    * `./easytls remove` - Remove keys and inline files in order
+    * `./easytls script` - Configure server side scripts
 
     For full help use:
     * ./easytls -h
     * ./easytls-cryptv2-verify.sh -h
-    * ./easytls-cryptv2-client-connect.sh -h
+    * ./easytls-verify.sh -h
+    * ./easytls-client-connect.sh -h
 
+Easy-TLS No-CA Mode
 
-Easy-TLS details:
+    Easy-TLS also has a No-CA mode, which does not require an Easy-RSA CA.
+    Easy-TLS can build self-signed certificates and keys for use with OpenVPN.
+    Easy-TLS can automatically share fingerprins among peer inline files.
 
-    Easy-TLS plugs directly into Easy-RSA3. This is a hard requirement.
-    Once installed into your Easy-RSA3 working directory Easy-TLS can 
-    manage the following items:
-
-    * OpenVPN TLS Auth keys: OpenVPN --tls-auth / --key-direction
-
-    * OpenVPN TLS Crypt keys: OpenVPN --tls-crypt
-
-    * OpenVPN TLS Crypt Version 2 keys ** Nice **
-
-    * Manage 'inline' files, including: OpenVPN --tls-crypt-V2
-
-      * Easy-RSA3 x509 Public Key Infra-structure
-      * OpenVPN specific TLS keys
-
-    * Provide metadata for TLS-Crypt-V2 keys
-
-    * Provide server side script 'easytls-cryptv2-verify.sh'
-      This script uses metadata fields to verify a client certificate
-      serial number and CA finger print before exposing any x509 code.
-      This is effectively a software configurable firewall for OpenVPN.
+    To use this mode:
+    * `./easytsa init-tls no-ca`
+    * `./easytls selfsign` - Inter-active menu to build self-signed certificates.
+    * `./easytls self-sign-server <server-name>`
+    * `./easytls self-sign-client <client-name>`
 
 
 TLS-Crypt-v2 client key metadata details:
@@ -112,7 +101,7 @@ TLS-Crypt-v2 client key metadata details:
     6.  Client X509 certificate CommonName.
         EG: c09
 
-    7.  TLS-CryptV2 key name.
+    7.  TLS-CryptV2 sub-key name.
         This allows clients to have an unlimited number of keys
         associated with their single X509 certificate.
         EG: Home
@@ -120,7 +109,7 @@ TLS-Crypt-v2 client key metadata details:
     8.  Unused field.
 
     9.  Hardware-address-list.
-        EG: +EF1234567890+1234567890FE+
+        EG: =EF1234567890=1234567890FE=
 
 
 EasyTLS verification scripts:
@@ -139,8 +128,7 @@ EasyTLS verification scripts:
 
       Verify client hardware-address.
 
-
-  * Optional X509 verification methods:
+  * Optional X509 verification methods which easytls-cryptv2-verify.sh can do:
 
     1. Verify via CRL --via-crl
 
@@ -173,19 +161,8 @@ EasyTLS verification scripts:
        * openssl fingerprint output:  'SHA1 Fingerprint=95:DC:42:...'
        * EasyTLS CA Identity format:  '95DC42...'
 
-       Example configuration command to use in an OpenVPN config file:
 
-       NOTE: This example is wrapped at line length, in your config file it
-       must not be wrapped.  Also, OpenVPN does not expand variables in a
-       config file, so all paths and options must be exanded in full.
-
-       tls-cryptv2-verify '/home/tct/easyrsa3/tls-crypt-v2-verify.sh -v
-         -c=/home/tct/easyrsa3/pki2 -g=tincantech --verify-via-index
-         -t=365 --preload-cache-id=E19982D9C063CEC74F66B7D31BF7B9306A609A8E'
-
-
-Note about exit codes:
+Note about Server script exit codes:
 
   OpenVPN --log does not accept data from scripts under Windows
   so the exit codes are absolutely necessary to debug errors.
-
