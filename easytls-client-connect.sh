@@ -120,12 +120,8 @@ delete_metadata_files ()
 	"${EASYTLS_RM}" -f \
 		"${generic_metadata_file}" \
 		"${generic_ext_md_file}" \
-		"${generic_trusted_md_file}" \
 		"${client_metadata_file}" \
 		"${client_ext_md_file}" \
-		"${client_trusted_md_file}" \
-		"${stage1_file}" \
-		"${g_x509_serial_md_file}" \
 		"${EASYTLS_KILL_FILE}" \
 
 	update_status "temp-files deleted"
@@ -264,6 +260,10 @@ do
 		empty_ok=1
 		push_hwaddr_required=1
 	;;
+	-c|--crypt-v2-required)
+		empty_ok=1
+		crypt_v2_required=1
+	;;
 	-k|--key-hwaddr-required)
 		empty_ok=1
 		key_hwaddr_required=1
@@ -350,85 +350,94 @@ push_hwaddr="$(format_number "${IV_HWADDR}")"
 [ -z "${push_hwaddr}" ] && \
 	push_hwaddr_missing=1 && update_status "hwaddr not pushed"
 
-# Check for TLS Auth/Crypt
-if "${EASYTLS_GREP}" -q '^=TAC=[[:blank:]]=' "${client_ext_md_file}"
-then
-	#tls_auth_crypt_key=1
-	update_status "TLS Auth/Crypt key only"
-	[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && {
-		failure_msg="TLS Auth/Crypt no pushed hwaddr"
-		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-		}
-	[ $key_hwaddr_required ] && {
-		failure_msg="TLS Auth/Crypt key Not allowed"
-		fail_and_exit "TLS AUTH CRYPT BANNED" 6
-		}
-	# TLS Auth/Crypt-v1 allowed here
+# allow_no_check
+case $allow_no_check in
+1)
+	# disable all checks
+	update_status "Allow ALL TLS keys"
 	connection_allowed
-else
-	# This check is only run for TLS-Crypt-V2 keys
-	# Set only for NO keyed hwaddr
-	# Old field
-	if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${client_ext_md_file}"
+;;
+*)
+	# Check for TLS Auth/Crypt
+	if "${EASYTLS_GREP}" -q '^=TLSAC=[[:blank:]]=' "${client_ext_md_file}"
 	then
-		key_hwaddr_missing=1
-	fi
-	# New field
-	if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
-	then
-		key_hwaddr_missing=1
-	fi
-
-	# If keyed hwaddr is required and missing then fail - No exceptions
-	[ $key_hwaddr_required ] && [ $key_hwaddr_missing ] && \
-		fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
-
-	# If pushed hwaddr is required and missing then fail - No exceptions
-	[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && \
-		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-
-	# Verify hwaddr
-	if [ $key_hwaddr_missing ]
-	then
-		# No keyed hwaddr
-		update_status "Key is not locked to hwaddr"
+		# TLS Auth/Crypt
+		update_status "TLS Auth/Crypt key only"
+		[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && {
+			failure_msg="TLS Auth/Crypt no pushed hwaddr"
+			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
+			}
+		[ $crypt_v2_required ] && {
+			failure_msg="TLS Auth/Crypt key not allowed"
+			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
+			}
+		[ $key_hwaddr_required ] && {
+			failure_msg="TLS Auth/Crypt key enforce verify hwaddr"
+			fail_and_exit "TLS_CRYPT_V2 ONLY " 6
+			}
+		# TLS Auth/Crypt-v1 allowed here
 		connection_allowed
 	else
-		# key has a hwaddr
+		# TLS-Crypt-V2
+
+		# Set only for NO keyed hwaddr
+		# Old field
+		if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${client_ext_md_file}"
+		then
+			key_hwaddr_missing=1
+		fi
+		# New field
+		if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
+		then
+			key_hwaddr_missing=1
+		fi
+
+		# Verify hwaddr
 		if [ $push_hwaddr_missing ]
 		then
-			# push_hwaddr_missing and allow_no_check
-			if [ $allow_no_check ]
-			then
-				update_status "hwaddr not required"
-				connection_allowed
-			else
-				# push_hwaddr_missing NOT allow_no_check
+			# hwaddr is NOT pushed
+			[ $push_hwaddr_required ] && {
+				failure_msg="Client did not push required hwaddr"
 				fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-			fi
+				}
+			# hwaddr not pushed and not required
+			update_status "hwaddr not required"
+			connection_allowed
 		else
 			# hwaddr is pushed
-			if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
+			if [ $key_hwaddr_missing ]
 			then
-				# MATCH! - Old format
-				update_status "hwaddr ${push_hwaddr} pushed and matched"
+				# key does not have a hwaddr
+				update_status "Key is not locked to hwaddr"
+				[ $key_hwaddr_required ] && {
+					failure_msg="Key hwaddr required but missing"
+					fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
+					}
+				# No keyed hwaddr and TLS-crypt-v2
 				connection_allowed
-			fi
-			if "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
-			then
-				# MATCH! - New format
-				update_status "hwaddr ${push_hwaddr} pushed and matched"
-				connection_allowed
-			fi
+			else
+				if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
+				then
+					# push and MATCH! - Old format
+					update_status "hwaddr ${push_hwaddr} pushed and matched"
+					connection_allowed
+				fi
+				if "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
+				then
+					# push and MATCH! - New format
+					update_status "hwaddr ${push_hwaddr} pushed and matched"
+					connection_allowed
+				fi
 
-			# push does not match key hwaddr
-			[ $absolute_fail -eq 0 ] || {
-				failure_msg="Key does not match pushed hwaddr: ${push_hwaddr}"
-				fail_and_exit "HWADDR MISMATCH" 2
-				}
+				# push does not match key hwaddr
+				[ $absolute_fail -eq 0 ] || {
+					failure_msg="hwaddr mismatch - pushed: ${push_hwaddr}"
+					fail_and_exit "HWADDR MISMATCH" 2
+					}
+			fi
 		fi
 	fi
-fi
+esac # allow_no_check
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
