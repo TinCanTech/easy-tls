@@ -3963,7 +3963,7 @@ inline_share_fingerprint ()
 	[ -f "${cli_inline}" ] || \
 		missing_file "inline_share_fingerprint - ${cli_inline}"
 	cli_fpr="$(openssl_generate_fingerprint "${cli_cert}")" || {
-		error_msg "cli_fpr"
+		error_msg "cli_fpr - inline_share_fingerprint"
 		return 1
 		}
 	cli_fpr="${cli_fpr##*=}"
@@ -3978,7 +3978,7 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${srv_inline}"
 	srv_fp_list="${EASYTLS_DATA_DIR}/${srv_name}.pfp-list"
 	srv_fpr="$(openssl_generate_fingerprint "${srv_cert}")" || {
-		error_msg "srv_fpr"
+		error_msg "srv_fpr - inline_share_fingerprint"
 		return 1
 		}
 	srv_fpr="${srv_fpr##*=}"
@@ -6874,7 +6874,8 @@ interactive_hw_required ()
 # Automatically detect no-ca mode
 automatic_no_ca ()
 {
-	[ $EASYTLS_NO_CA ] && opt_no_ca='-z'
+	opt_no_ca='-z'
+	[ $EASYTLS_NO_CA ] || unset opt_no_ca
 }
 
 
@@ -7428,7 +7429,6 @@ set_var()
 # Top level function
 main ()
 {
-
 	EASYTLS_VERSION="2.5"
 
 	# Be secure with a restrictive umask
