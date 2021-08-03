@@ -572,7 +572,7 @@ then
 
 	else
 		# Must be TLS-auth/crypt-v1
-		unset g_tls_crypt_v2
+		#unset g_tls_crypt_v2
 		update_status "TLS-Auth/Crypt(g1)"
 	fi
 	# ----------
@@ -649,7 +649,8 @@ then
 		else
 			# This is correct behaviour for --tls-auth/crypt v1
 			# Create a fake extended metadata file
-			"${EASYTLS_PRINTF}" '%s' '=000000000000=' > "${client_ext_md_file}" || \
+			# Add indicator for TLS Auth/Crypt
+			"${EASYTLS_PRINTF}" '%s' '=TAC= =000000000000=' > "${client_ext_md_file}" || \
 				die "Failed to create fake client_ext_md_file"
 			c_tls_crypt_v1=1
 			update_status "TLS-Auth/Crypt(c1)"
