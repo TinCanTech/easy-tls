@@ -6832,12 +6832,24 @@ interactive_hw_required ()
 * Select the level of hardware-address verification required ?
 
   [0] Low - Allow all keys to connect, hwaddr verification is not enforced.
-  [1] Default - Keys with a hwaddr mismatch will be disconnected.
+
+  [1] Default - TLS-Crypt-V2 keys with a hwaddr mismatch will be disconnected.
+      Do not require clients to push a hwaddr.
       TLS Auth and Crypt-v1 keys can connect.
+
   [2] Medium - Require all clients to push a hwaddr.
       TLS Auth and Crypt-v1 keys can connect but must push a hwaddr.
-  [3] High - Require all keys to have a hwaddr encrypted.
-      TLS Auth and Crypt-v1 keys can NOT connect.
+
+  [3] Medium-High - Only TLS-Crypt-V2 keys can connect.
+      TLS-Crypt-V2 keys without a Hardware-address can still connect.
+      Do not require clients to push a hwaddr.
+      TLS Auth and Crypt-v1 keys can NOT connect. [Level: 3-5]
+
+  [4] High - Only TLS-Crypt-V2 keys can connect.
+      TLS-Crypt-v2 keys without a hwaddr can connect but must push a hwaddr.
+
+  [5] Very High - hwaddr verification is enforced on all clients.
+      TLS-Crypt-V2 key must have a hwaddr and client must push a hwaddr.
 
    Leave this blank to use the default
 
@@ -6861,6 +6873,14 @@ interactive_hw_required ()
 				break
 			;;
 			3)
+				opt_hw_required='-c'
+				break
+			;;
+			4)
+				opt_hw_required='-p -c'
+				break
+			;;
+			5)
 				opt_hw_required='-k'
 				break
 			;;
