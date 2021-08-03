@@ -421,19 +421,18 @@ case $allow_no_check in
 					# push and MATCH! - Old format
 					update_status "hwaddr ${push_hwaddr} pushed and matched"
 					connection_allowed
-				fi
-				if "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
+
+				elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
 				then
 					# push and MATCH! - New format
 					update_status "hwaddr ${push_hwaddr} pushed and matched"
 					connection_allowed
-				fi
 
-				# push does not match key hwaddr
-				[ $absolute_fail -eq 0 ] || {
+				else
+					# push does not match key hwaddr
 					failure_msg="hwaddr mismatch - pushed: ${push_hwaddr}"
 					fail_and_exit "HWADDR MISMATCH" 2
-					}
+				fi
 			fi
 		fi
 	fi
