@@ -5887,6 +5887,9 @@ interactive_scripts ()
 		# -a|-p|-k hardware requirements
 		[ $opt_openvpn_pid ] && interactive_hw_required
 
+		# Kill-client mode
+		[ $opt_openvpn_pid ] && interactive_kill_client
+
 		# Create config
 		{
 			# easytls-cryptv2-verify.sh
@@ -5906,6 +5909,7 @@ interactive_scripts ()
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
 			[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
 			[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
+			[ "$opt_kill_client" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_kill_client}"
 			[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
 			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
@@ -6822,6 +6826,42 @@ interactive_openvpn_pid ()
 	easytls_verbose
 	easytls_verbose "Config: $opt_hw_required"
 } # => interactive_openvpn_pid ()
+
+# Set use of kill-client mode
+interactive_kill_client ()
+{
+	unset opt_kill_client
+	default='Y'
+	ia_question_help="
+* Do you want to use the Easy-TLS client-connect script
+  to force a client which fails authorisation to shut-down ?
+
+  Leave this blank to use the default
+
+  * Default: $default"
+	ia_question_text='
+  Enter (y)es or (n)o:'
+	while :
+	do
+		interactive_question
+		ia_answer="${ia_answer:-$default}"
+		case "$ia_answer" in
+			Y|y|Yes|yes|YES)
+				opt_kill_client='-k'
+				break
+			;;
+			N|n|No|no|NO)
+				break
+			;;
+			*)
+				: # Ignore
+			;;
+		esac
+	done
+
+	easytls_verbose
+	easytls_verbose "Config: $opt_kill_client"
+} # => interactive_kill_client ()
 
 # Set use of hardware-address required
 interactive_hw_required ()
