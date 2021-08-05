@@ -2736,7 +2736,9 @@ inline_show ()
 	inline_file_verify_hash || die "Failed HASH: ${inline_file}"
 
 	# Copy inline to stdout
+	easytls_verbose
 	"${EASYTLS_CAT}" "${inline_file}" || die "Failed to open: ${inline_file}"
+	easytls_verbose
 } # => inline_show ()
 
 # Remove .inline file
@@ -5878,17 +5880,17 @@ interactive_scripts ()
 		# opt_preload_id
 		interactive_x509_method
 
-		# Openvpn PID - opt_openvpn_pid
-		interactive_openvpn_pid
+		# Openvpn PID - opt_client_connect
+		interactive_client_connect
 
 		# -t|--tmp-dir - opt_tmp_dir
-		[ $opt_openvpn_pid ] && interactive_tmp_dir
+		[ $opt_client_connect ] && interactive_tmp_dir
 
-		# -a|-p|-k hardware requirements
-		[ $opt_openvpn_pid ] && interactive_hw_required
+		# -a|-p|-c|-k hardware requirements
+		[ $opt_client_connect ] && interactive_hw_required
 
 		# Kill-client mode
-		[ $opt_openvpn_pid ] && interactive_kill_client
+		[ $opt_client_connect ] && interactive_kill_client
 
 		# Create config
 		{
@@ -5918,7 +5920,7 @@ interactive_scripts ()
 
 
 			# easytls-verify.sh - Required for --tls-auth or --tls-crypt clients
-			[ $opt_openvpn_pid ] && {
+			[ $opt_client_connect ] && {
 				"$EASYTLS_PRINTF" '%s' 'tls-verify'
 				"$EASYTLS_PRINTF" ' %s' "'"
 				[ $EASYTLS_FOR_WINDOWS ] && \
@@ -5932,7 +5934,7 @@ interactive_scripts ()
 
 
 			# easytls-cryptv2-client-connect.sh
-			[ $opt_openvpn_pid ] && {
+			[ $opt_client_connect ] && {
 				"$EASYTLS_PRINTF" '%s' 'client-connect'
 				"$EASYTLS_PRINTF" ' %s' "'"
 				[ $EASYTLS_FOR_WINDOWS ] && \
@@ -6792,10 +6794,10 @@ interactive_x509_method ()
 	[ $opt_preload_id ] && easytls_verbose "Config: $opt_preload_id"
 } # => interactive_x509_method ()
 
-# Set use of Openvpn PID for client connect srcipt
-interactive_openvpn_pid ()
+# Set use client connect srcipt
+interactive_client_connect ()
 {
-	unset opt_openvpn_pid
+	unset opt_client_connect
 	default='Y'
 	ia_question_help="
 * Do you want to use the Easy-TLS client-connect script ?
@@ -6811,7 +6813,7 @@ interactive_openvpn_pid ()
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
 			Y|y|Yes|yes|YES)
-				opt_openvpn_pid='writepid'
+				opt_client_connect='writepid'
 				break
 			;;
 			N|n|No|no|NO)
@@ -6825,7 +6827,7 @@ interactive_openvpn_pid ()
 
 	easytls_verbose
 	easytls_verbose "Config: $opt_hw_required"
-} # => interactive_openvpn_pid ()
+} # => interactive_client_connect ()
 
 # Set use of kill-client mode
 interactive_kill_client ()
