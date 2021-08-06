@@ -92,6 +92,7 @@ Use the 'help' command above to get full usage details.
   inline-tls-crypt <filename_base> [ cmd-opts ]
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
   remove-inline <filename_base>
+  remove-metadata <filename_base> pattern
   inline-show <filename_base>
   inline-index-rebuild
   inline-expire <filename_base>
@@ -171,7 +172,7 @@ cmd_help()
       This allows an unlimited number of keys, see the following wiki article
       for further details:
       ${EASYTLS_github}/${EASYTLS_url}" ;;
-		remove-tlskey) text="
+		rt|rtk|remove-tlskey) text="
   remove-tlskey <client_filename_base>
       Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
 		sid|save-id) text="
@@ -223,10 +224,16 @@ cmd_help()
                   To specify an alternative file use the --dh option
         no-md   - Do not add public metadata details to inline file
         add-hw  - Include hardware address in metadata details" ;;
-		irm|irv|inline-remove) text="
+		ri|ril|remove-inline) text="
   remove-inline <filename_base>
       Delete <filename_base>.inline and update the inline-index
       When an Easy-RSA certificate is revoked then the inline file is invalid" ;;
+		rm|rmd|remove-metadata) text="
+  remove-metadata <filename_base> pattern
+      Remove inline-file metadata matching 'pattern' from <filename_base>.inline
+      and update the inline-index.
+      All metadata records start with '# metadata ' and only lines in this section
+      can be removed from the inline file." ;;
 		is|inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
@@ -412,7 +419,8 @@ Easy-TLS abbreviations:
   inline-tls-auth               - ita
   inline-tls-crypt              - itc
   inline-tls-crypt-v2           - itc2 | itv2 | itcv2
-  remove-inline                 - ri
+  remove-inline                 - ri | ril
+  remove-metadata               - rm | rmd
   inline-show                   - is
   inline-index-rebuild          - No abbreviation
   inline-expire                 - ix
@@ -2785,6 +2793,77 @@ remove_inline ()
 
 } # => remove_inline ()
 
+# Remove metadata from inline file
+remove_metadata ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+
+	easytls_verbose
+	name="${1}"
+	shift # Scrape off name
+	inline_file="${EASYTLS_PKI}/${name}.inline"
+
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
+		}
+
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
+
+	# Actual inline-file hash
+	generate_and_validate_file_hash "${inline_file}" verified_inline_hash || {
+		error_msg "generate_and_validate_file_hash - remove_metadata"
+		error_msg "${inline_file}"
+		return 1
+		}
+
+	# Remove client from inline index
+	known_inline_hash=${verified_inline_hash}
+	inline_serial="$(inline_index_ilhash_to_serial)"
+	inline_index_update del || die "Failed to update inline-index"
+
+	if [ -n "${1}" ]
+	then
+		while [ -n "${1}" ]
+		do
+			# Find metadata
+			if "${EASYTLS_GREP}" -q "^#[[:blank:]]metadata[[:blank:]].*${1}.*$" \
+				"${inline_file}"
+			then
+				# Delete metadata
+				easytls_verbose "Remove metadata for ${1}"
+				"${EASYTLS_SED}" -i \
+					-e "\\\^#[[:blank:]]metadata[[:blank:]].*${1}.*\$\\d" \
+						"${inline_file}"
+				metadata_updated=1
+			else
+				# Not found
+				print "Missing metadata for ${1}"
+			fi
+			shift
+		done
+	else
+		# Find metadata
+		if "${EASYTLS_GREP}" -q "^#[[:blank:]]metadata[[:blank:]].*$" \
+			"${inline_file}"
+		then
+			# Remove all metadata
+			easytls_verbose "Remove all metadata"
+			"${EASYTLS_SED}" -i \
+				-e "\\\^#[[:blank:]]metadata[[:blank:]].*\$\\d" \
+					"${inline_file}"
+			metadata_updated=1
+		else
+			# Not found
+			print "Missing metadata"
+		fi
+	fi
+
+	# Add client to inline-index
+	inline_index_update add || die "Failed to update inline-index"
+	[ $metadata_updated ] && notice "inline file updated"
+	easytls_verbose
+}
+
 # Rebuild inline index
 inline_index_rebuild ()
 {
@@ -3858,35 +3937,31 @@ inline_tls_crypt_v2 ()
 	# Append TLS-Crypt-V2 key
 	{
 		"${EASYTLS_PRINTF}" "%s\n" \
-			"# Easy-TLS version ${EASYTLS_VERSION} - TLS crypt v2 key"
+			"# metadata Easy-TLS-version ${EASYTLS_VERSION} - TLS-Crypt-v2 key"
 
 		if [ $no_metadata ]
 		then
-			[ "${cert_purpose}" = 'Client' ] && {
-				"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
-				[ "${MD_subkey}" = 'NOSUBKEY' ] || \
-					"${EASYTLS_PRINTF}" '%s\n\n' "# Sub-key name: ${MD_subkey}"
-				}
-			"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
-			"${EASYTLS_CAT}" "${tlskey_file}"
-			"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
+			# If this is a defined sub-key name then add the name anyway
+			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n\n' \
+				"# metadata Sub-key-name: ${MD_subkey}"
 		else
 			if [ $EASYTLS_NO_CA ]
 			then
-				"${EASYTLS_PRINTF}" '%s\n' "# Server-serial: ${srv_serial}"
+				"${EASYTLS_PRINTF}" '%s\n' \
+					"# metadata Server-serial: ${srv_serial}"
 			else
-				"${EASYTLS_PRINTF}" '%s\n' "# CA-serial: ${ca_serial}"
+				"${EASYTLS_PRINTF}" '%s\n' "# metadata CA-serial: ${ca_serial}"
 			fi
-			"${EASYTLS_PRINTF}" '%s\n' "# tlskey-serial: ${tlskey_serial}"
-			"${EASYTLS_PRINTF}" '%s\n' "# Creation-Date: ${MD_date}"
-			"${EASYTLS_PRINTF}" '%s\n' "# Custom-Group: ${MD_cgroup}"
-			"${EASYTLS_PRINTF}" '%s\n' "# Server-Common-Name: ${srv_name}"
-			"${EASYTLS_PRINTF}" '%s\n' "# Client-Common-Name: ${MD_cn}"
+			"${EASYTLS_PRINTF}" '%s\n' "# metadata tlskey-serial: ${tlskey_serial}"
+			"${EASYTLS_PRINTF}" '%s\n' "# metadata Creation-Date: ${MD_date}"
+			"${EASYTLS_PRINTF}" '%s\n' "# metadata Custom-Group: ${MD_cgroup}"
+			"${EASYTLS_PRINTF}" '%s\n' "# metadata Server-Common-Name: ${srv_name}"
+			"${EASYTLS_PRINTF}" '%s\n' "# metadata Client-Common-Name: ${MD_cn}"
 			[ "${MD_subkey}" = 'NOSUBKEY' ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# Sub-key name: ${MD_subkey}"
+				"${EASYTLS_PRINTF}" '%s\n' "# metadata Sub-key-name: ${MD_subkey}"
 			[ "${MD_opt}" = "OPT" ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# Opt: ${MD_opt}"
-			"${EASYTLS_PRINTF}" '%s' "# Key status: "
+				"${EASYTLS_PRINTF}" '%s\n' "# metadata Opt: ${MD_opt}"
+			"${EASYTLS_PRINTF}" '%s' "# metadata Key-status: "
 			if [ "${MD_hw}" = "=000000000000=" ]
 			then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
@@ -3898,13 +3973,16 @@ inline_tls_crypt_v2 ()
 					"${EASYTLS_PRINTF}" '%s\n' "Closed"
 				fi
 			fi
-			[ "${cert_purpose}" = 'Client' ] && \
-				"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
-			"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
-			"${EASYTLS_CAT}" "${tlskey_file}"
-			"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
-
 		fi
+
+		# push-peer-info
+		[ "${cert_purpose}" = 'Client' ] && \
+			"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
+		# Add key
+		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
+		"${EASYTLS_CAT}" "${tlskey_file}"
+		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
+		# Share fingerprint template
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
@@ -3997,7 +4075,7 @@ inline_share_fingerprint ()
 
 	# Actual inline-file hash
 	generate_and_validate_file_hash "${cli_inline}" verified_inline_hash || {
-		error_msg "inline_share_fingerprint - generate_and_validate_file_hash"
+		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${cli_inline}"
 		return 1
 		}
@@ -4009,6 +4087,7 @@ inline_share_fingerprint ()
 		inline_serial="$(inline_index_ilhash_to_serial)"
 		inline_index_update del || die "Failed to update inline-index"
 	else
+		# No-CA mode
 		do_not_index_client_inline_file=1
 	fi
 
@@ -4043,7 +4122,7 @@ inline_share_fingerprint ()
 
 	# Remove node from inline-index
 	generate_and_validate_file_hash "${srv_inline}" verified_inline_hash || {
-		error_msg "inline_share_fingerprint - generate_and_validate_file_hash"
+		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${srv_inline}"
 		return 1
 		}
@@ -4055,6 +4134,7 @@ inline_share_fingerprint ()
 		inline_serial="$(inline_index_ilhash_to_serial)"
 		inline_index_update del || die "Failed to update inline-index"
 	else
+		# No-CA mode
 		do_not_index_server_inline_file=1
 	fi
 
@@ -5389,6 +5469,7 @@ interactive_remove ()
   [4] TLS-Crypt-V2 Server key
   [5] TLS-Crypt-V1 key
   [6] TLS-Auth key
+  [7] Client Inline TLS-Crypt-V2 metadata
 
   Select the type of file to remove:'
 	interactive_question
@@ -5718,6 +5799,41 @@ interactive_remove ()
 		unset batch_mode
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Auth key removed: $key_file"
+	;;
+	7)	# inline metadata
+		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Client inline-metadata'
+		cmd_line="${cmd_line}-metadata"
+
+		# Set commonName
+		opt_name=""
+		cert_type='Client'
+		interactive_common_name
+		opt_name="$common_name"
+		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		# pattern
+		interactive_metadata_pattern
+
+		# Print command
+		interactive_show_cmd
+
+		# Enable internal batch_mode
+		batch_mode=1
+
+		# Remove .inline
+		remove_metadata "$opt_name" ${opt_pattern} || {
+			error_msg '**Remove metadata failed'
+			return 1
+			}
+
+		# Disable internal batch_mode
+		unset batch_mode
+
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"  * TLS-Crypt-V2 Client inline-metadata removed: $opt_pattern"
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
@@ -6941,6 +7057,32 @@ interactive_hw_required ()
 	easytls_verbose "Config: $opt_hw_required"
 } # => interactive_hw_required ()
 
+# Search patterns to remove from inline-metadata
+interactive_metadata_pattern ()
+{
+	opt_pattern=""
+	ia_question_help='
+* Search works by single contiguous word match per iteration.
+
+  After entering a search pattern then enter a blank pattern to continue.
+
+  Using no seach pattern at all will erase all metadata from the inline-file.'
+
+	while :
+	do
+		ia_question_text="
+  Current search patten: ${opt_pattern}
+
+  Enter a single search pattern or leave blank to continue:"
+		interactive_question
+		[ -z "$ia_answer" ] && break
+
+		# Add this HWADDR to the list
+		opt_pattern="${ia_answer} ${opt_pattern}"
+	done
+	cmd_line="${cmd_line} ${opt_pattern}"
+}
+
 # Automatically detect no-ca mode
 automatic_no_ca ()
 {
@@ -7740,13 +7882,17 @@ main ()
 				inline_show "$@" || \
 					die "Error: inline_show"
 			;;
-			ri|remove-inline)
+			ri|ril|remove-inline)
 				remove_inline "$@" || \
 					die "Error: remove_inline"
 			;;
 			rt|rk|rtk|remove-tlskey)
 				remove_tlskey "$@" || \
 					die "Error: remove_tlskey"
+			;;
+			rm|rmd|remove-metadata)
+				remove_metadata "$@" || \
+					die "Error: remove_metadata"
 			;;
 			ix|inline-expire)
 				inline_expire "$@" || \

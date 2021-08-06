@@ -202,7 +202,8 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr}" \
 			"itcv2 s03" \
 			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
-			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" "status"
+			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
+			"-k=hw rmd c06 serial" "status"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
@@ -340,6 +341,7 @@ do
 		"--custom-group=tincantech inline-tls-crypt-v2 c08" \
 		"--custom-group=tincantech inline-tls-crypt-v2 c09 add-hw" \
 		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw" \
+		"--custom-group=tincantech --sub-key-name=bob rmd c09" \
 		"--custom-group=tincantech --sub-key-name=eve \
 			build-tls-crypt-v2-client s01 c10 ef1234567890 1234567890fe" \
 		"--custom-group=tincantech --sub-key-name=eve \
