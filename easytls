@@ -5831,9 +5831,6 @@ interactive_remove ()
 
 		# Disable internal batch_mode
 		unset batch_mode
-
-		"$EASYTLS_PRINTF" '\n%s\n' \
-			"  * TLS-Crypt-V2 Client inline-metadata removed: $opt_pattern"
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
