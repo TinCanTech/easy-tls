@@ -670,6 +670,9 @@ do
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
+	--vars)
+		vars_file="${val}"
+	;;
 	-c|--ca)
 		CA_dir="${val}"
 	;;
@@ -752,6 +755,15 @@ deps
 
 # Report and die on fatal warnings
 warn_die
+
+# Source vars file
+if [ -f "${vars_file}" ]
+then
+	. "${vars_file}" || die "source failed: ${vars_file}"
+	update_status "loaded: ${vars_file}"
+else
+	update_status "Not loaded: ${vars_file}"
+fi
 
 # Get metadata
 
