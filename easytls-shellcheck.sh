@@ -8,7 +8,7 @@ shellcheck_bin='shellcheck'
 	}
 
 "${shellcheck_bin}" --version
-export SHELLCHECK_OPTS="-S warning"
+export SHELLCHECK_OPTS="-S warning -e 1090"
 
 printf '\n\n%s\n' '*** shellcheck easytls'
   "${shellcheck_bin}" easytls && sc_easytls=$?

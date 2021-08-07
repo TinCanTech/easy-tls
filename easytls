@@ -6018,6 +6018,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH -v"
+			"$EASYTLS_PRINTF" ' %s'  "--vars=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "${opt_ca_path}"
 			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
@@ -6039,6 +6040,7 @@ interactive_scripts ()
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH} -v"
+				"$EASYTLS_PRINTF" ' %s' "--vars=${EASYTLS_VERIFY_V1_VARS}"
 				[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 				"$EASYTLS_PRINTF" ' %s' "${opt_ca_path}"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
@@ -6053,6 +6055,7 @@ interactive_scripts ()
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
+				"$EASYTLS_PRINTF" ' %s' "--vars=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
@@ -7605,8 +7608,11 @@ vars_setup()
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
 
 	set_var EASYTLS_VERIFY_V2_SH    "${EASYTLS}/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_VERIFY_V2_VARS  "${EASYTLS}/easytls-cryptv2-verify.vars"
 	set_var EASYTLS_VERIFY_V1_SH    "${EASYTLS}/easytls-verify.sh"
+	set_var EASYTLS_VERIFY_V1_VARS  "${EASYTLS}/easytls-verify.vars"
 	set_var EASYTLS_CLICON_SH       "${EASYTLS}/easytls-client-connect.sh"
+	set_var EASYTLS_CLICON_VARS     "${EASYTLS}/easytls-client-connect.vars"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "${EASYTLS}/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "${EASYTLS}/easytls-script.help"
