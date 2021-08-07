@@ -829,6 +829,10 @@ fi
 			failure_msg="TLS-key metadata hash is incorrect"
 			fail_and_exit "TLSKEY_SERIAL_HASH" 11
 			}
+
+		update_status "tlskey-serial verified OK"
+	else
+		update_status "tlskey-serial verification disabled"
 	fi
 
 # tlskey expired
@@ -966,7 +970,6 @@ fi # => use_x509 ()
 
 # Save the client_metadata to temp file
 client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_srv_pid}"
-#client_metadata_file="${client_metadata_file}.tcv2md"
 generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
 
 # If client_metadata_file exists then delete it if is stale
