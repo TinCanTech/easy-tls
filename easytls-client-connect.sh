@@ -39,6 +39,7 @@ help_text ()
                          then allow the connection.  Otherwise, keys with a
                          hardware-address MUST use --push-peer-info.
   -p|--push-required     Require all clients to use --push-peer-info.
+  -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
   -k|--key-required      Require all client keys to have a hardware-address.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls

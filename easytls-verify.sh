@@ -42,7 +42,6 @@ help_text ()
                          easytls-client-connect.sh immediately kills the client.
   -m|--ignore-mismatch   Ignore tlskey-x509 vs openvpn-x509 mismatch.
   -p|--ignore-expired    Ignore expiry and allow connection of expired clients
-  -q|--ignore-require    Ignore TLS-Crypt-V2 key requirement
   -r|--ignore-revoked    Ignore revocation and allow connection of revoked clients
                          (Only works in full PKI mode)
   -x|--x509              Check X509 certificate validity
@@ -418,10 +417,6 @@ do
 	-p|--ignore-expired)
 		empty_ok=1
 		ignore_expired=1
-	;;
-	-q|--ignore-required)
-		empty_ok=1
-		ignore_required=1
 	;;
 	-r|--ignore-revoked)
 		empty_ok=1
