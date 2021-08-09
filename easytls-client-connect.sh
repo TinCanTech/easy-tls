@@ -224,10 +224,10 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cc.log.${EASYTLS_srv_pid}"
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-client-connect-${EASYTLS_srv_pid}.log."
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
 }
 
 #######################################
@@ -331,8 +331,8 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # easytls client metadata file
-generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
-client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
+generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
+client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${client_serial}"
 
 # --tls-verify output to --client-connect
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"

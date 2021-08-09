@@ -465,7 +465,7 @@ init ()
 	status_msg="* Easy-TLS-cryptv2-verify"
 
 	# Default stale-metadata-output-file time-out
-	stale_sec=30
+	stale_sec=3
 
 	# X509 is disabled by default
 	# To enable use command line option:
@@ -531,7 +531,7 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tcv2v.log.${EASYTLS_srv_pid}"
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cryptv2-verify-${EASYTLS_srv_pid}.log"
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -625,7 +625,7 @@ deps ()
 		}
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -969,8 +969,8 @@ else
 fi # => use_x509 ()
 
 # Save the client_metadata to temp file
-client_metadata_file="${EASYTLS_tmp_dir}/${md_serial}.${EASYTLS_srv_pid}"
-generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
+client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${md_serial}"
+generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
 
 # If client_metadata_file exists then delete it if is stale
 if [ -f "${client_metadata_file}" ]

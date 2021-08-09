@@ -280,7 +280,7 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-tv.log.${EASYTLS_srv_pid}"
+	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-verify-${EASYTLS_srv_pid}.log"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -326,7 +326,7 @@ deps ()
 		}
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/kill-client.${EASYTLS_srv_pid}"
+	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
 } # => deps ()
 
 # generic metadata_string into variables
@@ -497,7 +497,7 @@ esac
 # TLS verify checks
 
 # Work around for double call of --tls-verify in peer-fingerprint mode
-stage1_file="${EASYTLS_tmp_dir}/${EASYTLS_srv_pid}"
+stage1_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 stage1_file="${stage1_file}-${untrusted_ip}-${untrusted_port}.stage-1"
 
 if [ -f "${stage1_file}" ]
@@ -519,7 +519,7 @@ then
 
 	# ----------
 	# generic metadata file
-	generic_metadata_file="${EASYTLS_tmp_dir}/TCV2.${EASYTLS_srv_pid}"
+	generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
 
 	# extended generic metadata file
 	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
@@ -594,7 +594,7 @@ then
 
 	# ----------
 	# client metadata file
-	client_metadata_file="${EASYTLS_tmp_dir}/${client_serial}.${EASYTLS_srv_pid}"
+	client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${client_serial}"
 
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
