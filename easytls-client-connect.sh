@@ -260,6 +260,10 @@ do
 		empty_ok=1
 		allow_no_check=1
 	;;
+	-m|ignore-mismatch) # tlskey-x509 does not match openvpn-x509
+		empty_ok=1
+		ignore_x509_mismatch=1
+	;;
 	-p|--push-hwaddr-required)
 		empty_ok=1
 		push_hwaddr_required=1
@@ -354,7 +358,7 @@ then
 	update_status "X509 serial matched"
 else
 	# cert serial does not match - ALWAYS fail
-	fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
+	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
 fi
 
 # Set hwaddr from Openvpn env
