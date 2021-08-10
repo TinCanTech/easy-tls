@@ -115,6 +115,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
+	conn_trac_disconnect
 	delete_metadata_files
 	verbose_print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
@@ -180,6 +181,14 @@ connection_allowed ()
 {
 	absolute_fail=0
 	update_status "connection allowed"
+}
+
+# Update connection tacking - disconnect
+conn_trac_disconnect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
+	update_status "TLS-Crypt-V2 key removed from conn-trac"
 }
 
 # Create stage-1 file
@@ -278,8 +287,11 @@ deps ()
 	# Test temp dir
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
+	# Temp files name stub
+	temp_stub="${EASYTLS_tmp_dir}/easytls"
+
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-verify-${EASYTLS_srv_pid}.log"
+	EASYTLS_WLOG="${temp_stub}-verify-${EASYTLS_srv_pid}.log"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -323,9 +335,6 @@ deps ()
 		help_note="This script requires Openvpn --tls-export-cert"
 		die "Missing peer_cert variable or file: ${peer_cert}" 15
 		}
-
-	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
 } # => deps ()
 
 # generic metadata_string into variables
@@ -492,7 +501,7 @@ esac
 # TLS verify checks
 
 # Work around for double call of --tls-verify in peer-fingerprint mode
-stage1_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
+stage1_file="${temp_stub}-${EASYTLS_srv_pid}"
 stage1_file="${stage1_file}-${untrusted_ip}-${untrusted_port}.stage-1"
 
 if [ -f "${stage1_file}" ]
@@ -506,6 +515,12 @@ then
 	# Verify Client certificate serial number
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
+	# TLS-Crypt-V2 key serial file
+	TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+
 	# Load kill-client file
 	if [ -f "${EASYTLS_KILL_FILE}" ]
 	then
@@ -514,7 +529,7 @@ then
 
 	# ----------
 	# generic metadata file
-	generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
+	generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
 
 	# extended generic metadata file
 	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
@@ -585,11 +600,11 @@ then
 	# ----------
 
 	# generic metadata X509 serial file - not openvpn x509-serial
-	g_md_x509_serial_md_file="${EASYTLS_tmp_dir}/${g_md_serial}.${EASYTLS_srv_pid}"
+	g_md_x509_serial_md_file="${temp_stub}-${g_md_serial}.${EASYTLS_srv_pid}"
 
 	# ----------
 	# client metadata file
-	client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${client_serial}"
+	client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${client_serial}"
 
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
@@ -657,8 +672,9 @@ then
 			# This is correct behaviour for --tls-auth/crypt v1
 			# Create a fake extended metadata file
 			# Add indicator for TLS Auth/Crypt
-			"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > "${client_ext_md_file}" || \
-				die "Failed to create fake client_ext_md_file"
+			"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > \
+				"${client_ext_md_file}" || \
+					die "Failed to create fake client_ext_md_file"
 			c_tls_crypt_v1=1
 			update_status "TLS-Auth/Crypt(c1)"
 		fi
@@ -815,12 +831,18 @@ connection_allowed
 if [ $absolute_fail -eq 0 ]
 then
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"<EXOK> ${status_msg}" > "${EASYTLS_WLOG}"
 	[ $kill_this_client ] && "${EASYTLS_PRINTF}" "%s\n%s\n%s\n%s\n" \
 		"${client_serial}" "${kill_client_serial}" \
 		"${g_md_serial}" "${c_md_serial}" > "${EASYTLS_KILL_FILE}"
+	if [ -f "${stage1_file}" ] || [ $reneg_only ]
+	then
+		: # TLS-key is unchanged
+	else
+		"${EASYTLS_PRINTF}" "%s\n" "${c_tlskey_serial}" > "${TCV2KEY_SERIAL_FILE}"
+	fi
+	verbose_print "<EXOK> ${status_msg}"
 	exit 0
 fi
 
