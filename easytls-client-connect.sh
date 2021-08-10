@@ -110,6 +110,7 @@ fail_and_exit ()
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
+	conn_trac_disconnect
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
@@ -156,9 +157,36 @@ format_number ()
 # Allow connection
 connection_allowed ()
 {
-	delete_metadata_files
 	absolute_fail=0
 	update_status "connection allowed"
+}
+
+# Connection tacking - Connect
+conn_trac_connect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	[ -f "${EASYTLS_CONN_TRAC}" ] && \
+		file_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
+	if "${EASYTLS_GREP}" -q "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
+	then
+		# Already connected don't add another
+		update_status "TLS-key serial is already registered in conn-trac"
+	else
+		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
+			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
+			[ "${file_data}" ] && "${EASYTLS_PRINTF}" "%s\n" "${file_data}"
+		} > "${EASYTLS_CONN_TRAC}"
+		update_status "TLS-Crypt-V2 key added to conn-trac"
+	fi
+	unset file_data
+}
+
+# Update connection tacking - disconnect
+conn_trac_disconnect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
+	update_status "TLS-Crypt-V2 key removed from conn-trac"
 }
 
 # Initialise
@@ -224,11 +252,17 @@ deps ()
 	# Test temp dir
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
+	# Temp files name stub
+	temp_stub="${EASYTLS_tmp_dir}/easytls"
+
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-client-connect-${EASYTLS_srv_pid}.log."
+	EASYTLS_WLOG="${temp_stub}-client-connect-${EASYTLS_srv_pid}.log."
+
+	# Conn track
+	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
+	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
 }
 
 #######################################
@@ -335,9 +369,21 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
+# TLS-Crypt-V2 key serial file
+TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
+if [ -f "${TCV2KEY_SERIAL_FILE}" ]
+then
+	tlskey_serial="$("${EASYTLS_CAT}" "${TCV2KEY_SERIAL_FILE}")" || \
+		die "Failed to set tlskey_serial"
+	"${EASYTLS_RM}" "${TCV2KEY_SERIAL_FILE}"
+else
+	# Not using TLS-Crypt-V2 key
+	tlskey_serial="00000000000000000000000000000000"
+fi
+
 # easytls client metadata file
-generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
-client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${client_serial}"
+generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
+client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${client_serial}"
 
 # --tls-verify output to --client-connect
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
@@ -465,6 +511,20 @@ esac # allow_no_check
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
+	if [ -f "${auth_control_file}" ]
+	then
+		file_data="$("${EASYTLS_CAT}" "${auth_control_file}")"
+		{	# Add tlskey_serial to auth_control_file
+			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
+			"${EASYTLS_PRINTF}" "%s\n" "${file_data}"
+		} > "${auth_control_file}"
+		unset file_data
+	else
+		print "Missing auth_control_file"
+	fi
+	conn_trac_connect
+	delete_metadata_files
+
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
