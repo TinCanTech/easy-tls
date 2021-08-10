@@ -436,6 +436,26 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
+# Connection tacking - Connect
+conn_trac_connect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	[ -f "${EASYTLS_CONN_TRAC}" ] && \
+		file_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
+	if "${EASYTLS_GREP}" "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
+	then
+		# Already connected don't add another
+		update_status "TLS-key serial is already registered in conn-trac"
+	else
+		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
+			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
+			[ "${file_data}" ] && "${EASYTLS_PRINTF}" "%s\n" "${file_data}"
+		} > "${EASYTLS_CONN_TRAC}"
+		update_status "TLS-Crypt-V2 key added to conn-trac"
+	fi
+	unset file_data
+}
+
 # Initialise
 init ()
 {
@@ -530,8 +550,11 @@ deps ()
 	# Test temp dir
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
+	# Temp files name stub
+	temp_stub="${EASYTLS_tmp_dir}/easytls"
+
 	# Windows log
-	EASYTLS_WLOG="${EASYTLS_tmp_dir}/easytls-cryptv2-verify-${EASYTLS_srv_pid}.log"
+	EASYTLS_WLOG="${temp_stub}-cryptv2-verify-${EASYTLS_srv_pid}.log"
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -624,8 +647,11 @@ deps ()
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
 
+	# Conn track
+	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+
 	# Kill client file
-	EASYTLS_KILL_FILE="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}.kc"
+	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -969,8 +995,8 @@ else
 fi # => use_x509 ()
 
 # Save the client_metadata to temp file
-client_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-${md_serial}"
-generic_metadata_file="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}-gm"
+client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${md_serial}"
+generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
 
 # If client_metadata_file exists then delete it if is stale
 if [ -f "${client_metadata_file}" ]
@@ -1019,6 +1045,8 @@ fi
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
+	# Update connection tracking
+	conn_trac_connect
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
