@@ -10,13 +10,14 @@ shellcheck_bin='shellcheck'
 "${shellcheck_bin}" --version
 export SHELLCHECK_OPTS="-S warning -e 1090"
 
-printf '\n\n%s\n' '*** shellcheck easytls'
+foo='========================='
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls'
   "${shellcheck_bin}" easytls && sc_easytls=$?
-printf '\n\n%s\n' '*** shellcheck easytls-cryptv2-verify.sh'
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
   "${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
-printf '\n\n%s\n' '*** shellcheck easytls-verify.sh'
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.sh'
   "${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
-printf '\n\n%s\n' '*** shellcheck easytls-client-connect.sh'
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
   "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
 
 exit_status=$(( \
