@@ -179,7 +179,7 @@ conn_trac_connect ()
 		update_status "TLS-Crypt-V2 key added to conn-trac"
 	fi
 	unset file_data
-}
+} # => conn_trac_connect ()
 
 # Update connection tacking - disconnect
 conn_trac_disconnect ()
@@ -187,7 +187,8 @@ conn_trac_disconnect ()
 	[ $ENABLE_CONN_TRAC ] || return 0
 	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
 	update_status "TLS-Crypt-V2 key removed from conn-trac"
-}
+	[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
+} # => conn_trac_disconnect ()
 
 # Initialise
 init ()
@@ -375,10 +376,12 @@ if [ -f "${TCV2KEY_SERIAL_FILE}" ]
 then
 	tlskey_serial="$("${EASYTLS_CAT}" "${TCV2KEY_SERIAL_FILE}")" || \
 		die "Failed to set tlskey_serial"
+	update_status "Found tlskey-serial"
 	"${EASYTLS_RM}" "${TCV2KEY_SERIAL_FILE}"
 else
 	# Not using TLS-Crypt-V2 key
 	tlskey_serial="00000000000000000000000000000000"
+	update_status "NO TLSKEY SERIAL"
 fi
 
 # easytls client metadata file

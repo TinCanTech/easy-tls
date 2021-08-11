@@ -442,7 +442,7 @@ conn_trac_connect ()
 	[ $ENABLE_CONN_TRAC ] || return 0
 	[ -f "${EASYTLS_CONN_TRAC}" ] && \
 		file_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
-	if "${EASYTLS_GREP}" "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
+	if "${EASYTLS_GREP}" -q "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
 	then
 		# Already connected don't add another
 		update_status "TLS-key serial is already registered in conn-trac"
@@ -454,7 +454,7 @@ conn_trac_connect ()
 		update_status "TLS-Crypt-V2 key added to conn-trac"
 	fi
 	unset file_data
-}
+} # => conn_trac_connect ()
 
 # Initialise
 init ()
@@ -1018,9 +1018,10 @@ else
 		die "Failed to create client_metadata_file" 89
 	update_status "Created client_metadata_file"
 
-	# Ugly generic_metadata_file hack
+	# Unfortunate generic_metadata_file hack
 	if [ -f "${generic_metadata_file}" ]
 	then
+		#die "Why This File - generic_metadata_file"
 		"${EASYTLS_RM}" -f "${generic_metadata_file}"
 		update_status "Deleted generic_metadata_file"
 		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \

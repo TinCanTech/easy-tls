@@ -189,7 +189,8 @@ conn_trac_disconnect ()
 	[ $ENABLE_CONN_TRAC ] || return 0
 	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
 	update_status "TLS-Crypt-V2 key removed from conn-trac"
-}
+	[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
+} # => conn_trac_disconnect ()
 
 # Create stage-1 file
 create_stage1_file ()
