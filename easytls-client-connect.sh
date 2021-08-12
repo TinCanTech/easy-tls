@@ -105,12 +105,16 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
+	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
+	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
+	conn_trac_record="${conn_trac_record}=${untrusted_port}"
+	conn_trac_disconnect "${conn_trac_record}"
+
 	delete_metadata_files
-	#verbose_print "${status_msg}"
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
-	conn_trac_disconnect
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
@@ -119,11 +123,12 @@ fail_and_exit ()
 # Delete all metadata files
 delete_metadata_files ()
 {
+	# Not "${client_ext_md_file}"
+
 	"${EASYTLS_RM}" -f \
 		"${generic_metadata_file}" \
 		"${generic_ext_md_file}" \
 		"${client_metadata_file}" \
-		"${client_ext_md_file}" \
 		"${EASYTLS_KILL_FILE}" \
 
 	update_status "temp-files deleted"
@@ -160,35 +165,6 @@ connection_allowed ()
 	absolute_fail=0
 	update_status "connection allowed"
 }
-
-# Connection tacking - Connect
-conn_trac_connect ()
-{
-	[ $ENABLE_CONN_TRAC ] || return 0
-	[ -f "${EASYTLS_CONN_TRAC}" ] && \
-		file_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
-	if "${EASYTLS_GREP}" -q "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
-	then
-		# Already connected don't add another
-		update_status "TLS-key serial is already registered in conn-trac"
-	else
-		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
-			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
-			[ "${file_data}" ] && "${EASYTLS_PRINTF}" "%s\n" "${file_data}"
-		} > "${EASYTLS_CONN_TRAC}"
-		update_status "TLS-Crypt-V2 key added to conn-trac"
-	fi
-	unset file_data
-} # => conn_trac_connect ()
-
-# Update connection tacking - disconnect
-conn_trac_disconnect ()
-{
-	[ $ENABLE_CONN_TRAC ] || return 0
-	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
-	update_status "TLS-Crypt-V2 key removed from conn-trac"
-	[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
-} # => conn_trac_disconnect ()
 
 # Initialise
 init ()
@@ -265,6 +241,27 @@ deps ()
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
 }
+
+# client metadata_string into variables
+client_metadata_string_to_vars ()
+{
+	c_tlskey_serial="${1%%-*}"
+	c_md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	c_md_easytls_ver="${1#*--}"
+	c_md_easytls="${md_easytls_ver%-*.*}"
+
+	c_md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	c_md_serial="${3}"
+	c_md_date="${4}"
+	c_md_custom_g="${5}"
+	c_md_name="${6}"
+	c_md_subkey="${7}"
+	c_md_opt="${8}"
+	c_md_hwadds="${9}"
+} # => metadata_string_to_vars ()
 
 #######################################
 
@@ -358,6 +355,26 @@ else
 	update_status "Not loaded: ${vars_file}"
 fi
 
+# Write env file
+[ $write_env ] && {
+	env_file="${temp_stub}-client-connect-${EASYTLS_srv_pid}.env"
+	if [ $EASYTLS_FOR_WINDOWS ]; then
+		set > "${env_file}"
+	else
+		env > "${env_file}"
+	fi
+	unset env_file
+	}
+
+# Source conn-trac lib
+[ $ENABLE_CONN_TRAC ] && {
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-conn-trac.lib"
+	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	. "${lib_file}"
+	unset lib_file
+	}
+
 # Update log message
 update_status "CN:${X509_0_CN}"
 
@@ -369,20 +386,6 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	help_note="Openvpn failed to pass a client serial number"
 	die "NO CLIENT SERIAL" 8
 	}
-
-# TLS-Crypt-V2 key serial file
-TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
-if [ -f "${TCV2KEY_SERIAL_FILE}" ]
-then
-	tlskey_serial="$("${EASYTLS_CAT}" "${TCV2KEY_SERIAL_FILE}")" || \
-		die "Failed to set tlskey_serial"
-	update_status "Found tlskey-serial"
-	"${EASYTLS_RM}" "${TCV2KEY_SERIAL_FILE}"
-else
-	# Not using TLS-Crypt-V2 key
-	tlskey_serial="00000000000000000000000000000000"
-	update_status "NO TLSKEY SERIAL"
-fi
 
 # easytls client metadata file
 generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
@@ -405,6 +408,16 @@ if [ -f "${client_ext_md_file}" ]
 then
 	# Client cert serial matches
 	update_status "X509 serial matched"
+	# Get client metadata_string
+	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
+	[ -n "${metadata_string}" ] || \
+		fail_and_exit "failed to read client_ext_md_file" 18
+	# Populate client metadata variables
+	client_metadata_string_to_vars $metadata_string
+	[ -n "${c_tlskey_serial}" ] || \
+		fail_and_exit "failed to set c_tlskey_serial" 19
+	unset metadata_string
+	update_status "client_ext_md_file loaded"
 else
 	# cert serial does not match - ALWAYS fail
 	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
@@ -514,18 +527,14 @@ esac # allow_no_check
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
-	if [ -f "${auth_control_file}" ]
-	then
-		file_data="$("${EASYTLS_CAT}" "${auth_control_file}")"
-		{	# Add tlskey_serial to auth_control_file
-			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
-			"${EASYTLS_PRINTF}" "%s\n" "${file_data}"
-		} > "${auth_control_file}"
-		unset file_data
-	else
-		print "Missing auth_control_file"
-	fi
-	conn_trac_connect
+	# Update connection tracking
+	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
+	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
+	conn_trac_record="${conn_trac_record}=${untrusted_port}"
+	conn_trac_connect "${conn_trac_record}"
+
+	# Delete files which are no longer needed
 	delete_metadata_files
 
 	# All is well
