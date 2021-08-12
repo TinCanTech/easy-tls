@@ -15,7 +15,7 @@ Easy-TLS also supports No-CA mode, which does not require an Easy-RSA CA:
 Easy-TLS Server scripts:
 + [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - TLS-Crypt-V2 key metadata access policy tool.
 + [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh) - TLS and X509 level access policy tool.
-+ [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh - Hardware-address access policy tool.
++ [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - Hardware-address access policy tool.
 + [**`easytls-client-disconnect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh)
 
 ## Installation
