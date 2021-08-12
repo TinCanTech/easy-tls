@@ -766,9 +766,9 @@ warn_die
 if [ -f "${vars_file}" ]
 then
 	. "${vars_file}" || die "source failed: ${vars_file}"
-	update_status "loaded: ${vars_file}"
+	update_status "vars loaded"
 else
-	update_status "Not loaded: ${vars_file}"
+	update_status "No vars loaded"
 fi
 
 # Write env file
