@@ -115,7 +115,11 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	conn_trac_disconnect
+	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
+	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
+	conn_trac_record="${conn_trac_record}=${untrusted_port}"
+	conn_trac_disconnect "${conn_trac_record}"
 	delete_metadata_files
 	verbose_print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
@@ -182,15 +186,6 @@ connection_allowed ()
 	absolute_fail=0
 	update_status "connection allowed"
 }
-
-# Update connection tacking - disconnect
-conn_trac_disconnect ()
-{
-	[ $ENABLE_CONN_TRAC ] || return 0
-	"${EASYTLS_SED}" -i "/^${tlskey_serial}\$/d" "${EASYTLS_CONN_TRAC}"
-	update_status "TLS-Crypt-V2 key removed from conn-trac"
-	[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
-} # => conn_trac_disconnect ()
 
 # Create stage-1 file
 create_stage1_file ()
@@ -293,6 +288,12 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-verify-${EASYTLS_srv_pid}.log"
+
+	# Conn track
+	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -492,6 +493,26 @@ else
 	update_status "Not loaded: ${vars_file}"
 fi
 
+# Write env file
+[ $write_env ] && {
+	env_file="${temp_stub}-verify-${EASYTLS_srv_pid}.env"
+	if [ $EASYTLS_FOR_WINDOWS ]; then
+		set > "${env_file}"
+	else
+		env > "${env_file}"
+	fi
+	unset env_file
+}
+
+# Source conn-trac lib
+[ $ENABLE_CONN_TRAC ] && {
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-conn-trac.lib"
+	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	. "${lib_file}"
+	unset lib_file
+	}
+
 # Update log message
 case ${EASYTLS_cert_depth} in
 1)	update_status "CN:${X509_1_CN}" ;;
@@ -517,10 +538,7 @@ then
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
 	# TLS-Crypt-V2 key serial file
-	TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
-
-	# Kill client file
-	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+	#TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
 
 	# Load kill-client file
 	if [ -f "${EASYTLS_KILL_FILE}" ]
@@ -535,7 +553,7 @@ then
 	# extended generic metadata file
 	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# generic trusted file - For reneg - float does not require any script
+	# generic trusted file - For reneg - This changes every float
 	generic_trusted_md_file="${generic_metadata_file}-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
@@ -543,6 +561,7 @@ then
 
 	# Move generic to generic-ext
 	# If these file-names match then this is a renegotiation
+	# generic_trusted_md_file never exists
 	if [ "${generic_ext_md_file}" = "${generic_trusted_md_file}" ]
 	then
 		# Renegotiation only
@@ -610,8 +629,7 @@ then
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-	# client trusted file - For reneg
-	# float does not trigger any script
+	# client trusted file - For reneg - This changes every float
 	client_trusted_md_file="${client_metadata_file}-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
@@ -619,6 +637,7 @@ then
 
 	# Move client to client-ext
 	# If these file-names match then this is a renegotiation
+	# client_trusted_md_file never exists
 	if [ "${client_ext_md_file}" = "${client_trusted_md_file}" ]
 	then
 		# Renegotiation
@@ -816,6 +835,7 @@ then
 else
 	# Create stage-1 file
 	create_stage1_file || die "Failed to create stage-1 file" 251
+	stage1=1
 fi # stage1_file
 
 # Allow this connection
@@ -837,12 +857,6 @@ then
 	[ $kill_this_client ] && "${EASYTLS_PRINTF}" "%s\n%s\n%s\n%s\n" \
 		"${client_serial}" "${kill_client_serial}" \
 		"${g_md_serial}" "${c_md_serial}" > "${EASYTLS_KILL_FILE}"
-	if [ -f "${stage1_file}" ] || [ $reneg_only ]
-	then
-		: # TLS-key is unchanged
-	else
-		"${EASYTLS_PRINTF}" "%s\n" "${c_tlskey_serial}" > "${TCV2KEY_SERIAL_FILE}"
-	fi
 	verbose_print "<EXOK> ${status_msg}"
 	exit 0
 fi
