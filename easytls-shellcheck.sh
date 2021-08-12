@@ -11,20 +11,28 @@ shellcheck_bin='shellcheck'
 export SHELLCHECK_OPTS="-S warning -e 1090"
 
 foo='========================='
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls'
-  "${shellcheck_bin}" easytls && sc_easytls=$?
+"${shellcheck_bin}" easytls && sc_easytls=$?
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
-  "${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
+"${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.sh'
-  "${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
+"${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
-  "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
+"${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
+
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
+"${shellcheck_bin}" easytls-client-disconnect.sh && sc_easytls_client_disconnect=$?
 
 exit_status=$(( \
 					sc_easytls + \
 					sc_easytls_cryptv2_verify + \
 					sc_easytls_verify + \
-					sc_easytls_client_connect \
+					sc_easytls_client_connect + \
+					sc_easytls_client_disconnect \
 			 ))
 
 # dirty trick to fool my CI and still record a fail
