@@ -772,7 +772,7 @@ else
 fi
 
 # Write env file
-[ $write_env ] && {
+[ $WRITE_ENV ] && {
 	env_file="${temp_stub}-cryptv2-verify.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"

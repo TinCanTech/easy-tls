@@ -19,7 +19,8 @@ conn_trac_connect ()
 			[ -z "${conn_trac_data}" ] || \
 				"${EASYTLS_PRINTF}" "%s" "${conn_trac_data}"
 		} > "${EASYTLS_CONN_TRAC}"
-		update_status "conn-trac: registered ${1}"
+		update_status "conn-trac: registered"
+		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 	fi
 	unset conn_trac_data
 } # => conn_trac_connect ()
@@ -31,7 +32,8 @@ conn_trac_disconnect ()
 	[ -n "${1}" ] || return 1
 	[ -f "${EASYTLS_CONN_TRAC}" ] && {
 		"${EASYTLS_SED}" -i -e "/^${1}\$/d" -e "/^\$/d" "${EASYTLS_CONN_TRAC}"
-		update_status "conn-trac: unregistered ${1}"
+		update_status "conn-trac: unregistered"
+		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
 		}
 } # => conn_trac_disconnect ()
