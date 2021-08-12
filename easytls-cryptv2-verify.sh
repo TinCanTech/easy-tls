@@ -436,26 +436,6 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
-# Connection tacking - Connect
-conn_trac_connect ()
-{
-	[ $ENABLE_CONN_TRAC ] || return 0
-	[ -f "${EASYTLS_CONN_TRAC}" ] && \
-		file_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
-	if "${EASYTLS_GREP}" -q "^${tlskey_serial}$" "${EASYTLS_CONN_TRAC}"
-	then
-		# Already connected don't add another
-		update_status "TLS-key serial is already registered in conn-trac"
-	else
-		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
-			"${EASYTLS_PRINTF}" "%s\n" "${tlskey_serial}"
-			[ "${file_data}" ] && "${EASYTLS_PRINTF}" "%s\n" "${file_data}"
-		} > "${EASYTLS_CONN_TRAC}"
-		update_status "TLS-Crypt-V2 key added to conn-trac"
-	fi
-	unset file_data
-} # => conn_trac_connect ()
-
 # Initialise
 init ()
 {
@@ -556,6 +536,12 @@ deps ()
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify-${EASYTLS_srv_pid}.log"
 
+	# Conn track
+	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+
+	# Kill client file
+	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
@@ -646,12 +632,6 @@ deps ()
 		help_note="This script can ONLY be used by a running openvpn server."
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
-
-	# Conn track
-	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
-
-	# Kill client file
-	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
 } # => deps ()
 
 # Break metadata_string into variables
@@ -791,6 +771,17 @@ else
 	update_status "Not loaded: ${vars_file}"
 fi
 
+# Write env file
+[ $write_env ] && {
+	env_file="${temp_stub}-cryptv2-verify-${EASYTLS_srv_pid}.env"
+	if [ $EASYTLS_FOR_WINDOWS ]; then
+		set > "${env_file}"
+	else
+		env > "${env_file}"
+	fi
+	unset env_file
+}
+
 # Get metadata
 
 	# Get metadata_string
@@ -865,8 +856,9 @@ fi
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
-	# current date
+	# current date - Set for all checks which require it, not just key age
 	local_date_sec="$("${EASYTLS_DATE}" +%s)"
+
 	if [ "${tlskey_expire_age_sec}" -gt 0 ]
 	then
 		case "${local_date_sec}" in
@@ -994,9 +986,30 @@ else
 
 fi # => use_x509 ()
 
-# Save the client_metadata to temp file
-client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${md_serial}"
+# Set the client_metadata temp files
 generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
+client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${md_serial}"
+
+# If generic_metadata_file exists then delete it if is stale
+if [ -f "${generic_metadata_file}" ]
+then
+	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${generic_metadata_file}")"
+	md_file_age_sec=$((local_date_sec - md_file_date_sec))
+	[ ${md_file_age_sec} -gt ${stale_sec} ] && \
+		"${EASYTLS_RM}" -f "${generic_metadata_file}"
+fi
+
+# If generic_metadata_file still exists then silently fail - Client will try again
+if [ -f "${generic_metadata_file}" ]
+then
+	unset kill_client
+	failure_msg="generic_metadata_file age: ${md_file_age_sec} sec"
+	fail_and_exit "STALE_METADATA_FILE" 101
+else
+	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
+		die "Failed to create generic_metadata_file" 88
+	update_status "Created generic_metadata_file"
+fi
 
 # If client_metadata_file exists then delete it if is stale
 if [ -f "${client_metadata_file}" ]
@@ -1007,34 +1020,20 @@ then
 		"${EASYTLS_RM}" -f "${client_metadata_file}"
 fi
 
-# If client_metadata_file still exists then fail the connection
-# Client will try again
+# If client_metadata_file still exists then silently fail - Client will try again
 if [ -f "${client_metadata_file}" ]
 then
+	unset kill_client
 	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
 	fail_and_exit "STALE_METADATA_FILE" 101
 else
 	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_metadata_file}" || \
 		die "Failed to create client_metadata_file" 89
 	update_status "Created client_metadata_file"
-
-	# Unfortunate generic_metadata_file hack
-	if [ -f "${generic_metadata_file}" ]
-	then
-		#die "Why This File - generic_metadata_file"
-		"${EASYTLS_RM}" -f "${generic_metadata_file}"
-		update_status "Deleted generic_metadata_file"
-		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
-			die "Failed to create generic_metadata_file" 87
-		update_status "Created generic_metadata_file"
-	else
-		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
-			die "Failed to create generic_metadata_file" 88
-		update_status "Created generic_metadata_file"
-	fi
-	# Allow connection
-	connection_allowed
 fi
+
+# Allow connection
+connection_allowed
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
@@ -1046,8 +1045,6 @@ fi
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
-	# Update connection tracking
-	conn_trac_connect
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
