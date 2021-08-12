@@ -61,6 +61,10 @@ help_text ()
   7   - Disallow connection, X509 certificate incorrect for this TLS-key.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
+
+  18  - BUG Disallow connection, failed to read c_ext_md_file
+  19  - BUG Disallow connection, failed to parse metadata strig
+
   21  - USER ERROR Disallow connection, options error.
 
   60  - USER ERROR Disallow connection, missing Temp dir

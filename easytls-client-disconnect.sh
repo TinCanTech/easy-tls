@@ -34,13 +34,7 @@ help_text ()
   Options:
   help|-h|--help         This help text.
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
-  -a|--allow-no-check    If the key has a hardware-address configured
-                         and the client did NOT use --push-peer-info
-                         then allow the connection.  Otherwise, keys with a
-                         hardware-address MUST use --push-peer-info.
-  -p|--push-required     Require all clients to use --push-peer-info.
-  -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
-  -k|--key-required      Require all client keys to have a hardware-address.
+
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
                                   Windows C:/Windows/Temp/easytls
@@ -53,14 +47,14 @@ help_text ()
 
   Exit codes:
   0   - Allow connection, Client hwaddr is correct or not required.
-  2   - Disallow connection, pushed hwaddr does not match.
-  3   - Disallow connection, hwaddr required and not pushed.
-  4   - Disallow connection, hwaddr required and not keyed.
-  5   - Disallow connection, Kill client.
-  6   - Disallow connection, TLS Auth/Crypt-v1 banned
+
   7   - Disallow connection, X509 certificate incorrect for this TLS-key.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
+
+  18  - BUG Disallow connection, failed to read c_ext_md_file
+  19  - BUG Disallow connection, failed to parse metadata strig
+
   21  - USER ERROR Disallow connection, options error.
 
   60  - USER ERROR Disallow connection, missing Temp dir
@@ -409,96 +403,6 @@ else
 	# cert serial does not match - ALWAYS fail
 	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
 fi
-
-: << COMMENT
-# allow_no_check
-case $allow_no_check in
-1)
-	# disable all checks
-	update_status "Allow ALL TLS keys"
-	connection_allowed
-;;
-*)
-	# Check for TLS Auth/Crypt
-	if "${EASYTLS_GREP}" -q '^=TLSAC=[[:blank:]]=' "${client_ext_md_file}"
-	then
-		# TLS Auth/Crypt
-		update_status "TLS Auth/Crypt key only"
-		[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && {
-			failure_msg="TLS Auth/Crypt no pushed hwaddr"
-			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-			}
-		[ $crypt_v2_required ] && {
-			failure_msg="TLS Auth/Crypt key not allowed"
-			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
-			}
-		[ $key_hwaddr_required ] && {
-			failure_msg="TLS Auth/Crypt key enforce verify hwaddr"
-			fail_and_exit "TLS_CRYPT_V2 ONLY " 6
-			}
-		# TLS Auth/Crypt-v1 allowed here
-		connection_allowed
-	else
-		# TLS-Crypt-V2
-
-		# Set only for NO keyed hwaddr
-		# Old field
-		if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${client_ext_md_file}"
-		then
-			key_hwaddr_missing=1
-		fi
-		# New field
-		if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
-		then
-			key_hwaddr_missing=1
-		fi
-
-		# Verify hwaddr
-		if [ $push_hwaddr_missing ]
-		then
-			# hwaddr is NOT pushed
-			[ $push_hwaddr_required ] && {
-				failure_msg="Client did not push required hwaddr"
-				fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-				}
-			# hwaddr not pushed and not required
-			update_status "hwaddr not required"
-			connection_allowed
-		else
-			# hwaddr is pushed
-			if [ $key_hwaddr_missing ]
-			then
-				# key does not have a hwaddr
-				update_status "Key is not locked to hwaddr"
-				[ $key_hwaddr_required ] && {
-					failure_msg="Key hwaddr required but missing"
-					fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
-					}
-				# No keyed hwaddr and TLS-crypt-v2
-				connection_allowed
-			else
-				if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
-				then
-					# push and MATCH! - Old format
-					update_status "hwaddr ${push_hwaddr} pushed and matched"
-					connection_allowed
-
-				elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
-				then
-					# push and MATCH! - New format
-					update_status "hwaddr ${push_hwaddr} pushed and matched"
-					connection_allowed
-
-				else
-					# push does not match key hwaddr
-					failure_msg="hwaddr mismatch - pushed: ${push_hwaddr}"
-					fail_and_exit "HWADDR MISMATCH" 2
-				fi
-			fi
-		fi
-	fi
-esac # allow_no_check
-COMMENT
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
