@@ -31,7 +31,7 @@ conn_trac_disconnect ()
 	[ $ENABLE_CONN_TRAC ] || return 0
 	[ -n "${1}" ] || return 1
 	[ -f "${EASYTLS_CONN_TRAC}" ] && {
-		"${EASYTLS_SED}" -i -e "/^${1}\$/d" -e "/^\$/d" "${EASYTLS_CONN_TRAC}"
+		"${EASYTLS_SED}" -i -e "/^${1}\$/d" "${EASYTLS_CONN_TRAC}" # -e "/^\$/d"
 		update_status "conn-trac: unregistered"
 		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
