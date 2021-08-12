@@ -531,16 +531,16 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Temp files name stub
-	temp_stub="${EASYTLS_tmp_dir}/easytls"
+	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
 	# Windows log
-	EASYTLS_WLOG="${temp_stub}-cryptv2-verify-${EASYTLS_srv_pid}.log"
+	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
 
 	# Conn track
-	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
@@ -773,7 +773,7 @@ fi
 
 # Write env file
 [ $write_env ] && {
-	env_file="${temp_stub}-cryptv2-verify-${EASYTLS_srv_pid}.env"
+	env_file="${temp_stub}-cryptv2-verify.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"
 	else
@@ -987,8 +987,8 @@ else
 fi # => use_x509 ()
 
 # Set the client_metadata temp files
-generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
-client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${md_serial}"
+generic_metadata_file="${temp_stub}-gmd"
+client_metadata_file="${temp_stub}-cmd-${md_serial}"
 
 # If generic_metadata_file exists then delete it if is stale
 if [ -f "${generic_metadata_file}" ]

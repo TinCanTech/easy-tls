@@ -284,16 +284,16 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Temp files name stub
-	temp_stub="${EASYTLS_tmp_dir}/easytls"
+	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
 	# Windows log
-	EASYTLS_WLOG="${temp_stub}-verify-${EASYTLS_srv_pid}.log"
+	EASYTLS_WLOG="${temp_stub}-verify.log"
 
 	# Conn track
-	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || {
@@ -495,7 +495,7 @@ fi
 
 # Write env file
 [ $write_env ] && {
-	env_file="${temp_stub}-verify-${EASYTLS_srv_pid}.env"
+	env_file="${temp_stub}-verify.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"
 	else
@@ -523,8 +523,7 @@ esac
 # TLS verify checks
 
 # Work around for double call of --tls-verify in peer-fingerprint mode
-stage1_file="${temp_stub}-${EASYTLS_srv_pid}"
-stage1_file="${stage1_file}-${untrusted_ip}-${untrusted_port}.stage-1"
+stage1_file="${temp_stub}-${untrusted_ip}-${untrusted_port}.stage-1"
 
 if [ -f "${stage1_file}" ]
 then
@@ -537,9 +536,6 @@ then
 	# Verify Client certificate serial number
 	[ -n "${client_serial}" ] || die "MISSING CLIENT CERTIFICATE SERIAL" 11
 
-	# TLS-Crypt-V2 key serial file
-	#TCV2KEY_SERIAL_FILE="${temp_stub}-${EASYTLS_srv_pid}-${client_serial}.tks"
-
 	# Load kill-client file
 	if [ -f "${EASYTLS_KILL_FILE}" ]
 	then
@@ -548,13 +544,13 @@ then
 
 	# ----------
 	# generic metadata file
-	generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
+	generic_metadata_file="${temp_stub}-gmd"
 
 	# extended generic metadata file
-	generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
+	generic_ext_md_file="${temp_stub}-gmd-${untrusted_ip}-${untrusted_port}"
 
 	# generic trusted file - For reneg - This changes every float
-	generic_trusted_md_file="${generic_metadata_file}-${trusted_ip}-${trusted_port}"
+	generic_trusted_md_file="${temp_stub}-gmd-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
 	g_tls_crypt_v2=1
@@ -620,11 +616,11 @@ then
 	# ----------
 
 	# generic metadata X509 serial file - not openvpn x509-serial
-	g_md_x509_serial_md_file="${temp_stub}-${g_md_serial}.${EASYTLS_srv_pid}"
+	g_md_x509_serial_md_file="${temp_stub}-${g_md_serial}"
 
 	# ----------
 	# client metadata file
-	client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${client_serial}"
+	client_metadata_file="${temp_stub}-cmd-${client_serial}"
 
 	# extended client metadata file
 	client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"

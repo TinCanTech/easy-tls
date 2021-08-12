@@ -234,16 +234,16 @@ deps ()
 	[ -d "${EASYTLS_tmp_dir}" ] || exit 60
 
 	# Temp files name stub
-	temp_stub="${EASYTLS_tmp_dir}/easytls"
+	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
 	# Windows log
-	EASYTLS_WLOG="${temp_stub}-client-connect-${EASYTLS_srv_pid}.log."
+	EASYTLS_WLOG="${temp_stub}-client-connect.log."
 
 	# Conn track
-	EASYTLS_CONN_TRAC="${temp_stub}-${EASYTLS_srv_pid}.ct"
+	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill client file
-	EASYTLS_KILL_FILE="${temp_stub}-${EASYTLS_srv_pid}.kc"
+	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 }
 
 # client metadata_string into variables
@@ -361,7 +361,7 @@ fi
 
 # Write env file
 [ $write_env ] && {
-	env_file="${temp_stub}-client-connect-${EASYTLS_srv_pid}.env"
+	env_file="${temp_stub}-client-connect.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"
 	else
@@ -392,8 +392,8 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # easytls client metadata file
-generic_metadata_file="${temp_stub}-gmd-${EASYTLS_srv_pid}"
-client_metadata_file="${temp_stub}-cmd-${EASYTLS_srv_pid}-${client_serial}"
+generic_metadata_file="${temp_stub}-gmd"
+client_metadata_file="${temp_stub}-cmd-${client_serial}"
 
 # --tls-verify output to --client-connect
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
