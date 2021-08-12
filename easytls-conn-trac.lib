@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Connection tacking - Connect
+conn_trac_connect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	[ -n "${1}" ] || return 1
+	[ -f "${EASYTLS_CONN_TRAC}" ] && \
+		conn_trac_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
+	if [ -f "${EASYTLS_CONN_TRAC}" ] && \
+		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
+	then
+		# Already connected don't add another
+		update_status \
+			"conn-trac: already registered ${1}"
+	else
+		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
+			"${EASYTLS_PRINTF}" "%s\n" "${1}"
+			[ -z "${conn_trac_data}" ] || \
+				"${EASYTLS_PRINTF}" "%s" "${conn_trac_data}"
+		} > "${EASYTLS_CONN_TRAC}"
+		update_status "conn-trac: registered ${1}"
+	fi
+	unset conn_trac_data
+} # => conn_trac_connect ()
+
+# Update connection tacking - disconnect
+conn_trac_disconnect ()
+{
+	[ $ENABLE_CONN_TRAC ] || return 0
+	[ -n "${1}" ] || return 1
+	[ -f "${EASYTLS_CONN_TRAC}" ] && {
+		"${EASYTLS_SED}" -i -e "/^${1}\$/d" -e "/^\$/d" "${EASYTLS_CONN_TRAC}"
+		update_status "conn-trac: unregistered ${1}"
+		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
+		}
+} # => conn_trac_disconnect ()
