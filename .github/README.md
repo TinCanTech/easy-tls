@@ -12,10 +12,11 @@ Easy-TLS is an Easy-RSA extension utility to help manage:
 Easy-TLS also supports No-CA mode, which does not require an Easy-RSA CA:
 + Use Easy-TLS to build **self-signed** X509 Certificates and keys.
 
-Easy-TLS scripts to interogate EasyTLS-CryptV2 metadata:
-+ `easytls-cryptv2-verify.sh` - TLS-Crypt-V2 key metadata access policy tool.
-+ `easytls-verify.sh` - TLS and X509 level access policy tool.
-+ `easytls-client-connect.sh` - Hardware-address access policy tool.
+Easy-TLS Server scripts:
++ [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - TLS-Crypt-V2 key metadata access policy tool.
++ [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh) - TLS and X509 level access policy tool.
++ [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh - Hardware-address access policy tool.
++ [**`easytls-client-disconnect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh)
 
 ## Installation
 Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls) and [**`easytls-openssl.cnf`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf) to your `easyrsa3` working directory.
@@ -26,11 +27,14 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
   Also required for EasyTLS hardware-address access policy rules.
 
 + [**`easytls-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-verify.sh)<br>
-  This script is  is used by Openvpn-Server to manage TLS verification.<br>
+  This script is  is used by Openvpn-Server to manage TLS verification and connection tracking.<br>
   Also required for EasyTLS hardware-address access policy rules.
 
 + [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh)<br>
-  This script is used by Openvpn-Server to manage hardware-address access policy rules.
+  This script is used by Openvpn-Server to manage hardware-address access policy rules and connection tracking.
+
++ [**`easytls-client-disconnect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh)<br>
+  This script is used by Openvpn-Server to manage connection tracking.
 
 ## Environment
 `easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
