@@ -1,6 +1,38 @@
 https://github.com/TinCanTech/easy-tls
   Change log:
 
+Version 2.5
+* 2021-08-13 - Commit c0ace6c6740315407776bef1b3b6a4827be36f84
+  Introduce `easytls-conn-trac.lib`
+    Commit a05e4f1ab003be3fbc63f5f00ec2d546c80cc4ab
+  Add TLS-Crypt-V2 connection tracking
+    Commit cca482808521807b5b72203dfcc4ea170615c817
+      conn-trac is disabled by default
+  Introduce `easytls-client-disconnect.sh` and `vars` file
+    Commit 4172a08c79182b2b091b3c1fa31eca59551afe11
+      Required by conn-trac (Disabled by default)
+  Add Server authentication script vars files
+    Commit 611758b18a092fc3d2dfc1d31d6d1ebb2393392b
+      Allows parameters to be change with restarting server
+  Introduce `remove-metadata`
+    Commit b243aae45e70448d22c244cfe643f6a73956d37b
+      Allows selective removal of `# metadata` records from client inline files.
+  Introduce intermediate TLS-key security levels in client connect
+    Commit 8a4a9987c51d797adef35f76a4b60b8e07d14e38
+      Allow clients to seamlessly transition to TLS-Crypt-V2 keys.
+  Add new hwaddr format
+    Commit d27ffc93d39c48e9dc58e362e273ff5f678f266f
+      Makes for cleaner regexpr
+  Disable inline-index for No-CA mode
+    Commit d44c0f09d84f5480aa45df9784ef25f78c4b7bbf
+      Allows inline files to be manually edited (Fingerprint)
+  Make No-CA mode completely independent of Easy-RSA
+    Commit fd8fa84b9733c5816db3ec889db4b20b2856d718
+  Introduce fingerprint sharing function
+    Commit 1fb4b3d46a5907d3c18fa67f3abf4fb5f7558acc
+      Allows fingerprints to be automatically inlined
+
+
 Version 2.4
 * 2021-07-21 - Commit 8160cbc42e377e6fa34b819359e718e75e2a5560
   Add self-signed certificates to inter-active `build` menu
