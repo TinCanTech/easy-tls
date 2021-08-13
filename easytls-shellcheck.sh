@@ -9,6 +9,7 @@ shellcheck_bin='shellcheck'
 
 "${shellcheck_bin}" --version
 export SHELLCHECK_OPTS="--shell=sh -S warning -e 1090 $*"
+[ $EASYTLS_VERBOSE ] && export SHELLCHECK_OPTS="--shell=sh $*"
 
 # SC1090 - Can't follow non-constant source
 # Recommend -e 2034
