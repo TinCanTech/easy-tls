@@ -57,18 +57,5 @@ This is intended to facilitate maximum compatibility with Easy-RSA while extendi
 to include direct support for OpenVPN specific TLS keys and Inline credentials. <br>
 
 Easy-TLS is inspired by **syzzer** <br>
-See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
+See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt<br>
 
-### Personal
-
-Mo: *You don't know what it is, but it's there, like a splinter in your mind, driving you mad*.<br>
-
-Tr: *I will not stand here and do nothing*<br>
-
-Mo: *We would already be dead*<br>
-
-Go: *Don't be evil*<br>
-
-Tc: LMFAO.. <br>
-
-RTFM<br>
