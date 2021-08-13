@@ -117,7 +117,9 @@ fail_and_exit ()
 {
 	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
 	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
+	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	conn_trac_disconnect "${conn_trac_record}"
 	delete_metadata_files
@@ -331,6 +333,7 @@ deps ()
 	fi
 
 	# Check for peer_cert
+	# shellcheck disable=SC2154
 	[ -f "${peer_cert}" ] || {
 		help_note="This script requires Openvpn --tls-export-cert"
 		die "Missing peer_cert variable or file: ${peer_cert}" 15
@@ -344,7 +347,7 @@ generic_metadata_string_to_vars ()
 	g_md_seed="${metadata_string#*-}"
 	#md_padding="${md_seed%%--*}"
 	g_md_easytls_ver="${1#*--}"
-	g_md_easytls="${md_easytls_ver%-*.*}"
+	g_md_easytls="${g_md_easytls_ver%-*.*}"
 
 	g_md_identity="${2%%-*}"
 	#md_srv_name="${2##*-}"
@@ -365,7 +368,7 @@ client_metadata_string_to_vars ()
 	c_md_seed="${metadata_string#*-}"
 	#md_padding="${md_seed%%--*}"
 	c_md_easytls_ver="${1#*--}"
-	c_md_easytls="${md_easytls_ver%-*.*}"
+	c_md_easytls="${c_md_easytls_ver%-*.*}"
 
 	c_md_identity="${2%%-*}"
 	#md_srv_name="${2##*-}"
@@ -529,6 +532,7 @@ then
 	delete_stage1_file || die "Failed to remove stage-1 file" 252
 
 	# Set Client certificate serial number from Openvpn env
+	# shellcheck disable=SC2154
 	client_serial="$(format_number "${tls_serial_hex_0}")"
 
 	# Verify Client certificate serial number
@@ -545,9 +549,10 @@ then
 	generic_metadata_file="${temp_stub}-gmd"
 
 	# extended generic metadata file
+	# shellcheck disable=SC2154
 	generic_ext_md_file="${temp_stub}-gmd-${untrusted_ip}-${untrusted_port}"
-
 	# generic trusted file - For reneg - This changes every float
+	# shellcheck disable=SC2154
 	generic_trusted_md_file="${temp_stub}-gmd-${trusted_ip}-${trusted_port}"
 
 	# TLS-Crypt-V2 key flag
@@ -829,7 +834,6 @@ then
 else
 	# Create stage-1 file
 	create_stage1_file || die "Failed to create stage-1 file" 251
-	stage1=1
 fi # stage1_file
 
 # Allow this connection

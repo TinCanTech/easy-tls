@@ -238,7 +238,7 @@ client_metadata_string_to_vars ()
 	c_md_seed="${metadata_string#*-}"
 	#md_padding="${md_seed%%--*}"
 	c_md_easytls_ver="${1#*--}"
-	c_md_easytls="${md_easytls_ver%-*.*}"
+	c_md_easytls="${c_md_easytls_ver%-*.*}"
 
 	c_md_identity="${2%%-*}"
 	#md_srv_name="${2##*-}"
@@ -276,26 +276,6 @@ do
 	-v|--verbose)
 		empty_ok=1
 		EASYTLS_VERBOSE=1
-	;;
-	-a|--allow-no-check)
-		empty_ok=1
-		allow_no_check=1
-	;;
-	-m|ignore-mismatch) # tlskey-x509 does not match openvpn-x509
-		empty_ok=1
-		ignore_x509_mismatch=1
-	;;
-	-p|--push-hwaddr-required)
-		empty_ok=1
-		push_hwaddr_required=1
-	;;
-	-c|--crypt-v2-required)
-		empty_ok=1
-		crypt_v2_required=1
-	;;
-	-k|--key-hwaddr-required)
-		empty_ok=1
-		key_hwaddr_required=1
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -368,6 +348,7 @@ fi
 update_status "CN:${X509_0_CN}"
 
 # Set Client certificate serial number from Openvpn env
+# shellcheck disable=SC2154
 client_serial="$(format_number "${tls_serial_hex_0}")"
 
 # Verify Client certificate serial number
@@ -381,6 +362,7 @@ generic_metadata_file="${temp_stub}-gmd"
 client_metadata_file="${temp_stub}-cmd-${client_serial}"
 
 # --tls-verify output to --client-connect
+# shellcheck disable=SC2154
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
@@ -401,7 +383,7 @@ then
 	update_status "client_ext_md_file loaded"
 else
 	# cert serial does not match - ALWAYS fail
-	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
+	die "CLIENT X509 SERIAL MISMATCH" 7
 fi
 
 # Any failure_msg means fail_and_exit

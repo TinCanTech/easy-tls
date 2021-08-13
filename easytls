@@ -2584,6 +2584,7 @@ inline_file_verify_hash ()
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
+	# shellcheck disable=SC2154
 	[ -n "${inline_hash}" ] && \
 		die "inline_file_verify_hash: Found value: inline_hash ${inline_hash}"
 
@@ -2691,13 +2692,13 @@ openssl_crt_common_name ()
 {
 	# This is ONLY use to import a certificate and importing is DISABLED
 	die "openssl_crt_common_name DISABLED"
-	temp_name="$(get_openssl_crt_common_name "${crt_file}")" || {
-		error_msg ""
-		return 1
-		}
-	temp_name="${temp_name##*, CN = }"
-	temp_name="${temp_name%%, emailAddress = *}"
-	"${EASYTLS_PRINTF}" "%s" "${temp_name}"
+	#temp_name="$(get_openssl_crt_common_name "${crt_file}")" || {
+	#	error_msg ""
+	#	return 1
+	#	}
+	#temp_name="${temp_name##*, CN = }"
+	#temp_name="${temp_name%%, emailAddress = *}"
+	#"${EASYTLS_PRINTF}" "%s" "${temp_name}"
 } # => openssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject

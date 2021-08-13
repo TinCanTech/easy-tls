@@ -8,7 +8,10 @@ shellcheck_bin='shellcheck'
 	}
 
 "${shellcheck_bin}" --version
-export SHELLCHECK_OPTS="-S warning -e 1090"
+export SHELLCHECK_OPTS="--shell=sh -S warning -e 1090 $*"
+
+# SC1090 - Can't follow non-constant source
+# Recommend -e 2034
 
 foo='========================='
 
@@ -18,21 +21,45 @@ printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls'
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
 "${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
 
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.vars'
+"${shellcheck_bin}" easytls-cryptv2-verify.vars && sc_easytls_cryptv2_verify_vars=$?
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.sh'
 "${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
+
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.vars'
+"${shellcheck_bin}" easytls-verify.vars && sc_easytls_verify_vars=$?
 
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
 "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
 
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.vars'
+"${shellcheck_bin}" easytls-client-connect.vars && sc_easytls_client_connect_vars=$?
+
 printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
 "${shellcheck_bin}" easytls-client-disconnect.sh && sc_easytls_client_disconnect=$?
+
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars'
+"${shellcheck_bin}" easytls-client-disconnect.vars && sc_easytls_client_disconnect_vars=$?
+
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
+"${shellcheck_bin}" easytls-conn-trac.lib && sc_easytls_conn_trac=$?
+
+printf '\n\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
+"${shellcheck_bin}" easytls-shellcheck.sh && sc_easytls_shellcheck=$?
 
 exit_status=$(( \
 					sc_easytls + \
 					sc_easytls_cryptv2_verify + \
 					sc_easytls_verify + \
 					sc_easytls_client_connect + \
-					sc_easytls_client_disconnect \
+					sc_easytls_client_disconnect + \
+					sc_easytls_cryptv2_verify_vars + \
+					sc_easytls_verify_vars + \
+					sc_easytls_client_connect_vars + \
+					sc_easytls_client_disconnect_vars + \
+					sc_easytls_conn_trac + \
+					sc_easytls_shellcheck \
 			 ))
 
 # dirty trick to fool my CI and still record a fail

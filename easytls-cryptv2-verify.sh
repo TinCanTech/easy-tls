@@ -459,6 +459,7 @@ init ()
 	EASYTLS_srv_pid=$PPID
 
 	# metadata file
+	# shellcheck disable=SC2154
 	OPENVPN_METADATA_FILE="${metadata_file}"
 
 	# Log message
@@ -537,7 +538,7 @@ deps ()
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
 
 	# Conn track
-	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
+	#EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"

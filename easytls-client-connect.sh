@@ -111,7 +111,9 @@ fail_and_exit ()
 {
 	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
 	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
+	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	conn_trac_disconnect "${conn_trac_record}"
 
@@ -253,7 +255,7 @@ client_metadata_string_to_vars ()
 	c_md_seed="${metadata_string#*-}"
 	#md_padding="${md_seed%%--*}"
 	c_md_easytls_ver="${1#*--}"
-	c_md_easytls="${md_easytls_ver%-*.*}"
+	c_md_easytls="${c_md_easytls_ver%-*.*}"
 
 	c_md_identity="${2%%-*}"
 	#md_srv_name="${2##*-}"
@@ -383,6 +385,7 @@ fi
 update_status "CN:${X509_0_CN}"
 
 # Set Client certificate serial number from Openvpn env
+# shellcheck disable=SC2154
 client_serial="$(format_number "${tls_serial_hex_0}")"
 
 # Verify Client certificate serial number
