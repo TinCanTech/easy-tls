@@ -791,10 +791,6 @@ easytls_config ()
 			die "To change No-CA mode you must create a new Easy-TLS PKI"
 		;;
 		tmp.dir)
-			#[ -d "$cfg_val" ] || {
-			#	help_note="First create directory: $cfg_val"
-			#	die "Directory does not exists: $cfg_val"
-			#	}
 			:
 		;;
 		auto.check|inline.metadata|inline.hardware)
@@ -1508,7 +1504,6 @@ generate_and_validate_data_hash ()
 	fi
 
 	# Return validated generated_hash
-	#"${EASYTLS_PRINTF}" "%s" "${generated_hash}"
 	eval ${2}=${generated_hash}
 
 	# Clean up
@@ -2080,9 +2075,6 @@ noca_status_easytls_inline ()
 			}
 		etls_valid_serial="${etls_valid_serial##*X509 serial: }"
 
-		#etls_valid_name_list="$etls_valid_name_list $"
-		#etls_valid_serial_list="$(inline_index_serial_number_list)"
-		#etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
 		[ $silent_status ] || \
 			print "${etls_valid_name} ${etls_valid_serial} ${etls_valid_subkey}" \
 				| noca_status_easytls_output
@@ -3167,7 +3159,6 @@ tls_crypt_v2_serial_number ()
 
 	# Insert this valid hash as tlskey_serial into metadata
 	metadata="${tlskey_serial}-${metadata}"
-	# TODO tlskey_serial
 } # => tls_crypt_v2_serial_number ()
 
 # tlskey name subkeyname to tls serial
@@ -4011,9 +4002,6 @@ inline_share_fingerprint ()
 		"${EASYTLS_PRINTF}" '%s\n' \
 			" * Replace this line with your peer's fingerprint *"
 		"${EASYTLS_PRINTF}" '%s\n' "</peer-fingerprint>"
-		#"${EASYTLS_PRINTF}" '\n%s\n' "# Place a TLS-key below"
-		#"${EASYTLS_PRINTF}" '%s\n\n' \
-		#	"# Valid tags are: <tls-auth>, <tls-crypt> and <tls-crypt-v2>"
 		return 0
 		}
 
@@ -4495,7 +4483,7 @@ b64_enc_metadata ()
 	#     Default: OPT
 	#
 	# 9.  Hardware Address string:
-	#     Default: 000000000000
+	#     Default: =000000000000=
 	#
 
 	# metadata_version
@@ -6071,17 +6059,9 @@ interactive_scripts ()
 
 		} > "$EASYTLS_SRVSCRIPT_CFG" || die "Failed to create config file"
 
-		# Remove space in 'C:/Program Files/'
-		#"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
-		#	"$EASYTLS_SRVSCRIPT_CFG"
-
 		# Instructions temp file
 		"$EASYTLS_PRINTF" '\n    %s %s\n' 'config' "$EASYTLS_SRVSCRIPT_CFG" > \
 			"$EASYTLS_INSTRUCT_TEMP"
-
-		# Remove space in 'C:/Program Files/'
-		#"$EASYTLS_SED" -i -e "s\`Program\ Files\`Progra~1\`g" \
-		#	"$EASYTLS_INSTRUCT_TEMP"
 
 		# Linux instructions
 		"$EASYTLS_PRINTF" '\n%s\n\n' '===================='
@@ -7413,10 +7393,7 @@ external_deps ()
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
-	#EASYRSA_OPENSSL='openssl' # Checked by Easy-RSA3 and set below.
 	set_var EASYRSA_OPENSSL         "openssl"
-
-	#EASYTLS_OPENVPN='openvpn' # Set in config_use()
 
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3

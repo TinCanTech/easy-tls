@@ -303,8 +303,6 @@ deps ()
 
 	# Easy-TLS required files
 	TLS_dir="${CA_dir}/easytls/data"
-	#disabled_list="${TLS_dir}/easytls-disabled-list.txt"
-	#tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
 
 	# Check TLS files
 	[ -d "${TLS_dir}" ] || {
