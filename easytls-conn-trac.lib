@@ -11,8 +11,8 @@ conn_trac_connect ()
 		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
 	then
 		# Already connected don't add another
-		update_status \
-			"conn-trac: already registered ${1}"
+		update_status "conn-trac: already registered"
+		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 	else
 		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
@@ -20,7 +20,7 @@ conn_trac_connect ()
 				"${EASYTLS_PRINTF}" "%s" "${conn_trac_data}"
 		} > "${EASYTLS_CONN_TRAC}"
 		update_status "conn-trac: registered"
-		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
+		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 	fi
 	unset conn_trac_data
 } # => conn_trac_connect ()
@@ -30,10 +30,16 @@ conn_trac_disconnect ()
 {
 	[ $ENABLE_CONN_TRAC ] || return 0
 	[ -n "${1}" ] || return 1
-	[ -f "${EASYTLS_CONN_TRAC}" ] && {
+	if [ -f "${EASYTLS_CONN_TRAC}" ] && \
+		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
+	then
 		"${EASYTLS_SED}" -i -e "/^${1}\$/d" "${EASYTLS_CONN_TRAC}" # -e "/^\$/d"
 		update_status "conn-trac: unregistered"
 		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
-		}
+	else
+		update_status "conn-trac: FAILED"
+		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+		return 1
+	fi
 } # => conn_trac_disconnect ()
