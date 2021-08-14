@@ -115,7 +115,8 @@ fail_and_exit ()
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
-	conn_trac_disconnect "${conn_trac_record}"
+	conn_trac_disconnect "${conn_trac_record}" || \
+		die "con-trac disconnect failure" 99
 
 	delete_metadata_files
 	print "<FAIL> ${status_msg}"
@@ -239,7 +240,7 @@ deps ()
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
 	# Windows log
-	EASYTLS_WLOG="${temp_stub}-client-connect.log."
+	EASYTLS_WLOG="${temp_stub}-client-connect.log"
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
@@ -539,7 +540,8 @@ then
 	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
-	conn_trac_connect "${conn_trac_record}"
+	conn_trac_connect "${conn_trac_record}" || \
+		die "con-trac_connect: failure" 99
 
 	# Delete files which are no longer needed
 	delete_metadata_files

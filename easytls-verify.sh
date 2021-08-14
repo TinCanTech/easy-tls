@@ -121,7 +121,9 @@ fail_and_exit ()
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
-	conn_trac_disconnect "${conn_trac_record}"
+	conn_trac_disconnect "${conn_trac_record}" || \
+		die "con-trac_disconnect: failure" 99
+
 	delete_metadata_files
 	verbose_print "<FAIL> ${status_msg}"
 	print "${failure_msg}"

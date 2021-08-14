@@ -222,7 +222,7 @@ deps ()
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
 	# Windows log
-	EASYTLS_WLOG="${temp_stub}-client-disconnect.log."
+	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
@@ -404,7 +404,8 @@ then
 	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
-	conn_trac_disconnect "${conn_trac_record}"
+	conn_trac_disconnect "${conn_trac_record}" || \
+		die "con-trac disconnect failure" 99
 
 	# Delete files which are no longer needed
 	delete_metadata_files
