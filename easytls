@@ -7563,7 +7563,7 @@ vars_setup()
 	# Set defaults, preferring existing env-vars if present
 	set_var
 	set_var EASYRSA                 "$prog_dir"
-	set_var EASYRSA_PKI             "$PWD/pki"
+	set_var EASYRSA_PKI             "${EASYRSA}/pki"
 	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 	set_var EASYRSA_RAND_SN         "yes"
