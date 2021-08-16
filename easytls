@@ -7732,7 +7732,7 @@ main ()
 		shift
 	done
 
-	# Verify binary dependecies are present
+	# Verify binary dependencies are present
 	external_deps
 
 	# Die on fatal opt error

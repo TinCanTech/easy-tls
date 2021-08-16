@@ -3,7 +3,6 @@
 # Connection tacking - Connect
 conn_trac_connect ()
 {
-	[ $ENABLE_CONN_TRAC ] || return 0
 	[ -n "${1}" ] || return 1
 	[ -f "${EASYTLS_CONN_TRAC}" ] && \
 		conn_trac_data="$("${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}")"
@@ -28,7 +27,6 @@ conn_trac_connect ()
 # Update connection tacking - disconnect
 conn_trac_disconnect ()
 {
-	[ $ENABLE_CONN_TRAC ] || return 0
 	[ -n "${1}" ] || return 1
 	if [ -f "${EASYTLS_CONN_TRAC}" ] && \
 		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
