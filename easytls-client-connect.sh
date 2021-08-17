@@ -117,7 +117,7 @@ fail_and_exit ()
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conn_trac_record}" || \
-			die "con-trac disconnect failure" 99
+			update_status "conn_trac_disconnect FAIL"
 		}
 
 	delete_metadata_files
@@ -544,7 +544,7 @@ then
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_connect "${conn_trac_record}" || \
-			die "con-trac_connect: failure" 99
+			update_status "conn_trac_connect FAIL"
 		}
 
 	# Delete files which are no longer needed

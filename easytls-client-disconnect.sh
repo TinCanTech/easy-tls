@@ -406,7 +406,7 @@ then
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conn_trac_record}" || \
-			die "con-trac disconnect failure" 99
+			update_status "conn_trac_disconnect FAIL"
 		}
 
 	# Delete files which are no longer needed

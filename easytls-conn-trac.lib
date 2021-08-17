@@ -36,7 +36,6 @@ conn_trac_disconnect ()
 		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
 	else
-		update_status "conn-trac: FAILED"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 		return 1
 	fi

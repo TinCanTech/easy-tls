@@ -123,7 +123,7 @@ fail_and_exit ()
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conn_trac_record}" || \
-			die "con-trac_disconnect: failure" 99
+			update_status "conn_trac_disconnect FAIL"
 		}
 
 	delete_metadata_files
