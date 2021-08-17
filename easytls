@@ -72,7 +72,7 @@ Here is the list of commands available with a short syntax reminder.
 Use the 'help' command above to get full usage details.
 
   config
-  init-tls <hash_algorithm> 'no-ca'
+  init-tls <hash_algorithm> no-ca
   build     :Inter-active menu to build TLS keys
   inline    :Inter-active menu to build Inline files
   remove    :Inter-active menu to remove TLS keys and Inline files
@@ -137,7 +137,7 @@ cmd_help()
 
         no-ca - Do not use an Easy-RSA Certificate Authority [CA].
         * Option 'no-ca' allows Easy-TLS to function
-          without initialsing Easy-RSA.
+          without initialising Easy-RSA.
           Use 'no-ca' to build self-signed certificates and fingerprints." ;;
 		build|inline|remove|script|selfsign) text="
   Inter-active menus to build, inline, remove
@@ -371,7 +371,7 @@ General options:
 -a|--ss-age=<AGE>   Self-signed certificate age. (Default: 3650 days)
 -w|--ss-password    Prompt for a password to encrypt a self-signed key.
 -c|--ss-eccurve=<CURVE_NAME>
-                    Specify an alternate Eliptic Curve for a self-signed key.
+                    Specify an alternate Elliptic Curve for a self-signed key.
                     (Default: secp384r1)
 
 -r|--ss-peer-fingerprint=<CommonName>
@@ -459,7 +459,7 @@ Easy-TLS configurable options:
   co|custom.openvpn '/full/path/to/openvpn(.exe)'
      Save your custom openvpn binary location.
      EG: /usr/local/bin/openvpn
-         Qutotes are not required.
+         Quotes are not required.
      EG: 'C:/Program Files/OpenVPN/mybin/openvpn.exe'
          Quotes are required for spaces.
          Back-slash is not support, use Forward-slash '/' ONLY.
