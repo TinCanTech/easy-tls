@@ -1186,11 +1186,12 @@ verify_tls_init ()
 # init-tls backend:
 init_tls ()
 {
-	while [ -n "${1}" ]; do
+	while [ -n "${1}" ]
+	do
 		case "${1}" in
 			sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
 			nc|no-ca) EASYTLS_NO_CA=1 ;;
-			*) warn "Ignoring unknown command option: '$1'" ;;
+			*) die "Unknown command option: '$1'" ;;
 		esac
 		shift
 	done
