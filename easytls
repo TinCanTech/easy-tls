@@ -574,7 +574,7 @@ ${1}"
 # returns without prompting in EASYTLS_BATCH
 confirm ()
 {
-	[ $batch_mode ] && return 0
+	[ $require_batch ] && return 0
 	[ $EASYTLS_BATCH ] && return 0
 	prompt="${1}"
 	value="${2}"
@@ -999,9 +999,9 @@ config_use ()
 
 	# Verify the Config hash
 	config_verify_hash || {
-			error_msg "config_verify_hash fail"
-			return 1
-			}
+		error_msg "config_verify_hash fail"
+		return 1
+		}
 	easytls_verbose "config_use OK"
 } # => config_use ()
 
@@ -5182,8 +5182,8 @@ interactive_build ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Build key
 		build_tls_crypt_v2_client "$opt_server_name" "$opt_client_name" \
@@ -5192,8 +5192,8 @@ interactive_build ()
 				return 1
 				}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -5486,8 +5486,8 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
@@ -5495,8 +5495,8 @@ interactive_remove ()
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Client inline removed: $key_file"
@@ -5539,8 +5539,8 @@ interactive_remove ()
 				cmd_line="--sub-key-name=${sub_key_name} ${cmd_line}"
 			interactive_show_cmd
 
-			# Enable internal batch_mode
-			batch_mode=1
+			# Enable internal require_batch
+			require_batch=1
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
@@ -5548,8 +5548,8 @@ interactive_remove ()
 				return 1
 				}
 
-			# Disable internal batch_mode
-			unset batch_mode
+			# Disable internal require_batch
+			unset require_batch
 
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				"  * TLS-Crypt-V2 Client key removed: $key_file"
@@ -5590,8 +5590,8 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
@@ -5599,8 +5599,8 @@ interactive_remove ()
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Client key removed: $key_file"
@@ -5625,8 +5625,8 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Remove .inline
 		remove_inline "$opt_name" || {
@@ -5634,8 +5634,8 @@ interactive_remove ()
 				return 1
 				}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -5686,8 +5686,8 @@ interactive_remove ()
 			# Print command
 			interactive_show_cmd
 
-			# Enable internal batch_mode
-			batch_mode=1
+			# Enable internal require_batch
+			require_batch=1
 
 			# Remove TLS key
 			remove_tlskey "$opt_name" || {
@@ -5695,8 +5695,8 @@ interactive_remove ()
 				return 1
 				}
 
-			# Disable internal batch_mode
-			unset batch_mode
+			# Disable internal require_batch
+			unset require_batch
 		else
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				'  * Inline-file removed. TLS-Crypt-V2 key is unchanged.'
@@ -5722,8 +5722,8 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Remove key
 		remove_tlskey "$opt_name" || {
@@ -5731,8 +5731,8 @@ interactive_remove ()
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Server key removed: $key_file"
@@ -5750,16 +5750,16 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		"$EASYTLS_RM" "$key_file" || {
 			error_msg '**Remove TLS-Crypt key failed'
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt key removed: $key_file"
 	;;
@@ -5776,16 +5776,16 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		"$EASYTLS_RM" "$key_file" || {
 			error_msg '**Remove TLS-Auth key failed'
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Auth key removed: $key_file"
 	;;
@@ -5809,8 +5809,8 @@ interactive_remove ()
 		# Print command
 		interactive_show_cmd
 
-		# Enable internal batch_mode
-		batch_mode=1
+		# Enable internal require_batch
+		require_batch=1
 
 		# Remove .inline
 		remove_metadata "$opt_name" ${opt_pattern} || {
@@ -5818,8 +5818,8 @@ interactive_remove ()
 			return 1
 			}
 
-		# Disable internal batch_mode
-		unset batch_mode
+		# Disable internal require_batch
+		unset require_batch
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
