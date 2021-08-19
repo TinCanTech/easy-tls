@@ -5995,6 +5995,9 @@ interactive_scripts ()
 		# Kill-client mode
 		[ $opt_client_connect ] && interactive_kill_client
 
+		# Create vars files
+
+
 		# Create config
 		{
 			# easytls-cryptv2-verify.sh
@@ -7595,12 +7598,19 @@ vars_setup()
 
 	set_var EASYTLS_VERIFY_V2_SH    "${EASYTLS}/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_VERIFY_V2_VARS  "${EASYTLS}/easytls-cryptv2-verify.vars"
+	set_var EASYTLS_VERIFY_V2_VEXM  "${EASYTLS_VERIFY_V2_VARS}-example"
+
 	set_var EASYTLS_VERIFY_V1_SH    "${EASYTLS}/easytls-verify.sh"
 	set_var EASYTLS_VERIFY_V1_VARS  "${EASYTLS}/easytls-verify.vars"
+	set_var EASYTLS_VERIFY_V1_VEXM  "${EASYTLS_VERIFY_V1_VARS}-example"
+
 	set_var EASYTLS_CLICON_SH       "${EASYTLS}/easytls-client-connect.sh"
 	set_var EASYTLS_CLICON_VARS     "${EASYTLS}/easytls-client-connect.vars"
+	set_var EASYTLS_CLICON_VEXM     "${EASYTLS_CLICON_VARS}-example"
+
 	set_var EASYTLS_CLIDIS_SH       "${EASYTLS}/easytls-client-disconnect.sh"
-	set_var EASYTLS_CLIDIS_VARS       "${EASYTLS}/easytls-client-disconnect.vars"
+	set_var EASYTLS_CLIDIS_VARS     "${EASYTLS}/easytls-client-disconnect.vars"
+	set_var EASYTLS_CLIDIS_VEXM     "${EASYTLS_CLIDIS_VARS}-example"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "${EASYTLS}/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "${EASYTLS}/easytls-script.help"
