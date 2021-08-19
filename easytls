@@ -6050,7 +6050,7 @@ interactive_scripts ()
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 				"$EASYTLS_PRINTF" '%s\n' "'"
-				"$EASYTLS_PRINTF" '%s' '## client-disconnect'
+				"$EASYTLS_PRINTF" '%s' 'client-disconnect'
 				"$EASYTLS_PRINTF" ' %s' "'"
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
@@ -6918,7 +6918,7 @@ interactive_client_connect ()
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
 			Y|y|Yes|yes|YES)
-				opt_client_connect='writepid'
+				opt_client_connect='true'
 				break
 			;;
 			N|n|No|no|NO)
