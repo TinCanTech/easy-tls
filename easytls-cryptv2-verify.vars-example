@@ -1,0 +1,47 @@
+# Change settings without restarting the server
+
+#EASYTLS_VERBOSE=1
+
+# Easy-TLS PKI (No-CA mode) or Easy-RSA CA directory
+#CA_dir='/etc/openvpn/easyrsa/pki'
+
+# Easy-TLS No-CA mode
+#EASYTLS_NO_CA=1
+
+# Easy-TLS CUSTOM_GROUP
+#local_custom_g='EASYTLS'
+
+# Enable/disable kill_client mode
+#kill_client=1
+
+# X509 method
+#x509_method=1
+#x509_method=2
+#x509_method=3
+
+# TLS-Crypt-V2 key max age
+#tlskey_max_age=365
+
+# Disable TLS-KEY serial number hash check
+#unset VERIFY_hash
+
+# Disable the disbaled-list
+#unset use_disable_list
+
+# Write environment to temporary log file
+#WRITE_ENV=1
+
+# Set a specific temporary directory
+#EASYTLS_tmp_dir='/tmp'               # *nix
+#EASYTLS_tmp_dir='C:/Windows/Temp'    # Win
+
+# Preload CA-ID
+#preload_cache_id='paste the CA-ID here'
+
+# Hash algorithm
+#EASYTLS_HASH_ALGO='SHA256'
+
+# Time between allowing two almost concurrent connections
+# Due to script improvements this may no longer be required
+#stale_sec=3
+
