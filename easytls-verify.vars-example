@@ -1,11 +1,10 @@
 # Change security settings without restarting the server
 #EASYTLS_VERBOSE=1
-#ignore_x509_mismatch=1
 #kill_client=1
+#ignore_x509_mismatch=1
 #ignore_expired=1
 #ignore_required=1
 #ignore_revoked=1
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
 #WRITE_ENV=1
-
