@@ -6918,7 +6918,7 @@ interactive_client_connect ()
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
 			Y|y|Yes|yes|YES)
-				opt_client_connect='true'
+				opt_client_connect=1
 				break
 			;;
 			N|n|No|no|NO)
