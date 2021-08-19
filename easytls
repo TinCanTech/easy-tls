@@ -2291,7 +2291,7 @@ verify_cert_purpose ()
 		}
 
 	p_l="$(openssl_cert_purpose "${1}")" || {
-		error_msg "verify_cert_purpose - get_openssl_cert_purpose"
+		error_msg "openssl_cert_purpose - verify_cert_purpose"
 		error_msg "= ${p_l}"
 		unset p_l p_c p_s is_c is_s
 		return 1
