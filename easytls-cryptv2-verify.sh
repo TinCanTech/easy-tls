@@ -677,7 +677,7 @@ do
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
-	--vars)
+	-l)
 		vars_file="${val}"
 	;;
 	-c|--ca)
@@ -757,9 +757,6 @@ do
 	shift
 done
 
-# Dependancies
-deps
-
 # Report and die on fatal warnings
 warn_die
 
@@ -771,6 +768,9 @@ then
 else
 	update_status "No vars loaded"
 fi
+
+# Dependancies
+deps
 
 # Write env file
 [ $WRITE_ENV ] && {

@@ -404,7 +404,7 @@ do
 		empty_ok=1
 		help_text
 	;;
-	--vars)
+	-l)
 		vars_file="${val}"
 	;;
 	-v|--verbose)
@@ -483,9 +483,6 @@ do
 	shift
 done
 
-# Dependencies
-deps
-
 # Report and die on fatal warnings
 warn_die
 
@@ -497,6 +494,9 @@ then
 else
 	update_status "No vars loaded"
 fi
+
+# Dependencies
+deps
 
 # Write env file
 [ $WRITE_ENV ] && {

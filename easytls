@@ -6009,8 +6009,12 @@ interactive_scripts ()
 		{	# easytls-cryptv2-verify.vars
 			print "# easytls-cryptv2-verify.vars"
 			xaprint "EASYTLS_VERBOSE=1"
-			xaprint "#kill_client=1"
+			xaprint "kill_client=1"
+			xaprint "tlskey_max_age=${key_age_days}"
+			xaprint "#unset use_disable_list"
+			print "# This means the disabled-list will be used"
 			xdprint "CA_dir=\"${opt_ca_path}\""
+			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
 			xdprint "local_custom_g=\"${opt_customg}\""
 			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 		} > "${EASYTLS_VERIFY_V2_VARS}" || die "Failed to create vars file"
@@ -6018,35 +6022,36 @@ interactive_scripts ()
 		{	# easytls-verify.vars
 			print "# easytls-verify.vars"
 			xaprint "EASYTLS_VERBOSE=1"
-			xaprint "#kill_client=1"
-			xdprint "CA_dir=\"${opt_ca_path}\""
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
+			xaprint "kill_client=1"
 			xaprint "#ignore_x509_mismatch=1"
 			xaprint "#ignore_expired=1"
 			xaprint "#ignore_required=1"
 			xaprint "#ignore_revoked=1"
-			xaprint "#ENABLE_CONN_TRAC=1"
-			xaprint "#VERBOSE_CONN_TRAC=1"
+			xaprint "ENABLE_CONN_TRAC=1"
+			xaprint "VERBOSE_CONN_TRAC=1"
+			xdprint "CA_dir=\"${opt_ca_path}\""
+			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
+			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 		} > "${EASYTLS_VERIFY_V1_VARS}" || die "Failed to create vars file"
 
 		{	# easytls-client-connect.vars
 			print "# easytls-client-connect.vars"
 			xaprint "EASYTLS_VERBOSE=1"
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 			xaprint "#allow_no_check=1"
 			xaprint "#push_hwaddr_required=1"
 			xaprint "#crypt_v2_required=1"
 			xaprint "#key_hwaddr_required=1"
-			xaprint "#ENABLE_CONN_TRAC=1"
-			xaprint "#VERBOSE_CONN_TRAC=1"
+			xaprint "ENABLE_CONN_TRAC=1"
+			xaprint "VERBOSE_CONN_TRAC=1"
+			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 		} > "${EASYTLS_CLICON_VARS}" || die "Failed to create vars file"
 
 		{	# easytls-client-disconnect.vars
 			print "# easytls-client-disconnect.vars"
 			xaprint "EASYTLS_VERBOSE=1"
+			xaprint "ENABLE_CONN_TRAC=1"
+			xaprint "VERBOSE_CONN_TRAC=1"
 			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
-			xaprint "#ENABLE_CONN_TRAC=1"
-			xaprint "#VERBOSE_CONN_TRAC=1"
 		} > "${EASYTLS_CLIDIS_VARS}" || die "Failed to create vars file"
 
 		# Create config
@@ -6061,16 +6066,16 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
-			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH -v"
-			"$EASYTLS_PRINTF" ' %s'  "--vars=${EASYTLS_VERIFY_V2_VARS}"
+			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH"
+			"$EASYTLS_PRINTF" ' %s'  "-l=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
 			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "-g=${opt_customg}"
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
-			[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
-			[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
-			[ "$opt_kill_client" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_kill_client}"
-			[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+			#[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "-x=${opt_key_age}"
+			#[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
+			#[ "$opt_kill_client" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_kill_client}"
+			#[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
 			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
 			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
@@ -6083,8 +6088,8 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" ' %s' "'"
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
-				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH} -v"
-				"$EASYTLS_PRINTF" ' %s' "--vars=${EASYTLS_VERIFY_V1_VARS}"
+				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH}"
+				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
 				[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 				"$EASYTLS_PRINTF" ' %s' "-c=${opt_ca_path}"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
@@ -6099,7 +6104,7 @@ interactive_scripts ()
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
-				"$EASYTLS_PRINTF" ' %s' "--vars=${EASYTLS_CLICON_VARS}"
+				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
@@ -6109,7 +6114,7 @@ interactive_scripts ()
 				[ $EASYTLS_FOR_WINDOWS ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLIDIS_SH} -v"
-				"$EASYTLS_PRINTF" ' %s' "--vars=${EASYTLS_CLIDIS_VARS}"
+				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLIDIS_VARS}"
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				}
 
@@ -6723,7 +6728,7 @@ interactive_key_age ()
   Enter the allowable age:'
 	interactive_question
 	key_age_days="${ia_answer:-$default}"
-	[ "$key_age_days" = "1825" ] || opt_key_age="-x=${key_age_days}"
+	[ "$key_age_days" = "1825" ] || opt_key_age="${key_age_days}"
 	easytls_verbose "Config: $opt_key_age"
 } # => interactive_key_age ()
 
