@@ -7776,10 +7776,10 @@ main ()
 		-t|--tmp-dir)
 			EASYTLS_tmp_dir="${val}"
 		;;
-		-e|--easyrsa-bin-dir)
+		-e|--ersabin-dir)
 			EASYTLS_ersabin_dir="${val}"
 		;;
-		-o|--openvpn-bin-dir)
+		-o|--ovpnbin-dir)
 			EASYTLS_ovpnbin_dir="${val}"
 		;;
 		-*)
