@@ -1,6 +1,13 @@
 https://github.com/TinCanTech/easy-tls
   Change log:
 
+Verssion 2.6
+* TBD
+  Introduce vars files for server side scripts
+    Commit 12dcd3f3078be8266d194e1d0b90db716aec0f82
+      The command line was too long when run under Windows
+      due to the extra requirement of loading sh.exe
+
 Version 2.5
 * 2021-08-13 - Commit c0ace6c6740315407776bef1b3b6a4827be36f84
   Introduce `easytls-conn-trac.lib`
