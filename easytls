@@ -2497,7 +2497,7 @@ inline_index_update ()
 			}
 
 		# Append temp record to disabled-list
-		"${EASYTLS_CP}"  "${EASYTLS_INLINE_INDEX}" "${EASYTLS_TEMP_LIST}"
+		"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_TEMP_LIST}"
 		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
 			"${EASYTLS_INLINE_INDEX}"
 
