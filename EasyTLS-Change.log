@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Verssion 2.6
 * TBD
+  Removed option --openvpn
+    Commit cf413bd199c2b611314e895e8c9d1be30a02fd12
+      Development only requirement
   Introduce vars files for server side scripts
     Commit 12dcd3f3078be8266d194e1d0b90db716aec0f82
       The command line was too long when run under Windows
