@@ -23,25 +23,25 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
 "${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.vars'
-"${shellcheck_bin}" easytls-cryptv2-verify.vars && sc_easytls_cryptv2_verify_vars=$?
+"${shellcheck_bin}" easytls-cryptv2-verify.vars-example && sc_easytls_cryptv2_verify_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.sh'
 "${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.vars'
-"${shellcheck_bin}" easytls-verify.vars && sc_easytls_verify_vars=$?
+"${shellcheck_bin}" easytls-verify.vars-example && sc_easytls_verify_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
 "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.vars'
-"${shellcheck_bin}" easytls-client-connect.vars && sc_easytls_client_connect_vars=$?
+"${shellcheck_bin}" easytls-client-connect.vars-example && sc_easytls_client_connect_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
 "${shellcheck_bin}" easytls-client-disconnect.sh && sc_easytls_client_disconnect=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars'
-"${shellcheck_bin}" easytls-client-disconnect.vars && sc_easytls_client_disconnect_vars=$?
+"${shellcheck_bin}" easytls-client-disconnect.vars-example && sc_easytls_client_disconnect_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
 "${shellcheck_bin}" easytls-conn-trac.lib && sc_easytls_conn_trac=$?
