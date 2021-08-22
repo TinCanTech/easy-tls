@@ -344,8 +344,7 @@ General options:
               (Fix: This only accepts default options for inline-tls-crypt-v2)
 --vars='FILE'       Define a specific 'vars' file to use for Easy-RSA config.
 --dh='FILE'         Define an alternate Diffie-Hellman parameters file.
---openvpn='FILE'    The full (or relative) <path-to> and <file-name-of>
-                    your preferred openvpn(.exe) executable openvpn file.
+
 -n|--no-auto-check  For performance you can disable auto-check.
 
 -y|--why-disable-file-hash
@@ -1143,7 +1142,6 @@ verify_openvpn ()
 	case "${openvpn_version}" in
 		OpenVPN) : ;;
 		*)
-			help_note="See ./easytls help options - Option: --openvpn"
 			die "Missing or invalid OpenVPN: ${openvpn_version}"
 		;;
 	esac
@@ -7457,7 +7455,9 @@ external_deps ()
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
-	set_var EASYRSA_OPENSSL         "openssl"
+	set_var EASYRSA_OPENSSL "openssl"
+
+	set_var EASYTLS_OPENVPN "openvpn"
 
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
@@ -7470,7 +7470,7 @@ external_deps ()
 	EASYTLS_MV='mv' # NOT Checked by Easy-RSA3
 	EASYTLS_PRINTF='printf' # Checked by Easy-RSA3
 	EASYTLS_RM='rm' # Checked by Easy-RSA3
-	EASYTLS_SED='sed'
+	EASYTLS_SED='sed' # NOT Checked by Easy-RSA3
 
 	# Directories and files
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -7498,6 +7498,10 @@ external_deps ()
 		# Note: EASYRSA_OPENSSL not EasyTLS
 		[ -f "${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe" ] || {
 			echo "Missing: ${EASYTLS_ovpnbin_dir}/${EASYRSA_OPENSSL}.exe"
+			setup_err=1
+			}
+		[ -f "${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENVPN}.exe" ] || {
+			echo "Missing: ${EASYTLS_ovpnbin_dir}/${EASYTLS_OPENVPN}.exe"
 			setup_err=1
 			}
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || {
@@ -7761,9 +7765,6 @@ main ()
 		;;
 		-a|--ss-age)
 			export EASYTLS_SS_AGE="${val}"
-		;;
-		--openvpn)
-			export EASYTLS_OPENVPN="${val}"
 		;;
 		-n|--no-auto-check)
 			empty_ok=1
