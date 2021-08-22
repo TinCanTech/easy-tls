@@ -401,7 +401,7 @@ if [ $absolute_fail -eq 0 ]
 then
 	# Update connection tracking
 	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${client_serial}"
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
