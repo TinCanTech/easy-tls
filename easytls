@@ -1429,7 +1429,7 @@ generate_and_validate_file_hash ()
 		# Generate hash
 		openssl_hash="$(openssl_generate_file_hash "${target}")" || {
 				error_msg "generate_and_validate_file_hash"
-				error_msg "= ${openssl_hash}"
+				error_msg "openssl_generate_file_hash = ${openssl_hash}"
 				unset target openssl_hash generated_hash
 				return 1
 				}
@@ -1439,7 +1439,7 @@ generate_and_validate_file_hash ()
 
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
-			error_msg "generate_and_validate_file_hash - validate_hash"
+			error_msg "validate_hash - generate_and_validate_file_hash"
 			unset target openssl_hash generated_hash
 			return 1
 			}
@@ -1690,7 +1690,7 @@ generate_and_save_file_hash ()
 
 	# Generate $generated_valid_hash
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
-		error_msg "generate_and_validate_file_hash - generate_and_save_file_hash"
+		error_msg "generate_and_save_file_hash - generate_and_validate_file_hash"
 		unset target_file hash_file generated_valid_hash
 		return 1
 		}
