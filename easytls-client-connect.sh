@@ -38,6 +38,7 @@ help_text ()
                          and the client did NOT use --push-peer-info
                          then allow the connection.  Otherwise, keys with a
                          hardware-address MUST use --push-peer-info.
+  -m|--ignore-mismatch   Ignore tlskey-x509 vs openvpn-x509 mismatch.
   -p|--push-required     Require all clients to use --push-peer-info.
   -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
   -k|--key-required      Require all client keys to have a hardware-address.
@@ -110,7 +111,7 @@ die ()
 fail_and_exit ()
 {
 	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${client_serial}"
 	# shellcheck disable=SC2154
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	# shellcheck disable=SC2154
@@ -139,6 +140,7 @@ delete_metadata_files ()
 		"${generic_ext_md_file}" \
 		"${client_metadata_file}" \
 		"${EASYTLS_KILL_FILE}" \
+		"${metadata_metadata_file}" \
 
 	update_status "temp-files deleted"
 }
@@ -252,6 +254,27 @@ deps ()
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 }
+
+# generic metadata_string into variables
+generic_metadata_string_to_vars ()
+{
+	g_tlskey_serial="${1%%-*}"
+	g_md_seed="${metadata_string#*-}"
+	#md_padding="${md_seed%%--*}"
+	g_md_easytls_ver="${1#*--}"
+	g_md_easytls="${g_md_easytls_ver%-*.*}"
+
+	g_md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	g_md_serial="${3}"
+	g_md_date="${4}"
+	g_md_custom_g="${5}"
+	g_md_name="${6}"
+	g_md_subkey="${7}"
+	g_md_opt="${8}"
+	g_md_hwadds="${9}"
+} # => metadata_string_to_vars ()
 
 # client metadata_string into variables
 client_metadata_string_to_vars ()
@@ -386,6 +409,15 @@ deps
 	unset lib_file
 	}
 
+# Check for kill signal
+if [ -f "${EASYTLS_KILL_FILE}" ] && \
+	"${EASYTLS_GREP}" -q "${client_serial}" "${EASYTLS_KILL_FILE}"
+then
+	# Kill client
+	kill_this_client=1
+	update_status "Kill client signal"
+fi
+
 # Update log message
 update_status "CN:${X509_0_CN}"
 
@@ -399,7 +431,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# easytls client metadata file
+# client metadata files - May not exist
 generic_metadata_file="${temp_stub}-gmd"
 client_metadata_file="${temp_stub}-cmd-${client_serial}"
 
@@ -407,19 +439,33 @@ client_metadata_file="${temp_stub}-cmd-${client_serial}"
 generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
 client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
 
-# Check for kill signal
-if [ -f "${EASYTLS_KILL_FILE}" ] && \
-	"${EASYTLS_GREP}" -q "${client_serial}" "${EASYTLS_KILL_FILE}"
+# Verify generic_ext_md_file
+if [ -f "${generic_ext_md_file}" ]
 then
-	# Kill client
-	fail_and_exit "KILL_CLIENT" 5
+	# Client cert serial matches
+	update_status "X509 serial matched(g1)"
+	# Get client metadata_string
+	metadata_string="$("${EASYTLS_CAT}" "${generic_ext_md_file}")"
+	[ -n "${metadata_string}" ] || \
+		fail_and_exit "failed to read generic_ext_md_file" 18
+	# Populate client metadata variables
+	generic_metadata_string_to_vars $metadata_string
+	[ -n "${g_tlskey_serial}" ] || \
+		fail_and_exit "failed to set g_tlskey_serial" 19
+	unset metadata_string
+	update_status "generic_ext_md_file loaded"
+	metadata_metadata_file="${temp_stub}-cmd-${g_md_serial}"
+else
+	# cert serial does not match - ALWAYS fail
+	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH(g1)" 7
+	update_status "Ignored tlskey X509 mismatch!(g1)"
 fi
 
 # Verify client_ext_md_file
 if [ -f "${client_ext_md_file}" ]
 then
 	# Client cert serial matches
-	update_status "X509 serial matched"
+	update_status "X509 serial matched(c1)"
 	# Get client metadata_string
 	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
 	[ -n "${metadata_string}" ] || \
@@ -432,7 +478,12 @@ then
 	update_status "client_ext_md_file loaded"
 else
 	# cert serial does not match - ALWAYS fail
-	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH" 7
+	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH(c1)" 7
+	update_status "Ignored tlskey X509 mismatch!(c1)"
+	"${EASYTLS_MV}" "${generic_ext_md_file}" "${client_ext_md_file}" || \
+		fail_and_exit "failed to mv generic_ext_md_file" 17
+	# Must have a client_ext_md_file for grep and conn-trac
+	update_status "moved generic to client_ext_md_file"
 fi
 
 # Set hwaddr from Openvpn env
@@ -440,6 +491,17 @@ fi
 push_hwaddr="$(format_number "${IV_HWADDR}")"
 [ -z "${push_hwaddr}" ] && \
 	push_hwaddr_missing=1 && update_status "hwaddr not pushed"
+if [ $push_hwaddr_missing ]
+then
+	# hwaddr is NOT pushed
+	[ $push_hwaddr_required ] && {
+		failure_msg="Client did not push required hwaddr"
+		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
+		}
+	# hwaddr not pushed and not required
+	update_status "hwaddr not required"
+	#connection_allowed
+fi
 
 # allow_no_check
 case $allow_no_check in
@@ -477,6 +539,7 @@ case $allow_no_check in
 		then
 			key_hwaddr_missing=1
 		fi
+
 		# New field
 		if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
 		then
@@ -484,43 +547,38 @@ case $allow_no_check in
 		fi
 
 		# Verify hwaddr
-		if [ $push_hwaddr_missing ]
+		# hwaddr is pushed
+		if [ $key_hwaddr_missing ]
 		then
-			# hwaddr is NOT pushed
-			[ $push_hwaddr_required ] && {
-				failure_msg="Client did not push required hwaddr"
-				fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
+			# key does not have a hwaddr
+			update_status "Key is not locked to hwaddr"
+			[ $key_hwaddr_required ] && {
+				failure_msg="Key hwaddr required but missing"
+				fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
 				}
-			# hwaddr not pushed and not required
-			update_status "hwaddr not required"
+			# No keyed hwaddr and TLS-crypt-v2
 			connection_allowed
 		else
-			# hwaddr is pushed
-			if [ $key_hwaddr_missing ]
+			if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
 			then
-				# key does not have a hwaddr
-				update_status "Key is not locked to hwaddr"
-				[ $key_hwaddr_required ] && {
-					failure_msg="Key hwaddr required but missing"
-					fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
-					}
-				# No keyed hwaddr and TLS-crypt-v2
+				# push and MATCH! - Old format
+				update_status "hwaddr ${push_hwaddr} pushed and matched"
 				connection_allowed
+
+			elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
+			then
+				# push and MATCH! - New format
+				update_status "hwaddr ${push_hwaddr} pushed and matched"
+				connection_allowed
+
 			else
-				if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
+				# push does not match key hwaddr
+				# If the x509 is a mismatch then hwaddr almost certainly will be
+				if [ $ignore_x509_mismatch ]
 				then
-					# push and MATCH! - Old format
-					update_status "hwaddr ${push_hwaddr} pushed and matched"
 					connection_allowed
-
-				elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
-				then
-					# push and MATCH! - New format
-					update_status "hwaddr ${push_hwaddr} pushed and matched"
-					connection_allowed
-
+					update_status "Ignored hwaddr mismatch!"
 				else
-					# push does not match key hwaddr
 					failure_msg="hwaddr mismatch - pushed: ${push_hwaddr}"
 					fail_and_exit "HWADDR MISMATCH" 2
 				fi
@@ -536,12 +594,15 @@ esac # allow_no_check
 [ "${FORCE_ABSOLUTE_FAIL}" ] && \
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
+# Collect kill signal
+[ $kill_this_client ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
+
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
 	# Update connection tracking
 	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${c_md_serial:-${g_md_serial}}"
+	conn_trac_record="${conn_trac_record}=${client_serial}"
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
