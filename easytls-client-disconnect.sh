@@ -175,6 +175,7 @@ init ()
 	EASYTLS_CAT='cat'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
+	EASYTLS_MV='mv'
 	EASYTLS_SED='sed'
 	EASYTLS_PRINTF='printf'
 	EASYTLS_RM='rm'
@@ -196,6 +197,7 @@ init ()
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MV}.exe" ] || exit 71
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || exit 70
