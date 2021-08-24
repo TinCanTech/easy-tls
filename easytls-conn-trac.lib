@@ -5,20 +5,31 @@ conn_trac_connect ()
 {
 	[ -n "${1}" ] || return 1
 	EASYTLS_CONN_TRAC_TEMP="${EASYTLS_CONN_TRAC}.tmp"
-	if [ -f "${EASYTLS_CONN_TRAC}" ] && \
-		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
+	if [ -f "${EASYTLS_CONN_TRAC}" ]
 	then
-		# Already connected don't add another
-		update_status "conn-trac: already registered"
-		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+		while read conn
+		do
+			[ "${conn}" = "${1}" ] && already_registered=1
+		done < "${EASYTLS_CONN_TRAC}"
+
+		if [ $already_registered ]
+		then
+			update_status "conn-trac: already registered"
+			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+		else
+			{
+				"${EASYTLS_PRINTF}" "%s\n" "${1}"
+				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}"
+			} > "${EASYTLS_CONN_TRAC_TEMP}"
+			"${EASYTLS_MV}" -f \
+				"${EASYTLS_CONN_TRAC_TEMP}" "${EASYTLS_CONN_TRAC}" || return 1
+			update_status "conn-trac: registered"
+			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+		fi
 	else
 		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
-			[ -f "${EASYTLS_CONN_TRAC}" ] && \
-				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}"
-		} > "${EASYTLS_CONN_TRAC_TEMP}"
-		"${EASYTLS_MV}" -f \
-			"${EASYTLS_CONN_TRAC_TEMP}" "${EASYTLS_CONN_TRAC}" || return 1
+		} > "${EASYTLS_CONN_TRAC}" || return 1
 		update_status "conn-trac: registered"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 	fi
@@ -29,10 +40,17 @@ conn_trac_connect ()
 conn_trac_disconnect ()
 {
 	[ -n "${1}" ] || return 1
-	if [ -f "${EASYTLS_CONN_TRAC}" ] && \
-		"${EASYTLS_GREP}" -q "^${1}\$" "${EASYTLS_CONN_TRAC}"
+	EASYTLS_CONN_TRAC_TEMP="${EASYTLS_CONN_TRAC}.tmp"
+	if [ -f "${EASYTLS_CONN_TRAC}" ]
 	then
-		"${EASYTLS_SED}" -i -e "/^${1}\$/d" "${EASYTLS_CONN_TRAC}" # -e "/^\$/d"
+		{
+			while read conn
+			do
+					[ "${conn}" = "${1}" ] || printf '%s\n' "${conn}"
+			done < "${EASYTLS_CONN_TRAC}"
+		} > "${EASYTLS_CONN_TRAC_TEMP}"
+		"${EASYTLS_MV}" -f \
+			"${EASYTLS_CONN_TRAC_TEMP}" "${EASYTLS_CONN_TRAC}" || return 1
 		update_status "conn-trac: unregistered"
 		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
 		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
