@@ -43,7 +43,7 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars'
 "${shellcheck_bin}" easytls-client-disconnect.vars-example && sc_easytls_client_disconnect_vars=$?
 
-printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
+printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-conn-trac.lib'
 "${shellcheck_bin}" easytls-conn-trac.lib && sc_easytls_conn_trac=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
