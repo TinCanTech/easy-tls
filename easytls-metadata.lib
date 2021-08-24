@@ -1,0 +1,52 @@
+#!/bin/sh
+
+# Break metadata_string into variables
+metadata_string_to_vars ()
+{
+	tlskey_serial="${1%%-*}"
+	[ $generic_metadata ] && g_tlskey_serial=${tlskey_serial} && unset tlskey_serial
+	[ $client_metadata ] && c_tlskey_serial=${tlskey_serial} && unset tlskey_serial
+
+	[ $key_metadata ] && seed="${*}" && md_seed="${seed#*-}" && unset seed
+	#md_padding="${md_seed%%--*}"
+	[ $key_metadata ] && md_easytls_ver="${1#*--}"
+	[ $key_metadata ] && md_easytls="${md_easytls_ver%-*}" && unset md_easytls_ver
+
+	[ $key_metadata ] && md_identity="${2%%-*}"
+	#md_srv_name="${2##*-}"
+
+	md_serial="${3}"
+	[ $generic_metadata ] && g_md_serial=${md_serial} && unset md_serial
+	[ $client_metadata ] && c_md_serial=${md_serial} && unset md_serial
+
+	if [ $key_metadata ]
+	then
+		md_date="${4}"
+		md_custom_g="${5}"
+		md_name="${6}"
+		md_subkey="${7}"
+		md_opt="${8}"
+		md_hwadds="${9}"
+	fi
+} # => metadata_string_to_vars ()
+
+key_metadata_string_to_vars ()
+{
+	key_metadata=1
+	metadata_string_to_vars $metadata_string || return 1
+	unset metadata_string key_metadata
+}
+
+generic_metadata_string_to_vars ()
+{
+	generic_metadata=1
+	metadata_string_to_vars $metadata_string || return 1
+	unset metadata_string generic_metadata tlskey_serial md_serial
+}
+
+client_metadata_string_to_vars ()
+{
+	client_metadata=1
+	metadata_string_to_vars $metadata_string || return 1
+	unset metadata_string client_metadata tlskey_serial md_serial
+}
