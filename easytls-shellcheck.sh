@@ -46,6 +46,9 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars'
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-conn-trac.lib'
 "${shellcheck_bin}" easytls-conn-trac.lib && sc_easytls_conn_trac=$?
 
+printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-metadata.lib'
+"${shellcheck_bin}" easytls-metadata.lib && sc_easytls_metadata=$?
+
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
 "${shellcheck_bin}" easytls-shellcheck.sh && sc_easytls_shellcheck=$?
 
@@ -60,6 +63,7 @@ exit_status=$(( \
 					sc_easytls_client_connect_vars + \
 					sc_easytls_client_disconnect_vars + \
 					sc_easytls_conn_trac + \
+					sc_easytls_metadata + \
 					sc_easytls_shellcheck \
 			 ))
 printf '\n'
