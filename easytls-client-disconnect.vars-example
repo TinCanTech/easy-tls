@@ -2,5 +2,6 @@
 #EASYTLS_VERBOSE=1
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
+#FATAL_CONN_TRAC=1
 #WRITE_ENV=1
 
