@@ -226,33 +226,19 @@ deps ()
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
 
+	# Source metadata lib
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	. "${lib_file}"
+	unset lib_file
+
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 }
-
-# client metadata_string into variables
-client_metadata_string_to_vars ()
-{
-	c_tlskey_serial="${1%%-*}"
-	c_md_seed="${metadata_string#*-}"
-	#md_padding="${md_seed%%--*}"
-	c_md_easytls_ver="${1#*--}"
-	c_md_easytls="${c_md_easytls_ver%-*.*}"
-
-	c_md_identity="${2%%-*}"
-	#md_srv_name="${2##*-}"
-
-	c_md_serial="${3}"
-	c_md_date="${4}"
-	c_md_custom_g="${5}"
-	c_md_name="${6}"
-	c_md_subkey="${7}"
-	c_md_opt="${8}"
-	c_md_hwadds="${9}"
-} # => metadata_string_to_vars ()
 
 #######################################
 
@@ -378,7 +364,7 @@ then
 	[ -n "${metadata_string}" ] || \
 		fail_and_exit "failed to read client_ext_md_file" 18
 	# Populate client metadata variables
-	client_metadata_string_to_vars $metadata_string
+	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
 	[ -n "${c_tlskey_serial}" ] || \
 		fail_and_exit "failed to set c_tlskey_serial" 19
 	unset metadata_string
@@ -407,8 +393,10 @@ then
 	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
-		conn_trac_disconnect "${conn_trac_record}" || \
+		conn_trac_disconnect "${conn_trac_record}" || {
 			update_status "conn_trac_disconnect FAIL"
+			[ $FATAL_CONN_TRAC ] && kill -15 ${EASYTLS_srv_pid}
+			}
 		}
 
 	# Delete files which are no longer needed

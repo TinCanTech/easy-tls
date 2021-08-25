@@ -625,6 +625,20 @@ deps ()
 		;;
 	esac
 
+	# Source metadata lib
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || {
+		easytls_url="https://github.com/TinCanTech/easy-tls"
+		easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		easytls_file="/master/easytls-metadata.lib"
+		easytls_wiki="/wiki/download-and-install"
+		help_note="See: ${easytls_url}${easytls_wiki}"
+		die "Missing ${lib_file} - Source: ${easytls_rawurl}${easytls_file}"
+		}
+	. "${lib_file}"
+	unset lib_file
+
 	# $metadata_file - Must be set by openvpn
 	# If the script fails for metadata file then
 	# - All pre-flight checks completed
@@ -634,27 +648,6 @@ deps ()
 		die "Missing: OPENVPN_METADATA_FILE: ${OPENVPN_METADATA_FILE}" 28
 		}
 } # => deps ()
-
-# Break metadata_string into variables
-metadata_string_to_vars ()
-{
-	tlskey_serial="${1%%-*}"
-	md_seed="${metadata_string#*-}"
-	#md_padding="${md_seed%%--*}"
-	md_easytls_ver="${1#*--}"
-	md_easytls="${md_easytls_ver%-*.*}"
-
-	md_identity="${2%%-*}"
-	#md_srv_name="${2##*-}"
-
-	md_serial="${3}"
-	md_date="${4}"
-	md_custom_g="${5}"
-	md_name="${6}"
-	md_subkey="${7}"
-	md_opt="${8}"
-	md_hwadds="${9}"
-} # => metadata_string_to_vars ()
 
 #######################################
 
@@ -790,7 +783,7 @@ deps
 	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
 	# Populate metadata variables
-	metadata_string_to_vars $metadata_string
+	key_metadata_string_to_vars || die "key_metadata_string_to_vars"
 
 	# Update log message
 	update_status "CN:${md_name}"
