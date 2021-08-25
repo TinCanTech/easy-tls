@@ -33,7 +33,6 @@ conn_trac_connect ()
 		update_status "conn-trac: registered"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 	fi
-	unset EASYTLS_CONN_TRAC_TEMP
 } # => conn_trac_connect ()
 
 # Update connection tacking - disconnect
