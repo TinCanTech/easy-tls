@@ -124,7 +124,8 @@ fail_and_exit ()
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conn_trac_record}" || {
 			update_status "conn_trac_disconnect FAIL"
-			[ $FATAL_CONN_TRAC ] && kill -15 ${EASYTLS_srv_pid}
+			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
+				&& kill -15 ${EASYTLS_srv_pid}
 			}
 		}
 
@@ -478,8 +479,15 @@ deps
 # Source conn-trac lib
 [ $ENABLE_CONN_TRAC ] && {
 	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conn-trac.lib"
-	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	lib_file="${prog_dir}/easytls-conntrac.lib"
+	[ -f "${lib_file}" ] || {
+		easytls_url="https://github.com/TinCanTech/easy-tls"
+		easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		easytls_file="/master/easytls-conntrac.lib"
+		easytls_wiki="/wiki/download-and-install"
+		help_note="See: ${easytls_url}${easytls_wiki}"
+		die "Missing ${lib_file}"
+		}
 	. "${lib_file}"
 	unset lib_file
 	}
