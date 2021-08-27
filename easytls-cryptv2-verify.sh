@@ -774,7 +774,7 @@ deps
 		env > "${env_file}"
 	fi
 	unset env_file
-}
+	}
 
 # Get metadata
 

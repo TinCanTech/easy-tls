@@ -474,7 +474,7 @@ deps
 		env > "${env_file}"
 	fi
 	unset env_file
-}
+	}
 
 # Source conn-trac lib
 [ $ENABLE_CONN_TRAC ] && {
