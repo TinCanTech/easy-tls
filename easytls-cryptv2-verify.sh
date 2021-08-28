@@ -52,7 +52,7 @@ help_text ()
                          TLS Crypt V2 Key allowable age in days (default: 1825).
                          To disable age check use 0
   -d|--disable-list      Disable the temporary disabled-list check.
-  -k|kill-client         Use easytls-client-connect script to kill client.
+  -k|--kill-client       Use easytls-client-connect script to kill client.
                          Killing a client can only be done once a client has
                          connected, so a failed connection must roll-over, then
                          easytls-client-connect.sh immediately kills the client.
@@ -163,7 +163,7 @@ die ()
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
-	delete_metadata_files
+	[ $keep_metadata ] || delete_metadata_files
 	if [ "${EASYTLS_VERBOSE}" ]
 	then
 		print "${status_msg}"
@@ -466,7 +466,7 @@ init ()
 	status_msg="* Easy-TLS-cryptv2-verify"
 
 	# Default stale-metadata-output-file time-out
-	stale_sec=3
+	stale_sec=30
 
 	# X509 is disabled by default
 	# To enable use command line option:
@@ -997,8 +997,9 @@ fi
 if [ -f "${generic_metadata_file}" ]
 then
 	unset kill_client
+	keep_metadata=1
 	failure_msg="generic_metadata_file age: ${md_file_age_sec} sec"
-	fail_and_exit "STALE_METADATA_FILE" 101
+	fail_and_exit "STALE_GENERIC_METADATA_FILE" 101
 else
 	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
 		die "Failed to create generic_metadata_file" 88
@@ -1018,8 +1019,9 @@ fi
 if [ -f "${client_metadata_file}" ]
 then
 	unset kill_client
+	keep_metadata=1
 	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
-	fail_and_exit "STALE_METADATA_FILE" 101
+	fail_and_exit "STALE_CLIENT_METADATA_FILE" 101
 else
 	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_metadata_file}" || \
 		die "Failed to create client_metadata_file" 89
