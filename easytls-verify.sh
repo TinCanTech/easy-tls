@@ -123,9 +123,8 @@ fail_and_exit ()
 	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conn_trac_record}" || {
+			# This is non-fatal for clients which have not connected yet
 			update_status "conn_trac_disconnect FAIL"
-			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
-				&& kill -15 ${EASYTLS_srv_pid}
 			}
 		}
 
