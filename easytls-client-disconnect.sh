@@ -314,7 +314,7 @@ deps
 
 # Write env file
 [ $WRITE_ENV ] && {
-	env_file="${temp_stub}-client-connect.env"
+	env_file="${temp_stub}-client-disconnect.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"
 	else
