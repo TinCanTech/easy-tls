@@ -87,13 +87,20 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	delete_metadata_files
 	verbose_print "<ERROR> ${status_msg}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-	exit "${2:-255}"
+	#exit "${2:-255}"
+	echo 'XXXXX CD - Kill Server XXXXX'
+	echo 1 > "${temp_stub}-die"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		taskkill /PID ${EASYTLS_srv_pid}
+	else
+		kill -15 ${EASYTLS_srv_pid}
+	fi
 }
 
 # failure not an error
@@ -112,11 +119,7 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	"${EASYTLS_RM}" -f \
-		"${generic_metadata_file}" \
-		"${generic_ext_md_file}" \
-		"${client_metadata_file}" \
-		"${client_ext_md_file}" \
-		"${EASYTLS_KILL_FILE}" \
+		"${EASYTLS_KILL_FILE}"
 
 	update_status "temp-files deleted"
 }
@@ -147,7 +150,7 @@ format_number ()
 }
 
 # Allow connection
-connection_allowed ()
+disconnect_accepted ()
 {
 	absolute_fail=0
 	update_status "disconnection success"
@@ -235,6 +238,9 @@ deps ()
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
+
+	# Kill server file
+	[ -f "${temp_stub}-die" ] && echo "Kill Server Signal -> exit CD" && exit 9
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
@@ -352,35 +358,6 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# easytls client metadata file
-generic_metadata_file="${temp_stub}-gmd"
-client_metadata_file="${temp_stub}-cmd-${client_serial}"
-
-# --tls-verify output to --client-connect
-# shellcheck disable=SC2154
-generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
-client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
-
-# Verify client_ext_md_file
-if [ -f "${client_ext_md_file}" ]
-then
-	# Client cert serial matches
-	update_status "X509 serial matched"
-	# Get client metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
-	[ -n "${metadata_string}" ] || \
-		fail_and_exit "failed to read client_ext_md_file" 18
-	# Populate client metadata variables
-	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
-	[ -n "${c_tlskey_serial}" ] || \
-		fail_and_exit "failed to set c_tlskey_serial" 19
-	unset metadata_string
-	update_status "client_ext_md_file loaded"
-else
-	# cert serial does not match - ALWAYS fail
-	die "CLIENT X509 SERIAL MISMATCH" 7
-fi
-
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
 
@@ -389,25 +366,25 @@ fi
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # disconnect can not fail ..
-connection_allowed
+disconnect_accepted
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
 	# Update connection tracking
-	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${client_serial}"
-	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
-	conn_trac_record="${conn_trac_record}=${untrusted_port}"
+	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+	conntrac_record="${conntrac_record}=${client_serial}=${X509_0_CN}"
 	[ $ENABLE_CONN_TRAC ] && {
-		conn_trac_disconnect "${conn_trac_record}" || {
+		conn_trac_disconnect "${conntrac_record}" || {
 			update_status "conn_trac_disconnect FAIL"
-			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
-				&& kill -15 ${EASYTLS_srv_pid}
+			# This cannot be FATAL because openvpn will run it
+			# even if a client did not connect
+			#[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
+			#	&& kill -15 ${EASYTLS_srv_pid}
 			}
 		}
 
-	# Delete files which are no longer needed
+	# Delete all temp files
 	delete_metadata_files
 
 	# All is well
