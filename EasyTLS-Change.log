@@ -3,6 +3,13 @@ https://github.com/TinCanTech/easy-tls
 
 Verssion 2.6
 * TBD
+  Abandon easytls-verify.sh
+    Commit 682ba0ff48535f0575cc220be3717f89281f986d
+       Script is no longer required due to UV_TLSKEY_SERIAL
+  Add UV_TLSKEY_SERIAL to be pushed to server
+    Commit 5ccdb9f37a94ec92d7447afbcf08db7264a55213
+      All clients using TLS-Crypt-V2 keys must push the
+      TLS-Key serial number to identify the key
   Removed option --openvpn
     Commit cf413bd199c2b611314e895e8c9d1be30a02fd12
       Development only requirement
