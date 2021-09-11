@@ -151,19 +151,33 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	delete_metadata_files
+	# Unlock
+	release_lock
+
+	#delete_metadata_files
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-255}"
+	echo 'XXXXX V XXXXX'
+	echo 1 > "${temp_stub}-die"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		taskkill /PID ${EASYTLS_srv_pid}
+	else
+		kill -15 ${EASYTLS_srv_pid}
+	fi
 }
 
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
 {
-	[ $keep_metadata ] || delete_metadata_files
+	# Unlock
+	release_lock
+
+	delete_metadata_files
 	if [ "${EASYTLS_VERBOSE}" ]
 	then
 		print "${status_msg}"
@@ -194,6 +208,9 @@ fail_and_exit ()
 			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
 
 	[ $kill_client ] && {
+		# Create metadata file for client-connect or kill-client
+		write_metadata_file
+
 		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
 		exit 0
 		}
@@ -204,11 +221,10 @@ fail_and_exit ()
 # Delete all metadata files
 delete_metadata_files ()
 {
-	"${EASYTLS_RM}" -f \
-		"${generic_metadata_file}" \
-		"${client_metadata_file}" \
-
-	update_status "temp-files deleted"
+	[ $keep_metadata ] || {
+		"${EASYTLS_RM}" -f "${generic_metadata_file}" "${client_metadata_file}"
+		update_status "temp-files deleted"
+		}
 }
 
 # Log fatal warnings
@@ -436,6 +452,56 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
+# Simple lock file
+acquire_lock ()
+{
+		(	exec 2>/dev/null
+			set -o noclobber
+			exec 8> "${easytls_lock_file}" || return 1
+			printf "%s" "$$" >&8 || return 1
+		) || return 1
+		exec 8< "${easytls_lock_file}" || return 1
+		update_status ">< acquire_lock ><"
+}
+
+release_lock ()
+{
+	exec 8<&- || return 1
+	exec 8>&- || return 1
+	"${EASYTLS_RM}" -f "${easytls_lock_file}"
+	update_status "<< release_lock >>"
+}
+
+# Write metadata file
+write_metadata_file ()
+{
+	# Set the client_metadata_file
+	client_md_file="${temp_stub}-cv2-metadata-${tlskey_serial}"
+
+	# If client_metadata_file exists then delete it if is stale
+	if [ -f "${client_md_file}" ]
+	then
+		md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
+		md_file_age_sec=$((local_date_sec - md_file_date_sec))
+		[ ${md_file_age_sec} -gt ${stale_sec} ] && \
+			"${EASYTLS_RM}" -f "${client_md_file}"
+	fi
+
+	# If client_metadata_file still exists then silently fail - Client will try again
+	if [ -f "${client_md_file}" ]
+	then
+		unset kill_client
+		keep_metadata=1
+
+		failure_msg="generic_md_file age: ${md_file_age_sec} sec"
+		fail_and_exit "STALE_CLIENT_METADATA_FILE" 101
+	else
+		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
+			die "Failed to create client_md_file" 89
+		update_status "Created client_md_file"
+	fi
+} # => write_metadata_file ()
+
 # Initialise
 init ()
 {
@@ -488,6 +554,7 @@ init ()
 	EASYTLS_CP='cp'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
+	EASYTLS_MV='mv'
 	EASYTLS_SED='sed'
 	EASYTLS_PRINTF='printf'
 	EASYTLS_RM='rm'
@@ -509,6 +576,7 @@ init ()
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CP}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MV}.exe" ] || exit 71
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_RM}.exe" ] || exit 70
@@ -533,6 +601,12 @@ deps ()
 
 	# Temp files name stub
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
+
+	# Lock file
+	easytls_lock_file="${temp_stub}-lock"
+
+	# Lock
+	acquire_lock || exit 99
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
@@ -980,54 +1054,6 @@ else
 
 fi # => use_x509 ()
 
-# Set the client_metadata temp files
-generic_metadata_file="${temp_stub}-gmd"
-client_metadata_file="${temp_stub}-cmd-${md_serial}"
-
-# If generic_metadata_file exists then delete it if is stale
-if [ -f "${generic_metadata_file}" ]
-then
-	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${generic_metadata_file}")"
-	md_file_age_sec=$((local_date_sec - md_file_date_sec))
-	[ ${md_file_age_sec} -gt ${stale_sec} ] && \
-		"${EASYTLS_RM}" -f "${generic_metadata_file}"
-fi
-
-# If generic_metadata_file still exists then silently fail - Client will try again
-if [ -f "${generic_metadata_file}" ]
-then
-	unset kill_client
-	keep_metadata=1
-	failure_msg="generic_metadata_file age: ${md_file_age_sec} sec"
-	fail_and_exit "STALE_GENERIC_METADATA_FILE" 101
-else
-	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${generic_metadata_file}" || \
-		die "Failed to create generic_metadata_file" 88
-	update_status "Created generic_metadata_file"
-fi
-
-# If client_metadata_file exists then delete it if is stale
-if [ -f "${client_metadata_file}" ]
-then
-	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_metadata_file}")"
-	md_file_age_sec=$((local_date_sec - md_file_date_sec))
-	[ ${md_file_age_sec} -gt ${stale_sec} ] && \
-		"${EASYTLS_RM}" -f "${client_metadata_file}"
-fi
-
-# If client_metadata_file still exists then silently fail - Client will try again
-if [ -f "${client_metadata_file}" ]
-then
-	unset kill_client
-	keep_metadata=1
-	failure_msg="client_metadata_file age: ${md_file_age_sec} sec"
-	fail_and_exit "STALE_CLIENT_METADATA_FILE" 101
-else
-	"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_metadata_file}" || \
-		die "Failed to create client_metadata_file" 89
-	update_status "Created client_metadata_file"
-fi
-
 # Allow connection
 connection_allowed
 
@@ -1037,6 +1063,12 @@ connection_allowed
 # For DUBUG
 [ "${FORCE_ABSOLUTE_FAIL}" ] && \
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
+
+# Create metadata file for client-connect or kill-client
+write_metadata_file
+
+# Unlock
+release_lock
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
