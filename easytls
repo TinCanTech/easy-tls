@@ -6086,21 +6086,21 @@ interactive_scripts ()
 
 
 			# easytls-verify.sh - Required for --tls-auth or --tls-crypt clients
-			[ $opt_client_connect ] && {
-				"$EASYTLS_PRINTF" '%s' 'tls-verify'
-				"$EASYTLS_PRINTF" ' %s' "'"
-				[ $EASYTLS_FOR_WINDOWS ] && \
-					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
-				"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH}"
-				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
-				[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
-				"$EASYTLS_PRINTF" ' %s' "-c=${opt_ca_path}"
-				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
-				"$EASYTLS_PRINTF" '%s\n\n' "'"
-				}
+			#[ $opt_client_connect ] && {
+			#	"$EASYTLS_PRINTF" '%s' 'tls-verify'
+			#	"$EASYTLS_PRINTF" ' %s' "'"
+			#	[ $EASYTLS_FOR_WINDOWS ] && \
+			#		"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
+			#	"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH}"
+			#	"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
+			#	[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
+			#	"$EASYTLS_PRINTF" ' %s' "-c=${opt_ca_path}"
+			#	[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+			#	"$EASYTLS_PRINTF" '%s\n\n' "'"
+			#	}
 
 
-			# easytls-cryptv2-client-connect.sh
+			# easytls-client-connect.sh
 			[ $opt_client_connect ] && {
 				"$EASYTLS_PRINTF" '%s' 'client-connect'
 				"$EASYTLS_PRINTF" ' %s' "'"
@@ -6111,6 +6111,8 @@ interactive_scripts ()
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+
+			# easytls-client-disconnect.sh
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				"$EASYTLS_PRINTF" '%s' 'client-disconnect'
 				"$EASYTLS_PRINTF" ' %s' "'"
