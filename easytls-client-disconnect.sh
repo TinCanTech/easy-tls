@@ -346,7 +346,7 @@ deps
 	}
 
 # Update log message
-update_status "CN:${X509_0_CN}"
+update_status "CN:${common_name}"
 
 # Set Client certificate serial number from Openvpn env
 # shellcheck disable=SC2154
