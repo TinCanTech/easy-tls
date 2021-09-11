@@ -25,6 +25,12 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
   This script is used by Openvpn-Server to manage TLS-Crypt-V2 Metadata access policy rules.<br>
   Also required for EasyTLS hardware-address access policy rules.
 
++ [**`easytls-metadata.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-metadata.lib) - **REQUIRED**<br>
+  This script is used by Openvpn-Server to load TLS-Crypt-V2 Metadata.<br>
+
++ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Required by the following scripts**<br>
+  This script is used by Openvpn-Server to manage connection tracking.<br>
+
 + [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - **Can NOT be used stand-alone**<br>
   This script is used by Openvpn-Server to manage hardware-address access policy rules and connection tracking.
 
