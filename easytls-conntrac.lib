@@ -11,10 +11,6 @@ acquire_lock ()
 			printf "%s" "$$" >&8 || return 1
 		) || die "write lock-file"
 		exec 8< "${easytls_ct_lock_file}" || return 1
-		#read -r <&8 EASYTLS_ct_lock_PID
-		#[ $$ -eq ${EASYTLS_ct_lock_PID} ] || \
-		#	die "PID mismatch: $$ ${easytls_ct_lock_file}"
-		update_status "< acquire_lock >"
 }
 
 release_lock ()
@@ -22,7 +18,6 @@ release_lock ()
 	exec 8<&- || return 1
 	exec 8>&- || return 1
 	"${EASYTLS_RM}" -f "${easytls_ct_lock_file}"
-	update_status "< release_lock >"
 }
 
 # Connection tacking - Connect
