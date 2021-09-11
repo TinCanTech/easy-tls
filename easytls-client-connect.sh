@@ -98,32 +98,25 @@ verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
 # Exit on error
 die ()
 {
-	delete_metadata_files
 	verbose_print "<ERROR> ${status_msg}"
 	[ -n "${help_note}" ] && print "${help_note}"
 	print "ERROR: ${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-	exit "${2:-255}"
+	#exit "${2:-255}"
+	echo 'XXXXX CC - Kill Server XXXXX'
+	echo 1 > "${temp_stub}-die"
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		taskkill /PID ${EASYTLS_srv_pid}
+	else
+		kill -15 ${EASYTLS_srv_pid}
+	fi
 }
 
 # failure not an error
 fail_and_exit ()
 {
-	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${client_serial}"
-	# shellcheck disable=SC2154
-	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
-	# shellcheck disable=SC2154
-	conn_trac_record="${conn_trac_record}=${untrusted_port}"
-	[ $ENABLE_CONN_TRAC ] && {
-		conn_trac_disconnect "${conn_trac_record}" || {
-			update_status "conn_trac_disconnect FAIL"
-			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
-				&& kill -15 ${EASYTLS_srv_pid}
-			}
-		}
-
 	delete_metadata_files
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
@@ -136,14 +129,10 @@ fail_and_exit ()
 # Delete all metadata files
 delete_metadata_files ()
 {
-	# Not "${client_ext_md_file}"
-
 	"${EASYTLS_RM}" -f \
-		"${generic_metadata_file}" \
-		"${generic_ext_md_file}" \
-		"${client_metadata_file}" \
+		"${auth_control_file}" \
 		"${EASYTLS_KILL_FILE}" \
-		"${metadata_metadata_file}" \
+		"${fixed_md_file}" "${fake_md_file}" "${trusted_fake_md_file}"
 
 	update_status "temp-files deleted"
 }
@@ -261,6 +250,9 @@ deps ()
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
+	# Kill server file
+	[ -f "${temp_stub}-die" ] && echo "Kill Server Signal -> exit CC" && exit 9
+
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 }
@@ -283,7 +275,7 @@ do
 		empty_ok=1
 		help_text
 	;;
-	-l)
+	-l|--vars)
 		vars_file="${val}"
 	;;
 	-v|--verbose)
@@ -294,7 +286,7 @@ do
 		empty_ok=1
 		allow_no_check=1
 	;;
-	-m|ignore-mismatch) # tlskey-x509 does not match openvpn-x509
+	-m|--ignore-mismatch) # tlskey-x509 does not match openvpn-x509
 		empty_ok=1
 		ignore_x509_mismatch=1
 	;;
@@ -393,6 +385,9 @@ then
 	update_status "Kill client signal"
 fi
 
+# flush auth-control file
+"${EASYTLS_RM}" -f "${auth_control_file}"
+
 # Update log message
 update_status "CN:${X509_0_CN}"
 
@@ -406,59 +401,87 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# client metadata files - May not exist
-generic_metadata_file="${temp_stub}-gmd"
-client_metadata_file="${temp_stub}-cmd-${client_serial}"
+# fake file for TLS-AC
+generic_md_stub="${temp_stub}-tac-metadata"
+client_md_stub="${generic_md_stub}-${client_serial}"
+fake_md_file="${client_md_stub}-fake-${untrusted_ip}-${untrusted_port}"
+trusted_fake_md_file="${client_md_stub}-fake-${trusted_ip}-${trusted_port}"
 
-# --tls-verify output to --client-connect
-generic_ext_md_file="${generic_metadata_file}-${untrusted_ip}-${untrusted_port}"
-client_ext_md_file="${client_metadata_file}-${untrusted_ip}-${untrusted_port}"
-
-# Verify generic_ext_md_file
-if [ -f "${generic_ext_md_file}" ]
+# Fixed file for TLS-CV2
+if [ -n "${UV_TLSKEY_SERIAL}" ]
 then
-	# Client cert serial matches
-	update_status "X509 serial matched(g1)"
-	# Get client metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${generic_ext_md_file}")"
-	[ -n "${metadata_string}" ] || \
-		fail_and_exit "failed to read generic_ext_md_file" 18
-	# Populate client metadata variables
-	generic_metadata_string_to_vars || die "generic_metadata_string_to_vars"
-	[ -n "${g_tlskey_serial}" ] || \
-		fail_and_exit "failed to set g_tlskey_serial" 19
-	unset metadata_string
-	update_status "generic_ext_md_file loaded"
-	metadata_metadata_file="${temp_stub}-cmd-${g_md_serial}"
+	fixed_md_file="${temp_stub}-cv2-metadata-${UV_TLSKEY_SERIAL}"
+	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
-	# cert serial does not match - ALWAYS fail
-	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH(g1)" 7
-	update_status "Ignored tlskey X509 mismatch!(g1)"
+	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
+
+		# This is correct behaviour for --tls-auth/crypt v1
+		# Create a fake metadata file
+		# Add indicator for TLS Auth/Crypt
+		# TODO: check for existing file
+		"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > \
+			"${fake_md_file}" || \
+				die "Failed to create fake_md_file"
+		update_status "created fake_md_file"
 fi
 
-# Verify client_ext_md_file
-if [ -f "${client_ext_md_file}" ]
+# Verify cv2_metadata_file
+if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]
 then
-	# Client cert serial matches
-	update_status "X509 serial matched(c1)"
+	# Set Client tlskey_serial
+	tls_crypt_v2=1
+
 	# Get client metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${client_ext_md_file}")"
+	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
 	[ -n "${metadata_string}" ] || \
-		fail_and_exit "failed to read client_ext_md_file" 18
+		fail_and_exit "failed to read fixed_md_file" 18
 	# Populate client metadata variables
 	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
 	[ -n "${c_tlskey_serial}" ] || \
 		fail_and_exit "failed to set c_tlskey_serial" 19
 	unset metadata_string
-	update_status "client_ext_md_file loaded"
+	update_status "fixed_md_file loaded"
+	if [ ${c_md_serial} = ${client_serial} ]
+	then
+		update_status "metadata -> x509 serial match"
+	else
+		[ $ignore_x509_mismatch ] || {
+			failure_msg="TLS-key is being used by the wrong client certificate"
+			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
+			}
+		update_status "IGNORE metadata -> x509 serial mismatch"
+	fi
+
+elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]
+then
+	# This client pushed an incorrect UV_TLSKEY_SERIAL
+	failure_msg="A temp file now exists with the correct TLS-key serial"
+	fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
+
+elif [ -f "${fake_md_file}" ]
+then
+	# Require crypt-v2
+	[ $crypt_v2_required ] && {
+			failure_msg="TLS Auth/Crypt key not allowed"
+			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
+			}
+	update_status "IGNORE TLS-Auth/Crypt-v1 only"
+	fixed_md_file="${generic_md_stub}-${client_serial}"
+	if [ -f "${fixed_md_file}" ]
+	then
+		help_note="* Duplicate certificate *"
+		die "Exists fixed_md_file"
+	else
+		"${EASYTLS_MV}" "${fake_md_file}" "${fixed_md_file}" || \
+			die "Failed to create fake fixed_md_file"
+		update_status "Moved fake_md_file to fixed_md_file"
+	fi
+
+	# TLS Auth/Crypt cannot do extended checks so allow_no_check
+	tls_acv1_only=1
+
 else
-	# cert serial does not match - ALWAYS fail
-	[ $ignore_x509_mismatch ] || fail_and_exit "CLIENT X509 SERIAL MISMATCH(c1)" 7
-	update_status "Ignored tlskey X509 mismatch!(c1)"
-	"${EASYTLS_MV}" "${generic_ext_md_file}" "${client_ext_md_file}" || \
-		fail_and_exit "failed to mv generic_ext_md_file" 17
-	# Must have a client_ext_md_file for grep and conn-trac
-	update_status "moved generic to client_ext_md_file"
+	die "Unexpected condition"
 fi
 
 # Set hwaddr from Openvpn env
@@ -474,8 +497,7 @@ then
 		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 		}
 	# hwaddr not pushed and not required
-	update_status "hwaddr not required"
-	#connection_allowed
+	update_status "IGNORE hwaddr not required"
 fi
 
 # allow_no_check
@@ -487,7 +509,7 @@ case $allow_no_check in
 ;;
 *)
 	# Check for TLS Auth/Crypt
-	if "${EASYTLS_GREP}" -q '^=TLSAC=[[:blank:]]=' "${client_ext_md_file}"
+	if "${EASYTLS_GREP}" -q '^=TLSAC=[[:blank:]]=' "${fixed_md_file}"
 	then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
@@ -510,13 +532,13 @@ case $allow_no_check in
 
 		# Set only for NO keyed hwaddr
 		# Old field
-		if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${client_ext_md_file}"
+		if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${fixed_md_file}"
 		then
 			key_hwaddr_missing=1
 		fi
 
 		# New field
-		if "${EASYTLS_GREP}" -q '=000000000000=$' "${client_ext_md_file}"
+		if "${EASYTLS_GREP}" -q '=000000000000=$' "${fixed_md_file}"
 		then
 			key_hwaddr_missing=1
 		fi
@@ -534,13 +556,13 @@ case $allow_no_check in
 			# No keyed hwaddr and TLS-crypt-v2
 			connection_allowed
 		else
-			if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${client_ext_md_file}"
+			if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${fixed_md_file}"
 			then
 				# push and MATCH! - Old format
 				update_status "hwaddr ${push_hwaddr} pushed and matched"
 				connection_allowed
 
-			elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${client_ext_md_file}"
+			elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${fixed_md_file}"
 			then
 				# push and MATCH! - New format
 				update_status "hwaddr ${push_hwaddr} pushed and matched"
@@ -576,19 +598,19 @@ esac # allow_no_check
 if [ $absolute_fail -eq 0 ]
 then
 	# Update connection tracking
-	conn_trac_record="${c_tlskey_serial:-${g_tlskey_serial}}"
-	conn_trac_record="${conn_trac_record}=${client_serial}"
-	conn_trac_record="${conn_trac_record}=${untrusted_ip}"
-	conn_trac_record="${conn_trac_record}=${untrusted_port}"
 	[ $ENABLE_CONN_TRAC ] && {
-		conn_trac_connect "${conn_trac_record}" || {
+		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+		conntrac_record="${conntrac_record}=${client_serial}=${X509_0_CN}"
+		#conntrac_record="${conntrac_record}=${untrusted_ip}"
+		#conntrac_record="${conntrac_record}=${untrusted_port}"
+		conn_trac_connect "${conntrac_record}" || {
 			update_status "conn_trac_connect FAIL"
 			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
 				&& kill -15 ${EASYTLS_srv_pid}
 			}
 		}
 
-	# Delete files which are no longer needed
+	# Delete all temp files
 	delete_metadata_files
 
 	# All is well
