@@ -3968,8 +3968,8 @@ inline_tls_crypt_v2 ()
 
 		# push-peer-info
 		[ "${cert_purpose}" = 'Client' ] && {
-			"${EASYTLS_PRINTF}" '%s\n' "setenv UV_tlskey_serial ${tlskey_serial}"
-			"${EASYTLS_PRINTF}" "\n%s\n\n" "push-peer-info"
+			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${tlskey_serial}"
+			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 			}
 		# Add key
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
