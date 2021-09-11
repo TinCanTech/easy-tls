@@ -170,8 +170,8 @@ fi
 "${EASYTLS_CMD}" --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
 "${TLSCV2V_CMD}" --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} --help ($?)"
-"${TLSVERIFY_CMD}" --help || exit_code=$?
-[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
+#'"${TLSVERIFY_CMD}" --help || exit_code=$?
+#[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
 "${CLICON_CMD}" --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
 
