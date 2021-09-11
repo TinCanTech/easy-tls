@@ -1,60 +1,112 @@
 #!/bin/sh
 
+# Experimental - Use at your own risk
+
+# Rudimentory lock file
+acquire_lock ()
+{
+		(	exec 2>/dev/null
+			set -o noclobber
+			exec 8> "${easytls_ct_lock_file}" || return 1
+			printf "%s" "$$" >&8 || return 1
+		) || die "write lock-file"
+		exec 8< "${easytls_ct_lock_file}" || return 1
+		#read -r <&8 EASYTLS_ct_lock_PID
+		#[ $$ -eq ${EASYTLS_ct_lock_PID} ] || \
+		#	die "PID mismatch: $$ ${easytls_ct_lock_file}"
+		update_status "< acquire_lock >"
+}
+
+release_lock ()
+{
+	exec 8<&- || return 1
+	exec 8>&- || return 1
+	"${EASYTLS_RM}" -f "${easytls_ct_lock_file}"
+	update_status "< release_lock >"
+}
+
 # Connection tacking - Connect
 conn_trac_connect ()
 {
 	[ -n "${1}" ] || return 1
-	EASYTLS_CONN_TRAC_TEMP="${EASYTLS_CONN_TRAC}.tmp"
+	easytls_ct_lock_file="${EASYTLS_CONN_TRAC}.lock"
+	easytls_temp_file="${EASYTLS_CONN_TRAC}.tmp"
+	acquire_lock || die "ct acquire_lock"
+
 	if [ -f "${EASYTLS_CONN_TRAC}" ]
 	then
-		while read conn
-		do
-			[ "${conn}" = "${1}" ] && already_registered=1
-		done < "${EASYTLS_CONN_TRAC}"
-
-		if [ $already_registered ]
-		then
-			update_status "conn-trac: already registered"
-			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-		else
-			{
-				"${EASYTLS_PRINTF}" "%s\n" "${1}"
-				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}"
-			} > "${EASYTLS_CONN_TRAC_TEMP}"
-			"${EASYTLS_MV}" -f \
-				"${EASYTLS_CONN_TRAC_TEMP}" "${EASYTLS_CONN_TRAC}" || return 1
+		{
+			while read conn
+			do
+				if [ "${conn}" = "${1}" ]
+				then
+					already_registered=1
+					update_status "conntrac: already registered"
+					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+				else
+					"${EASYTLS_PRINTF}" '%s\n' "${conn}"
+				fi
+			done < "${EASYTLS_CONN_TRAC}"
+			[ $already_registered ] || "${EASYTLS_PRINTF}" "%s\n" "${1}"
+		} > "${easytls_temp_file}"
+		"${EASYTLS_MV}" -f \
+			"${easytls_temp_file}" "${EASYTLS_CONN_TRAC}" || err_exit=1
+		[ $already_registered ] || {
 			update_status "conn-trac: registered"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-		fi
+			}
 	else
-		{	# Add tlskey_serial to Easy-TLS Conn-Trac file
+		{
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
-		} > "${EASYTLS_CONN_TRAC}" || return 1
+		} > "${EASYTLS_CONN_TRAC}" || err_exit=1
 		update_status "conn-trac: registered"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 	fi
+	release_lock || die "ct release_lock"
+	unset easytls_ct_lock_file easytls_temp_file conn already_registered
+	return ${err_exit}
 } # => conn_trac_connect ()
 
 # Update connection tacking - disconnect
 conn_trac_disconnect ()
 {
 	[ -n "${1}" ] || return 1
-	EASYTLS_CONN_TRAC_TEMP="${EASYTLS_CONN_TRAC}.tmp"
+	easytls_ct_lock_file="${EASYTLS_CONN_TRAC}.lock"
+	easytls_temp_file="${EASYTLS_CONN_TRAC}.tmp"
+	acquire_lock || die "ct acquire_lock"
+
 	if [ -f "${EASYTLS_CONN_TRAC}" ]
 	then
 		{
 			while read conn
 			do
-					[ "${conn}" = "${1}" ] || printf '%s\n' "${conn}"
+				if [ "${conn}" = "${1}" ]
+				then
+					conntrac_updated=1
+					update_status "conntrac: unregistered"
+					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+				else
+					"${EASYTLS_PRINTF}" '%s\n' "${conn}"
+				fi
 			done < "${EASYTLS_CONN_TRAC}"
-		} > "${EASYTLS_CONN_TRAC_TEMP}"
+		} > "${easytls_temp_file}"
 		"${EASYTLS_MV}" -f \
-			"${EASYTLS_CONN_TRAC_TEMP}" "${EASYTLS_CONN_TRAC}" || return 1
-		update_status "conn-trac: unregistered"
-		[ $VERBOSE_CONN_TRAC ] &&  update_status "${1}"
-		[ -s "${EASYTLS_CONN_TRAC}" ] || "${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
+			"${easytls_temp_file}" "${EASYTLS_CONN_TRAC}" || err_exit=1
+		[ $conntrac_updated ] || {
+			update_status "conntrac: record not found"
+			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+			err_exit=1
+			}
+		[ -s "${EASYTLS_CONN_TRAC}" ] || {
+			"${EASYTLS_RM}" -f "${EASYTLS_CONN_TRAC}"
+			update_status "conntrac: RESET"
+			}
 	else
+		update_status "conntrac: file not found"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-		return 1
+		#return 1
 	fi
+	release_lock || die "ct release_lock"
+	unset easytls_ct_lock_file easytls_temp_file conn conntrac_updated
+	return ${err_exit}
 } # => conn_trac_disconnect ()
