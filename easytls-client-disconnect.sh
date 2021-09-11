@@ -373,7 +373,7 @@ if [ $absolute_fail -eq 0 ]
 then
 	# Update connection tracking
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-	conntrac_record="${conntrac_record}=${client_serial}=${X509_0_CN}"
+	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conntrac_record}" || {
 			update_status "conn_trac_disconnect FAIL"

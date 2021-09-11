@@ -600,7 +600,7 @@ then
 	# Update connection tracking
 	[ $ENABLE_CONN_TRAC ] && {
 		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-		conntrac_record="${conntrac_record}=${client_serial}=${X509_0_CN}"
+		conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
 		#conntrac_record="${conntrac_record}=${untrusted_ip}"
 		#conntrac_record="${conntrac_record}=${untrusted_port}"
 		conn_trac_connect "${conntrac_record}" || {
