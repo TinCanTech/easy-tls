@@ -5,12 +5,11 @@
 # Rudimentory lock file
 acquire_lock ()
 {
-		(	exec 2>/dev/null
-			set -o noclobber
-			exec 8> "${easytls_ct_lock_file}" || return 1
-			printf "%s" "$$" >&8 || return 1
-		) || die "write lock-file"
-		exec 8< "${easytls_ct_lock_file}" || return 1
+	exec 2>/dev/null
+	set -o noclobber
+	exec 8> "${easytls_ct_lock_file}" || return 1
+	printf "%s" "$$" >&8 || return 1
+	exec 8< "${easytls_ct_lock_file}" || return 1
 }
 
 release_lock ()
