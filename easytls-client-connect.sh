@@ -401,6 +401,18 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
+	# Update connection tracking
+	[ $ENABLE_CONN_TRAC ] && {
+		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+		conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
+		#conntrac_record="${conntrac_record}=${untrusted_ip}"
+		#conntrac_record="${conntrac_record}=${untrusted_port}"
+		conn_trac_connect "${conntrac_record}" || {
+			update_status "conn_trac_connect FAIL"
+			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
+			}
+		}
+
 # fake file for TLS-AC
 generic_md_stub="${temp_stub}-tac-metadata"
 client_md_stub="${generic_md_stub}-${client_serial}"
@@ -597,19 +609,6 @@ esac # allow_no_check
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
-	# Update connection tracking
-	[ $ENABLE_CONN_TRAC ] && {
-		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-		conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
-		#conntrac_record="${conntrac_record}=${untrusted_ip}"
-		#conntrac_record="${conntrac_record}=${untrusted_port}"
-		conn_trac_connect "${conntrac_record}" || {
-			update_status "conn_trac_connect FAIL"
-			[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
-				&& kill -15 ${EASYTLS_srv_pid}
-			}
-		}
-
 	# Delete all temp files
 	delete_metadata_files
 
