@@ -1,5 +1,24 @@
 #!/bin/sh
 
+# Copyright - negotiable
+copyright ()
+{
+: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+# easytls-metadata.lib -- Do simple magic
+#
+# Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
+# https://github.com/TinCanTech/easy-tls
+# tincantech@protonmail.com
+# All Rights reserved.
+#
+# This code is released under version 2 of the GNU GPL
+# See LICENSE of this project for full licensing details.
+#
+# Process TLS-Crypt-V2 metadata.
+#
+VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+}
+
 # Break metadata_string into variables
 metadata_string_to_vars ()
 {
