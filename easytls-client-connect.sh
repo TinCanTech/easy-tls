@@ -401,17 +401,15 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-	# Update connection tracking
-	[ $ENABLE_CONN_TRAC ] && {
-		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-		conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
-		#conntrac_record="${conntrac_record}=${untrusted_ip}"
-		#conntrac_record="${conntrac_record}=${untrusted_port}"
-		conn_trac_connect "${conntrac_record}" || {
-			update_status "conn_trac_connect FAIL"
-			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
-			}
+# Update connection tracking
+[ $ENABLE_CONN_TRAC ] && {
+	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
+	conn_trac_connect "${conntrac_record}" || {
+		update_status "conn_trac_connect FAIL"
+		[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
 		}
+	}
 
 # fake file for TLS-AC
 generic_md_stub="${temp_stub}-tac-metadata"

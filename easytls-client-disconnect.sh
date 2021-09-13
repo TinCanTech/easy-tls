@@ -377,10 +377,7 @@ then
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conntrac_record}" || {
 			update_status "conn_trac_disconnect FAIL"
-			# This cannot be FATAL because openvpn will run it
-			# even if a client did not connect
-			#[ $FATAL_CONN_TRAC ] && [ ! $EASYTLS_FOR_WINDOWS ] \
-			#	&& kill -15 ${EASYTLS_srv_pid}
+			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
 			}
 		}
 
