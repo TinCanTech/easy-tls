@@ -158,17 +158,17 @@ die ()
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
-	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
-		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-	exit "${2:-255}"
-	echo 'XXXXX V XXXXX'
+	echo 'XXXXX CV2 XXXXX'
 	echo 1 > "${temp_stub}-die"
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
+		"${EASYTLS_PRINTF}" "%s\n%s\n" \
+			"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 		taskkill /PID ${EASYTLS_srv_pid}
 	else
 		kill -15 ${EASYTLS_srv_pid}
 	fi
+	exit "${2:-255}"
 }
 
 # Tls-crypt-v2-verify failure, not an error.
@@ -208,10 +208,11 @@ fail_and_exit ()
 			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
 
 	[ $kill_client ] && {
+		# Create kill client file
+		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
 		# Create metadata file for client-connect or kill-client
 		write_metadata_file
-
-		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
+		# Exit without error to kill client
 		exit 0
 		}
 
