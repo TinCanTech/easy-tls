@@ -95,12 +95,18 @@ die ()
 	#exit "${2:-255}"
 	echo 'XXXXX CD - Kill Server XXXXX'
 	echo 1 > "${temp_stub}-die"
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
-		taskkill /PID ${EASYTLS_srv_pid}
-	else
-		kill -15 ${EASYTLS_srv_pid}
-	fi
+	[ $DISABLE_KILL_PPID ] || {
+		# This always runs, except for CI
+		if [ $EASYTLS_FOR_WINDOWS ]
+		then
+			"${EASYTLS_PRINTF}" "%s\n%s\n" \
+				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
+			taskkill /PID ${EASYTLS_srv_pid}
+		else
+			kill -15 ${EASYTLS_srv_pid}
+		fi
+		}
+	exit "${2:-255}"
 }
 
 # failure not an error

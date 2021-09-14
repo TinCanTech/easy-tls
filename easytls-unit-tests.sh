@@ -125,6 +125,8 @@ echo '===[  Easy-TLS Unit Tests ]==='
 
 start_time="$(date +%s)"
 
+export DISABLE_KILL_PPID=1
+
 WORK_DIR="$(pwd)"
 #mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
 
