@@ -44,8 +44,8 @@ Easy-TLS in detail
     For full help use:
     * ./easytls -h
     * ./easytls-cryptv2-verify.sh -h
-    * ./easytls-verify.sh -h
     * ./easytls-client-connect.sh -h
+    * ./easytls-client-disconnect.sh -h
 
 Easy-TLS No-CA Mode
 
@@ -116,19 +116,12 @@ EasyTLS verification scripts:
 
   * easytls-cryptv2-verify.sh (OpenVPN --tls-crypt-v2-verify)
 
-      Verify TLS-Crypt-V2 key metadata:
-      Key age, key serial number, key status (enabled/disabled), Custom-Group.
-      Optional X509 certificate checks. (Details below)
+    Verify TLS-Crypt-V2 key metadata:
+    Key age, key serial number, key status (enabled/disabled), Custom-Group.
+    Optional X509 certificate verification methods. (Details below)
 
-  * easytls-verify.sh (OpenVPN --tls-verify)
 
-      Full TLS layer verification stage. 
-
-  * easytls-cryptv2-client-connect.sh (OpenVPN --client-connect)
-
-      Verify client hardware-address.
-
-  * Optional X509 verification methods which easytls-cryptv2-verify.sh can do:
+    * Optional X509 certificate verification methods:
 
     1. Verify via CRL --via-crl
 
@@ -158,8 +151,19 @@ EasyTLS verification scripts:
        CA Identity is the openssl output for the CA fingerprint formatted
        to one contiguous string:
 
-       * openssl fingerprint output:  'SHA1 Fingerprint=95:DC:42:...'
+       * openssl fingerprint output:  'SHA256 Fingerprint=95:DC:42:...'
        * EasyTLS CA Identity format:  '95DC42...'
+
+
+  * easytls-client-connect.sh (OpenVPN --client-connect)
+
+      Verify client hardware-address.
+      Connection tracking.
+
+
+  * easytls-client-disconnect.sh (OpenVPN --client-connect)
+
+      Only used by connection tracking.
 
 
 Note about Server script exit codes:
