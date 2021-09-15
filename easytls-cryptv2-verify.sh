@@ -160,17 +160,17 @@ die ()
 	print "ERROR: ${1}"
 	echo 'XXXXX CV2 XXXXX'
 	echo 1 > "${temp_stub}-die"
-	[ $DISABLE_KILL_PPID ] || {
-		# This always runs, except for CI
+	if [ $ENABLE_KILL_PPID ]
+	then
 		if [ $EASYTLS_FOR_WINDOWS ]
 		then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			taskkill /PID ${EASYTLS_srv_pid}
+			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
 		else
-			kill -15 ${EASYTLS_srv_pid}
+			[ $DISABLE_KILL_PPID ] || kill -15 ${EASYTLS_srv_pid}
 		fi
-		}
+	fi
 	exit "${2:-255}"
 }
 

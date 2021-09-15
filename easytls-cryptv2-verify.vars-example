@@ -14,6 +14,9 @@
 # Enable/disable kill_client mode
 #kill_client=1
 
+# Enable kill server mode
+#ENABLE_KILL_PPID=1
+
 # X509 method
 #x509_method=1
 #x509_method=2
@@ -47,7 +50,4 @@
 # Hash algorithm
 #EASYTLS_HASH_ALGO='SHA256'
 
-# Time between allowing two almost concurrent connections
-# Due to script improvements this may no longer be required
-#stale_sec=3
 
