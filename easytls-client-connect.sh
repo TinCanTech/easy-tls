@@ -135,8 +135,8 @@ fail_and_exit ()
 # Delete all metadata files
 delete_metadata_files ()
 {
-	"${EASYTLS_RM}" -f \
-		"${auth_control_file}" \
+	# shellcheck disable=SC2154 # auth_control_file
+	"${EASYTLS_RM}" -f "${auth_control_file}" \
 		"${EASYTLS_KILL_FILE}" \
 		"${fixed_md_file}" "${fake_md_file}" "${trusted_fake_md_file}"
 
@@ -395,6 +395,7 @@ fi
 "${EASYTLS_RM}" -f "${auth_control_file}"
 
 # Update log message
+# shellcheck disable=SC2154 # common_name
 update_status "CN:${common_name}"
 
 # Set Client certificate serial number from Openvpn env
@@ -445,7 +446,7 @@ fi
 if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]
 then
 	# Set Client tlskey_serial
-	tls_crypt_v2=1
+	#tls_crypt_v2=1
 
 	# Get client metadata_string
 	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
@@ -494,7 +495,7 @@ then
 	fi
 
 	# TLS Auth/Crypt cannot do extended checks so allow_no_check
-	tls_acv1_only=1
+	#tls_acv1_only=1
 
 else
 	die "Unexpected condition"

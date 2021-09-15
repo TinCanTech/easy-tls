@@ -352,6 +352,7 @@ deps
 	}
 
 # Update log message
+# shellcheck disable=SC2154 # common_name
 update_status "CN:${common_name}"
 
 # Set Client certificate serial number from Openvpn env
