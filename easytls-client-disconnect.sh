@@ -341,9 +341,9 @@ deps
 	lib_file="${prog_dir}/easytls-conntrac.lib"
 	[ -f "${lib_file}" ] || {
 		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		easytls_file="/master/easytls-conntrac.lib"
 		easytls_wiki="/wiki/download-and-install"
+		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		#easytls_file="/master/easytls-conntrac.lib"
 		help_note="See: ${easytls_url}${easytls_wiki}"
 		die "Missing ${lib_file}"
 		}
