@@ -412,7 +412,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 [ $ENABLE_CONN_TRAC ] && {
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
-	conn_trac_connect "${conntrac_record}" || {
+	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 		update_status "conn_trac_connect FAIL"
 		[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
 		}

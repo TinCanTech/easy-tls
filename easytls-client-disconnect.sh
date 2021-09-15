@@ -382,7 +382,7 @@ then
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
 	[ $ENABLE_CONN_TRAC ] && {
-		conn_trac_disconnect "${conntrac_record}" || {
+		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			update_status "conn_trac_disconnect FAIL"
 			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
 			}
