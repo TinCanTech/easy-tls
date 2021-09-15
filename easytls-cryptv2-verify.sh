@@ -114,9 +114,7 @@ help_text ()
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
-  87  - BUG Disallow connection, failed to create generic_metadata_file
-  88  - BUG Disallow connection, failed to create generic_metadata_file
-  89  - BUG Disallow connection, failed to create client_metadata_file
+  89  - BUG Disallow connection, failed to create client_md_file
   101 - BUG Disallow connection, stale metadata file time-out.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
@@ -181,6 +179,8 @@ fail_and_exit ()
 	release_lock
 
 	delete_metadata_files
+
+	# shellcheck disable=SC2154
 	if [ "${EASYTLS_VERBOSE}" ]
 	then
 		print "${status_msg}"
@@ -226,7 +226,7 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	[ $keep_metadata ] || {
-		"${EASYTLS_RM}" -f "${generic_metadata_file}" "${client_metadata_file}"
+		"${EASYTLS_RM}" -f "${client_md_file}"
 		update_status "temp-files deleted"
 		}
 }
@@ -479,10 +479,10 @@ release_lock ()
 # Write metadata file
 write_metadata_file ()
 {
-	# Set the client_metadata_file
+	# Set the client_md_file
 	client_md_file="${temp_stub}-cv2-metadata-${tlskey_serial}"
 
-	# If client_metadata_file exists then delete it if is stale
+	# If client_md_file exists then delete it if is stale
 	if [ -f "${client_md_file}" ]
 	then
 		md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
@@ -491,7 +491,7 @@ write_metadata_file ()
 			"${EASYTLS_RM}" -f "${client_md_file}"
 	fi
 
-	# If client_metadata_file still exists then silently fail - Client will try again
+	# If client_md_file still exists then silently fail - Client will try again
 	if [ -f "${client_md_file}" ]
 	then
 		unset kill_client
@@ -911,6 +911,7 @@ deps
 			}
 
 		# HASH metadata sring without the tlskey-serial
+		# shellcheck disable=SC2154 # md_seed is referenced but not assigned
 		md_hash="$("${EASYTLS_PRINTF}" '%s' "${md_seed}" | \
 			"${EASYTLS_OPENSSL}" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
