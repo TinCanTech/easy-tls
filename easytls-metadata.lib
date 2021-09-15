@@ -20,6 +20,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
 # Break metadata_string into variables
+# shellcheck disable=SC2034
 metadata_string_to_vars ()
 {
 	tlskey_serial="${1%%-*}"
@@ -49,6 +50,7 @@ metadata_string_to_vars ()
 	fi
 } # => metadata_string_to_vars ()
 
+# shellcheck disable=SC2154 # metadata_string
 key_metadata_string_to_vars ()
 {
 	key_metadata=1
