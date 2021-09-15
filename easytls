@@ -7234,6 +7234,7 @@ generate_wiscii_hash ()
 	unset inline_seed tlskey_seed wiscii_seed counted_wiscii
 
 	# Hash all inline-files
+	# shellcheck disable=SC2034
 	while read -r \
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 	do
@@ -7309,6 +7310,7 @@ generate_wiscii_hash ()
 	done
 
 	# tls-crypt-v2
+	# shellcheck disable=SC2034
 	while read -r tlskey_serial cert_serial_UNUSED CN sub_key
 	do
 		# Skip comment
