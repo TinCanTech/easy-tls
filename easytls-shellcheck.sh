@@ -25,12 +25,6 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.vars'
 "${shellcheck_bin}" easytls-cryptv2-verify.vars-example && sc_easytls_cryptv2_verify_vars=$?
 
-printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.sh'
-"${shellcheck_bin}" easytls-verify.sh && sc_easytls_verify=$?
-
-printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-verify.vars'
-"${shellcheck_bin}" easytls-verify.vars-example && sc_easytls_verify_vars=$?
-
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
 "${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
 
@@ -55,11 +49,9 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
 exit_status=$(( \
 					sc_easytls + \
 					sc_easytls_cryptv2_verify + \
-					sc_easytls_verify + \
 					sc_easytls_client_connect + \
 					sc_easytls_client_disconnect + \
 					sc_easytls_cryptv2_verify_vars + \
-					sc_easytls_verify_vars + \
 					sc_easytls_client_connect_vars + \
 					sc_easytls_client_disconnect_vars + \
 					sc_easytls_conn_trac + \
