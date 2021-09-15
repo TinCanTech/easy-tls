@@ -542,7 +542,7 @@ cleanup ()
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
-		# shellcheck disable=SC2039
+		# shellcheck disable=SC3040
 		set -o echo
 	else
 		[ -t 1 ] && stty echo
