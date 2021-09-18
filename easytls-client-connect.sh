@@ -138,7 +138,7 @@ delete_metadata_files ()
 	# shellcheck disable=SC2154 # auth_control_file
 	"${EASYTLS_RM}" -f "${auth_control_file}" \
 		"${EASYTLS_KILL_FILE}" \
-		"${fixed_md_file}" "${fake_md_file}" "${trusted_fake_md_file}"
+		"${fixed_md_file}" "${fake_md_file}"
 
 	update_status "temp-files deleted"
 }
@@ -412,6 +412,8 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 [ $ENABLE_CONN_TRAC ] && {
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 		update_status "conn_trac_connect FAIL"
 		[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
@@ -421,8 +423,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 # fake file for TLS-AC
 generic_md_stub="${temp_stub}-tac-metadata"
 client_md_stub="${generic_md_stub}-${client_serial}"
-fake_md_file="${client_md_stub}-fake-${untrusted_ip}-${untrusted_port}"
-trusted_fake_md_file="${client_md_stub}-fake-${trusted_ip}-${trusted_port}"
+fake_md_file="${client_md_stub}-fake"
 
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]
@@ -458,6 +459,8 @@ then
 		fail_and_exit "failed to set c_tlskey_serial" 19
 	unset metadata_string
 	update_status "fixed_md_file loaded"
+
+	# shellcheck disable=SC2154
 	if [ ${c_md_serial} = ${client_serial} ]
 	then
 		update_status "metadata -> x509 serial match"

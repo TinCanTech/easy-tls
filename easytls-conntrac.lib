@@ -119,7 +119,7 @@ conn_trac_disconnect ()
 	else
 		update_status "conntrac: file not found"
 		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-		#return 1
+		err_exit=1
 	fi
 	release_lock || die "ct release_lock"
 	unset easytls_ct_lock_file easytls_temp_file conn conntrac_updated

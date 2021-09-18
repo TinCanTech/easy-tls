@@ -381,6 +381,8 @@ then
 	# Update connection tracking
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
 	[ $ENABLE_CONN_TRAC ] && {
 		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			update_status "conn_trac_disconnect FAIL"
