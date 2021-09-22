@@ -63,12 +63,17 @@ conn_trac_connect ()
 			done < "${2}"
 			[ $already_registered ] || "${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${easytls_temp_file}"
+
 		"${EASYTLS_MV}" -f \
 			"${easytls_temp_file}" "${2}" || err_exit=1
-		[ $already_registered ] || {
+
+		if [ $already_registered ]
+		then
+			err_exit=1
+		else
 			update_status "conn-trac: registered"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-			}
+		fi
 	else
 		{
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"

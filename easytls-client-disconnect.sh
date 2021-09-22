@@ -383,12 +383,43 @@ then
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
-	[ $ENABLE_CONN_TRAC ] && {
+	if [ $ENABLE_CONN_TRAC ]
+	then
 		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
+			ctd_fail=1
 			update_status "conn_trac_disconnect FAIL"
 			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
 			}
-		}
+
+		# Log failure
+		if [ $ctd_fail ]
+		then
+			{
+				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_PRINTF}" '%s\n' "${conntrac_record}"
+			} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+				"${EASYTLS_CONN_TRAC}.fail"
+
+			conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+			conntrac_record="${conntrac_record}=${client_serial}=.*"
+			# shellcheck disable=SC2154
+			conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
+
+			if grep -q "${conntrac_record}" "${EASYTLS_CONN_TRAC}"
+			then
+				sed -i "/${conntrac_record}/d" "${EASYTLS_CONN_TRAC}" || \
+					die "conntrac sed FAIL"
+				update_status "conn_trac_disconnect FORCED"
+			else
+				# This is bad
+				update_status "conn_trac_disconnect FORCED FAIL"
+			fi
+		fi
+	else
+		update_status "conn-trac disabled"
+	fi
 
 	# Delete all temp files
 	delete_metadata_files
