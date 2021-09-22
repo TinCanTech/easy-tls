@@ -10,6 +10,9 @@
 
 # Easy-TLS CUSTOM_GROUP
 #local_custom_g='EASYTLS'
+# Multiple CUSTOM_GROUP
+#local_custom_g='EASYTLS TEST'
+#multi_custom_g=1
 
 # Enable/disable kill_client mode
 #kill_client=1

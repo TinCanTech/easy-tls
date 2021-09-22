@@ -759,7 +759,13 @@ do
 		EASYTLS_NO_CA=1
 	;;
 	-g|--custom-group)
-		local_custom_g="${val}"
+		if [ -z "${local_custom_g}" ]
+		then
+			local_custom_g="${val}"
+		else
+			multi_custom_g=1
+			local_custom_g="${val} ${local_custom_g}"
+		fi
 	;;
 	-n|--no-hash)
 		empty_ok=1
@@ -885,20 +891,33 @@ deps
 
 # Metadata custom_group
 
-	# md_custom_g MUST equal local_custom_g
-	case "${md_custom_g}" in
-	"${local_custom_g}")
-		update_status "custom_group ${md_custom_g} OK"
-	;;
-	'')
-		failure_msg="metadata custom_group is missing"
-		fail_and_exit "METADATA_CUSTOM_GROUP" 5
-	;;
-	*)
-		failure_msg="metadata custom_group is not correct: ${md_custom_g}"
-		fail_and_exit "METADATA_CUSTOM_GROUP" 5
-	;;
-	esac
+	if [ $multi_custom_g ]
+	then
+		# This will do for the time being ..
+		if "${EASYTLS_PRINTF}" "${local_custom_g}" | \
+			"${EASYTLS_GREP}" "${md_custom_g}"
+		then
+			update_status "custom_group ${md_custom_g} OK"
+		else
+			failure_msg="multi_custom_g"
+			fail_and_exit "MULTI_CUSTOM_GROUP" 98
+		fi
+	else
+		# md_custom_g MUST equal local_custom_g
+		case "${md_custom_g}" in
+		"${local_custom_g}")
+			update_status "custom_group ${md_custom_g} OK"
+		;;
+		'')
+			failure_msg="metadata custom_group is missing"
+			fail_and_exit "METADATA_CUSTOM_GROUP" 5
+		;;
+		*)
+			failure_msg="metadata custom_group is not correct: ${md_custom_g}"
+			fail_and_exit "METADATA_CUSTOM_GROUP" 5
+		;;
+		esac
+	fi
 
 # tlskey-serial checks
 
