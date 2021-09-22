@@ -514,7 +514,6 @@ init ()
 
 	# metadata version
 	local_easytls='easytls'
-	local_custom_g='EASYTLS'
 
 	# Verify tlskey-serial number by hash of metadata
 	VERIFY_hash=1
@@ -717,6 +716,9 @@ deps ()
 	. "${lib_file}"
 	unset lib_file
 
+	# Default CUSTOM_GROUP
+	[ -n "${local_custom_g}" ] || local_custom_g='EASYTLS'
+
 	# $metadata_file - Must be set by openvpn
 	# If the script fails for metadata file then
 	# - All pre-flight checks completed
@@ -897,7 +899,7 @@ deps
 		if "${EASYTLS_PRINTF}" "${local_custom_g}" | \
 			"${EASYTLS_GREP}" "${md_custom_g}"
 		then
-			update_status "custom_group ${md_custom_g} OK"
+			update_status "MULTI custom_group ${md_custom_g} OK"
 		else
 			failure_msg="multi_custom_g"
 			fail_and_exit "MULTI_CUSTOM_GROUP" 98
