@@ -382,20 +382,12 @@ deps
 	unset lib_file
 	}
 
-# Check for kill signal
-if [ -f "${EASYTLS_KILL_FILE}" ] && \
-	"${EASYTLS_GREP}" -q "${client_serial}" "${EASYTLS_KILL_FILE}"
-then
-	# Kill client
-	kill_this_client=1
-	update_status "Kill client signal"
-fi
-
 # flush auth-control file
-"${EASYTLS_RM}" -f "${auth_control_file}"
+#"${EASYTLS_RM}" -f "${auth_control_file}"
 
 # Update log message
 # shellcheck disable=SC2154 # common_name
+[ -n "${common_name}" ] || die "Missing common_name"
 update_status "CN:${common_name}"
 
 # Set Client certificate serial number from Openvpn env
@@ -419,6 +411,15 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 		[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
 		}
 	}
+
+# Check for kill signal
+if [ -f "${EASYTLS_KILL_FILE}" ] && \
+	"${EASYTLS_GREP}" -q "${client_serial}" "${EASYTLS_KILL_FILE}"
+then
+	# Kill client
+	kill_this_client=1
+	update_status "Kill client signal"
+fi
 
 # fake file for TLS-AC
 generic_md_stub="${temp_stub}-tac-metadata"
