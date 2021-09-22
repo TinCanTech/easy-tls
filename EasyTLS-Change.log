@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Verssion 2.6
 * TBD
+  Allow multiple Custom_Groups per server
+    Commit 3c857413200cac30ea1f7b4fa951374e7bfc5424
+      This allows clients to be sub-divided by Custom_Group
   Abandon easytls-verify.sh
     Commit 682ba0ff48535f0575cc220be3717f89281f986d
        Script is no longer required due to UV_TLSKEY_SERIAL
