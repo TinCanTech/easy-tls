@@ -144,7 +144,12 @@ help_text ()
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
 print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
-verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
+verbose_print ()
+{
+	[ "${EASYTLS_VERBOSE}" ] || return 0
+	print "${1}"
+	print ""
+}
 
 # Exit on error
 die ()

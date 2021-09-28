@@ -82,7 +82,12 @@ help_text ()
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
 print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
-verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
+verbose_print ()
+{
+	[ "${EASYTLS_VERBOSE}" ] || return 0
+	print "${1}"
+	print ""
+}
 
 # Exit on error
 die ()
@@ -416,6 +421,14 @@ then
 				# This is bad
 				update_status "conn_trac_disconnect FORCED FAIL"
 			fi
+
+			env_file="${temp_stub}-client-disconnect.env"
+			if [ $EASYTLS_FOR_WINDOWS ]; then
+				set > "${env_file}"
+			else
+				env > "${env_file}"
+			fi
+			unset env_file
 		fi
 	else
 		update_status "conn-trac disabled"

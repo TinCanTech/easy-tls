@@ -93,7 +93,13 @@ help_text ()
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
 print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
-verbose_print () { [ "${EASYTLS_VERBOSE}" ] && print "${1}"; return 0; }
+verbose_print ()
+{
+	[ "${EASYTLS_VERBOSE}" ] || return 0
+	print "${1}"
+	print ""
+}
+
 
 # Exit on error
 die ()
@@ -136,7 +142,7 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	# shellcheck disable=SC2154 # auth_control_file
-	"${EASYTLS_RM}" -f "${auth_control_file}" \
+	"${EASYTLS_RM}" -f \
 		"${EASYTLS_KILL_FILE}" \
 		"${fixed_md_file}" "${fake_md_file}"
 
@@ -261,6 +267,14 @@ deps ()
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
+
+	# Dynamic opts file
+	EASYTLS_DYN_OPTS_FILE="${temp_stub}-dyn-opts"
+	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ]
+	then
+		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_cli_dyn_file}"
+		update_status "dyn opts loaded"
+	fi
 }
 
 #######################################
@@ -326,7 +340,7 @@ do
 		then
 			# Do not need this in the log but keep it here for reference
 			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
-			:
+			ovpn_cli_dyn_file="${opt}"
 		else
 			[ "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
 		fi
