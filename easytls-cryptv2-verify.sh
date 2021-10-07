@@ -502,7 +502,7 @@ write_metadata_file ()
 		unset kill_client
 		keep_metadata=1
 
-		failure_msg="generic_md_file age: ${md_file_age_sec} sec"
+		failure_msg="client_md_file age: ${md_file_age_sec} sec"
 		fail_and_exit "STALE_CLIENT_METADATA_FILE" 101
 	else
 		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
