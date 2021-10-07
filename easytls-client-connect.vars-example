@@ -5,6 +5,7 @@
 #push_hwaddr_required=1
 #crypt_v2_required=1
 #key_hwaddr_required=1
+#EASYTLS_DYN_OPTS_FILE=/etc/openvpn/server/easytls-dyn-opts
 
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
