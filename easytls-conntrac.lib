@@ -46,21 +46,29 @@ conn_trac_connect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	acquire_lock || die "ct acquire_lock"
+	err_exit=0
+
+	# Pattern to match
+	conntrac_pattern="${1}"
 
 	if [ -f "${2}" ]
 	then
 		{
-			while read conn
+			while read full_conn
 			do
-				if [ "${conn}" = "${1}" ]
+				conn="${full_conn}"
+				if [ "${conn}" = "${conntrac_pattern}" ]
 				then
+					# Already exists - Print nothing
 					already_registered=1
 					update_status "conntrac: already registered"
 					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 				else
-					"${EASYTLS_PRINTF}" '%s\n' "${conn}"
+					# Print the existing record
+					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
+			# If not already registered then print it
 			[ $already_registered ] || "${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${easytls_temp_file}"
 
@@ -69,12 +77,13 @@ conn_trac_connect ()
 
 		if [ $already_registered ]
 		then
-			err_exit=1
+			err_exit=2
 		else
 			update_status "conn-trac: registered"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 		fi
 	else
+		# conntrac file does not exist, create it now
 		{
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${2}" || err_exit=1
@@ -94,19 +103,26 @@ conn_trac_disconnect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	acquire_lock || die "ct acquire_lock"
+	err_exit=0
+
+	# Pattern to match
+	conntrac_pattern="${1%++*}"
 
 	if [ -f "${2}" ]
 	then
 		{
-			while read conn
+			while read full_conn
 			do
-				if [ "${conn}" = "${1}" ]
+				conn="${full_conn%++*}"
+				if [ "${conn}" = "${conntrac_pattern}" ]
 				then
+					# Matched - Do not Print
 					conntrac_updated=1
 					update_status "conntrac: unregistered"
 					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 				else
-					"${EASYTLS_PRINTF}" '%s\n' "${conn}"
+					# No match - Print
+					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
 		} > "${easytls_temp_file}"
@@ -115,7 +131,7 @@ conn_trac_disconnect ()
 		[ $conntrac_updated ] || {
 			update_status "conntrac: record not found"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-			err_exit=1
+			err_exit=2
 			}
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"

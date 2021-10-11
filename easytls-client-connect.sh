@@ -42,6 +42,7 @@ help_text ()
   -p|--push-required     Require all clients to use --push-peer-info.
   -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
   -k|--key-required      Require all client keys to have a hardware-address.
+  -d|--dyn-opts=<FILE>   Path and name of Openvpn client dynamic options file.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
                                   Windows C:/Windows/Temp/easytls
@@ -269,10 +270,9 @@ deps ()
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# Dynamic opts file
-	EASYTLS_DYN_OPTS_FILE="${temp_stub}-dyn-opts"
-	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ]
+	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ] && [ -n "${ovpn_dyn_opts_file}" ]
 	then
-		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_cli_dyn_file}"
+		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_dyn_opts_file}"
 		update_status "dyn opts loaded"
 	fi
 }
@@ -301,6 +301,11 @@ do
 	-v|--verbose)
 		empty_ok=1
 		EASYTLS_VERBOSE=1
+	;;
+	-d|--dyn-opts)
+		EASYTLS_DYN_OPTS_FILE="${val}"
+		[ -f "${EASYTLS_DYN_OPTS_FILE}" ] || \
+			warn_die "Easy-TLS dynamic opts file missing"
 	;;
 	-a|--allow-no-check)
 		empty_ok=1
@@ -340,7 +345,7 @@ do
 		then
 			# Do not need this in the log but keep it here for reference
 			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
-			ovpn_cli_dyn_file="${opt}"
+			ovpn_dyn_opts_file="${opt}"
 		else
 			[ "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
 		fi
@@ -380,21 +385,6 @@ deps
 	unset env_file
 	}
 
-# Source conn-trac lib
-[ $ENABLE_CONN_TRAC ] && {
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conntrac.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_wiki="/wiki/download-and-install"
-		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		#easytls_file="/master/easytls-conntrac.lib"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}"
-		}
-	. "${lib_file}"
-	unset lib_file
-	}
 
 # flush auth-control file
 #"${EASYTLS_RM}" -f "${auth_control_file}"
@@ -415,16 +405,66 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # Update connection tracking
-[ $ENABLE_CONN_TRAC ] && {
+if [ $ENABLE_CONN_TRAC ]
+then
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-conntrac.lib"
+	[ -f "${lib_file}" ] || {
+		easytls_url="https://github.com/TinCanTech/easy-tls"
+		easytls_wiki="/wiki/download-and-install"
+		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		#easytls_file="/master/easytls-conntrac.lib"
+		help_note="See: ${easytls_url}${easytls_wiki}"
+		die "Missing ${lib_file}"
+		}
+	. "${lib_file}"
+	unset lib_file
+
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
+
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
-		update_status "conn_trac_connect FAIL"
-		[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
+			case $? in
+			2)	update_status "conn_trac_connect ERROR"
+				conntrac_error=1
+				;;
+			1)
+				update_status "conn_trac_connect FAIL"
+				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
+				;;
+			*)	die "CONNTRAC_CONNECT_FAIL" 98 ;;
+			esac
+			conntrac_fail=1
 		}
-	}
+
+	# Log failure
+	if [ $conntrac_fail ]
+	then
+		{
+			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "AR"
+				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+			"${EASYTLS_CONN_TRAC}.fail"
+
+		env_file="${temp_stub}-client-connect.env"
+		if [ $EASYTLS_FOR_WINDOWS ]; then
+			set > "${env_file}"
+		else
+			env > "${env_file}"
+		fi
+		unset env_file
+	fi
+else
+	update_status "conn-trac disabled"
+fi
 
 # Check for kill signal
 if [ -f "${EASYTLS_KILL_FILE}" ] && \

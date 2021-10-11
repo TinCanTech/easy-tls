@@ -383,45 +383,103 @@ disconnect_accepted
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
-	# Update connection tracking
-	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
-	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
 	if [ $ENABLE_CONN_TRAC ]
 	then
-		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
-			ctd_fail=1
-			update_status "conn_trac_disconnect FAIL"
-			[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
-			}
+		# Update connection tracking
+		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+		conntrac_record="${conntrac_record}=${client_serial}"
+		# If common_name is not set then this is bug 160-2
+		# Use username, which is still set, when common_name is lost
+		# Set the username alternative first
+		# shellcheck disable=SC2154
+		conntrac_alt_rec="${conntrac_record}=${username}"
+		conntrac_alt2_rec="${conntrac_record}=${X509_0_CN}"
+		conntrac_record="${conntrac_record}=${common_name}"
+
+		# shellcheck disable=SC2154
+		conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
+		conntrac_alt_rec="${conntrac_alt_rec}=${ifconfig_pool_remote_ip}"
+		conntrac_alt2_rec="${conntrac_alt2_rec}=${ifconfig_pool_remote_ip}"
+		# shellcheck disable=SC2154
+		conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
+		conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
+		conntrac_alt2_rec="${conntrac_alt2_rec}++${untrusted_ip}:${untrusted_port}"
+
+		# Disconnect common_name
+		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}"
+		conntrac_errcode=$?
+
+		case $conntrac_errcode in
+			2)	update_status "conn_trac_disconnect ERROR"
+				conntrac_error=1
+				log_error=1
+				;;
+			1)
+				update_status "conn_trac_disconnect FAIL"
+				conntrac_fail=1
+				log_error=1
+				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
+				;;
+			0)	: ;; # OK
+			*)	die "CONNTRAC_CONNECT_FAIL" 98 ;;
+		esac
+		unset conntrac_errcode
+
+		if [ $conntrac_error ]
+		then
+			# Disconnect username
+			conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}"
+			conntrac_alt_errcode=$?
+
+			case $conntrac_alt_errcode in
+			2)	update_status "conn_trac_disconnect ALT ERROR"
+				conntrac_alt_error=1
+				log_error=1
+				;;
+			1)
+				update_status "conn_trac_disconnect ALT FAIL"
+				conntrac_alt_fail=1
+				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_ALT_FAIL" 99
+				log_error=1
+				;;
+			0)	: ;; # OK
+			*)	die "CONNTRAC_CONNECT_ALT_FAIL" 98 ;;
+			esac
+			unset conntrac_alt_errcode
+		fi
 
 		# Log failure
-		if [ $ctd_fail ]
+		if [ $conntrac_fail ] || [ $conntrac_error ]
 		then
 			{
 				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s\n' "${conntrac_record}"
+					"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+					[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "FAIL"
+					[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
+					"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
 			} > "${EASYTLS_CONN_TRAC}.fail.tmp"
 			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
 				"${EASYTLS_CONN_TRAC}.fail"
+		fi
 
-			conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-			conntrac_record="${conntrac_record}=${client_serial}=.*"
-			# shellcheck disable=SC2154
-			conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
+		if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
+		then
+			{
+				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+					"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+					[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "AFAIL"
+					[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%s ' "ANFound"
+					"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
+			} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+				"${EASYTLS_CONN_TRAC}.fail"
+		fi
 
-			if grep -q "${conntrac_record}" "${EASYTLS_CONN_TRAC}"
-			then
-				sed -i "/${conntrac_record}/d" "${EASYTLS_CONN_TRAC}" || \
-					die "conntrac sed FAIL"
-				update_status "conn_trac_disconnect FORCED"
-			else
-				# This is bad
-				update_status "conn_trac_disconnect FORCED FAIL"
-			fi
-
+		# Capture env
+		if [ $log_error ]
+		then
 			env_file="${temp_stub}-client-disconnect.env"
 			if [ $EASYTLS_FOR_WINDOWS ]; then
 				set > "${env_file}"
@@ -430,6 +488,8 @@ then
 			fi
 			unset env_file
 		fi
+
+		[ $conntrac_alt_error ] && die "conntrac_alt_error"
 	else
 		update_status "conn-trac disabled"
 	fi
