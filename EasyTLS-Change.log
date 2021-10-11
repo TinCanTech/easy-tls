@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Verssion 2.6
 * TBD
+  Add support for Openvpn dynamic client-connect file
+    Commit c89cdff35362feb4d7e01e64d74c94983bbc92be
+      This alows Openvpn server to push dynamic options
   Allow multiple Custom_Groups per server
     Commit 3c857413200cac30ea1f7b4fa951374e7bfc5424
       This allows clients to be sub-divided by Custom_Group
