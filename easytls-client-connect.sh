@@ -418,7 +418,7 @@ then
 		die "Missing ${lib_file}"
 		}
 	. "${lib_file}"
-	unset lib_file
+	unset prog_dir lib_file
 
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
@@ -429,38 +429,47 @@ then
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
-			2)	update_status "conn_trac_connect ERROR"
-				conntrac_error=1
-				;;
-			1)
+			2)	# Not fatal because errors are expected/related to #160
 				update_status "conn_trac_connect FAIL"
-				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_CONNECT_FAIL" 99
-				;;
-			*)	die "CONNTRAC_CONNECT_FAIL" 98 ;;
+				conntrac_fail=1
+			;;
+			1)	# Fatal because these are usage errors
+				update_status "conn_trac_connect ERROR"
+				conntrac_error=1
+				[ $FATAL_CONN_TRAC ] && {
+					ENABLE_KILL_PPID=1
+					die "CONNTRAC_CONNECT_ERROR" 99
+					}
+			;;
+			0) : ;; # Why not ?
+			*)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_CONNECT_UNKNOWN" 98
+			;;
 			esac
-			conntrac_fail=1
 		}
 
 	# Log failure
-	if [ $conntrac_fail ]
+	if [ $conntrac_fail ] || [ $conntrac_error ]
 	then
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "AR"
+				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-Reg"
+				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail"
+			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
 
 		env_file="${temp_stub}-client-connect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}"
+			set > "${env_file}" || die "conntrac env"
 		else
-			env > "${env_file}"
+			env > "${env_file}" || die "conntrac env"
 		fi
-		unset env_file
+		unset env_file conntrac_record conntrac_fail conntrac_error
 	fi
 else
 	update_status "conn-trac disabled"
