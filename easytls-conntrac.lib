@@ -29,6 +29,7 @@ acquire_lock ()
 	exec 8> "${easytls_ct_lock_file}" || return 1
 	printf "%s" "$$" >&8 || return 1
 	exec 8< "${easytls_ct_lock_file}" || return 1
+	set +o noclobber
 }
 
 release_lock ()
@@ -41,12 +42,14 @@ release_lock ()
 # Connection tacking - Connect
 conn_trac_connect ()
 {
+	# Currently, this cannot correctly process TLS-AUTH/Crypt plus --duplicate-cn
 	[ -n "${1}" ] || return 1
 	[ -n "${2}" ] || return 1
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	acquire_lock || die "ct acquire_lock"
-	err_exit=0
+	unset err_exit
+	conn_trac_count
 
 	# Pattern to match
 	conntrac_pattern="${1}"
@@ -70,14 +73,13 @@ conn_trac_connect ()
 			done < "${2}"
 			# If not already registered then print it
 			[ $already_registered ] || "${EASYTLS_PRINTF}" "%s\n" "${1}"
-		} > "${easytls_temp_file}"
+		} > "${easytls_temp_file}" || err_exit=1
 
-		"${EASYTLS_MV}" -f \
-			"${easytls_temp_file}" "${2}" || err_exit=1
+		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
 		if [ $already_registered ]
 		then
-			err_exit=2
+			err_exit=${err_exit:-2}
 		else
 			update_status "conn-trac: registered"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
@@ -92,6 +94,7 @@ conn_trac_connect ()
 	fi
 	release_lock || die "ct release_lock"
 	unset easytls_ct_lock_file easytls_temp_file conn already_registered
+	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_connect ()
 
@@ -103,7 +106,8 @@ conn_trac_disconnect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	acquire_lock || die "ct acquire_lock"
-	err_exit=0
+	unset err_exit
+	conn_trac_count
 
 	# Pattern to match
 	conntrac_pattern="${1%++*}"
@@ -125,13 +129,14 @@ conn_trac_disconnect ()
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
-		} > "${easytls_temp_file}"
-		"${EASYTLS_MV}" -f \
-			"${easytls_temp_file}" "${2}" || err_exit=1
+		} > "${easytls_temp_file}" || err_exit=1
+
+		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
+
 		[ $conntrac_updated ] || {
 			update_status "conntrac: record not found"
 			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
-			err_exit=2
+			err_exit=${err_exit:-2}
 			}
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"
@@ -144,5 +149,17 @@ conn_trac_disconnect ()
 	fi
 	release_lock || die "ct release_lock"
 	unset easytls_ct_lock_file easytls_temp_file conn conntrac_updated
+	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_disconnect ()
+
+conn_trac_count ()
+{
+	ctc=0
+	easytls_ct_count="${temp_stub}-conn-trac.log"
+	[ -f "${easytls_ct_count}" ] && \
+		ctc="$("${EASYTLS_CAT}" "${easytls_ct_count}")"
+	ctc=$(( ctc + 1 ))
+	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || err_exit=1
+	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_count}" || err_exit=1
+}
