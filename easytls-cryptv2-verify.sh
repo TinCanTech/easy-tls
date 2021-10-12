@@ -470,7 +470,7 @@ acquire_lock ()
 			printf "%s" "$$" >&8 || return 1
 		) || return 1
 		exec 8< "${easytls_lock_file}" || return 1
-		update_status ">< acquire_lock ><"
+		update_status "acquire_lock"
 }
 
 release_lock ()
@@ -478,7 +478,7 @@ release_lock ()
 	exec 8<&- || return 1
 	exec 8>&- || return 1
 	"${EASYTLS_RM}" -f "${easytls_lock_file}"
-	update_status "<< release_lock >>"
+	update_status "release_lock"
 }
 
 # Write metadata file
