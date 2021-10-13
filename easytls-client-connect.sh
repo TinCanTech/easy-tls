@@ -434,12 +434,12 @@ then
 				conntrac_fail=1
 			;;
 			1)	# Fatal because these are usage errors
-				update_status "conn_trac_connect ERROR"
-				conntrac_error=1
 				[ $FATAL_CONN_TRAC ] && {
 					ENABLE_KILL_PPID=1
 					die "CONNTRAC_CONNECT_ERROR" 99
 					}
+				update_status "conn_trac_connect ERROR"
+				conntrac_error=1
 			;;
 			0) : ;; # Why not ?
 			*)	# Absolutely fatal
@@ -456,7 +456,7 @@ then
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-Reg"
+				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
 		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
