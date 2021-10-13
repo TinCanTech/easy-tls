@@ -257,6 +257,8 @@ deps ()
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 }
 
+
+
 #######################################
 
 # Initialise
@@ -385,6 +387,8 @@ if [ $absolute_fail -eq 0 ]
 then
 	if [ $ENABLE_CONN_TRAC ]
 	then
+		#update_conn_trac || die "update_conn_trac"
+
 		# Update connection tracking
 		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
 		conntrac_record="${conntrac_record}=${client_serial}"
@@ -410,40 +414,55 @@ then
 		conntrac_errcode=$?
 
 		case $conntrac_errcode in
-			2)	update_status "conn_trac_disconnect ERROR"
-				conntrac_error=1
-				log_error=1
-				;;
-			1)
-				update_status "conn_trac_disconnect FAIL"
-				conntrac_fail=1
-				log_error=1
-				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_FAIL" 99
-				;;
-			0)	: ;; # OK
-			*)	die "CONNTRAC_CONNECT_FAIL" 98 ;;
+		2)	# Not fatal because errors are expected #160
+			update_status "conn_trac_disconnect FAIL"
+			conntrac_fail=1
+			log_env=1
+		;;
+		1)	# Fatal because these are usage errors
+			[ $FATAL_CONN_TRAC ] && {
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_ERROR" 99
+				}
+			update_status "conn_trac_disconnect ERROR"
+			conntrac_error=1
+			log_env=1
+		;;
+		0)	: ;; # OK
+		*)	# Absolutely fatal
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_DISCONNECT_UNKNOWN" 98
+		;;
 		esac
 		unset conntrac_errcode
 
-		if [ $conntrac_error ]
+		# If the first failed for number two then try again ..
+		if [ $conntrac_fail ]
 		then
 			# Disconnect username
 			conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}"
 			conntrac_alt_errcode=$?
 
 			case $conntrac_alt_errcode in
-			2)	update_status "conn_trac_disconnect ALT ERROR"
-				conntrac_alt_error=1
-				log_error=1
-				;;
-			1)
-				update_status "conn_trac_disconnect ALT FAIL"
+			2)	# Currently not fatal because errors could happen #160
+				update_status "conn_trac_disconnect A-FAIL"
 				conntrac_alt_fail=1
-				[ $FATAL_CONN_TRAC ] && die "CONNTRAC_DISCONNECT_ALT_FAIL" 99
-				log_error=1
-				;;
+				log_env=1
+			;;
+			1)	# Fatal because these are usage errors
+				update_status "conn_trac_disconnect A-ERROR"
+				[ $FATAL_CONN_TRAC ] && {
+					ENABLE_KILL_PPID=1
+					die "CONNTRAC_DISCONNECT_ALT_ERROR" 99
+					}
+				conntrac_alt_error=1
+				log_env=1
+			;;
 			0)	: ;; # OK
-			*)	die "CONNTRAC_CONNECT_ALT_FAIL" 98 ;;
+			*)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_UNKNOWN" 98
+			;;
 			esac
 			unset conntrac_alt_errcode
 		fi
@@ -455,12 +474,12 @@ then
 				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 					"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-					[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "FAIL"
-					[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
+					[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
+					[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 					"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
-			} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
 			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-				"${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
 		fi
 
 		if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
@@ -468,28 +487,33 @@ then
 			{
 				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-					"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-					[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "AFAIL"
-					[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%s ' "ANFound"
-					"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
-			} > "${EASYTLS_CONN_TRAC}.fail.tmp"
+				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+				[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-NFound"
+				[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
+				"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
+			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
 			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-				"${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
 		fi
 
 		# Capture env
-		if [ $log_error ]
+		if [ $log_env ]
 		then
 			env_file="${temp_stub}-client-disconnect.env"
 			if [ $EASYTLS_FOR_WINDOWS ]; then
-				set > "${env_file}"
+				set > "${env_file}" || die "conntrac env"
 			else
-				env > "${env_file}"
+				env > "${env_file}" || die "conntrac env"
 			fi
 			unset env_file
 		fi
 
-		[ $conntrac_alt_error ] && die "conntrac_alt_error"
+		# This error is currently absolutely fatal
+		[ ! $conntrac_alt_fail ] || {
+			ENABLE_KILL_PPID=1
+			die "disconnect: conntrac_alt_error"
+			}
+
 	else
 		update_status "conn-trac disabled"
 	fi
