@@ -877,7 +877,7 @@ deps
 	key_metadata_string_to_vars || die "key_metadata_string_to_vars"
 
 	# Update log message
-	update_status "CN:${md_name}"
+	update_status "CN: ${md_name}"
 
 # Metadata version
 
@@ -902,7 +902,7 @@ deps
 	then
 		# This will do for the time being ..
 		if "${EASYTLS_PRINTF}" "${local_custom_g}" | \
-			"${EASYTLS_GREP}" "${md_custom_g}"
+			"${EASYTLS_GREP}" -q "${md_custom_g}"
 		then
 			update_status "MULTI custom_group ${md_custom_g} OK"
 		else
@@ -1012,7 +1012,7 @@ deps
 if [ ! $use_x509 ]
 then
 	# No X509 required
-	update_status "client passed TLS tests"
+	update_status "metadata verified"
 else
 
 	# Verify CA cert is valid and/or set the CA identity
