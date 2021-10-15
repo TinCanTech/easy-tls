@@ -30,6 +30,7 @@ acquire_lock ()
 	printf "%s" "$$" >&8 || return 1
 	exec 8< "${easytls_ct_lock_file}" || return 1
 	set +o noclobber
+	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac acquire_lock"
 }
 
 release_lock ()
@@ -37,35 +38,40 @@ release_lock ()
 	exec 8<&- || return 1
 	exec 8>&- || return 1
 	"${EASYTLS_RM}" -f "${easytls_ct_lock_file}"
+	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac release_lock"
 }
 
 # Connection tacking - Connect
 conn_trac_connect ()
 {
-	# Currently, this cannot correctly process TLS-AUTH/Crypt plus --duplicate-cn
 	[ -n "${1}" ] || return 1
 	[ -n "${2}" ] || return 1
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
-	acquire_lock || die "ct acquire_lock"
-	unset err_exit
-	conn_trac_count
+	easytls_ct_log="${2}.log"
+	unset err_exit already_registered
 
-	# Pattern to match
-	conntrac_pattern="${1}"
+	acquire_lock || die "ct acquire_lock"
+
+	[ $ENABLE_CONN_TRAC_STATS ] && conn_trac_stats
+
+	# Pattern to match - Anything after ++ cannot be used
+	ct_pattern="${1%++*}"
+	[ $VERBOSE_CONN_TRAC ] && \
+		update_status "conntrac pattern: ${ct_pattern}"
+
 
 	if [ -f "${2}" ]
 	then
 		{
 			while read full_conn
 			do
-				conn="${full_conn}"
-				if [ "${conn}" = "${conntrac_pattern}" ]
+				conn="${full_conn%++*}"
+				if [ "${conn}" = "${ct_pattern}" ]
 				then
 					# Already exists - Print nothing
 					already_registered=1
 					update_status "conntrac: already registered"
-					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 				else
 					# Print the existing record
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
@@ -81,18 +87,17 @@ conn_trac_connect ()
 		then
 			err_exit=${err_exit:-2}
 		else
-			update_status "conn-trac: registered"
-			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+			update_status "conntrac: registered"
 		fi
 	else
 		# conntrac file does not exist, create it now
 		{
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${2}" || err_exit=1
-		update_status "conn-trac: registered"
-		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+		update_status "conntrac: registered"
 	fi
 	release_lock || die "ct release_lock"
+
 	unset easytls_ct_lock_file easytls_temp_file conn already_registered
 	err_exit=${err_exit:-0}
 	return ${err_exit}
@@ -105,12 +110,17 @@ conn_trac_disconnect ()
 	[ -n "${2}" ] || return 1
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
+	easytls_ct_log="${2}.log"
+	unset err_exit conntrac_updated
+
 	acquire_lock || die "ct acquire_lock"
-	unset err_exit
-	conn_trac_count
+
+	[ $ENABLE_CONN_TRAC_STATS ] && conn_trac_stats
 
 	# Pattern to match
-	conntrac_pattern="${1%++*}"
+	ct_pattern="${1%++*}"
+	[ $VERBOSE_CONN_TRAC ] && \
+		update_status "conntrac pattern: ${ct_pattern}"
 
 	if [ -f "${2}" ]
 	then
@@ -118,14 +128,13 @@ conn_trac_disconnect ()
 			while read full_conn
 			do
 				conn="${full_conn%++*}"
-				if [ "${conn}" = "${conntrac_pattern}" ]
+				if [ "${conn}" = "${ct_pattern}" ]
 				then
 					# Matched - Do not Print
 					conntrac_updated=1
 					update_status "conntrac: unregistered"
-					[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 				else
-					# No match - Print
+					# No match - Print current record
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
@@ -134,8 +143,7 @@ conn_trac_disconnect ()
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
 		[ $conntrac_updated ] || {
-			update_status "conntrac: record not found"
-			[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
+			update_status "conntrac: record not found: ${ct_pattern}"
 			err_exit=${err_exit:-2}
 			}
 		[ -s "${2}" ] || {
@@ -144,22 +152,22 @@ conn_trac_disconnect ()
 			}
 	else
 		update_status "conntrac: file not found"
-		[ $VERBOSE_CONN_TRAC ] && update_status "${1}"
 		err_exit=1
 	fi
 	release_lock || die "ct release_lock"
+
 	unset easytls_ct_lock_file easytls_temp_file conn conntrac_updated
 	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_disconnect ()
 
-conn_trac_count ()
+conn_trac_stats ()
 {
 	ctc=0
-	easytls_ct_count="${temp_stub}-conn-trac.log"
-	[ -f "${easytls_ct_count}" ] && \
-		ctc="$("${EASYTLS_CAT}" "${easytls_ct_count}")"
+	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
+	[ $(( ctc )) -lt 32768 ] || ctc=0
 	ctc=$(( ctc + 1 ))
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || err_exit=1
-	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_count}" || err_exit=1
+	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || err_exit=1
+	update_status "conntrac tallied"
 }
