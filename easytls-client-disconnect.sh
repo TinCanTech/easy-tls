@@ -117,7 +117,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	delete_metadata_files
+	#delete_metadata_files
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
@@ -126,7 +126,7 @@ fail_and_exit ()
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
-# Delete all metadata files
+# Delete all metadata files - Currently UNUSED
 delete_metadata_files ()
 {
 	"${EASYTLS_RM}" -f \
@@ -164,8 +164,157 @@ format_number ()
 disconnect_accepted ()
 {
 	absolute_fail=0
-	update_status "disconnection success"
+	update_status "disconnect completed"
 }
+
+# Update conntrac
+update_conntrac ()
+{
+	# Source conn-trac lib
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-conntrac.lib"
+	[ -f "${lib_file}" ] || {
+		easytls_url="https://github.com/TinCanTech/easy-tls"
+		easytls_wiki="/wiki/download-and-install"
+		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		#easytls_file="/master/easytls-conntrac.lib"
+		help_note="See: ${easytls_url}${easytls_wiki}"
+		die "Missing ${lib_file}"
+		}
+	. "${lib_file}"
+	unset lib_file
+
+	# Update connection tracking
+	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
+	conntrac_record="${conntrac_record}=${client_serial}"
+	# If common_name is not set then this is bug 160-2
+	# Use username, which is still set, when common_name is lost
+	# Set the username alternative first
+	# shellcheck disable=SC2154
+	conntrac_alt_rec="${conntrac_record}==${username}"
+	conntrac_alt2_rec="${conntrac_record}==${X509_0_CN}"
+	# Fun with shellcheck ..
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}==${common_name}"
+
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
+	conntrac_alt_rec="${conntrac_alt_rec}==${ifconfig_pool_remote_ip}"
+	conntrac_alt2_rec="${conntrac_alt2_rec}==${ifconfig_pool_remote_ip}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
+	conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
+	conntrac_alt2_rec="${conntrac_alt2_rec}++${untrusted_ip}:${untrusted_port}"
+
+	# Disconnect common_name
+	conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
+		case $? in
+		2)	# Not fatal because errors are expected #160
+			update_status "conn_trac_disconnect FAIL"
+			conntrac_fail=1
+			log_env=1
+		;;
+		1)	# Fatal because these are usage errors
+			[ $FATAL_CONN_TRAC ] && {
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_FILE_ERROR" 99
+				}
+			update_status "conn_trac_disconnect ERROR"
+			conntrac_error=1
+			log_env=1
+		;;
+		*)	# Absolutely fatal
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_DISCONNECT_UNKNOWN" 98
+		;;
+		esac
+		}
+
+	# If the first failed for number two then try again ..
+	if [ $conntrac_fail ]
+	then
+		# Disconnect username
+		conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}" || {
+			case $? in
+			2)	# Currently not fatal because errors could happen #160
+				update_status "conn_trac_disconnect A-FAIL"
+				conntrac_alt_fail=1
+				log_env=1
+			;;
+			1)	# Fatal because these are usage errors
+				[ $FATAL_CONN_TRAC ] && {
+					ENABLE_KILL_PPID=1
+					die "CONNTRAC_DISCONNECT_ALT_FILE_ERROR" 99
+					}
+				update_status "conn_trac_disconnect A-ERROR"
+				conntrac_alt_error=1
+				log_env=1
+			;;
+			*)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_UNKNOWN" 98
+			;;
+			esac
+			}
+	fi
+
+	# Log failure
+	if [ $conntrac_fail ] || [ $conntrac_error ]
+	then
+		{
+			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
+				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
+				"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+	fi
+
+	if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
+	then
+		{
+			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+			"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+			[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-NFound"
+			[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
+			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+	fi
+
+	# Capture env
+	if [ $log_env ]
+	then
+		env_file="${temp_stub}-client-disconnect.env"
+		if [ $EASYTLS_FOR_WINDOWS ]; then
+			set > "${env_file}" || die "conntrac env"
+		else
+			env > "${env_file}" || die "conntrac env"
+		fi
+		unset env_file
+	fi
+
+	# This error is currently absolutely fatal
+	[ ! $conntrac_alt_fail ] || {
+		ENABLE_KILL_PPID=1
+		die "disconnect: conntrac_alt_fail <<=="
+		}
+
+	# OpenVPN Bug #160
+	if [ $conntrac_fail ]
+	then
+		# Alt took care of it
+		update_status "conn_trac_disconnect Alt-OK"
+	else
+		# conntrac worked
+		:
+	fi
+} # => update_conntrac ()
 
 # Initialise
 init ()
@@ -342,25 +491,9 @@ deps
 	unset env_file
 	}
 
-# Source conn-trac lib
-[ $ENABLE_CONN_TRAC ] && {
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conntrac.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_wiki="/wiki/download-and-install"
-		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		#easytls_file="/master/easytls-conntrac.lib"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}"
-		}
-	. "${lib_file}"
-	unset lib_file
-	}
-
 # Update log message
 # shellcheck disable=SC2154 # common_name
-update_status "CN:${common_name}"
+update_status "CN: ${common_name}"
 
 # Set Client certificate serial number from Openvpn env
 # shellcheck disable=SC2154
@@ -379,142 +512,22 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 [ "${FORCE_ABSOLUTE_FAIL}" ] && \
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
+# conntrac
+if [ $ENABLE_CONN_TRAC ]
+then
+	update_conntrac || die "update_conntrac"
+else
+	update_status "conn-trac disabled"
+fi
+
 # disconnect can not fail ..
 disconnect_accepted
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
-	if [ $ENABLE_CONN_TRAC ]
-	then
-		#update_conn_trac || die "update_conn_trac"
-
-		# Update connection tracking
-		conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-		conntrac_record="${conntrac_record}=${client_serial}"
-		# If common_name is not set then this is bug 160-2
-		# Use username, which is still set, when common_name is lost
-		# Set the username alternative first
-		# shellcheck disable=SC2154
-		conntrac_alt_rec="${conntrac_record}=${username}"
-		conntrac_alt2_rec="${conntrac_record}=${X509_0_CN}"
-		conntrac_record="${conntrac_record}=${common_name}"
-
-		# shellcheck disable=SC2154
-		conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
-		conntrac_alt_rec="${conntrac_alt_rec}=${ifconfig_pool_remote_ip}"
-		conntrac_alt2_rec="${conntrac_alt2_rec}=${ifconfig_pool_remote_ip}"
-		# shellcheck disable=SC2154
-		conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
-		conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
-		conntrac_alt2_rec="${conntrac_alt2_rec}++${untrusted_ip}:${untrusted_port}"
-
-		# Disconnect common_name
-		conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
-			case $? in
-			2)	# Not fatal because errors are expected #160
-				update_status "conn_trac_disconnect FAIL"
-				conntrac_fail=1
-				log_env=1
-			;;
-			1)	# Fatal because these are usage errors
-				[ $FATAL_CONN_TRAC ] && {
-					ENABLE_KILL_PPID=1
-					die "CONNTRAC_DISCONNECT_ERROR" 99
-					}
-				update_status "conn_trac_disconnect ERROR"
-				conntrac_error=1
-				log_env=1
-			;;
-			0)	: ;; # OK
-			*)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
-				die "CONNTRAC_DISCONNECT_UNKNOWN" 98
-			;;
-			esac
-			}
-
-		# If the first failed for number two then try again ..
-		if [ $conntrac_fail ]
-		then
-			# Disconnect username
-			conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}" || {
-				case $? in
-				2)	# Currently not fatal because errors could happen #160
-					update_status "conn_trac_disconnect A-FAIL"
-					conntrac_alt_fail=1
-					log_env=1
-				;;
-				1)	# Fatal because these are usage errors
-					[ $FATAL_CONN_TRAC ] && {
-						ENABLE_KILL_PPID=1
-						die "CONNTRAC_DISCONNECT_ALT_ERROR" 99
-						}
-					update_status "conn_trac_disconnect A-ERROR"
-					conntrac_alt_error=1
-					log_env=1
-				;;
-				0)	: ;; # OK
-				*)	# Absolutely fatal
-					ENABLE_KILL_PPID=1
-					die "CONNTRAC_DISCONNECT_UNKNOWN" 98
-				;;
-				esac
-				}
-		fi
-
-		# Log failure
-		if [ $conntrac_fail ] || [ $conntrac_error ]
-		then
-			{
-				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
-					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-					"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-					[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
-					[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
-					"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
-			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
-			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-				"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
-		fi
-
-		if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
-		then
-			{
-				[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
-					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-				[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-NFound"
-				[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
-				"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
-			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
-			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-				"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
-		fi
-
-		# Capture env
-		if [ $log_env ]
-		then
-			env_file="${temp_stub}-client-disconnect.env"
-			if [ $EASYTLS_FOR_WINDOWS ]; then
-				set > "${env_file}" || die "conntrac env"
-			else
-				env > "${env_file}" || die "conntrac env"
-			fi
-			unset env_file
-		fi
-
-		# This error is currently absolutely fatal
-		[ ! $conntrac_alt_fail ] || {
-			ENABLE_KILL_PPID=1
-			die "disconnect: conntrac_alt_error"
-			}
-	else
-		update_status "conn-trac disabled"
-	fi
-
 	# Delete all temp files
-	delete_metadata_files
+	#delete_metadata_files
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
