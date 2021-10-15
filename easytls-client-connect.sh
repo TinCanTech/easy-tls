@@ -182,6 +182,79 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
+# Update conntrac
+update_conntrac ()
+{
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-conntrac.lib"
+	[ -f "${lib_file}" ] || {
+		easytls_url="https://github.com/TinCanTech/easy-tls"
+		easytls_wiki="/wiki/download-and-install"
+		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
+		#easytls_file="/master/easytls-conntrac.lib"
+		help_note="See: ${easytls_url}${easytls_wiki}"
+		die "Missing ${lib_file}"
+		}
+	. "${lib_file}"
+	unset prog_dir lib_file
+
+	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}=${client_serial}"
+	conntrac_record="${conntrac_record}==${common_name}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
+	# shellcheck disable=SC2154
+	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
+
+	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
+			case $? in
+			2)	# Not fatal because errors are expected/related to #160
+				[ $FATAL_CONN_TRAC ] && {
+					ENABLE_KILL_PPID=1
+					die "CONNTRAC_CONNECT_FAIL" 99
+					}
+				update_status "conn_trac_connect FAIL"
+				conntrac_fail=1
+			;;
+			1)	# Fatal because these are usage errors
+				[ $FATAL_CONN_TRAC ] && {
+					ENABLE_KILL_PPID=1
+					die "CONNTRAC_CONNECT_ERROR" 99
+					}
+				update_status "conn_trac_connect ERROR"
+				conntrac_error=1
+			;;
+			0) : ;; # Why not ?
+			*)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_CONNECT_UNKNOWN" 98
+			;;
+			esac
+		}
+
+	# Log failure
+	if [ $conntrac_fail ] || [ $conntrac_error ]
+	then
+		{
+			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
+				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
+				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+
+		env_file="${temp_stub}-client-connect.env"
+		if [ $EASYTLS_FOR_WINDOWS ]; then
+			set > "${env_file}" || die "conntrac env"
+		else
+			env > "${env_file}" || die "conntrac env"
+		fi
+		unset env_file conntrac_record conntrac_fail conntrac_error
+	fi
+} # => update_contrac ()
+
 # Initialise
 init ()
 {
@@ -392,7 +465,7 @@ deps
 # Update log message
 # shellcheck disable=SC2154 # common_name
 [ -n "${common_name}" ] || die "Missing common_name"
-update_status "CN:${common_name}"
+update_status "CN: ${common_name}"
 
 # Set Client certificate serial number from Openvpn env
 # shellcheck disable=SC2154
@@ -407,70 +480,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 # Update connection tracking
 if [ $ENABLE_CONN_TRAC ]
 then
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conntrac.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_wiki="/wiki/download-and-install"
-		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		#easytls_file="/master/easytls-conntrac.lib"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}"
-		}
-	. "${lib_file}"
-	unset prog_dir lib_file
-
-	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
-	conntrac_record="${conntrac_record}=${client_serial}=${common_name}"
-	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}=${ifconfig_pool_remote_ip}"
-	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
-
-	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
-			case $? in
-			2)	# Not fatal because errors are expected/related to #160
-				update_status "conn_trac_connect FAIL"
-				conntrac_fail=1
-			;;
-			1)	# Fatal because these are usage errors
-				[ $FATAL_CONN_TRAC ] && {
-					ENABLE_KILL_PPID=1
-					die "CONNTRAC_CONNECT_ERROR" 99
-					}
-				update_status "conn_trac_connect ERROR"
-				conntrac_error=1
-			;;
-			0) : ;; # Why not ?
-			*)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
-				die "CONNTRAC_CONNECT_UNKNOWN" 98
-			;;
-			esac
-		}
-
-	# Log failure
-	if [ $conntrac_fail ] || [ $conntrac_error ]
-	then
-		{
-			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
-					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
-				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
-				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
-		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
-
-		env_file="${temp_stub}-client-connect.env"
-		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "conntrac env"
-		else
-			env > "${env_file}" || die "conntrac env"
-		fi
-		unset env_file conntrac_record conntrac_fail conntrac_error
-	fi
+	update_conntrac || die "update_conntrac"
 else
 	update_status "conn-trac disabled"
 fi
