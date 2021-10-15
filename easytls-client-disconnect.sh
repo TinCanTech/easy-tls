@@ -193,7 +193,6 @@ update_conntrac ()
 	# shellcheck disable=SC2154
 	conntrac_alt_rec="${conntrac_record}==${username}"
 	conntrac_alt2_rec="${conntrac_record}==${X509_0_CN}"
-	# Fun with shellcheck ..
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}==${common_name}"
 
@@ -236,7 +235,7 @@ update_conntrac ()
 		# Disconnect username
 		conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
-			2)	# Currently not fatal because errors could happen #160
+			2)	# fatal later - because errors could happen #160
 				update_status "conn_trac_disconnect A-FAIL"
 				conntrac_alt_fail=1
 				log_env=1
@@ -302,14 +301,14 @@ update_conntrac ()
 	# This error is currently absolutely fatal
 	[ ! $conntrac_alt_fail ] || {
 		ENABLE_KILL_PPID=1
-		die "disconnect: conntrac_alt_fail <<=="
+		die "disconnect: conntrac_alt_fail"
 		}
 
 	# OpenVPN Bug #160
 	if [ $conntrac_fail ]
 	then
 		# Alt took care of it
-		update_status "conn_trac_disconnect Alt-OK"
+		update_status "conn_trac_disconnect recovered"
 	else
 		# conntrac worked
 		:

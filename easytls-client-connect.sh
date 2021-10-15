@@ -207,7 +207,7 @@ update_conntrac ()
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
-			2)	# Not fatal because errors are expected/related to #160
+			2)	# Maybe fatal because Openvpn #160
 				[ $FATAL_CONN_TRAC ] && {
 					ENABLE_KILL_PPID=1
 					die "CONNTRAC_CONNECT_FAIL" 99
@@ -223,13 +223,12 @@ update_conntrac ()
 				update_status "conn_trac_connect ERROR"
 				conntrac_error=1
 			;;
-			0) : ;; # Why not ?
 			*)	# Absolutely fatal
 				ENABLE_KILL_PPID=1
 				die "CONNTRAC_CONNECT_UNKNOWN" 98
 			;;
 			esac
-		}
+			}
 
 	# Log failure
 	if [ $conntrac_fail ] || [ $conntrac_error ]
@@ -251,8 +250,8 @@ update_conntrac ()
 		else
 			env > "${env_file}" || die "conntrac env"
 		fi
-		unset env_file conntrac_record conntrac_fail conntrac_error
 	fi
+	unset env_file conntrac_record conntrac_fail conntrac_error
 } # => update_contrac ()
 
 # Initialise

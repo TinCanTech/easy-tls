@@ -30,7 +30,7 @@ acquire_lock ()
 	printf "%s" "$$" >&8 || return 1
 	exec 8< "${easytls_ct_lock_file}" || return 1
 	set +o noclobber
-	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac acquire_lock"
+	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac: acquire_lock"
 }
 
 release_lock ()
@@ -38,7 +38,7 @@ release_lock ()
 	exec 8<&- || return 1
 	exec 8>&- || return 1
 	"${EASYTLS_RM}" -f "${easytls_ct_lock_file}"
-	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac release_lock"
+	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac: release_lock"
 }
 
 # Connection tacking - Connect
@@ -58,7 +58,7 @@ conn_trac_connect ()
 	# Pattern to match - Anything after ++ cannot be used
 	ct_pattern="${1%++*}"
 	[ $VERBOSE_CONN_TRAC ] && \
-		update_status "conntrac pattern: ${ct_pattern}"
+		update_status "conntrac: pattern ${ct_pattern}"
 
 
 	if [ -f "${2}" ]
@@ -169,5 +169,5 @@ conn_trac_stats ()
 	ctc=$(( ctc + 1 ))
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || err_exit=1
 	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || err_exit=1
-	update_status "conntrac tallied"
+	update_status "conntrac: tallied"
 }
