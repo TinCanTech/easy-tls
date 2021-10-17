@@ -53,7 +53,14 @@ conn_trac_connect ()
 
 	acquire_lock || die "ct acquire_lock"
 
-	[ $ENABLE_CONN_TRAC_STATS ] && conn_trac_stats
+	if [ $ENABLE_CONN_TRAC_STATS ]
+	then
+		conn_trac_stats || {
+			update_status "conntrac: stats fail"
+			release_lock || : # die "ct release_lock"
+			die "conntrac: stats fail"
+			}
+	fi
 
 	# Pattern to match - Anything after ++ cannot be used
 	ct_pattern="${1%++*}"
