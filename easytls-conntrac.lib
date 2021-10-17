@@ -181,7 +181,7 @@ conn_trac_stats ()
 	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
 	[ $(( ctc )) -lt 32768 ] || ctc=0
 	ctc=$(( ctc + 1 ))
-	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || err_exit=1
-	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || err_exit=1
+	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || exit 1
+	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || exit 1
 	update_status "conntrac: tallied"
 }
