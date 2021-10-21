@@ -198,20 +198,53 @@ update_conntrac ()
 	. "${lib_file}"
 	unset prog_dir lib_file
 
+	# Absolute start time
+	easytls_start_d_file="${EASYTLS_CONN_TRAC}-start-d"
+	if [ -f "${easytls_start_d_file}" ]
+	then
+		easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
+	else
+		# shellcheck disable=SC2154
+		"${EASYTLS_PRINTF}" '%s' \
+			"${daemon_start_time}" > "${easytls_start_d_file}"
+		easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
+	fi
+
+	# Begin conntrac_record
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}=${client_serial}"
 	conntrac_record="${conntrac_record}==${common_name}"
+
+	# Detect IP Pool exhausted
 	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
+	if [ -z "${ifconfig_pool_remote_ip}" ]
+	then
+		# Kill the server
+		[ $POOL_EXHAUST_FATAL ] && {
+			ENABLE_KILL_PPID=1
+			die "IP_POOL_EXHASTED" 101
+			}
+
+		# Otherwise, the client will connect but get no IP
+		ip_pool_exhausted=1
+		conntrac_record="${conntrac_record}==0.0.0.0"
+		"${EASYTLS_PRINTF}" '\n%s\n\n' \
+			"********* WARNING: IP POOL EXHAUSTED *********"
+
+		# This will kill the client
+		[ $POOL_EXHAUST_KILL_CLIENT ] && {
+			"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}"
+			"${EASYTLS_PRINTF}" '%s\n' "disable"
+		} > "${ovpn_dyn_opts_file}"
+	else
+		conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
+	fi
+
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
 			2)	# Maybe fatal because Openvpn #160
-				[ $FATAL_CONN_TRAC ] && {
-					ENABLE_KILL_PPID=1
-					die "CONNTRAC_CONNECT_FAIL" 99
-					}
 				update_status "conn_trac_connect FAIL"
 				conntrac_fail=1
 			;;
@@ -239,17 +272,25 @@ update_conntrac ()
 				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
 				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
+				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "connect: conntrac file"
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "connect: conntrac file"
 
 		env_file="${temp_stub}-client-connect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "conntrac env"
+			set > "${env_file}" || die "connect: conntrac env"
 		else
-			env > "${env_file}" || die "conntrac env"
+			env > "${env_file}" || die "connect: conntrac env"
 		fi
+
+		# Die now - Tricky!
+		#[ $conntrac_fail ] &&
+		[ ! $FATAL_CONN_TRAC_2 ] || {
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_CONNECT_FAIL_2" 91
+			}
 	fi
 	unset env_file conntrac_record conntrac_fail conntrac_error
 } # => update_contrac ()

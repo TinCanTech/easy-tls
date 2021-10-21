@@ -197,9 +197,19 @@ update_conntrac ()
 	conntrac_record="${conntrac_record}==${common_name}"
 
 	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
-	conntrac_alt_rec="${conntrac_alt_rec}==${ifconfig_pool_remote_ip}"
-	conntrac_alt2_rec="${conntrac_alt2_rec}==${ifconfig_pool_remote_ip}"
+	if [ -z "${ifconfig_pool_remote_ip}" ]
+	then
+		[ $FATAL_CON_TRAC ] && fail_and_exit "IP_POOL_EXHASTED" 101
+		ip_pool_exhausted=1
+		conntrac_record="${conntrac_record}==0.0.0.0"
+		conntrac_alt_rec="${conntrac_alt_rec}==0.0.0.0"
+		conntrac_alt2_rec="${conntrac_alt2_rec}==0.0.0.0"
+	else
+		conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
+		conntrac_alt_rec="${conntrac_alt_rec}==${ifconfig_pool_remote_ip}"
+		conntrac_alt2_rec="${conntrac_alt2_rec}==${ifconfig_pool_remote_ip}"
+	fi
+
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 	conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
@@ -208,6 +218,14 @@ update_conntrac ()
 	# Disconnect common_name
 	conn_trac_disconnect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 		case $? in
+		3)	# Missing conntrac file - Can happen if IP Pool exhausted
+			[ $ip_pool_exhausted ] || {
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_FILE_MISSING" 97
+				}
+			# Ignore this error because it is expected
+			update_status "IGNORE missing ct file due to IP POOL EXHAUSTED"
+		;;
 		2)	# Not fatal because errors are expected #160
 			update_status "conn_trac_disconnect FAIL"
 			conntrac_fail=1
@@ -263,13 +281,14 @@ update_conntrac ()
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
-				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
-				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
-				"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+			"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+			[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
+			[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
+			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
+			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file"
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file"
 	fi
 
 	if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
@@ -280,10 +299,11 @@ update_conntrac ()
 			"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
 			[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-NFound"
 			[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
+			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conntrac file"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file"
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file"
 	fi
 
 	# Capture env
@@ -291,15 +311,16 @@ update_conntrac ()
 	then
 		env_file="${temp_stub}-client-disconnect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "conntrac env"
+			set > "${env_file}" || die "disconnect: env"
 		else
-			env > "${env_file}" || die "conntrac env"
+			env > "${env_file}" || die "disconnect: env"
 		fi
 		unset env_file
 	fi
 
 	# This error is currently absolutely fatal
-	[ ! $conntrac_alt_fail ] || {
+	# If IP pool exhausted then ignore conntrac_alt_fail
+	[ ! $ip_pool_exhausted ] && [ $conntrac_alt_fail ] && {
 		ENABLE_KILL_PPID=1
 		die "disconnect: conntrac_alt_fail"
 		}
@@ -307,12 +328,24 @@ update_conntrac ()
 	# OpenVPN Bug #160
 	if [ $conntrac_fail ]
 	then
-		# Alt took care of it
-		update_status "conn_trac_disconnect recovered"
+		if [ $ip_pool_exhausted ]
+		then
+			# Ignored
+			update_status "IP_POOL_EXHAUSTED IGNORED"
+		else
+			# Recovered from fail - Add your plugin
+			:
+			update_status "disconnect: recovered"
+		fi
 	else
-		# conntrac worked
+		# conntrac worked - Add your plugin
 		:
+		update_status "disconnect: succeeded"
 	fi
+	unset \
+		conntrac_fail conntrac_alt_fail \
+		conntrac_error conntrac_alt_error \
+		ip_pool_exhausted log_env
 } # => update_conntrac ()
 
 # Initialise
