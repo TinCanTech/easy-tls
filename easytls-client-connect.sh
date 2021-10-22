@@ -615,7 +615,7 @@ then
 elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]
 then
 	# This client pushed an incorrect UV_TLSKEY_SERIAL
-	[ $IGNORE_TLSKEY_SERIAL_MISMATCH ] || {
+	[ ! $ENFORCE_TLSKEY_SERIAL_MATCH ] || {
 		failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
 		fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
 		}
