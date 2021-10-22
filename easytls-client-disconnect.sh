@@ -93,7 +93,8 @@ verbose_print ()
 die ()
 {
 	verbose_print "<ERROR> ${status_msg}"
-	[ -n "${help_note}" ] && print "${help_note}"
+	[ -z "${help_note}" ] || print "${help_note}"
+	[ -z "${failure_msg}" ] || print "${failure_msg}"
 	print "ERROR: ${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"

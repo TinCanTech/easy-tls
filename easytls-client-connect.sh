@@ -106,7 +106,8 @@ verbose_print ()
 die ()
 {
 	verbose_print "<ERROR> ${status_msg}"
-	[ -n "${help_note}" ] && print "${help_note}"
+	[ -z "${help_note}" ] || print "${help_note}"
+	[ -z "${failure_msg}" ] || print "${failure_msg}"
 	print "ERROR: ${1}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
@@ -148,6 +149,30 @@ delete_metadata_files ()
 		"${fixed_md_file}" "${fake_md_file}"
 
 	update_status "temp-files deleted"
+
+	# Stack down
+	if [ -f "${fixed_md_file}_1" ]
+	then
+		unset stack_err
+		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
+
+		i=1
+		while :
+		do
+			i=$(( i + 1 ))
+			if [ -f "${fixed_md_file}_${i}" ]
+			then
+				d=$(( i - 1 ))
+				"${EASYTLS_MV}" "${fixed_md_file}_${i}" \
+					"${fixed_md_file}_${d}" || stack_err=1
+			else
+				break
+			fi
+		done
+
+		update_status "stack down"
+		[ ! $stack_err ] || die "STACK_DOWN"
+	fi
 }
 
 # Log fatal warnings
@@ -207,6 +232,7 @@ update_conntrac ()
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s' \
 			"${daemon_start_time}" > "${easytls_start_d_file}"
+		# shellcheck disable=SC2034
 		easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
 	fi
 
@@ -542,7 +568,7 @@ fake_md_file="${client_md_stub}-fake"
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]
 then
-	fixed_md_file="${temp_stub}-cv2-metadata-${UV_TLSKEY_SERIAL}"
+	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
 	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
@@ -557,7 +583,7 @@ else
 		update_status "created fake_md_file"
 fi
 
-# Verify cv2_metadata_file
+# Verify tcv2_metadata_file
 if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]
 then
 	# Set Client tlskey_serial
@@ -589,8 +615,11 @@ then
 elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]
 then
 	# This client pushed an incorrect UV_TLSKEY_SERIAL
-	failure_msg="A temp file now exists with the correct TLS-key serial"
-	fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
+	[ $IGNORE_TLSKEY_SERIAL_MISMATCH ] || {
+		failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
+		fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
+		}
+	update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
 
 elif [ -f "${fake_md_file}" ]
 then

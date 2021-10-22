@@ -485,25 +485,31 @@ release_lock ()
 write_metadata_file ()
 {
 	# Set the client_md_file
-	client_md_file="${temp_stub}-cv2-metadata-${tlskey_serial}"
+	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
 
-	# If client_md_file exists then delete it if is stale
+	# Stack up
 	if [ -f "${client_md_file}" ]
 	then
-		md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
-		md_file_age_sec=$((local_date_sec - md_file_date_sec))
-		[ ${md_file_age_sec} -gt ${stale_sec} ] && \
-			"${EASYTLS_RM}" -f "${client_md_file}"
+		i=0
+		while :
+		do
+			i=$(( i + 1 ))
+			if [ -f "${client_md_file}_${i}" ]
+			then
+				continue
+			else
+				client_md_file="${client_md_file}_${i}"
+				break
+			fi
+		done
+
+		update_status "stack up"
 	fi
 
-	# If client_md_file still exists then silently fail - Client will try again
+	# If client_md_file still exists then die
 	if [ -f "${client_md_file}" ]
 	then
-		unset kill_client
-		keep_metadata=1
-
-		failure_msg="client_md_file age: ${md_file_age_sec} sec"
-		fail_and_exit "STALE_CLIENT_METADATA_FILE" 101
+		die "STALE_FILE_ERROR"
 	else
 		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
 			die "Failed to create client_md_file" 89
@@ -538,9 +544,6 @@ init ()
 
 	# Log message
 	status_msg="* Easy-TLS-cryptv2-verify"
-
-	# Default stale-metadata-output-file time-out
-	stale_sec=30
 
 	# X509 is disabled by default
 	# To enable use command line option:
