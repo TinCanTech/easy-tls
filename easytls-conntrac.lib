@@ -95,7 +95,7 @@ conn_trac_connect ()
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
-		if [ $already_registered ]
+		if [ $match_found ]
 		then
 			err_exit=${err_exit:-2}
 		else
