@@ -61,10 +61,13 @@ conn_trac_connect ()
 			}
 	fi
 
-	# Pattern to match - Anything after ++ cannot be used
+	# Patterns to match - Anything after ++ cannot be used
 	ct_pattern="${1%++*}"
 	[ $VERBOSE_CONN_TRAC ] && \
 		update_status "conntrac: pattern ${ct_pattern}"
+
+	ct_tlskey="${1%%=*}"
+	[ "${ct_tlskey}" = "TLSAC" ] && unset ct_tlskey
 
 	if [ -f "${2}" ]
 	then
@@ -72,6 +75,10 @@ conn_trac_connect ()
 			while read full_conn
 			do
 				conn="${full_conn%++*}"
+				tksn="${full_conn%%=*}"
+
+				[ ! "${tksn}" = "${ct_tlskey}" ] || ct_tlskey_found=1
+
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
@@ -110,8 +117,9 @@ conn_trac_connect ()
 	release_lock || return 9
 
 	err_exit=${err_exit:-0}
+	[ $err_exit -eq 0 ] && [ $ct_tlskey_found ] && err_exit=6
 	unset easytls_ct_lock_file easytls_temp_file conn \
-			record_found ct_ig_ipp_ex
+			record_found ct_ig_ipp_ex ct_tlskey_found
 	return ${err_exit}
 } # => conn_trac_connect ()
 
