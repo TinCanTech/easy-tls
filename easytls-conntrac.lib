@@ -51,14 +51,13 @@ conn_trac_connect ()
 	easytls_ct_log="${2}.log"
 	unset err_exit record_found ct_ig_ipp_ex
 
-	acquire_lock || die "ct acquire_lock"
+	acquire_lock || return 9
 
 	if [ $ENABLE_CONN_TRAC_STATS ]
 	then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
-			release_lock || : # die "ct release_lock"
-			die "conntrac: stats fail"
+			release_lock || return 9
 			}
 	fi
 
@@ -108,11 +107,11 @@ conn_trac_connect ()
 		} > "${2}" || err_exit=1
 		update_status "conntrac: registered"
 	fi
-	release_lock || die "ct release_lock"
+	release_lock || return 9
 
+	err_exit=${err_exit:-0}
 	unset easytls_ct_lock_file easytls_temp_file conn \
 			record_found ct_ig_ipp_ex
-	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_connect ()
 
@@ -126,14 +125,13 @@ conn_trac_disconnect ()
 	easytls_ct_log="${2}.log"
 	unset err_exit record_found ct_ig_ipp_ex
 
-	acquire_lock || die "ct acquire_lock"
+	acquire_lock || return 9
 
 	if [ $ENABLE_CONN_TRAC_STATS ]
 	then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
-			release_lock || : # die "ct release_lock"
-			die "conntrac: stats fail"
+			release_lock || return 9
 			}
 	fi
 
@@ -184,11 +182,11 @@ conn_trac_disconnect ()
 		update_status "conntrac: file not found"
 		err_exit=3
 	fi
-	release_lock || die "ct release_lock"
+	release_lock || return 9
 
+	err_exit=${err_exit:-0}
 	unset easytls_ct_lock_file easytls_temp_file conn \
 			record_found ct_ig_ipp_ex
-	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_disconnect ()
 
@@ -198,7 +196,7 @@ conn_trac_stats ()
 	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
 	[ $(( ctc )) -lt 32768 ] || ctc=0
 	ctc=$(( ctc + 1 ))
-	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || exit 1
-	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || exit 1
+	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || return 1
+	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || return 1
 	update_status "conntrac: tallied"
 }
