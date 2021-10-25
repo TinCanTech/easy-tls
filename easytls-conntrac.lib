@@ -49,7 +49,7 @@ conn_trac_connect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit match_found ct_ig_ipp_ex
+	unset err_exit record_found ct_ig_ipp_ex
 
 	acquire_lock || die "ct acquire_lock"
 
@@ -76,11 +76,11 @@ conn_trac_connect ()
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
-					[ $match_found ] || \
+					[ $record_found ] || \
 						update_status "conntrac: already registered"
 					[ $ip_pool_exhausted ] && \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex} X"
-					match_found=1
+					record_found=1
 				else
 					# Print the existing record
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
@@ -95,7 +95,7 @@ conn_trac_connect ()
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
-		if [ $match_found ]
+		if [ $record_found ]
 		then
 			err_exit=${err_exit:-2}
 		else
@@ -111,7 +111,7 @@ conn_trac_connect ()
 	release_lock || die "ct release_lock"
 
 	unset easytls_ct_lock_file easytls_temp_file conn \
-			match_found ct_ig_ipp_ex
+			record_found ct_ig_ipp_ex
 	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_connect ()
@@ -124,7 +124,7 @@ conn_trac_disconnect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit match_found ct_ig_ipp_ex
+	unset err_exit record_found ct_ig_ipp_ex
 
 	acquire_lock || die "ct acquire_lock"
 
@@ -150,16 +150,16 @@ conn_trac_disconnect ()
 				conn="${full_conn%++*}"
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
-					# If match_found then a record has been deleted
+					# If record_found then a record has been deleted
 					# Print the remaining duplicates
-					[ $match_found ] && \
+					[ $record_found ] && \
 						"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
-					[ $match_found ] && [ $ip_pool_exhausted ] && \
+					[ $record_found ] && [ $ip_pool_exhausted ] && \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex} X"
 					# Matched - Do not Print
-					[ $match_found ] || \
+					[ $record_found ] || \
 						update_status "conntrac: unregistered"
-					match_found=1
+					record_found=1
 				else
 					# No match - Print current record
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
@@ -172,7 +172,7 @@ conn_trac_disconnect ()
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
-		[ $match_found ] || {
+		[ $record_found ] || {
 			update_status "conntrac: record not found"
 			err_exit=${err_exit:-2}
 			}
@@ -187,7 +187,7 @@ conn_trac_disconnect ()
 	release_lock || die "ct release_lock"
 
 	unset easytls_ct_lock_file easytls_temp_file conn \
-			match_found ct_ig_ipp_ex
+			record_found ct_ig_ipp_ex
 	err_exit=${err_exit:-0}
 	return ${err_exit}
 } # => conn_trac_disconnect ()
