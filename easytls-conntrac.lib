@@ -181,7 +181,7 @@ conn_trac_disconnect ()
 			# Add Ignore stats
 			[ -z "${ct_ig_ipp_ex}" ] || {
 				update_status "IGN-IPP-EX:${ct_ig_ipp_ex}"
-				tlskey_status "* TLSK-DUP: ${ct_ig_ipp_ex} >"
+				tlskey_status "* TLSK-DUP:${ct_ig_ipp_ex} >"
 				}
 
 		} > "${easytls_temp_file}" || err_exit=1
