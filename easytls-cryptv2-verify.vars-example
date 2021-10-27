@@ -31,8 +31,9 @@
 # Max seconds to allow a stale metadata file to exist
 # Must allow for deferred user/pass authentication and
 # possible connection overlap due to non-atomic temp file actions
-# This will cause a client to try again, over-riding kill-client
-#stale_sec=30
+# This is the time a client metadata-file is allowed to exist
+# If this time-out has not expired then file-stacking will occur
+#EASYTLS_STALE_SEC=120
 
 # Disable TLS-KEY serial number hash check
 #unset VERIFY_hash
