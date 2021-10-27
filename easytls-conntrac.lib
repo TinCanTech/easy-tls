@@ -49,7 +49,7 @@ conn_trac_connect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit record_found ct_ig_ipp_ex
+	unset err_exit record_found ct_ig_ipp_ex ct_tlskey_found
 
 	acquire_lock || return 9
 
@@ -112,7 +112,8 @@ conn_trac_connect ()
 		{
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${2}" || err_exit=1
-		update_status "conntrac: registered"
+		update_status "conntrac: registered OPENED"
+		tlskey_status "*conntrac: registered OPENED>"
 	fi
 	release_lock || return 9
 
@@ -185,6 +186,7 @@ conn_trac_disconnect ()
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"
 			update_status "conntrac: RESET"
+			tlskey_status "*conntrac: RESET>"
 			}
 	else
 		update_status "conntrac: file not found"
