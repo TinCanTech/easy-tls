@@ -122,6 +122,10 @@ fail_and_exit ()
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
+
+	# TLSKEY connect log
+	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
@@ -336,18 +340,30 @@ update_conntrac ()
 		else
 			# Recovered from fail - Add your plugin
 			:
-			update_status "disconnect: recovered"
+			#update_status "disconnect: recovered"
 		fi
 	else
 		# conntrac worked - Add your plugin
 		:
-		update_status "disconnect: succeeded"
+		#update_status "disconnect: succeeded"
 	fi
 	unset \
 		conntrac_fail conntrac_alt_fail \
 		conntrac_error conntrac_alt_error \
 		ip_pool_exhausted log_env
 } # => update_conntrac ()
+
+# TLSKEY tracking .. because ..
+tlskey_status ()
+{
+	[ $EASYTLS_TLSKEY_STATUS ] || return 0
+	dt="$("${EASYTLS_DATE}")"
+	{
+		"${EASYTLS_PRINTF}" '%s ' "${dt}"
+		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${UV_TLSKEY_SERIAL:-TLSAC}"
+		"${EASYTLS_PRINTF}" '%s\n' "DISCONNECTED-${1}"
+	} >> "${EASYTLS_TK_XLOG}"
+}
 
 # Initialise
 init ()
@@ -421,6 +437,7 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
+	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
 
 	# Source metadata lib
 	prog_dir="${0%/*}"
@@ -549,6 +566,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 if [ $ENABLE_CONN_TRAC ]
 then
 	update_conntrac || die "update_conntrac"
+	update_status "conn-trac updated"
 else
 	update_status "conn-trac disabled"
 fi
@@ -561,6 +579,9 @@ if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
 	#delete_metadata_files
+
+	# TLSKEY connect log
+	tlskey_status "OK" || update_status "tlskey_status FAIL"
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
