@@ -132,9 +132,15 @@ die ()
 fail_and_exit ()
 {
 	delete_metadata_files
+	stack_down || die "stack_down - fail_and_exit"
+
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
+
+	# TLSKEY connect log
+	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
@@ -149,30 +155,6 @@ delete_metadata_files ()
 		"${fixed_md_file}" "${fake_md_file}"
 
 	update_status "temp-files deleted"
-
-	# Stack down
-	if [ -f "${fixed_md_file}_1" ]
-	then
-		unset stack_err
-		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
-
-		i=1
-		while :
-		do
-			i=$(( i + 1 ))
-			if [ -f "${fixed_md_file}_${i}" ]
-			then
-				d=$(( i - 1 ))
-				"${EASYTLS_MV}" "${fixed_md_file}_${i}" \
-					"${fixed_md_file}_${d}" || stack_err=1
-			else
-				break
-			fi
-		done
-
-		update_status "stack down"
-		[ ! $stack_err ] || die "STACK_DOWN"
-	fi
 }
 
 # Log fatal warnings
@@ -270,27 +252,27 @@ update_conntrac ()
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
-			2)	# Maybe fatal because Openvpn #160
+			6)	# Duplicate TLSKEY
+				update_status "conn_trac_connect DUPLICATE_TLSKEY"
+				conntrac_dupl=1
+			;;
+			2)	# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
 				update_status "conn_trac_connect FAIL"
 				conntrac_fail=1
 			;;
 			1)	# Fatal because these are usage errors
-				[ $FATAL_CONN_TRAC ] && {
-					ENABLE_KILL_PPID=1
-					die "CONNTRAC_CONNECT_ERROR" 99
-					}
 				update_status "conn_trac_connect ERROR"
 				conntrac_error=1
 			;;
 			*)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
-				die "CONNTRAC_CONNECT_UNKNOWN" 98
+				conntrac_unknown=1
 			;;
 			esac
 			}
 
 	# Log failure
-	if [ $conntrac_fail ] || [ $conntrac_error ]
+	if [ $conntrac_dupl ] || [ $conntrac_fail ] || \
+		[ $conntrac_error ] ||[ $conntrac_unknown ]
 	then
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
@@ -299,6 +281,8 @@ update_conntrac ()
 				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
+				[ $conntrac_dupl ] && "${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
+				[ $conntrac_unknown ] && "${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
 		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "connect: conntrac file"
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
@@ -311,15 +295,76 @@ update_conntrac ()
 			env > "${env_file}" || die "connect: conntrac env"
 		fi
 
-		# Die now - Tricky!
-		#[ $conntrac_fail ] &&
-		[ ! $FATAL_CONN_TRAC_2 ] || {
+		# Absolutely fatal
+		[ $conntrac_unknown ] && {
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_CONNECT_UNKNOWN" 98
+			}
+
+		# # Fatal because these are usage errors
+		[ $conntrac_error ] && [ $FATAL_CONN_TRAC ] && {
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_CONNECT_ERROR" 99
+			}
+
+		# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
+		[ $conntrac_fail ] && [ $FATAL_CONN_TRAC_2 ] && {
 			ENABLE_KILL_PPID=1
 			die "CONNTRAC_CONNECT_FAIL_2" 91
 			}
+
+		# Duplicate TLS keys
+		if [ $conntrac_dupl ]
+		then
+			[ ! $ENFORCE_UNIQUE_TLSKEY ] || fail_and_exit "Duplicate TLS Key"
+			update_status "IGNORE Duplicate TLS Key"
+		fi
 	fi
 	unset env_file conntrac_record conntrac_fail conntrac_error
 } # => update_contrac ()
+
+# Stack down
+stack_down ()
+{
+	if [ -f "${fixed_md_file}_1" ]
+	then
+		unset stack_err
+		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
+
+		i=1
+		while :
+		do
+			i=$(( i + 1 ))
+			d=$(( i - 1 ))
+			if [ -f "${fixed_md_file}_${i}" ]
+			then
+				"${EASYTLS_MV}" "${fixed_md_file}_${i}" \
+					"${fixed_md_file}_${d}" || stack_err=1
+			else
+				break
+			fi
+		done
+
+		update_status "stack-down"
+		tlskey_status "*stack-down:${d}>"
+		[ ! $stack_err ] || die "STACK_DOWN"
+	else
+		update_status "stack-clear"
+		tlskey_status "*stack-clear:0>"
+	fi
+}
+
+# TLSKEY tracking .. because ..
+tlskey_status ()
+{
+	[ $EASYTLS_TLSKEY_STATUS ] || return 0
+	dt="$("${EASYTLS_DATE}")"
+	{
+		"${EASYTLS_PRINTF}" '%s ' "${dt}"
+		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${UV_TLSKEY_SERIAL:-TLSAC}"
+		"${EASYTLS_PRINTF}" '%s\n' "CONNECTED-${1}"
+	} >> "${EASYTLS_TK_XLOG}"
+}
 
 # Initialise
 init ()
@@ -391,6 +436,7 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
+	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
 
 	# Source metadata lib
 	prog_dir="${0%/*}"
@@ -546,7 +592,8 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 # Update connection tracking
 if [ $ENABLE_CONN_TRAC ]
 then
-	update_conntrac || die "update_conntrac"
+	update_conntrac || die "update_conntrac FAIL"
+	update_status "conn-trac updated"
 else
 	update_status "conn-trac disabled"
 fi
@@ -761,7 +808,11 @@ esac # allow_no_check
 if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
-	delete_metadata_files
+	delete_metadata_files || die "CON: delete_metadata_files() ?"
+	stack_down || die "stack_down - exit"
+
+	# TLSKEY connect log
+	tlskey_status "OK" || update_status "tlskey_status FAIL"
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
