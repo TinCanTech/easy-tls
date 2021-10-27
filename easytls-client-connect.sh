@@ -335,7 +335,7 @@ stack_down ()
 		i=1
 		d=$(( i - 1 ))
 		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
-		s="-1"
+		s="-${i}"
 
 		while :
 		do
