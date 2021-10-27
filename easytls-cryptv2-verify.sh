@@ -211,6 +211,9 @@ fail_and_exit ()
 		print "${1}"
 	fi
 
+	# TLSKEY connect log
+	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
 			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
@@ -487,7 +490,46 @@ write_metadata_file ()
 	# Set the client_md_file
 	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
 
-	# Stack up
+	# If client_metadata_file exists then delete it if is stale
+	if [ -f "${client_md_file}" ]
+	then
+		md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
+		md_file_age_sec=$((local_date_sec - md_file_date_sec))
+		if [ ${md_file_age_sec} -gt ${EASYTLS_STALE_SEC} ]
+		then
+			# Log the stale file for debug
+			{
+				"${EASYTLS_CAT}" "${client_md_file}.stale"
+				"${EASYTLS_CAT}" "${client_md_file}"
+			} > "${client_md_file}.stale.temp"
+			"${EASYTLS_MV}" -f \
+					"${client_md_file}.stale.temp" "${client_md_file}.stale"
+			# Remove the stale file
+			"${EASYTLS_RM}" -f "${client_md_file}"
+
+			update_status "stale metadata Moved"
+			tlskey_status "* STALE >--"
+			#die "stale TEST"
+		fi
+	fi
+
+	# Stack up duplicate metadata files
+	stack_up || die "stack_up"
+
+	# If client_md_file still exists then die
+	if [ -f "${client_md_file}" ]
+	then
+		die "STALE_FILE_ERROR"
+	else
+		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
+			die "Failed to create client_md_file" 89
+		update_status "Created client_md_file"
+	fi
+} # => write_metadata_file ()
+
+# Stack up
+stack_up ()
+{
 	if [ -f "${client_md_file}" ]
 	then
 		i=0
@@ -502,20 +544,25 @@ write_metadata_file ()
 				break
 			fi
 		done
-
-		update_status "stack up"
-	fi
-
-	# If client_md_file still exists then die
-	if [ -f "${client_md_file}" ]
-	then
-		die "STALE_FILE_ERROR"
+		update_status "stack-up"
+		tlskey_status "*stack-up:${i}>"
 	else
-		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
-			die "Failed to create client_md_file" 89
-		update_status "Created client_md_file"
+		update_status "stack-empty"
+		tlskey_status "*stack-empty:0>"
 	fi
-} # => write_metadata_file ()
+}
+
+# TLSKEY tracking .. because ..
+tlskey_status ()
+{
+	[ $EASYTLS_TLSKEY_STATUS ] || return 0
+	dt="$("${EASYTLS_DATE}")"
+	{
+		"${EASYTLS_PRINTF}" '%s ' "${dt}"
+		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${tlskey_serial}"
+		"${EASYTLS_PRINTF}" '%s\n' "VERIFY-${1}"
+	} >> "${EASYTLS_TK_XLOG}"
+}
 
 # Initialise
 init ()
@@ -621,6 +668,7 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
+	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
 
 	# Conn track
 	#EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
@@ -630,6 +678,9 @@ deps ()
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
+
+	# Temp file age before stale
+	EASYTLS_STALE_SEC="${EASYTLS_STALE_SEC:-120}"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || die "Path to CA directory is required, see help" 22
@@ -1107,6 +1158,9 @@ release_lock
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
+	# TLSKEY connect log
+	tlskey_status "OK" || update_status "tlskey_status FAIL"
+
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
