@@ -92,11 +92,16 @@ conn_trac_connect ()
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
+
 			# Always register the record
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
+
 			# Add Ignore stats
-			[ -z "${ct_ig_ipp_ex}" ] || \
+			[ -z "${ct_ig_ipp_ex}" ] || {
 				update_status "IGN-IPP-EX:${ct_ig_ipp_ex}"
+				tlskey_status "* TLSK-DUP: ${ct_ig_ipp_ex} >"
+				}
+
 		} > "${easytls_temp_file}" || err_exit=1
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
@@ -113,7 +118,7 @@ conn_trac_connect ()
 			"${EASYTLS_PRINTF}" "%s\n" "${1}"
 		} > "${2}" || err_exit=1
 		update_status "conntrac: registered OPENED"
-		tlskey_status "*conntrac: registered OPENED>"
+		tlskey_status "*conntrac: registered OPENED >"
 	fi
 	release_lock || return 9
 
@@ -172,9 +177,13 @@ conn_trac_disconnect ()
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				fi
 			done < "${2}"
+
 			# Add Ignore stats
-			[ -z "${ct_ig_ipp_ex}" ] || \
+			[ -z "${ct_ig_ipp_ex}" ] || {
 				update_status "IGN-IPP-EX:${ct_ig_ipp_ex}"
+				tlskey_status "* TLSK-DUP: ${ct_ig_ipp_ex} >"
+				}
+
 		} > "${easytls_temp_file}" || err_exit=1
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
@@ -186,7 +195,7 @@ conn_trac_disconnect ()
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"
 			update_status "conntrac: RESET"
-			tlskey_status "*conntrac: RESET>"
+			tlskey_status "* conntrac: RESET >"
 			}
 	else
 		update_status "conntrac: file not found"

@@ -154,6 +154,9 @@ verbose_print ()
 # Exit on error
 die ()
 {
+	# TLSKEY connect log
+	tlskey_status "FATAL" || update_status "tlskey_status FATAL"
+
 	# Unlock
 	release_lock
 
@@ -519,6 +522,7 @@ write_metadata_file ()
 	# If client_md_file still exists then die
 	if [ -f "${client_md_file}" ]
 	then
+		tlskey_status "STALE_FILE_ERROR"
 		die "STALE_FILE_ERROR"
 	else
 		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
@@ -533,22 +537,25 @@ stack_up ()
 	if [ -f "${client_md_file}" ]
 	then
 		i=0
+		s=''
 		while :
 		do
 			i=$(( i + 1 ))
 			if [ -f "${client_md_file}_${i}" ]
 			then
+				s="${s}+${i}"
 				continue
 			else
 				client_md_file="${client_md_file}_${i}"
+				s="${s}+${i}"
 				break
 			fi
 		done
 		update_status "stack-up"
-		tlskey_status "*stack-up:${i}>"
+		tlskey_status "^ stack-up: ${s} >"
 	else
 		update_status "stack-empty"
-		tlskey_status "*stack-empty:0>"
+		tlskey_status "^ stack-up: empty >"
 	fi
 }
 
@@ -560,7 +567,7 @@ tlskey_status ()
 	{
 		"${EASYTLS_PRINTF}" '%s ' "${dt}"
 		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${tlskey_serial}"
-		"${EASYTLS_PRINTF}" '%s\n' "VERIFY-${1}"
+		"${EASYTLS_PRINTF}" '%s\n' "Vrfy-${1}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 

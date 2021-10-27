@@ -105,6 +105,9 @@ verbose_print ()
 # Exit on error
 die ()
 {
+	# TLSKEY connect log
+	tlskey_status "FATAL" || update_status "tlskey_status FATAL"
+
 	verbose_print "<ERROR> ${status_msg}"
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
@@ -329,9 +332,11 @@ stack_down ()
 	if [ -f "${fixed_md_file}_1" ]
 	then
 		unset stack_err
-		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
-
 		i=1
+		d=$(( i - 1 ))
+		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
+		s="-1"
+
 		while :
 		do
 			i=$(( i + 1 ))
@@ -340,17 +345,18 @@ stack_down ()
 			then
 				"${EASYTLS_MV}" "${fixed_md_file}_${i}" \
 					"${fixed_md_file}_${d}" || stack_err=1
+				s="${s}-${i}"
 			else
 				break
 			fi
 		done
 
 		update_status "stack-down"
-		tlskey_status "*stack-down:${d}>"
+		tlskey_status "^ stack-dn: ${s} >"
 		[ ! $stack_err ] || die "STACK_DOWN"
 	else
 		update_status "stack-clear"
-		tlskey_status "*stack-clear:0>"
+		tlskey_status "^ stack-dn: clear >"
 	fi
 }
 
@@ -362,7 +368,7 @@ tlskey_status ()
 	{
 		"${EASYTLS_PRINTF}" '%s ' "${dt}"
 		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${UV_TLSKEY_SERIAL:-TLSAC}"
-		"${EASYTLS_PRINTF}" '%s\n' "CONNECTED-${1}"
+		"${EASYTLS_PRINTF}" '%s\n' "Conn-${1}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
