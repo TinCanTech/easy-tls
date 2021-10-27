@@ -6,6 +6,9 @@
 #FATAL_CONN_TRAC=1
 #ENABLE_CONN_TRAC_STATS=1
 
+# Enable tlskey-status tracking
+#EASYTLS_TLSKEY_STATUS=1
+
 # Enable kill server mode
 #ENABLE_KILL_PPID=1
 

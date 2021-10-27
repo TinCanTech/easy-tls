@@ -35,6 +35,9 @@
 # If this time-out has not expired then file-stacking will occur
 #EASYTLS_STALE_SEC=120
 
+# Enable tlskey-status tracking
+#EASYTLS_TLSKEY_STATUS=1
+
 # Disable TLS-KEY serial number hash check
 #unset VERIFY_hash
 

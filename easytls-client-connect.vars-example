@@ -17,6 +17,9 @@
 #POOL_EXHAUST_FATAL=1
 #POOL_EXHAUST_KILL_CLIENT=1
 
+# Enable tlskey-status tracking
+#EASYTLS_TLSKEY_STATUS=1
+
 # Enable kill server mode
 #ENABLE_KILL_PPID=1
 
