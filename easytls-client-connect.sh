@@ -135,17 +135,20 @@ die ()
 fail_and_exit ()
 {
 	delete_metadata_files
-	stack_down || die "stack_down - fail_and_exit"
+	#stack_down || die "stack_down - fail_and_exit"
+
+	# Unlock
+	release_lock "${easytls_lock_file}" 5
 
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
-	print "${1}"
+	print "${1} ${2}"
 
 	# TLSKEY connect log
-	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+	tlskey_status "!*! FAIL" || update_status "tlskey_status FAIL"
 
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
-		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
+		"<FAIL> ${status_msg}" "${failure_msg}" "${1} ${2}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
 
@@ -153,9 +156,9 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	# shellcheck disable=SC2154 # auth_control_file
-	"${EASYTLS_RM}" -f \
-		"${EASYTLS_KILL_FILE}" \
-		"${fixed_md_file}" "${fake_md_file}"
+	"${EASYTLS_RM}" -f "${EASYTLS_KILL_FILE}" "${fake_md_file}"
+
+	# stack_down takes care of "${fixed_md_file}"
 
 	update_status "temp-files deleted"
 }
@@ -267,6 +270,10 @@ update_conntrac ()
 				update_status "conn_trac_connect ERROR"
 				conntrac_error=1
 			;;
+			9)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_CONNECT_CT_LOCK_9" 96
+			;;
 			*)	# Absolutely fatal
 				conntrac_unknown=1
 			;;
@@ -329,48 +336,153 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	if [ -f "${fixed_md_file}_1" ]
+	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE"
+	stack_completed=1
+
+	# Lock
+	acquire_lock "${easytls_lock_file}-stack" 6 || \
+		die "cc-stack:acquire_lock-FAIL" 99
+
+	unset stack_err
+	i=0
+	s=''
+
+	if [ ! $ENABLE_STACK ]
 	then
-		unset stack_err
-		i=1
-		d=$(( i - 1 ))
-		"${EASYTLS_MV}" "${fixed_md_file}_1" "${fixed_md_file}" || stack_err=1
-		s="-${i}"
+		#[ -f "${fixed_md_file}" ] || die "WTF***"
+		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
+		[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR"
 
-		while :
-		do
-			i=$(( i + 1 ))
-			d=$(( i - 1 ))
-			if [ -f "${fixed_md_file}_${i}" ]
-			then
-				"${EASYTLS_MV}" "${fixed_md_file}_${i}" \
-					"${fixed_md_file}_${d}" || stack_err=1
-				s="${s}-${i}"
-			else
-				break
-			fi
-		done
+		# Unlock
+		release_lock "${easytls_lock_file}-stack" 6 || \
+			die "cc-stack:release_lock" 99
 
-		update_status "stack-down"
-		tlskey_status "^ stack-dn: ${s} >"
-		[ ! $stack_err ] || die "STACK_DOWN"
-	else
-		update_status "stack-clear"
-		tlskey_status "^ stack-dn: clear >"
+		return 0
 	fi
+
+	while :
+	do
+		i=$(( i + 1 ))
+		if [ -f "${fixed_md_file}_${i}" ]
+		then
+			s="${s}."
+		else
+			if [ ${i} -eq 1 ]
+			then
+				# There are no stacked files so delete the original
+				[ -f "${fixed_md_file}" ] || die "***"
+				"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
+				update_status "stack-down: clear"
+				tlskey_status " |= : stack- clear -"
+			else
+				# Delete the last file found
+				p=$(( i - 1 ))
+				[ -f "${fixed_md_file}_${p}" ] || die "_i***"
+				"${EASYTLS_RM}" "${fixed_md_file}_${p}" || stack_err=1
+				update_status "stack-down: ${p}"
+				tlskey_status " |= : stack- ${s}${p} -"
+			fi
+			#"${EASYTLS_PRINTF}" '\n%s\n\n' "********* STACK-DOWN *********"
+			break
+		fi
+	done
+	# Unlock
+	release_lock "${easytls_lock_file}-stack" 6 || \
+		die "cc-stack:release_lock" 99
+	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
 }
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
+	# >> may fail on easytls/github/actions/wtest - No TERM
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}")"
+	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s ' "${dt}"
-		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${UV_TLSKEY_SERIAL:-TLSAC}"
-		"${EASYTLS_PRINTF}" '%s\n' "Conn-${1}"
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" \
+			"${UV_TLSKEY_SERIAL:-TLSAC}" "CONN ${1}" \
+			"${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
+
+# Simple lock file - Move this to a lib
+acquire_lock ()
+{
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+	(
+		lock_attempt=5
+		set -o noclobber
+		while [ ${lock_attempt} -gt 0 ]; do
+			lock_attempt=$(( lock_attempt - 1 ))
+			case ${2} in
+				1)	exec 1> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
+					lock_acquired=1
+					;;
+				2)	exec 2> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
+					lock_acquired=1
+					;;
+				3)	exec 3> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
+					lock_acquired=1
+					;;
+				4)	exec 4> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
+					lock_acquired=1
+					;;
+				5)	exec 5> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
+					lock_acquired=1
+					;;
+				6)	exec 6> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
+					lock_acquired=1
+					;;
+				7)	exec 7> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
+					lock_acquired=1
+					;;
+				8)	exec 8> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
+					lock_acquired=1
+					;;
+				9)	exec 9> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
+					lock_acquired=1
+					;;
+				*) die "Invalid file descriptor" ;;
+			esac
+			[ $lock_acquired ] && break
+		done
+		set +o noclobber
+		[ $lock_acquired ] || return 1
+	) || return 1
+
+	update_status "acquire_lock"
+} # => acquire_lock ()
+
+# Simple lock file - Move this to a lib
+release_lock ()
+{
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+		case ${2} in
+		1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
+		2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
+		3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
+		4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
+		5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
+		6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
+		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
+		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
+		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
+		*) die "Invalid file descriptor" ;;
+		esac
+	"${EASYTLS_RM}" -f "${1}"
+	update_status "release_lock"
+} # => release_lock ()
 
 # Initialise
 init ()
@@ -439,6 +551,12 @@ deps ()
 
 	# Temp files name stub
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
+
+	# Lock file
+	easytls_lock_file="${temp_stub}-lock"
+
+	# Lock
+	#acquire_lock 5 || exit 99
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
@@ -630,10 +748,12 @@ else
 		# Create a fake metadata file
 		# Add indicator for TLS Auth/Crypt
 		# TODO: check for existing file
-		"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > \
-			"${fake_md_file}" || \
-				die "Failed to create fake_md_file"
-		update_status "created fake_md_file"
+		#"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > \
+		#	"${fake_md_file}" || \
+		#		die "Failed to create fake_md_file"
+		#update_status "created fake_md_file"
+
+	no_uv_tlskey_serial=1
 fi
 
 # Verify tcv2_metadata_file
@@ -646,6 +766,7 @@ then
 	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
 	[ -n "${metadata_string}" ] || \
 		fail_and_exit "failed to read fixed_md_file" 18
+
 	# Populate client metadata variables
 	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
 	[ -n "${c_tlskey_serial}" ] || \
@@ -674,7 +795,7 @@ then
 		}
 	update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
 
-elif [ -f "${fake_md_file}" ]
+elif [ $no_uv_tlskey_serial ]
 then
 	# Require crypt-v2
 	[ $crypt_v2_required ] && {
@@ -682,17 +803,18 @@ then
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
 	update_status "IGNORE TLS-Auth/Crypt-v1 only"
-	fixed_md_file="${generic_md_stub}-${client_serial}"
-	if [ -f "${fixed_md_file}" ]
-	then
-		help_note="* Duplicate certificate *"
-		die "Exists fixed_md_file"
-	else
-		"${EASYTLS_MV}" "${fake_md_file}" "${fixed_md_file}" || \
-			die "Failed to create fake fixed_md_file"
-		update_status "Moved fake_md_file to fixed_md_file"
-	fi
 
+#	fixed_md_file="${generic_md_stub}-${client_serial}"
+#	if [ -f "${fixed_md_file}" ]
+#	then
+#		help_note="* Duplicate certificate *"
+#		die "Exists fixed_md_file"
+#	else
+#		"${EASYTLS_MV}" "${fake_md_file}" "${fixed_md_file}" || \
+#			die "Failed to create fake fixed_md_file"
+#		update_status "Moved fake_md_file to fixed_md_file"
+#	fi
+#
 	# TLS Auth/Crypt cannot do extended checks so allow_no_check
 	#tls_acv1_only=1
 
@@ -700,11 +822,21 @@ else
 	die "Unexpected condition"
 fi
 
+# Clear one stack now - fixed_md_file is no longer required
+if [ $no_uv_tlskey_serial ]
+then
+	# TLS-AUTH/Crypt does not stack up
+	:
+else
+	stack_down || die "stack_down FAIL"
+fi
+
 # Set hwaddr from Openvpn env
 # This is not a dep. different clients may not push-peer-info
 push_hwaddr="$(format_number "${IV_HWADDR}")"
-[ -z "${push_hwaddr}" ] && \
-	push_hwaddr_missing=1 && update_status "hwaddr not pushed"
+[ -z "${push_hwaddr}" ] && push_hwaddr_missing=1 && \
+	update_status "hwaddr not pushed"
+
 if [ $push_hwaddr_missing ]
 then
 	# hwaddr is NOT pushed
@@ -725,7 +857,7 @@ case $allow_no_check in
 ;;
 *)
 	# Check for TLS Auth/Crypt
-	if "${EASYTLS_GREP}" -q '^=TLSAC=[[:blank:]]=' "${fixed_md_file}"
+	if [ $no_uv_tlskey_serial ]
 	then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
@@ -747,14 +879,9 @@ case $allow_no_check in
 		# TLS-Crypt-V2
 
 		# Set only for NO keyed hwaddr
-		# Old field
-		if "${EASYTLS_GREP}" -q '[[:blank:]]000000000000$' "${fixed_md_file}"
-		then
-			key_hwaddr_missing=1
-		fi
-
-		# New field
-		if "${EASYTLS_GREP}" -q '=000000000000=$' "${fixed_md_file}"
+		# shellcheck disable=SC2154
+		if [ "${c_md_hwadds}" = '=000000000000=' ] || \
+			[ "${c_md_hwadds}" = '+000000000000+' ]
 		then
 			key_hwaddr_missing=1
 		fi
@@ -772,25 +899,36 @@ case $allow_no_check in
 			# No keyed hwaddr and TLS-crypt-v2
 			connection_allowed
 		else
-			if "${EASYTLS_GREP}" -q "+${push_hwaddr}+" "${fixed_md_file}"
+			#[ -f "${fixed_md_file}" ] || die "CC Missing fixed_md_file"
+
+			hw_list="${c_md_hwadds%=}"
+			until [ -z "${hw_list}" ]
+			do
+				# hw_addr = the last hwaddr in the list
+				hw_addr="${hw_list##*=}"
+				# Drop the last hwaddr
+				hw_list="${hw_list%=*}"
+				#[ -n "${hw_list}" ] || break
+
+				if [ "${push_hwaddr}" = "${hw_addr}" ]
+				then
+					# push and MATCH!
+					push_and_match=1
+					break
+				fi
+			done
+
+			if [ $push_and_match ]
 			then
-				# push and MATCH! - Old format
 				update_status "hwaddr ${push_hwaddr} pushed and matched"
 				connection_allowed
-
-			elif "${EASYTLS_GREP}" -q "=${push_hwaddr}=" "${fixed_md_file}"
-			then
-				# push and MATCH! - New format
-				update_status "hwaddr ${push_hwaddr} pushed and matched"
-				connection_allowed
-
 			else
 				# push does not match key hwaddr
 				# If the x509 is a mismatch then hwaddr almost certainly will be
 				if [ $ignore_x509_mismatch ]
 				then
 					connection_allowed
-					update_status "Ignored hwaddr mismatch!"
+					update_status "IGNORE hwaddr mismatch!"
 				else
 					failure_msg="hwaddr mismatch - pushed: ${push_hwaddr}"
 					fail_and_exit "HWADDR MISMATCH" 2
@@ -815,10 +953,9 @@ if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
 	delete_metadata_files || die "CON: delete_metadata_files() ?"
-	stack_down || die "stack_down - exit"
 
 	# TLSKEY connect log
-	tlskey_status "OK" || update_status "tlskey_status FAIL"
+	tlskey_status "+++   OK" || update_status "tlskey_status FAIL"
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
