@@ -115,7 +115,7 @@ help_text ()
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
   89  - BUG Disallow connection, failed to create client_md_file
-  101 - BUG Disallow connection, stale metadata file time-out.
+  101 - BUG Disallow connection, stale metadata file.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
   114 - BUG Disallow connection, missing dependency file.
@@ -157,9 +157,6 @@ die ()
 	# TLSKEY connect log
 	tlskey_status "FATAL" || update_status "tlskey_status FATAL"
 
-	# Unlock
-	release_lock
-
 	#delete_metadata_files
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
@@ -184,7 +181,10 @@ die ()
 fail_and_exit ()
 {
 	# Unlock
-	release_lock
+	release_lock "${easytls_lock_file}-stack" 6 || \
+		update_status "v2-stack-fail_and_exit:release_lock-FAIL"
+	release_lock "${easytls_lock_file}-v2" 5 || \
+		update_status "v2-fail_and_exit:release_lock-FAIL"
 
 	delete_metadata_files
 
@@ -215,7 +215,7 @@ fail_and_exit ()
 	fi
 
 	# TLSKEY connect log
-	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+	tlskey_status "*V!  FAIL" || update_status "tlskey_status FAIL"
 
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
@@ -467,23 +467,80 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
-# Simple lock file
+# Simple lock file - Move this to a lib
 acquire_lock ()
 {
-		(	exec 2>/dev/null
-			set -o noclobber
-			exec 8> "${easytls_lock_file}" || return 1
-			printf "%s" "$$" >&8 || return 1
-		) || return 1
-		exec 8< "${easytls_lock_file}" || return 1
-		update_status "acquire_lock"
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+	(
+		lock_attempt=5
+		set -o noclobber
+		while [ ${lock_attempt} -gt 0 ]; do
+			lock_attempt=$(( lock_attempt - 1 ))
+			case ${2} in
+				1)	exec 1> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
+					lock_acquired=1
+					;;
+				2)	exec 2> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
+					lock_acquired=1
+					;;
+				3)	exec 3> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
+					lock_acquired=1
+					;;
+				4)	exec 4> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
+					lock_acquired=1
+					;;
+				5)	exec 5> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
+					lock_acquired=1
+					;;
+				6)	exec 6> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
+					lock_acquired=1
+					;;
+				7)	exec 7> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
+					lock_acquired=1
+					;;
+				8)	exec 8> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
+					lock_acquired=1
+					;;
+				9)	exec 9> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
+					lock_acquired=1
+					;;
+				*) die "Invalid file descriptor" ;;
+			esac
+			[ $lock_acquired ] && break
+		done
+		set +o noclobber
+		[ $lock_acquired ] || return 1
+	) || return 1
+	update_status "acquire_lock"
 }
 
 release_lock ()
 {
-	exec 8<&- || return 1
-	exec 8>&- || return 1
-	"${EASYTLS_RM}" -f "${easytls_lock_file}"
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+		case ${2} in
+		1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
+		2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
+		3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
+		4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
+		5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
+		6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
+		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
+		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
+		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
+		*) die "Invalid file descriptor" ;;
+		esac
+	"${EASYTLS_RM}" -f "${1}"
 	update_status "release_lock"
 }
 
@@ -493,81 +550,99 @@ write_metadata_file ()
 	# Set the client_md_file
 	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
 
+	# *** THIS SEEMS TO BE SOLVED but keep this code for now ***
 	# If client_metadata_file exists then delete it if is stale
+	#if [ -f "${client_md_file}" ]
+	#then
+	#	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
+	#	md_file_age_sec=$((local_date_sec - md_file_date_sec))
+	#	if [ ${md_file_age_sec} -gt ${EASYTLS_STALE_SEC} ]
+	#	then
+	#		# Log the stale file for debug
+	#		{
+	#			"${EASYTLS_CAT}" "${client_md_file}.stale"
+	#			"${EASYTLS_CAT}" "${client_md_file}"
+	#		} > "${client_md_file}.stale.temp"
+	#		"${EASYTLS_MV}" -f \
+	#				"${client_md_file}.stale.temp" "${client_md_file}.stale"
+	#		# Remove the stale file
+	#		"${EASYTLS_RM}" -f "${client_md_file}"
+	#
+	#		update_status "stale metadata Moved"
+	#		tlskey_status "> --STALE-- >"
+	#		#die "stale TEST"
+	#	fi
+	#fi
+
+	# Lock
+	acquire_lock "${easytls_lock_file}-stack" 6 || \
+		die "v2-stack:acquire_lock-FAIL" 99
+
+	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
 	if [ -f "${client_md_file}" ]
 	then
-		md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
-		md_file_age_sec=$((local_date_sec - md_file_date_sec))
-		if [ ${md_file_age_sec} -gt ${EASYTLS_STALE_SEC} ]
-		then
-			# Log the stale file for debug
-			{
-				"${EASYTLS_CAT}" "${client_md_file}.stale"
-				"${EASYTLS_CAT}" "${client_md_file}"
-			} > "${client_md_file}.stale.temp"
-			"${EASYTLS_MV}" -f \
-					"${client_md_file}.stale.temp" "${client_md_file}.stale"
-			# Remove the stale file
-			"${EASYTLS_RM}" -f "${client_md_file}"
-
-			update_status "stale metadata Moved"
-			tlskey_status "* STALE >--"
-			#die "stale TEST"
-		fi
+		stack_up || die "stack_up"
+	else
+		:
 	fi
 
-	# Stack up duplicate metadata files
-	stack_up || die "stack_up"
-
-	# If client_md_file still exists then die
 	if [ -f "${client_md_file}" ]
 	then
+		# If client_md_file still exists then fail
 		tlskey_status "STALE_FILE_ERROR"
-		die "STALE_FILE_ERROR"
+		keep_metadata=1
+		fail_and_exit "STALE_FILE_ERROR" 101
 	else
+		# Otherwise stack-up
 		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
 			die "Failed to create client_md_file" 89
 		update_status "Created client_md_file"
 	fi
+	# Lock
+	release_lock "${easytls_lock_file}-stack" 6 || \
+		die "v2-stack:release_lock" 99
 } # => write_metadata_file ()
 
 # Stack up
 stack_up ()
 {
-	if [ -f "${client_md_file}" ]
+	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE"
+	stack_completed=1
+
+	i=1
+	s=''
+
+	if [ ! $ENABLE_STACK ]
 	then
-		i=0
-		s=''
-		while :
-		do
-			i=$(( i + 1 ))
-			if [ -f "${client_md_file}_${i}" ]
-			then
-				s="${s}+${i}"
-				continue
-			else
-				client_md_file="${client_md_file}_${i}"
-				s="${s}+${i}"
-				break
-			fi
-		done
-		update_status "stack-up"
-		tlskey_status "^ stack-up: ${s} >"
-	else
-		update_status "stack-empty"
-		tlskey_status "^ stack-up: empty >"
+		return 0
 	fi
+
+	while :
+	do
+		if [ -f "${client_md_file}_${i}" ]
+		then
+			s="${s}."
+			i=$(( i + 1 ))
+			continue
+		else
+			client_md_file="${client_md_file}_${i}"
+			s="${s}${i}"
+			#"${EASYTLS_PRINTF}" '\n%s\n\n' "********* STACK-UP *********"
+			break
+		fi
+	done
+	update_status "stack-up"
+	tlskey_status " |= : stack+ ${s} -"
 }
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}")"
+	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s ' "${dt}"
-		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${tlskey_serial}"
-		"${EASYTLS_PRINTF}" '%s\n' "Vrfy-${1}"
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" "${tlskey_serial}" \
+			"VRFY ${1}" "${md_name}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
@@ -671,7 +746,8 @@ deps ()
 	easytls_lock_file="${temp_stub}-lock"
 
 	# Lock
-	acquire_lock || exit 99
+	acquire_lock "${easytls_lock_file}-v2" 5 || \
+		die "v2:acquire_lock-FAIL" 99
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
@@ -1160,13 +1236,14 @@ connection_allowed
 write_metadata_file
 
 # Unlock
-release_lock
+release_lock "${easytls_lock_file}-v2" 5 || \
+		die "v2:release_lock" 99
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
 	# TLSKEY connect log
-	tlskey_status "OK" || update_status "tlskey_status FAIL"
+	tlskey_status "+   : OK" || update_status "tlskey_status FAIL"
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
