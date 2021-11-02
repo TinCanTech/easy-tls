@@ -46,8 +46,13 @@ metadata_string_to_vars ()
 		md_name="${6}"
 		md_subkey="${7}"
 		md_opt="${8}"
-		md_hwadds="${9}"
 	fi
+
+	md_hwadds="${9}"
+	[ $generic_metadata ] && g_md_hwadds=${md_hwadds} && unset md_hwadds
+	[ $client_metadata ] && c_md_hwadds=${md_hwadds} && unset md_hwadds
+
+	return 0
 } # => metadata_string_to_vars ()
 
 # shellcheck disable=SC2154 # metadata_string
