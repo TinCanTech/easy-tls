@@ -127,7 +127,7 @@ fail_and_exit ()
 	print "${1}"
 
 	# TLSKEY connect log
-	tlskey_status "FAIL" || update_status "tlskey_status FAIL"
+	tlskey_status "!*! FAIL" || update_status "tlskey_status FAIL"
 
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
@@ -248,6 +248,10 @@ update_conntrac ()
 			conntrac_error=1
 			log_env=1
 		;;
+		9)	# Absolutely fatal
+			ENABLE_KILL_PPID=1
+			die "CONNTRAC_DISCONNECT_CT_LOCK_9.1" 96
+		;;
 		*)	# Absolutely fatal
 			ENABLE_KILL_PPID=1
 			die "CONNTRAC_DISCONNECT_UNKNOWN" 98
@@ -274,6 +278,10 @@ update_conntrac ()
 				update_status "conn_trac_disconnect A-ERROR"
 				conntrac_alt_error=1
 				log_env=1
+			;;
+			9)	# Absolutely fatal
+				ENABLE_KILL_PPID=1
+				die "CONNTRAC_DISCONNECT_CT_LOCK_9.2" 96
 			;;
 			*)	# Absolutely fatal
 				ENABLE_KILL_PPID=1
@@ -356,16 +364,99 @@ update_conntrac ()
 		ip_pool_exhausted log_env
 } # => update_conntrac ()
 
+stack_clear ()
+{
+	# This deletes too many files ..
+	#"${EASYTLS_RM}" -f "${temp_stub}-tcv2-metadata-"*
+	tlskey_status "===   stack- CLEAR-ALL ===[ @ BUG-BUG @ ] === >"
+}
+
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}")"
+	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s ' "${dt}"
-		"${EASYTLS_PRINTF}" '%s ' "TLSKEY:${UV_TLSKEY_SERIAL:-TLSAC}"
-		"${EASYTLS_PRINTF}" '%s\n' "Disc-${1}"
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" "${UV_TLSKEY_SERIAL}" \
+			"DISC ${1}" "${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
+}
+
+# Simple lock file
+acquire_lock ()
+{
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+	(
+		lock_attempt=5
+		set -o noclobber
+		while [ ${lock_attempt} -gt 0 ]; do
+			lock_attempt=$(( lock_attempt - 1 ))
+			case ${2} in
+				1)	exec 1> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
+					lock_acquired=1
+					;;
+				2)	exec 2> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
+					lock_acquired=1
+					;;
+				3)	exec 3> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
+					lock_acquired=1
+					;;
+				4)	exec 4> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
+					lock_acquired=1
+					;;
+				5)	exec 5> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
+					lock_acquired=1
+					;;
+				6)	exec 6> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
+					lock_acquired=1
+					;;
+				7)	exec 7> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
+					lock_acquired=1
+					;;
+				8)	exec 8> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
+					lock_acquired=1
+					;;
+				9)	exec 9> "${1}" || continue
+					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
+					lock_acquired=1
+					;;
+				*) die "Invalid file descriptor" ;;
+			esac
+			[ $lock_acquired ] && break
+		done
+		set +o noclobber
+		[ $lock_acquired ] || return 1
+	) || return 1
+	update_status "acquire_lock"
+}
+
+release_lock ()
+{
+	[ -n "${1}" ] || return 1
+	[ ${2} -gt 0 ] || return 1
+		case ${2} in
+		1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
+		2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
+		3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
+		4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
+		5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
+		6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
+		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
+		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
+		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
+		*) die "Invalid file descriptor" ;;
+		esac
+	"${EASYTLS_RM}" -f "${1}"
+	update_status "release_lock"
 }
 
 # Initialise
@@ -584,7 +675,7 @@ then
 	#delete_metadata_files
 
 	# TLSKEY connect log
-	tlskey_status "OK" || update_status "tlskey_status FAIL"
+	tlskey_status "---   OK" || update_status "tlskey_status FAIL"
 
 	# All is well
 	verbose_print "<EXOK> ${status_msg}"
