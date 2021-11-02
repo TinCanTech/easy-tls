@@ -21,26 +21,6 @@ copyright ()
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
-# Simple lock file
-acquire_lock ()
-{
-	exec 2>/dev/null
-	set -o noclobber
-	exec 8> "${easytls_ct_lock_file}" || return 1
-	printf "%s" "$$" >&8 || return 1
-	exec 8< "${easytls_ct_lock_file}" || return 1
-	set +o noclobber
-	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac: acquire_lock"
-}
-
-release_lock ()
-{
-	exec 8<&- || return 1
-	exec 8>&- || return 1
-	"${EASYTLS_RM}" -f "${easytls_ct_lock_file}"
-	[ ! $VERBOSE_CONN_TRAC ] || update_status "conntrac: release_lock"
-}
-
 # Connection tacking - Connect
 conn_trac_connect ()
 {
@@ -51,13 +31,13 @@ conn_trac_connect ()
 	easytls_ct_log="${2}.log"
 	unset err_exit record_found ct_ig_ipp_ex ct_tlskey_found
 
-	acquire_lock || return 9
+	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	if [ $ENABLE_CONN_TRAC_STATS ]
 	then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
-			release_lock || return 9
+			release_lock "${easytls_ct_lock_file}" 7 || return 9
 			}
 	fi
 
@@ -82,10 +62,13 @@ conn_trac_connect ()
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
-					[ $record_found ] || \
+					[ $record_found ] || {
 						update_status "conntrac: already registered"
+						#tlskey_status " }% : ct: duplicate -"
+						}
+
 					[ $ip_pool_exhausted ] && \
-						ct_ig_ipp_ex="${ct_ig_ipp_ex} X"
+						ct_ig_ipp_ex="${ct_ig_ipp_ex}X"
 					record_found=1
 				else
 					# Print the existing record
@@ -98,8 +81,8 @@ conn_trac_connect ()
 
 			# Add Ignore stats
 			[ -z "${ct_ig_ipp_ex}" ] || {
-				update_status "IGN-IPP-EX:${ct_ig_ipp_ex}"
-				tlskey_status "* TLSK-DUP: ${ct_ig_ipp_ex} >"
+				update_status "IGN-IPP-EX: ${ct_ig_ipp_ex}"
+				tlskey_status " |% : ct: dup-TLSK: ${ct_ig_ipp_ex} -"
 				}
 
 		} > "${easytls_temp_file}" || err_exit=1
@@ -111,16 +94,16 @@ conn_trac_connect ()
 			err_exit=${err_exit:-2}
 		else
 			update_status "conntrac: registered"
+			tlskey_status " |% : ct: registered -"
 		fi
 	else
 		# conntrac file does not exist, create it now
-		{
-			"${EASYTLS_PRINTF}" "%s\n" "${1}"
-		} > "${2}" || err_exit=1
-		update_status "conntrac: registered OPENED"
-		tlskey_status "*conntrac: registered OPENED >"
+		"${EASYTLS_PRINTF}" "%s\n" "${1}" > "${2}" || err_exit=1
+		update_status "conntrac: OPENED registered"
+		tlskey_status " O%   ct: OPENED -"
+		tlskey_status " |% : ct: registered -"
 	fi
-	release_lock || return 9
+	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	err_exit=${err_exit:-0}
 	[ $err_exit -eq 0 ] && [ $ct_tlskey_found ] && err_exit=6
@@ -139,13 +122,13 @@ conn_trac_disconnect ()
 	easytls_ct_log="${2}.log"
 	unset err_exit record_found ct_ig_ipp_ex
 
-	acquire_lock || return 9
+	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	if [ $ENABLE_CONN_TRAC_STATS ]
 	then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
-			release_lock || return 9
+			release_lock "${easytls_ct_lock_file}" 7 || return 9
 			}
 	fi
 
@@ -167,10 +150,12 @@ conn_trac_disconnect ()
 					[ $record_found ] && \
 						"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 					[ $record_found ] && [ $ip_pool_exhausted ] && \
-						ct_ig_ipp_ex="${ct_ig_ipp_ex} X"
+						ct_ig_ipp_ex="${ct_ig_ipp_ex}X"
 					# Matched - Do not Print
-					[ $record_found ] || \
+					[ $record_found ] || {
 						update_status "conntrac: unregistered"
+						tlskey_status " |% : ct: unregistered -"
+						}
 					record_found=1
 				else
 					# No match - Print current record
@@ -180,8 +165,8 @@ conn_trac_disconnect ()
 
 			# Add Ignore stats
 			[ -z "${ct_ig_ipp_ex}" ] || {
-				update_status "IGN-IPP-EX:${ct_ig_ipp_ex}"
-				tlskey_status "* TLSK-DUP:${ct_ig_ipp_ex} >"
+				update_status "IGN-IPP-EX: ${ct_ig_ipp_ex}"
+				tlskey_status " |% : ct: TLSK-DUP: ${ct_ig_ipp_ex} -"
 				}
 
 		} > "${easytls_temp_file}" || err_exit=1
@@ -194,14 +179,16 @@ conn_trac_disconnect ()
 			}
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"
-			update_status "conntrac: RESET"
-			tlskey_status "* conntrac: RESET >"
+			update_status "conntrac: CLOSED"
+			tlskey_status " X%   ct: CLOSED -"
+			# hmm..
+			#stack_clear || err_exit 8
 			}
 	else
 		update_status "conntrac: file not found"
 		err_exit=3
 	fi
-	release_lock || return 9
+	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	err_exit=${err_exit:-0}
 	unset easytls_ct_lock_file easytls_temp_file conn \
