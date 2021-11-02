@@ -2802,17 +2802,20 @@ remove_metadata ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Actual inline-file hash
+	force_hash=1
 	generate_and_validate_file_hash "${inline_file}" verified_inline_hash || {
 		error_msg "generate_and_validate_file_hash - remove_metadata"
 		error_msg "${inline_file}"
 		return 1
 		}
+	unset force_hash
 
 	# Remove client from inline index
 	known_inline_hash=${verified_inline_hash}
 	inline_serial="$(inline_index_ilhash_to_serial)"
 	inline_index_update del || die "Failed to update inline-index"
 
+	# Edit metadata
 	if [ -n "${1}" ]
 	then
 		while [ -n "${1}" ]
