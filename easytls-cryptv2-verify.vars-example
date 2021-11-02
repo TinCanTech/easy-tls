@@ -37,6 +37,7 @@
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1
+#ENABLE_STACK=1
 
 # Disable TLS-KEY serial number hash check
 #unset VERIFY_hash
