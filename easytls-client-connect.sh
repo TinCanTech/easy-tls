@@ -156,7 +156,7 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	# shellcheck disable=SC2154 # auth_control_file
-	"${EASYTLS_RM}" -f "${EASYTLS_KILL_FILE}" "${fake_md_file}"
+	"${EASYTLS_RM}" -f "${EASYTLS_KILL_FILE}"
 
 	# stack_down takes care of "${fixed_md_file}"
 
@@ -382,13 +382,14 @@ stack_down ()
 				update_status "stack-down: ${p}"
 				tlskey_status " |= : stack- ${s}${p} -"
 			fi
-			#"${EASYTLS_PRINTF}" '\n%s\n\n' "********* STACK-DOWN *********"
 			break
 		fi
 	done
+
 	# Unlock
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:release_lock" 99
+
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
 }
 
@@ -405,6 +406,17 @@ tlskey_status ()
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
+# Retry pause
+retry_pause ()
+{
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		ping -n 1 127.0.0.1
+	else
+		sleep 1
+	fi
+}
+
 # Simple lock file - Move this to a lib
 acquire_lock ()
 {
@@ -414,6 +426,7 @@ acquire_lock ()
 		lock_attempt=5
 		set -o noclobber
 		while [ ${lock_attempt} -gt 0 ]; do
+			[ ${lock_attempt} -eq 5 ] || retry_pause
 			lock_attempt=$(( lock_attempt - 1 ))
 			case ${2} in
 				1)	exec 1> "${1}" || continue
@@ -555,9 +568,6 @@ deps ()
 	# Lock file
 	easytls_lock_file="${temp_stub}-lock"
 
-	# Lock
-	#acquire_lock 5 || exit 99
-
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
@@ -694,10 +704,6 @@ deps
 	unset env_file
 	}
 
-
-# flush auth-control file
-#"${EASYTLS_RM}" -f "${auth_control_file}"
-
 # Update log message
 # shellcheck disable=SC2154 # common_name
 [ -n "${common_name}" ] || die "Missing common_name"
@@ -731,37 +737,20 @@ then
 	update_status "Kill client signal"
 fi
 
-# fake file for TLS-AC
-generic_md_stub="${temp_stub}-tac-metadata"
-client_md_stub="${generic_md_stub}-${client_serial}"
-fake_md_file="${client_md_stub}-fake"
-
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]
 then
 	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
+	# This is correct behaviour for --tls-auth/crypt v1
 	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
-
-		# This is correct behaviour for --tls-auth/crypt v1
-		# Create a fake metadata file
-		# Add indicator for TLS Auth/Crypt
-		# TODO: check for existing file
-		#"${EASYTLS_PRINTF}" '%s' '=TLSAC= =000000000000=' > \
-		#	"${fake_md_file}" || \
-		#		die "Failed to create fake_md_file"
-		#update_status "created fake_md_file"
-
 	no_uv_tlskey_serial=1
 fi
 
 # Verify tcv2_metadata_file
 if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]
 then
-	# Set Client tlskey_serial
-	#tls_crypt_v2=1
-
 	# Get client metadata_string
 	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
 	[ -n "${metadata_string}" ] || \
@@ -803,20 +792,6 @@ then
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
 	update_status "IGNORE TLS-Auth/Crypt-v1 only"
-
-#	fixed_md_file="${generic_md_stub}-${client_serial}"
-#	if [ -f "${fixed_md_file}" ]
-#	then
-#		help_note="* Duplicate certificate *"
-#		die "Exists fixed_md_file"
-#	else
-#		"${EASYTLS_MV}" "${fake_md_file}" "${fixed_md_file}" || \
-#			die "Failed to create fake fixed_md_file"
-#		update_status "Moved fake_md_file to fixed_md_file"
-#	fi
-#
-	# TLS Auth/Crypt cannot do extended checks so allow_no_check
-	#tls_acv1_only=1
 
 else
 	die "Unexpected condition"
