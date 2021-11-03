@@ -467,6 +467,17 @@ connection_allowed ()
 	update_status "connection allowed"
 }
 
+# Retry pause
+retry_pause ()
+{
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		ping -n 1 127.0.0.1
+	else
+		sleep 1
+	fi
+}
+
 # Simple lock file - Move this to a lib
 acquire_lock ()
 {
@@ -476,6 +487,7 @@ acquire_lock ()
 		lock_attempt=5
 		set -o noclobber
 		while [ ${lock_attempt} -gt 0 ]; do
+			[ ${lock_attempt} -eq 5 ] || retry_pause
 			lock_attempt=$(( lock_attempt - 1 ))
 			case ${2} in
 				1)	exec 1> "${1}" || continue
@@ -550,30 +562,6 @@ write_metadata_file ()
 	# Set the client_md_file
 	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
 
-	# *** THIS SEEMS TO BE SOLVED but keep this code for now ***
-	# If client_metadata_file exists then delete it if is stale
-	#if [ -f "${client_md_file}" ]
-	#then
-	#	md_file_date_sec="$("${EASYTLS_DATE}" +%s -r "${client_md_file}")"
-	#	md_file_age_sec=$((local_date_sec - md_file_date_sec))
-	#	if [ ${md_file_age_sec} -gt ${EASYTLS_STALE_SEC} ]
-	#	then
-	#		# Log the stale file for debug
-	#		{
-	#			"${EASYTLS_CAT}" "${client_md_file}.stale"
-	#			"${EASYTLS_CAT}" "${client_md_file}"
-	#		} > "${client_md_file}.stale.temp"
-	#		"${EASYTLS_MV}" -f \
-	#				"${client_md_file}.stale.temp" "${client_md_file}.stale"
-	#		# Remove the stale file
-	#		"${EASYTLS_RM}" -f "${client_md_file}"
-	#
-	#		update_status "stale metadata Moved"
-	#		tlskey_status "> --STALE-- >"
-	#		#die "stale TEST"
-	#	fi
-	#fi
-
 	# Lock
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
 		die "v2-stack:acquire_lock-FAIL" 99
@@ -582,8 +570,6 @@ write_metadata_file ()
 	if [ -f "${client_md_file}" ]
 	then
 		stack_up || die "stack_up"
-	else
-		:
 	fi
 
 	if [ -f "${client_md_file}" ]
@@ -627,7 +613,6 @@ stack_up ()
 		else
 			client_md_file="${client_md_file}_${i}"
 			s="${s}${i}"
-			#"${EASYTLS_PRINTF}" '\n%s\n\n' "********* STACK-UP *********"
 			break
 		fi
 	done
@@ -753,17 +738,11 @@ deps ()
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
 
-	# Conn track
-	#EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
-
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
-
-	# Temp file age before stale
-	EASYTLS_STALE_SEC="${EASYTLS_STALE_SEC:-120}"
 
 	# CA_dir MUST be set with option: -c|--ca
 	[ -d "${CA_dir}" ] || die "Path to CA directory is required, see help" 22
@@ -775,7 +754,7 @@ deps ()
 
 	# Check TLS files
 	[ -d "${TLS_dir}" ] || {
-		help_note="Use './easytls init <no-ca>"
+		help_note="Use './easytls init [no-ca]"
 		die "Missing EasyTLS dir: ${TLS_dir}"
 		}
 
@@ -1236,8 +1215,7 @@ connection_allowed
 write_metadata_file
 
 # Unlock
-release_lock "${easytls_lock_file}-v2" 5 || \
-		die "v2:release_lock" 99
+release_lock "${easytls_lock_file}-v2" 5 || die "v2:release_lock" 99
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]

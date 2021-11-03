@@ -28,13 +28,6 @@
 # TLS-Crypt-V2 key max age
 #tlskey_max_age=365
 
-# Max seconds to allow a stale metadata file to exist
-# Must allow for deferred user/pass authentication and
-# possible connection overlap due to non-atomic temp file actions
-# This is the time a client metadata-file is allowed to exist
-# If this time-out has not expired then file-stacking will occur
-#EASYTLS_STALE_SEC=120
-
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1
 #ENABLE_STACK=1
