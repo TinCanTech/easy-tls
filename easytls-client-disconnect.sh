@@ -82,6 +82,7 @@ help_text ()
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
 print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
+
 verbose_print ()
 {
 	[ "${EASYTLS_VERBOSE}" ] || return 0
@@ -121,7 +122,7 @@ die ()
 # failure not an error
 fail_and_exit ()
 {
-	#delete_metadata_files
+	delete_metadata_files
 	print "<FAIL> ${status_msg}"
 	print "${failure_msg}"
 	print "${1}"
@@ -137,9 +138,7 @@ fail_and_exit ()
 # Delete all metadata files - Currently UNUSED
 delete_metadata_files ()
 {
-	"${EASYTLS_RM}" -f \
-		"${EASYTLS_KILL_FILE}"
-
+	"${EASYTLS_RM}" -f "${EASYTLS_KILL_FILE}"
 	update_status "temp-files deleted"
 }
 
@@ -393,14 +392,14 @@ stack_down ()
 			f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}_${i}")"
 
 			# shellcheck disable=SC2154
-			if [ $((time_unix - f_date)) -gt 240 ]
+			if [ $((time_unix - f_date)) -gt ${EASYTLS_STALE_SEC} ]
 			then
 				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
 				tlskey_status " |= : stack- ${s}${i} STALE -"
 				dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 				"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
-					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_LOG}"
+					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_XLOG}"
 			fi
 
 		else
@@ -409,19 +408,20 @@ stack_down ()
 	done
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}")"
-	if [ $((time_unix - f_date)) -gt 240 ]
+	if [ $((time_unix - f_date)) -gt ${EASYTLS_STALE_SEC} ]
 	then
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 		update_status "stack-down: clear"
 		tlskey_status " |= : stack- clear -"
 		dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 		"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
-			"${fixed_md_file}" >> "${EASYTLS_SE_LOG}"
+			"${fixed_md_file}" >> "${EASYTLS_SE_XLOG}"
 	fi
 
 	# Unlock
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:release_lock" 99
+
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
 }
 
@@ -436,6 +436,17 @@ tlskey_status ()
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
+# Retry pause
+retry_pause ()
+{
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		ping -n 1 127.0.0.1
+	else
+		sleep 1
+	fi
+}
+
 # Simple lock file
 acquire_lock ()
 {
@@ -445,6 +456,7 @@ acquire_lock ()
 		lock_attempt=5
 		set -o noclobber
 		while [ ${lock_attempt} -gt 0 ]; do
+			[ ${lock_attempt} -eq 5 ] || retry_pause
 			lock_attempt=$(( lock_attempt - 1 ))
 			case ${2} in
 				1)	exec 1> "${1}" || continue
@@ -588,8 +600,13 @@ deps ()
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
+
+	# Xtra logs - TLS Key status & Stack Errors
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
-	EASYTLS_SE_LOG="${temp_stub}-tcv2-se.x-log"
+	EASYTLS_SE_XLOG="${temp_stub}-tcv2-se.x-log"
+
+	# Temp file age before stale
+	EASYTLS_STALE_SEC="${EASYTLS_STALE_SEC:-240}"
 
 	# Source metadata lib
 	prog_dir="${0%/*}"
@@ -749,7 +766,7 @@ disconnect_accepted
 if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
-	#delete_metadata_files
+	delete_metadata_files
 
 	# TLSKEY connect log
 	tlskey_status "---   OK" || update_status "tlskey_status FAIL"
