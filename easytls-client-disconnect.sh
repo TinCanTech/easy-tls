@@ -364,11 +364,65 @@ update_conntrac ()
 		ip_pool_exhausted log_env
 } # => update_conntrac ()
 
-stack_clear ()
+# Stack down
+stack_down ()
 {
-	# This deletes too many files ..
-	#"${EASYTLS_RM}" -f "${temp_stub}-tcv2-metadata-"*
-	tlskey_status "===   stack- CLEAR-ALL ===[ @ BUG-BUG @ ] === >"
+	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE"
+	stack_completed=1
+
+	[ $ENABLE_STACK ] || return 0
+
+	# Only required if this file exists
+	[ -f "${fixed_md_file}" ] || return 0
+
+	# Lock
+	acquire_lock "${easytls_lock_file}-stack" 6 || \
+		die "cc-stack:acquire_lock-FAIL" 99
+
+	unset stack_err
+	i=0
+	s=''
+
+	while :
+	do
+		i=$(( i + 1 ))
+		if [ -f "${fixed_md_file}_${i}" ]
+		then
+			s="${s}."
+
+			f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}_${i}")"
+
+			# shellcheck disable=SC2154
+			if [ $((time_unix - f_date)) -gt 240 ]
+			then
+				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
+				update_status "stack-down: ${i} STALE"
+				tlskey_status " |= : stack- ${s}${i} STALE -"
+				dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
+				"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
+					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_LOG}"
+			fi
+
+		else
+			break
+		fi
+	done
+
+	f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}")"
+	if [ $((time_unix - f_date)) -gt 240 ]
+	then
+		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
+		update_status "stack-down: clear"
+		tlskey_status " |= : stack- clear -"
+		dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
+		"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
+			"${fixed_md_file}" >> "${EASYTLS_SE_LOG}"
+	fi
+
+	# Unlock
+	release_lock "${easytls_lock_file}-stack" 6 || \
+		die "cc-stack:release_lock" 99
+	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
 }
 
 # TLSKEY tracking .. because ..
@@ -529,9 +583,13 @@ deps ()
 	# Temp files name stub
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
+	# Lock file
+	easytls_lock_file="${temp_stub}-lock"
+
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
+	EASYTLS_SE_LOG="${temp_stub}-tcv2-se.x-log"
 
 	# Source metadata lib
 	prog_dir="${0%/*}"
@@ -648,6 +706,25 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	help_note="Openvpn failed to pass a client serial number"
 	die "NO CLIENT SERIAL" 8
 	}
+
+# Fixed file for TLS-CV2
+if [ -n "${UV_TLSKEY_SERIAL}" ]
+then
+	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
+	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
+else
+	no_uv_tlskey_serial=1
+fi
+
+# Clear old stack now - because there is still a stack problem
+# Could be the script or openvpn
+if [ $no_uv_tlskey_serial ]
+then
+	# TLS-AUTH/Crypt does not stack up
+	:
+else
+	stack_down || die "stack_down FAIL"
+fi
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
