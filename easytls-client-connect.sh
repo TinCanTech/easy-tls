@@ -365,7 +365,7 @@ stack_down ()
 		i=$(( i + 1 ))
 		if [ -f "${fixed_md_file}_${i}" ]
 		then
-			s="${s}."
+			[ ${i} -eq 1 ] || s="${s}."
 		else
 			if [ ${i} -eq 1 ]
 			then
