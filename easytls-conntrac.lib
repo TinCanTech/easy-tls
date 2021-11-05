@@ -62,8 +62,7 @@ conn_trac_connect ()
 
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
-					# TODO: Re-think this logic
-					# Log and count duplicate
+					# Log and count duplicate - only the first time
 					[ $record_found ] || {
 						update_status "conntrac: already registered"
 						ct_tlskey_duplicate=$(( ct_tlskey_duplicate + 1 ))
@@ -99,7 +98,8 @@ conn_trac_connect ()
 		# This was used for #160/1434 - Re-think it soon
 		if [ $record_found ]
 		then
-			err_exit=${err_exit:-2}
+			# IP exhausted
+			:
 		else
 			update_status "conntrac: registered"
 			tlskey_status "  | >  ct: register -"
