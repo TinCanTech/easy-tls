@@ -29,7 +29,8 @@ conn_trac_connect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit record_found ct_ig_ipp_ex ct_tlskey_found
+	unset err_exit record_found ct_ig_ipp_ex \
+		ct_tlskey_found ct_tlskey_duplicate
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
@@ -61,15 +62,19 @@ conn_trac_connect ()
 
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
-					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
+					# TODO: Re-think this logic
+					# Log and count duplicate
 					[ $record_found ] || {
 						update_status "conntrac: already registered"
-						#tlskey_status " }% : ct: duplicate -"
+						ct_tlskey_duplicate=$(( ct_tlskey_duplicate + 1 ))
 						}
-
+					# IP exhausted is the only way to get a duplicate
+					# otherwise, openvpn hands out unique VPN IPs
 					[ $ip_pool_exhausted ] && \
-						ct_ig_ipp_ex="${ct_ig_ipp_ex}X"
+						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
+					# Duplicate, because ct will add the same again
 					record_found=1
+					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				else
 					# Print the existing record
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
@@ -81,34 +86,37 @@ conn_trac_connect ()
 
 			# Add Ignore stats
 			[ -z "${ct_ig_ipp_ex}" ] || {
-				update_status "IGN-IPP-EX: ${ct_ig_ipp_ex}"
-				tlskey_status " |% : ct: dup-TLSK: ${ct_ig_ipp_ex} -"
+				ct_ig_ipp_ex="${ct_ig_ipp_ex%.}"
+				update_status "IGN-IPP-EX: ${ct_tlskey_duplicate}"
+				tlskey_status \
+					"  | ^^ ct: dup-TLSK: ${ct_ig_ipp_ex}${ct_tlskey_duplicate} -"
 				}
 
 		} > "${easytls_temp_file}" || err_exit=1
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
+		# This was used for #160/1434 - Re-think it soon
 		if [ $record_found ]
 		then
 			err_exit=${err_exit:-2}
 		else
 			update_status "conntrac: registered"
-			tlskey_status " |% : ct: registered -"
+			tlskey_status "  | >  ct: register -"
 		fi
 	else
 		# conntrac file does not exist, create it now
 		"${EASYTLS_PRINTF}" "%s\n" "${1}" > "${2}" || err_exit=1
 		update_status "conntrac: OPENED registered"
-		tlskey_status " O%   ct: OPENED -"
-		tlskey_status " |% : ct: registered -"
+		tlskey_status " <O> * ct: *OPENED* -"
+		tlskey_status "  | >  ct: register -"
 	fi
 	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	err_exit=${err_exit:-0}
 	[ $err_exit -eq 0 ] && [ $ct_tlskey_found ] && err_exit=6
-	unset easytls_ct_lock_file easytls_temp_file conn \
-			record_found ct_ig_ipp_ex ct_tlskey_found
+	unset easytls_ct_lock_file easytls_temp_file conn record_found \
+		ct_ig_ipp_ex ct_tlskey_found ct_tlskey_duplicate
 	return ${err_exit}
 } # => conn_trac_connect ()
 
@@ -150,11 +158,11 @@ conn_trac_disconnect ()
 					[ $record_found ] && \
 						"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 					[ $record_found ] && [ $ip_pool_exhausted ] && \
-						ct_ig_ipp_ex="${ct_ig_ipp_ex}X"
+						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Matched - Do not Print
 					[ $record_found ] || {
 						update_status "conntrac: unregistered"
-						tlskey_status " |% : ct: unregistered -"
+						tlskey_status "  |<   ct: unregist -"
 						}
 					record_found=1
 				else
@@ -166,7 +174,7 @@ conn_trac_disconnect ()
 			# Add Ignore stats
 			[ -z "${ct_ig_ipp_ex}" ] || {
 				update_status "IGN-IPP-EX: ${ct_ig_ipp_ex}"
-				tlskey_status " |% : ct: TLSK-DUP: ${ct_ig_ipp_ex} -"
+				tlskey_status "  | ^^ ct: TLSK-DUP: ${ct_ig_ipp_ex} -"
 				}
 
 		} > "${easytls_temp_file}" || err_exit=1
@@ -180,9 +188,7 @@ conn_trac_disconnect ()
 		[ -s "${2}" ] || {
 			"${EASYTLS_RM}" -f "${2}"
 			update_status "conntrac: CLOSED"
-			tlskey_status " X%   ct: CLOSED -"
-			# hmm..
-			#stack_clear || err_exit 8
+			tlskey_status " >X< * ct: *CLOSED* -"
 			}
 	else
 		update_status "conntrac: file not found"
@@ -205,4 +211,5 @@ conn_trac_stats ()
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || return 1
 	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || return 1
 	update_status "conntrac: tallied"
+	tlskey_status "  |;   ct: tallied  -"
 }
