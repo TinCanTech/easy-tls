@@ -387,18 +387,17 @@ stack_down ()
 		i=$(( i + 1 ))
 		if [ -f "${fixed_md_file}_${i}" ]
 		then
-			s="${s}."
+			[ ${i} -eq 1 ] || s="${s}."
 
 			f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}_${i}")"
 
 			# shellcheck disable=SC2154
-			if [ $((time_unix - f_date)) -gt ${EASYTLS_STALE_SEC} ]
+			if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]
 			then
 				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
-				tlskey_status " |= : stack- ${s}${i} STALE -"
-				dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
-				"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
+				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
+				"${EASYTLS_PRINTF}" '%s %s\n' "${time_ascii}" \
 					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_XLOG}"
 			fi
 
@@ -408,13 +407,12 @@ stack_down ()
 	done
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}")"
-	if [ $((time_unix - f_date)) -gt ${EASYTLS_STALE_SEC} ]
+	if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]
 	then
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 		update_status "stack-down: clear"
-		tlskey_status " |= : stack- clear -"
-		dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
-		"${EASYTLS_PRINTF}" '%s %s\n' "${dt}" \
+		tlskey_status "  | =  stack: clear -"
+		"${EASYTLS_PRINTF}" '%s %s\n' "${local_date_ascii}" \
 			"${fixed_md_file}" >> "${EASYTLS_SE_XLOG}"
 	fi
 
@@ -429,10 +427,9 @@ stack_down ()
 tlskey_status ()
 {
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" "${UV_TLSKEY_SERIAL}" \
-			"DISC ${1}" "${common_name} ${UV_REAL_NAME}"
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
+			"${UV_TLSKEY_SERIAL}" "[dis]${1}" "${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
@@ -598,6 +595,11 @@ deps ()
 	# Lock file
 	easytls_lock_file="${temp_stub}-lock"
 
+	# Need the date/time ..
+	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
+	local_date_ascii="${full_date##* }"
+	local_date_sec="${full_date%% *}"
+
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
 
@@ -743,6 +745,19 @@ else
 	stack_down || die "stack_down FAIL"
 fi
 
+# disconnect can not fail ..
+disconnect_accepted
+
+# conntrac disconnect
+if [ $ENABLE_CONN_TRAC ]
+then
+	update_conntrac || die "update_conntrac"
+	update_status "conn-trac updated"
+else
+	#update_status "conn-trac disabled"
+	:
+fi
+
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
 
@@ -750,29 +765,17 @@ fi
 [ "${FORCE_ABSOLUTE_FAIL}" ] && \
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
-# conntrac
-if [ $ENABLE_CONN_TRAC ]
-then
-	update_conntrac || die "update_conntrac"
-	update_status "conn-trac updated"
-else
-	update_status "conn-trac disabled"
-fi
-
-# disconnect can not fail ..
-disconnect_accepted
-
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
 	delete_metadata_files
 
-	# TLSKEY connect log
-	tlskey_status "---   OK" || update_status "tlskey_status FAIL"
+	# TLSKEY disconnect log
+	tlskey_status "<<     D-OK"
 
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
