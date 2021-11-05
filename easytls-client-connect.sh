@@ -347,9 +347,11 @@ stack_down ()
 	i=0
 	s=''
 
+	# No Stack DOWN
 	if [ ! $ENABLE_STACK ]
 	then
-		#[ -f "${fixed_md_file}" ] || die "WTF***"
+		# No-Stack means that this file must be deleted now
+		# No other clients can connect with this TCV2 key
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 		[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR"
 
@@ -360,6 +362,7 @@ stack_down ()
 		return 0
 	fi
 
+	# Full Stack DOWN
 	while :
 	do
 		i=$(( i + 1 ))
@@ -373,14 +376,14 @@ stack_down ()
 				[ -f "${fixed_md_file}" ] || die "***"
 				"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 				update_status "stack-down: clear"
-				tlskey_status " |= : stack- clear -"
+				tlskey_status "  | =  stack: clear -"
 			else
 				# Delete the last file found
 				p=$(( i - 1 ))
 				[ -f "${fixed_md_file}_${p}" ] || die "_i***"
 				"${EASYTLS_RM}" "${fixed_md_file}_${p}" || stack_err=1
 				update_status "stack-down: ${p}"
-				tlskey_status " |= : stack- ${s}${p} -"
+				tlskey_status "  | <= stack:- ${s}${p} -"
 			fi
 			break
 		fi
@@ -398,10 +401,10 @@ tlskey_status ()
 {
 	# >> may fail on easytls/github/actions/wtest - No TERM
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" \
-			"${UV_TLSKEY_SERIAL:-TLSAC}" "CONN ${1}" \
+		# shellcheck disable=SC2154
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
+			"${UV_TLSKEY_SERIAL:-TLSAC}" "CONN:${1}" \
 			"${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
@@ -568,6 +571,11 @@ deps ()
 	# Lock file
 	easytls_lock_file="${temp_stub}-lock"
 
+	# Need the date/time ..
+	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
+	local_date_ascii="${full_date##* }"
+	#local_date_sec="${full_date%% *}"
+
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
@@ -719,13 +727,14 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	die "NO CLIENT SERIAL" 8
 	}
 
-# Update connection tracking
+# conntrac connect
 if [ $ENABLE_CONN_TRAC ]
 then
 	update_conntrac || die "update_conntrac FAIL"
 	update_status "conn-trac updated"
 else
-	update_status "conn-trac disabled"
+	#update_status "conn-trac disabled"
+	:
 fi
 
 # Check for kill signal
@@ -930,10 +939,10 @@ then
 	delete_metadata_files || die "CON: delete_metadata_files() ?"
 
 	# TLSKEY connect log
-	tlskey_status "+++   OK" || update_status "tlskey_status FAIL"
+	tlskey_status " >>++> C-OK" || update_status "tlskey_status FAIL"
 
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
