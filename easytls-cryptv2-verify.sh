@@ -598,11 +598,13 @@ stack_up ()
 	i=1
 	s=''
 
+	# No Stack UP
 	if [ ! $ENABLE_STACK ]
 	then
 		return 0
 	fi
 
+	# Full Stack UP
 	while :
 	do
 		if [ -f "${client_md_file}_${i}" ]
@@ -617,17 +619,17 @@ stack_up ()
 		fi
 	done
 	update_status "stack-up"
-	tlskey_status " |= : stack+ ${s} -"
+	tlskey_status "  | => stack:+ ${s} -"
 }
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
-	dt="$("${EASYTLS_DATE}" '+%Y/%m/%d %H:%M:%S %Z')"
 	{
-		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${dt}" "${tlskey_serial}" \
-			"VRFY ${1}" "${md_name}"
+		# shellcheck disable=SC2154
+		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
+			"${tlskey_serial}" "*VF >${1}" "${md_name}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
@@ -839,6 +841,11 @@ deps ()
 
 	# Default CUSTOM_GROUP
 	[ -n "${local_custom_g}" ] || local_custom_g='EASYTLS'
+
+	# Need the date/time ..
+	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
+	local_date_ascii="${full_date##* }"
+	local_date_sec="${full_date%% *}"
 
 	# $metadata_file - Must be set by openvpn
 	# If the script fails for metadata file then
@@ -1071,9 +1078,6 @@ deps
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
-	# current date - Set for all checks which require it, not just key age
-	local_date_sec="$("${EASYTLS_DATE}" +%s)"
-
 	if [ "${tlskey_expire_age_sec}" -gt 0 ]
 	then
 		case "${local_date_sec}" in
@@ -1089,12 +1093,13 @@ deps
 			tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
 
 			# Check key_age is less than --tls-age
-			[ ${tlskey_age_sec} -lt ${tlskey_expire_age_sec} ] || {
-				max_age_msg="Max age: ${tlskey_max_age days}"
-				key_age_msg="Key age: ${tlskey_age_day days}"
+			if [ ${tlskey_age_sec} -gt ${tlskey_expire_age_sec} ]
+			then
+				max_age_msg="Max age: ${tlskey_max_age} days"
+				key_age_msg="Key age: ${tlskey_age_day} days"
 				failure_msg="Key expired: ${max_age_msg} ${key_age_msg}"
 				fail_and_exit "TLSKEY_EXPIRED" 4
-				}
+			fi
 
 			# Success message
 			update_status "Key age ${tlskey_age_day} days OK"
@@ -1221,10 +1226,10 @@ release_lock "${easytls_lock_file}-v2" 5 || die "v2:release_lock" 99
 if [ $absolute_fail -eq 0 ]
 then
 	# TLSKEY connect log
-	tlskey_status "+   : OK" || update_status "tlskey_status FAIL"
+	tlskey_status ">>:    V-OK" || update_status "tlskey_status FAIL"
 
 	# All is well
-	verbose_print "<EXOK> ${status_msg}"
+	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"<EXOK> ${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
