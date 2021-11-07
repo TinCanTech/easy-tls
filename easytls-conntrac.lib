@@ -62,13 +62,14 @@ conn_trac_connect ()
 
 				if [ "${conn}" = "${ct_pattern}" ]
 				then
-					# Log and count duplicate - only the first time
+					# Log - only the first time - and count duplicate
 					[ $record_found ] || {
 						update_status "conntrac: already registered"
-						ct_tlskey_duplicate=$(( ct_tlskey_duplicate + 1 ))
 						}
-					# IP exhausted is the only way to get a duplicate
+					ct_tlskey_duplicate=$(( ct_tlskey_duplicate + 1 ))
+					# IP exhausted is one way to get a duplicate
 					# otherwise, openvpn hands out unique VPN IPs
+					# other ways; client time-out during connecting
 					[ $ip_pool_exhausted ] && \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Duplicate, because ct will add the same again

@@ -3803,6 +3803,7 @@ inline_tls_crypt_v2 ()
 		return 1
 		}
 
+	# Set file names
 	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
 	inline_file="${EASYTLS_PKI}/${name}.inline"
 	inline_temp="${EASYTLS_PKI}/${name}.temp"
@@ -3810,7 +3811,6 @@ inline_tls_crypt_v2 ()
 	metadata_file="${EASYTLS_MD_DIR}/${name}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
-	# Set file names
 	sub_name="${name}-${TLSKEY_SUBNAME}"
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		tlskey_file="${EASYTLS_PKI}/${sub_name}-tls-crypt-v2.key"
