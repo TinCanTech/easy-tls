@@ -836,6 +836,7 @@ deps ()
 		help_note="See: ${easytls_url}${easytls_wiki}"
 		die "Missing ${lib_file} - Source: ${easytls_rawurl}${easytls_file}"
 		}
+	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
 	unset lib_file
 
@@ -970,6 +971,7 @@ warn_die
 # Source vars file
 if [ -f "${vars_file}" ]
 then
+	# shellcheck source=./easytls-cryptv2-verify.vars-example
 	. "${vars_file}" || die "source failed: ${vars_file}"
 	update_status "vars loaded"
 else

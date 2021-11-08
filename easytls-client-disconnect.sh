@@ -188,6 +188,7 @@ update_conntrac ()
 		help_note="See: ${easytls_url}${easytls_wiki}"
 		die "Missing ${lib_file}"
 		}
+	# shellcheck source=./easytls-conntrac.lib
 	. "${lib_file}"
 	unset lib_file
 
@@ -614,6 +615,7 @@ deps ()
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-metadata.lib"
 	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
 	unset lib_file
 
@@ -692,6 +694,7 @@ warn_die
 # Source vars file
 if [ -f "${vars_file}" ]
 then
+	# shellcheck source=./easytls-client-disconnect.vars-example
 	. "${vars_file}" || die "source failed: ${vars_file}"
 	update_status "vars loaded"
 else
