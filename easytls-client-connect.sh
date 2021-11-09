@@ -93,14 +93,18 @@ help_text ()
 
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 # shellcheck disable=SC1117
-print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
+print () { "${EASYTLS_PRINTF}" '%s\n' "${1}"; }
 verbose_print ()
 {
 	[ "${EASYTLS_VERBOSE}" ] || return 0
 	print "${1}"
-	print ""
+	print ''
 }
-
+banner ()
+{
+	[ "${EASYTLS_VERBOSE}" ] || return 0
+	"${EASYTLS_PRINTF}" '\n%s\n\n' "${1}"
+}
 
 # Exit on error
 die ()
@@ -242,8 +246,7 @@ update_conntrac ()
 		# Otherwise, the client will connect but get no IP
 		ip_pool_exhausted=1
 		conntrac_record="${conntrac_record}==0.0.0.0"
-		"${EASYTLS_PRINTF}" '\n%s\n\n' \
-			"********* WARNING: IP POOL EXHAUSTED *********"
+		banner "********* WARNING: IP POOL EXHAUSTED *********"
 
 		# This will kill the client
 		[ $POOL_EXHAUST_KILL_CLIENT ] && {

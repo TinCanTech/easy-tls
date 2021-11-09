@@ -429,8 +429,10 @@ tlskey_status ()
 {
 	[ $EASYTLS_TLSKEY_STATUS ] || return 0
 	{
+		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
-			"${UV_TLSKEY_SERIAL}" "[dis]${1}" "${common_name} ${UV_REAL_NAME}"
+			"${UV_TLSKEY_SERIAL:-TLSAC}" "[dis]${1}" \
+			"${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
