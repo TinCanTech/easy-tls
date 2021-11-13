@@ -492,43 +492,35 @@ acquire_lock ()
 			case ${2} in
 				1)	exec 1> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
-					lock_acquired=1
 					;;
 				2)	exec 2> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
-					lock_acquired=1
 					;;
 				3)	exec 3> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
-					lock_acquired=1
 					;;
 				4)	exec 4> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
-					lock_acquired=1
 					;;
 				5)	exec 5> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
-					lock_acquired=1
 					;;
 				6)	exec 6> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
-					lock_acquired=1
 					;;
 				7)	exec 7> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
-					lock_acquired=1
 					;;
 				8)	exec 8> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
-					lock_acquired=1
 					;;
 				9)	exec 9> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
-					lock_acquired=1
 					;;
 				*) die "Invalid file descriptor" ;;
 			esac
-			[ $lock_acquired ] && break
+			lock_acquired=1
+			break
 		done
 		set +o noclobber
 		[ $lock_acquired ] || return 1
