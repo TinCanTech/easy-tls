@@ -4433,6 +4433,46 @@ build_tls_crypt_v2_client ()
 	return 0
 } # => build_tls_crypt_v2_client ()
 
+# Build group TLS-Crypt-v2 Server
+build_tls_cv2_group_server ()
+{
+	[ $# -ge 1 ] || die "Required option(s): <group_name>"
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
+	case ${openvpn_version} in
+		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	esac
+
+	grp_name="${1}-grp-srv"
+	tlskey_file="${EASYTLS_PKI}/${grp_name}-tls-crypt-v2.key"
+
+	[ -f "${tlskey_file}" ] && \
+		die "Group Server key already exists: ${tlskey_file}"
+
+	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
+
+	# Save incomplete server record to key-index
+	tlskey_serial="${cv2_Srv_Serial}"
+	cert_serial="00000000000000000000000000000000"
+	cli_name="${grp_name}" # Improve this
+	tlskey_index_update add || die "Failed to update tlskey-index"
+
+	notice "TLS crypt v2 server key created: ${tlskey_file}"
+	easytls_verbose
+
+	# Explicit return success
+	return 0
+}
+
+# Build group TLS-Crypt-v2 Server
+build_tls_cv2_group_client ()
+{
+	:
+}
+
 # Verify the input is a 12 digit hex value and export it to the HW list
 hw_addr_hex_check ()
 {
@@ -7184,7 +7224,7 @@ import_key ()
 	tls-crypt-v2)
 		# Validate commonName
 		default_cert_CN="${key_file%.key}"
-		requested_cert_CN="${$3:-$default_cert_CN}"
+		requested_cert_CN="${3:-$default_cert_CN}"
 
 		cert_file="$EASYRSA_PKI/$requested_cert_CN.crt"
 		[ -f "$cert_file" ] || die "Cannot find file: $cert_file"
@@ -7943,6 +7983,14 @@ main ()
 			btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
 				build_tls_crypt_v2_client "$@" || \
 					die "Error: build_tls_crypt_v2_client"
+			;;
+			bc2gs|btc2gs|btv2gs|btcv2gs|build-tls-crypt-v2-group-server)
+				build_tls_cv2_group_server "$@" || \
+					die "Error: build_tls_crypt_v2_group_server"
+			;;
+			bc2gc|btc2gc|btv2gc|btcv2gc|build-tls-crypt-v2-group-client)
+				build_tls_cv2_group_client "$@" || \
+					die "Error: build_tls_crypt_v2_group_client"
 			;;
 			itc2|itv2|itcv2|inline-tls-crypt-v2)
 				inline_tls_crypt_v2 "$@" || \
