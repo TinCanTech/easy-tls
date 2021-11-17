@@ -398,7 +398,7 @@ stack_down ()
 				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
 				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
-				"${EASYTLS_PRINTF}" '%s %s\n' "${time_ascii}" \
+				"${EASYTLS_PRINTF}" '%s %s\n' "${local_date_ascii}" \
 					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_XLOG}"
 			fi
 
