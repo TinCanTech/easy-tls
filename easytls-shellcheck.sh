@@ -8,8 +8,16 @@ shellcheck_bin='shellcheck'
 	}
 
 "${shellcheck_bin}" --version
-export SHELLCHECK_OPTS="--shell=sh -S warning -x $*"
-[ $EASYTLS_VERBOSE ] && export SHELLCHECK_OPTS="--shell=sh -x $*"
+
+# shell-o check-o doesn't have -v
+if [ "${1}" = '-v' ]; then
+	shift
+	export SHELLCHECK_OPTS="--shell=sh -x $*"
+elif [ $EASYTLS_VERBOSE ]; then
+	export SHELLCHECK_OPTS="--shell=sh -x $*"
+else
+	export SHELLCHECK_OPTS="--shell=sh -S warning -x $*"
+fi
 
 # SC1090 - Can't follow non-constant source
 # Recommend -e 2034
@@ -17,34 +25,44 @@ export SHELLCHECK_OPTS="--shell=sh -S warning -x $*"
 foo='========================================================================'
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls'
-"${shellcheck_bin}" easytls && sc_easytls=$?
+"${shellcheck_bin}" easytls
+sc_easytls=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.sh'
-"${shellcheck_bin}" easytls-cryptv2-verify.sh && sc_easytls_cryptv2_verify=$?
+"${shellcheck_bin}" easytls-cryptv2-verify.sh
+sc_easytls_cryptv2_verify=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-cryptv2-verify.vars-example'
-"${shellcheck_bin}" easytls-cryptv2-verify.vars-example && sc_easytls_cryptv2_verify_vars=$?
+"${shellcheck_bin}" easytls-cryptv2-verify.vars-example
+sc_easytls_cryptv2_verify_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.sh'
-"${shellcheck_bin}" easytls-client-connect.sh && sc_easytls_client_connect=$?
+"${shellcheck_bin}" easytls-client-connect.sh
+sc_easytls_client_connect=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-connect.vars-example'
-"${shellcheck_bin}" easytls-client-connect.vars-example && sc_easytls_client_connect_vars=$?
+"${shellcheck_bin}" easytls-client-connect.vars-example
+sc_easytls_client_connect_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.sh'
-"${shellcheck_bin}" easytls-client-disconnect.sh && sc_easytls_client_disconnect=$?
+"${shellcheck_bin}" easytls-client-disconnect.sh
+sc_easytls_client_disconnect=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars-example'
-"${shellcheck_bin}" easytls-client-disconnect.vars-example && sc_easytls_client_disconnect_vars=$?
+"${shellcheck_bin}" easytls-client-disconnect.vars-example
+sc_easytls_client_disconnect_vars=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-conntrac.lib'
-"${shellcheck_bin}" easytls-conntrac.lib && sc_easytls_conn_trac=$?
+"${shellcheck_bin}" easytls-conntrac.lib
+sc_easytls_conn_trac=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-metadata.lib'
-"${shellcheck_bin}" easytls-metadata.lib && sc_easytls_metadata=$?
+"${shellcheck_bin}" easytls-metadata.lib
+sc_easytls_metadata=$?
 
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
-"${shellcheck_bin}" easytls-shellcheck.sh && sc_easytls_shellcheck=$?
+"${shellcheck_bin}" easytls-shellcheck.sh
+sc_easytls_shellcheck=$?
 
 exit_status=$(( \
 					sc_easytls + \
