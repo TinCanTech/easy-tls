@@ -620,7 +620,7 @@ verify_pki_init () {
 				}
 
 	done
-	unset help_note
+	unset -v help_note
 } # => verify_pki_init ()
 
 # Verify core CA files present
@@ -660,7 +660,7 @@ Easy-TLS requires that you have built your EASY-RSA CA.
 Missing expected CA dir: ${i} (perhaps you need to run build-ca?)
 ${help_note}"
 	done
-	unset help_note
+	unset -v help_note
 
 	# explicitly return success for callers
 	return 0
@@ -866,7 +866,7 @@ config_update ()
 			}
 
 	# Replace the pattern
-	[ "${cfg_val}" = "0" ] && unset cfg_val
+	[ "${cfg_val}" = "0" ] && unset -v cfg_val
 	"${EASYTLS_SED}" -i \
 	-e "s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 		"${EASYTLS_CONFIG_FILE}" || {
@@ -889,7 +889,7 @@ config_use ()
 	# Cannot use IFS because Windows/sh/read needs to recognise CRLF as well
 	# It is simplest to rely on Windows/sh/read default which does CRLF or NL
 	# Any writes to config and Windows/sed converts all CRLF to NL anyway
-	unset config_error
+	unset -v config_error
 	while read -r cfg_opt cfg_equ cfg_val
 	do
 		# May as well check it for shellcheck
@@ -953,7 +953,7 @@ config_use ()
 				;;
 			status)
 				EASYTLS_STATUS="${cfg_val}"
-				unset flash_config ;;
+				unset -v flash_config ;;
 			*)
 				error_msg "Config error: Ignored option: ${cfg_opt}"
 				;;
@@ -1098,7 +1098,7 @@ config_deletion ()
 config_version ()
 {
 	flash_config=1
-	unset save_me
+	unset -v save_me
 	# Add status
 	if "${EASYTLS_GREP}" -q "status = " "${EASYTLS_CONFIG_FILE}"
 	then
@@ -1130,7 +1130,7 @@ config_version ()
 	then
 		save_wiscii_hash || return 1 # die "Error hashing config."
 	fi
-	unset flash_config save_me cfg_opt cfg_val
+	unset -v flash_config save_me cfg_opt cfg_val
 }
 
 # Verify Openvpn is available
@@ -1315,7 +1315,7 @@ and initialize a fresh TLS PKI here."
 	else
 		EASYTLS_INIT=1
 		save_id || "${EASYTLS_PRINTF}" '%s\n\n' "      Failed to Save CA-ID."
-		unset EASYTLS_INIT
+		unset -v EASYTLS_INIT
 	fi
 
 	# Create empty master hash
@@ -1395,7 +1395,7 @@ easytls_auto_check ()
 		error_msg "* Auto-check: Hash failed for Disabled list"
 		}
 
-	unset auto_check
+	unset -v auto_check
 } # => easytls_auto_check ()
 
 # Generate file hash - Return $generated_valid_hash
@@ -1403,7 +1403,7 @@ generate_and_validate_file_hash ()
 {
 	[ -f "${1}" ] || {
 		error_msg "generate_and_validate_file_hash - input file"
-		unset target openssl_hash generated_hash
+		unset -v target openssl_hash generated_hash
 		return 1
 		}
 
@@ -1422,7 +1422,7 @@ generate_and_validate_file_hash ()
 	else
 		[ -n "${EASYTLS_HASH_ALGO}" ] || {
 			error_msg "generate_and_validate_file_hash - EASYTLS_HASH_ALGO"
-			unset target openssl_hash generated_hash
+			unset -v target openssl_hash generated_hash
 			return 1
 			}
 
@@ -1430,7 +1430,7 @@ generate_and_validate_file_hash ()
 		openssl_hash="$(openssl_generate_file_hash "${target}")" || {
 				error_msg "generate_and_validate_file_hash"
 				error_msg "openssl_generate_file_hash = ${openssl_hash}"
-				unset target openssl_hash generated_hash
+				unset -v target openssl_hash generated_hash
 				return 1
 				}
 
@@ -1440,7 +1440,7 @@ generate_and_validate_file_hash ()
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
 			error_msg "validate_hash - generate_and_validate_file_hash"
-			unset target openssl_hash generated_hash
+			unset -v target openssl_hash generated_hash
 			return 1
 			}
 	fi
@@ -1449,7 +1449,7 @@ generate_and_validate_file_hash ()
 	eval ${2}=${generated_hash}
 
 	# Clean up
-	unset target openssl_hash generated_hash
+	unset -v target openssl_hash generated_hash
 
 } # => generate_and_validate_file_hash ()
 
@@ -1477,7 +1477,7 @@ generate_and_validate_data_hash ()
 	else
 		[ -z "${EASYTLS_HASH_ALGO}" ] && {
 			error_msg "generate_and_validate_data_hash - EASYTLS_HASH_ALGO"
-			unset target openssl_hash generated_hash
+			unset -v target openssl_hash generated_hash
 			return 1
 			}
 
@@ -1487,7 +1487,7 @@ generate_and_validate_data_hash ()
 			)" || {
 					error_msg "generate_and_validate_data_hash"
 					error_msg "= ${openssl_hash}"
-					unset target openssl_hash generated_hash
+					unset -v target openssl_hash generated_hash
 					return 1
 					}
 
@@ -1497,7 +1497,7 @@ generate_and_validate_data_hash ()
 		# Verify generated hash
 		validate_hash "${generated_hash}" || {
 			error_msg "generate_and_validate_data_hash - validate_hash"
-			unset target openssl_hash generated_hash
+			unset -v target openssl_hash generated_hash
 			return 1
 			}
 	fi
@@ -1506,7 +1506,7 @@ generate_and_validate_data_hash ()
 	eval ${2}=${generated_hash}
 
 	# Clean up
-	unset target openssl_hash generated_hash
+	unset -v target openssl_hash generated_hash
 } # => generate_and_validate_data_hash ()
 
 # OpenSSL hash data
@@ -1531,7 +1531,7 @@ generate_base64_data ()
 			)" || {
 					error_msg "generate_base64_data"
 					error_msg "= ${openssl_b64}"
-					unset target openssl_b64
+					unset -v target openssl_b64
 					return 1
 					}
 
@@ -1539,7 +1539,7 @@ generate_base64_data ()
 	eval ${2}="${openssl_b64}"
 
 	# Clean up
-	unset target openssl_b64
+	unset -v target openssl_b64
 } # => generate_base64_data ()
 
 # Base64 encode data
@@ -1562,7 +1562,7 @@ validate_hash ()
 	# Verify length
 	[ ${test_length} -eq ${fixed_length} ] || {
 		error_msg "validate_hash - test_length"
-		unset test_hash test_length
+		unset -v test_hash test_length
 		return 1
 		}
 
@@ -1570,18 +1570,18 @@ validate_hash ()
 	# Any error will contain non-hex chars (hopefully)
 	[ "${test_hash}" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
 		error_msg "validate_hash - !hex"
-		unset test_hash test_length
+		unset -v test_hash test_length
 		return 1
 		}
 
 	# Test for empty input hash
 	[ ${test_hash} = ${forbidden_hash} ] && {
 		error_msg "validate_hash - forbidden_hash"
-		unset test_hash test_length
+		unset -v test_hash test_length
 		return 1
 		}
 
-	unset test_hash test_length
+	unset -v test_hash test_length
 } # => validate_hash ()
 
 # Verify two hashes Match
@@ -1612,7 +1612,7 @@ save_file_hash ()
 	valid_hash="${2}" # hash to save
 
 	# Must be a valid target fle
-	unset valid_target
+	unset -v valid_target
 	[ "${hash_file}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
@@ -1620,7 +1620,7 @@ save_file_hash ()
 	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
 	[ $valid_target ] || {
 		error_msg "invalid target - save_file_hash"
-		unset hash_file valid_hash valid_target
+		unset -v hash_file valid_hash valid_target
 		return 1
 		}
 
@@ -1630,7 +1630,7 @@ save_file_hash ()
 		return 1
 		}
 
-	unset hash_file valid_hash valid_target
+	unset -v hash_file valid_hash valid_target
 } # => save_file_hash ()
 
 # generate_and_match_valid_hash
@@ -1646,7 +1646,7 @@ generate_and_match_valid_hash ()
 
 	[ "${target_file}" = "${hash_file}" ] && {
 		error_msg "invalid files - generate_and_match_valid_hash"
-		unset target_file hash_file generated_valid_hash saved_file_hash
+		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
@@ -1654,7 +1654,7 @@ generate_and_match_valid_hash ()
 	generated_valid_hash=
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
 		error_msg "generate_and_validate_file_hash - generate_and_match_valid_hash"
-		unset target_file hash_file generated_valid_hash saved_file_hash
+		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
@@ -1664,18 +1664,18 @@ generate_and_match_valid_hash ()
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
 		error_msg "match_two_hashes - generate_and_match_valid_hash"
-		unset target_file hash_file generated_valid_hash saved_file_hash
+		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 
-	unset target_file hash_file generated_valid_hash saved_file_hash
+	unset -v target_file hash_file generated_valid_hash saved_file_hash
 } # => generate_and_match_valid_hash ()
 
 # generate and save file hash
 generate_and_save_file_hash ()
 {
 	[ ${#} -eq 2 ] || {
-		unset help_note
+		unset -v help_note
 		die "invalid input - generate_and_save_file_hash"
 		}
 
@@ -1684,25 +1684,25 @@ generate_and_save_file_hash ()
 
 	[ "${target_file}" = "${hash_file}" ] && {
 		error_msg "invalid files - generate_and_save_file_hash"
-		unset target_file hash_file generated_valid_hash
+		unset -v target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Generate $generated_valid_hash
 	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
 		error_msg "generate_and_save_file_hash - generate_and_validate_file_hash"
-		unset target_file hash_file generated_valid_hash
+		unset -v target_file hash_file generated_valid_hash
 		return 1
 		}
 
 	# Save $generated_valid_hash
 	save_file_hash "${hash_file}" ${generated_valid_hash} || {
 		error_msg "save_file_hash - generate_and_save_file_hash"
-		unset target_file hash_file generated_valid_hash
+		unset -v target_file hash_file generated_valid_hash
 		return 1
 		}
 
-	unset target_file hash_file generated_valid_hash
+	unset -v target_file hash_file generated_valid_hash
 } # => generate_and_save_file_hash ()
 
 # Generate a valid date at now
@@ -1722,13 +1722,13 @@ generate_valid_date_now ()
 	then
 		g_d="$("${EASYTLS_DATE}" ${format})" || {
 			error_msg "generate_valid_date_now - g_d"
-			unset g_d
+			unset -v g_d
 			return 1
 			}
 	else
 		g_d="$("${EASYTLS_DATE}" ${format})" || {
 			error_msg "generate_valid_date_now - g_d"
-			unset g_d
+			unset -v g_d
 			return 1
 			}
 	fi
@@ -1738,7 +1738,7 @@ generate_valid_date_now ()
 
 	# Set return variable
 	eval ${1}="${g_d}"
-	unset g_d
+	unset -v g_d
 }
 
 # Generate and validate a date from epoc seconds
@@ -1759,20 +1759,20 @@ easytls_sec_to_date ()
 	then
 		t_d="$("${EASYTLS_DATE}" -u -d "1970-01-01 ${1} seconds" ${format})" || {
 			error_msg "easytls_sec_to_date - generate date"
-			unset t_d
+			unset -v t_d
 			return 1
 			}
 	else
 		t_d="$("${EASYTLS_DATE}" --date=@${1} ${format})" || {
 			error_msg "easytls_sec_to_date - generate date"
-			unset t_d
+			unset -v t_d
 			return 1
 			}
 	fi
 
 	# Set return variable
 	eval ${2}="${t_d}"
-	unset t_d
+	unset -v t_d
 } # => easytls_sec_to_date ()
 
 # Generate and validate epoc seconds from a full date
@@ -1790,19 +1790,19 @@ easytls_date_to_sec ()
 	then
 		t_d="$("${EASYTLS_DATE}" --date="${1}" +%s)" || {
 			error_msg "easytls_date_to_sec - generate date"
-			unset t_d
+			unset -v t_d
 			return 1
 			}
 	else
 		t_d="$("${EASYTLS_DATE}" --date="${1}" +%s)" || {
 			error_msg "easytls_date_to_sec - generate date"
-			unset t_d
+			unset -v t_d
 			return 1
 			}
 	fi
 	# Set return variable
 	eval ${2}="${t_d}"
-	unset t_d
+	unset -v t_d
 } # => easytls_sec_to_date ()
 
 
@@ -1873,7 +1873,7 @@ status ()
 			status_easyrsa_revoked || return 1
 			#verify_tls_init
 			status_easytls_inline || return 1
-			unset silent_status
+			unset -v silent_status
 			status_easytls_invalid || return 1
 		;;
 		ren|renewed)
@@ -1882,7 +1882,7 @@ status ()
 			status_easyrsa_revoked || return 1
 			#verify_tls_init
 			status_easytls_inline || return 1
-			unset silent_status
+			unset -v silent_status
 			status_easyrsa_renewed || return 1
 		;;
 		dis|disabled)
@@ -2077,7 +2077,7 @@ noca_status_easytls_inline ()
 		[ $silent_status ] || \
 			print "${etls_valid_name} ${etls_valid_serial} ${etls_valid_subkey}" \
 				| noca_status_easytls_output
-		unset etls_valid_name etls_valid_subkey etls_valid_serial
+		unset -v etls_valid_name etls_valid_subkey etls_valid_serial
 	done
 } # => status_easytls_inline ()
 
@@ -2134,7 +2134,7 @@ status_easytls_invalid ()
 		inline_serial="$(inline_index_ilhash_to_serial)"
 
 		# Clear inline_hash from previous loop
-		unset inline_hash
+		unset -v inline_hash
 		# Check the .inline HASH
 		inline_file_verify_hash || die "Failed HASH: ${inline_file}"
 		# Variable: verified_inline_hash, now exists
@@ -2291,20 +2291,20 @@ verify_cert_purpose ()
 	p_l="$(openssl_cert_purpose "${1}")" || {
 		error_msg "openssl_cert_purpose - verify_cert_purpose"
 		error_msg "= ${p_l}"
-		unset p_l p_c p_s is_c is_s
+		unset -v p_l p_c p_s is_c is_s
 		return 1
 		}
 
 	p_c='SSL client : Yes'
 	p_s='SSL server : Yes'
-	unset is_c is_s
+	unset -v is_c is_s
 	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_c}" && is_c=1
 	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_s}" && is_s=1
 
 	if [ $is_c ] && [ $is_s ]; then
 		error_msg "Unsupported certificate purpose"
 		error_msg "= ${p_l}"
-		unset p_l p_c p_s is_c is_s
+		unset -v p_l p_c p_s is_c is_s
 		return 1
 
 	elif [ $is_c ]; then
@@ -2316,10 +2316,10 @@ verify_cert_purpose ()
 	else
 		error_msg "Unknown certificate purpose"
 		error_msg "= ${p_l}"
-		unset p_l p_c p_s is_c is_s
+		unset -v p_l p_c p_s is_c is_s
 		return 1
 	fi
-	unset p_l p_c p_s is_c is_s
+	unset -v p_l p_c p_s is_c is_s
 } # => verify_cert_purpose ()
 
 # Cut to only certificate enddate
@@ -2475,7 +2475,7 @@ inline_index_update ()
 				error_msg "inline_index_update - generate_and_validate_file_hash"
 				return 1
 				}
-		unset force_hash
+		unset -v force_hash
 
 		# Set new inline file HASH
 		current_inline_hash="${generated_valid_hash}"
@@ -2601,7 +2601,7 @@ inline_file_verify_hash ()
 
 	# Use the hash
 	inline_file_hash="${generated_valid_hash}"
-	unset force_hash
+	unset -v force_hash
 
 	# Search Inline Index for Inline File Hash
 	# Do not need to search for --sub-key-name
@@ -2625,7 +2625,7 @@ inline_index_ilhash_2_cn ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$3}"
 	"${EASYTLS_AWK}" "${script}" "${EASYTLS_INLINE_INDEX}"
-	unset script
+	unset -v script
 } # => inline_index_ilhash_2_cn ()
 
 # Get sub name from inline index file using inline hash as key
@@ -2633,7 +2633,7 @@ inline_index_ilhash_2_subname ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$4}"
 	"${EASYTLS_AWK}" "${script}" "${EASYTLS_INLINE_INDEX}"
-	unset script
+	unset -v script
 } # => inline_index_ilhash_2_subname ()
 
 # Get cert serial number from inline index file using inline hash as key
@@ -2641,7 +2641,7 @@ inline_index_ilhash_to_serial ()
 {
 	script="{if(\$1 ~ /^${known_inline_hash}\$/) print \$2}"
 	"${EASYTLS_AWK}" "${script}" "${EASYTLS_INLINE_INDEX}"
-	unset script
+	unset -v script
 } # => inline_index_ilhash_to_serial ()
 
 # Get common_name from inline file
@@ -2674,7 +2674,7 @@ x509_cert_serial ()
 
 	temp_out="$(openssl_cert_serial "${1}")" || {
 		error_msg "x509_cert_serial - temp_out"
-		unset temp_out
+		unset -v temp_out
 		return 1
 		}
 	temp_out="${temp_out##serial=}"
@@ -2683,7 +2683,7 @@ x509_cert_serial ()
 	eval ${2}="${temp_out}"
 
 	# Clean up
-	unset temp_out
+	unset -v temp_out
 } # => x509_cert_serial ()
 
 # Extract the CommonName from OpenSSL -subject
@@ -2775,7 +2775,7 @@ remove_inline ()
 	# Inline file and record deleted - Forget the HASH
 	# Otherwise 'inline_renew add' still has the HASH
 	# Logically, this *cannot* be removed -- tct
-	unset inline_hash
+	unset -v inline_hash
 
 	notice "Inline file removed: ${inline_file}"
 	easytls_verbose
@@ -2808,7 +2808,7 @@ remove_metadata ()
 		error_msg "${inline_file}"
 		return 1
 		}
-	unset force_hash
+	unset -v force_hash
 
 	# Remove client from inline index
 	known_inline_hash=${verified_inline_hash}
@@ -3138,7 +3138,7 @@ tls_crypt_v2_serial_number ()
 	# Prepend random padding to metadata
 	metadata_padding="$("${EASYRSA_OPENSSL}" rand -hex 4)" || {
 		error_msg "tls_crypt_v2_serial_number - metadata_padding"
-		unset metadata_padding
+		unset -v metadata_padding
 		return 1
 		}
 	metadata="${metadata_padding}--${metadata}"
@@ -3147,16 +3147,16 @@ tls_crypt_v2_serial_number ()
 	force_hash=1
 	generate_and_validate_data_hash "${metadata}" tlskey_serial || {
 		error_msg "tls_crypt_v2_serial_number - tlskey_serial"
-		unset tlskey_serial
+		unset -v tlskey_serial
 		return 1
 		}
-	unset force_hash
+	unset -v force_hash
 
 	# Check for duplicate
 	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
 		"${EASYTLS_KEY_INDEX}" && {
 			error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
-			unset tlskey_serial
+			unset -v tlskey_serial
 			return 1
 			}
 
@@ -3169,7 +3169,7 @@ tlskey_index_fname_2_tlskser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$1}"
 	"${EASYTLS_AWK}" "${script}" "${EASYTLS_KEY_INDEX}"
-	unset script
+	unset -v script
 } # => tlskey_index_fname_2_tlskser ()
 
 # tlskey name subkeyname to x509 serial
@@ -3177,7 +3177,7 @@ tlskey_index_fname_2_x509ser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$2}"
 	"${EASYTLS_AWK}" "${script}" "${EASYTLS_KEY_INDEX}"
-	unset script
+	unset -v script
 } # => tlskey_index_fname_2_x509ser ()
 
 # tlskey verify serial number is valid
@@ -3292,7 +3292,7 @@ remove_tlskey ()
 	# Verify this tlskey-serial
 	validate_hash "${tlskey_serial}" || {
 		error_msg "remove_tlskey - tlskey_serial failed: ${tlskey_serial}"
-		unset tlskey_serial
+		unset -v tlskey_serial
 		return 1
 		}
 
@@ -4782,7 +4782,7 @@ save_id ()
 			}
 
 			# Clear the Old Master ID
-			unset EASYTLS_MASTER_ID
+			unset -v EASYTLS_MASTER_ID
 	else
 		# Fatal
 		verify_ca_init
@@ -4794,7 +4794,7 @@ save_id ()
 	# Add CA-ID to config
 	save_id_authorized=1
 	easytls_config id "${ca_identity}"
-	unset save_id_authorized
+	unset -v save_id_authorized
 
 	# Create CA-ID file - Legacy
 	"${EASYTLS_PRINTF}" "%s" "${ca_identity}" > "${EASYTLS_CA_IDENTITY}" || \
@@ -4859,7 +4859,7 @@ disabled_list_manager ()
 	# Test it
 	validate_hash "${tlskey_serial}" || {
 		error_msg "disabled_list_manager - tlskey_serial failed: ${tlskey_serial}"
-		unset tlskey_serial
+		unset -v tlskey_serial
 		return 1
 		}
 
@@ -5044,7 +5044,7 @@ xdprint ()
 # Ask a question
 interactive_question ()
 {
-	unset ia_answer
+	unset -v ia_answer
 	"$EASYTLS_PRINTF" '\n%s\n' "===================="
 	"$EASYTLS_PRINTF" '\n%s\n' \
 		'To cancel this inter-active menu at any time, press Control-C'
@@ -5059,7 +5059,7 @@ interactive_question ()
 interactive_wait_for_answer ()
 {
 	"$EASYTLS_PRINTF" '%s ' "$ia_question_text"
-	unset user_input
+	unset -v user_input
 	read -r user_input
 } # => wait_for_answer ()
 
@@ -5206,7 +5206,7 @@ interactive_build ()
 		cert_type='Server'
 		ia_extra_help='* First you MUST enter your *Server* commonName.'
 		interactive_common_name
-		unset ia_extra_help
+		unset -v ia_extra_help
 		opt_server_name="$common_name"
 		EASYTLS_PEER_FPR="${opt_server_name}"
 
@@ -5215,7 +5215,7 @@ interactive_build ()
 		cert_type='Client'
 		ia_extra_help='* Next you MUST enter your *Client* commonName.'
 		interactive_common_name
-		unset ia_extra_help
+		unset -v ia_extra_help
 		opt_client_name="$common_name"
 
 		# Either use default:EASYTLS or configured Custom-Group
@@ -5247,7 +5247,7 @@ interactive_build ()
 				}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -5550,7 +5550,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Client inline removed: $key_file"
@@ -5603,7 +5603,7 @@ interactive_remove ()
 				}
 
 			# Disable internal require_batch
-			unset require_batch
+			unset -v require_batch
 
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				"  * TLS-Crypt-V2 Client key removed: $key_file"
@@ -5654,7 +5654,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Client key removed: $key_file"
@@ -5668,7 +5668,7 @@ interactive_remove ()
 		cert_type='Server'
 		interactive_common_name
 		opt_name="$common_name"
-		unset ia_extra_help
+		unset -v ia_extra_help
 
 		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
 		[ -f "$inline_file" ] || missing_file "$inline_file"
@@ -5689,7 +5689,7 @@ interactive_remove ()
 				}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		# save me! - Changes have been made
 		save_wiscii_hash || die "Master hash save failed"
@@ -5750,7 +5750,7 @@ interactive_remove ()
 				}
 
 			# Disable internal require_batch
-			unset require_batch
+			unset -v require_batch
 		else
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				'  * Inline-file removed. TLS-Crypt-V2 key is unchanged.'
@@ -5786,7 +5786,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Server key removed: $key_file"
@@ -5813,7 +5813,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt key removed: $key_file"
 	;;
@@ -5839,7 +5839,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Auth key removed: $key_file"
 	;;
@@ -5873,7 +5873,7 @@ interactive_remove ()
 			}
 
 		# Disable internal require_batch
-		unset require_batch
+		unset -v require_batch
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
@@ -6233,7 +6233,7 @@ interactive_selfsign ()
 # Set commonName and verify this cert does not exist
 interactive_selfsign_CN ()
 {
-	unset common_name
+	unset -v common_name
 	ia_question_help='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
@@ -6259,7 +6259,7 @@ interactive_selfsign_CN ()
 # Set peer commonName and verify this cert does exist
 interactive_selfsign_peer ()
 {
-	unset common_name
+	unset -v common_name
 	ia_question_help='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
@@ -6287,7 +6287,7 @@ interactive_selfsign_peer ()
 # Choose self-sign cert/key with/without password
 interactive_selfsign_PW ()
 {
-	unset openssl_nodes
+	unset -v openssl_nodes
 	default='N'
 	ia_question_help="
 * Do you want to use a password ?
@@ -6323,7 +6323,7 @@ interactive_selfsign_PW ()
 # Set commonName and verify cert purpose
 interactive_common_name ()
 {
-	unset common_name
+	unset -v common_name
 	ia_question_help='
 * This field only requires the certificate commonName,
   it does not require the complete file name.'
@@ -6360,7 +6360,7 @@ interactive_verify_cert ()
 # Set option --sub-key-name
 interactive_sub_key_name ()
 {
-	unset sub_key_name
+	unset -v sub_key_name
 	default='NOSUBKEY'
 	ia_question_help='
 * Each X509 Client certificate can have multiple TLS-Crypt-V2 keys,
@@ -6385,14 +6385,14 @@ interactive_sub_key_name ()
 		inline_file="${EASYTLS_PKI}/${full_name}.inline"
 		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
 		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
-		unset full_name
+		unset -v full_name
 		}
 } # => interactive_sub_key_name ()
 
 # Set key direction
 interactive_key_direction ()
 {
-	unset key_direction
+	unset -v key_direction
 	if [ "$cert_type" = "Server" ]
 	then
 		default=0
@@ -6425,7 +6425,7 @@ interactive_key_direction ()
 # Set option no-key
 interactive_opt_no_key ()
 {
-	unset opt_no_key
+	unset -v opt_no_key
 	default='Y'
 	ia_question_help="
 * Do you have the private key for this X509 certificate ?
@@ -6456,7 +6456,7 @@ interactive_opt_no_key ()
 # Set option add-dh
 interactive_opt_add_dh ()
 {
-	unset opt_add_dh
+	unset -v opt_add_dh
 	default='Y'
 	ia_question_help="
 * Do you want to inline the Diffie-Hellman parameters file ?
@@ -6489,7 +6489,7 @@ interactive_opt_add_dh ()
 # Set custom dh file
 interactive_custom_dh ()
 {
-	unset opt_custom_dh
+	unset -v opt_custom_dh
 	default='none'
 	ia_question_help="
 * No Diffie-Hellman parameters file was found!
@@ -6519,7 +6519,7 @@ interactive_custom_dh ()
 # Set option no-md
 interactive_opt_no_md ()
 {
-	unset opt_no_md
+	unset -v opt_no_md
 	default='Y'
 	[ $no_metadata ] && default='N'
 	ia_question_help="
@@ -6555,7 +6555,7 @@ interactive_opt_no_md ()
 interactive_opt_add_hw ()
 {
 	[ -n "$opt_no_md" ] && return 0
-	unset opt_add_hw
+	unset -v opt_add_hw
 	default='N'
 	[ $add_hardware ] && default='Y'
 	ia_question_help="
@@ -6603,7 +6603,7 @@ interactive_hwaddr ()
 		interactive_question
 		# EASYTLS_TLSCV2_HWLIST is set in verify stage so unset it
 		# EASYTLS_TLSCV2_HWLIST will be recreated by the build routine
-		[ -z "$ia_answer" ] && unset EASYTLS_TLSCV2_HWLIST && break
+		[ -z "$ia_answer" ] && unset -v EASYTLS_TLSCV2_HWLIST && break
 
 		# Verify valid HWADDR
 		hw_addr_hex_check "$ia_answer" || return 1
@@ -6658,7 +6658,7 @@ get_full_path ()
 # Set CA path
 interactive_ca_path ()
 {
-	unset opt_ca_path
+	unset -v opt_ca_path
 	default="${EASYRSA_PKI}"
 	ia_question_help="
 * Enter the path to the location of your Easy-RSA PKI directory.
@@ -6709,7 +6709,7 @@ interactive_ca_path ()
 
 	# Set answer and return
 	opt_ca_path="${ans_ca_path}"
-	unset EASYTLS_key_index EASYRSA_ca_cert
+	unset -v EASYTLS_key_index EASYRSA_ca_cert
 } # => interactive_ca_path ()
 
 # hash algorithm
@@ -6748,7 +6748,7 @@ interactive_custom_group ()
 		if [ "$opt_customg" = "EASYTLS" ]
 		then
 			# Forget default
-			unset opt_customg
+			unset -v opt_customg
 		else
 			# This will only show if user enters a Custom-Group
 			# Otherwise, the Custom-Group is what-ever is configured
@@ -6762,7 +6762,7 @@ interactive_custom_group ()
 # Set tlskey allowed age in days
 interactive_key_age ()
 {
-	unset opt_key_age
+	unset -v opt_key_age
 	default="1825" # 5 Years
 	ia_question_help="
 * Enter the maximum allowable age in days of your TLS-Crypt-V2 Client keys.
@@ -6783,7 +6783,7 @@ interactive_key_age ()
 # Set use of disabled-list
 interactive_disabled_list ()
 {
-	unset opt_disable_list
+	unset -v opt_disable_list
 	default='Y'
 	ia_question_help="
 * Do you want to use the dynamic disabled-list ?
@@ -6819,7 +6819,7 @@ interactive_disabled_list ()
 # Set the temp dir
 interactive_tmp_dir ()
 {
-	unset opt_tmp_dir
+	unset -v opt_tmp_dir
 	default="$EASYTLS_tmp_dir"
 	ia_question_help="
 * Enter the temporary directory path where the script can write temp files.
@@ -6889,7 +6889,7 @@ interactive_tmp_dir ()
 # Set the X509 method
 interactive_x509_method ()
 {
-	unset opt_x509_method
+	unset -v opt_x509_method
 	default="0"
 	ia_question_help='
 * Select the X509 method to verify client certificates.
@@ -6936,8 +6936,8 @@ interactive_x509_method ()
 
 	[ $opt_x509_method ] || return 0
 
-	unset opt_load_ca_id
-	unset opt_preload_id
+	unset -v opt_load_ca_id
+	unset -v opt_preload_id
 	default="off"
 	ia_question_help='
 * Select how the verify script loads the CA Identity.
@@ -7009,7 +7009,7 @@ interactive_x509_method ()
 # Set use client connect srcipt
 interactive_client_connect ()
 {
-	unset opt_client_connect
+	unset -v opt_client_connect
 	default='Y'
 	ia_question_help="
 * Do you want to use the Easy-TLS client-connect script ?
@@ -7044,7 +7044,7 @@ interactive_client_connect ()
 # Set use of kill-client mode
 interactive_kill_client ()
 {
-	unset opt_kill_client
+	unset -v opt_kill_client
 	default='Y'
 	ia_question_help="
 * Do you want to use the Easy-TLS client-connect script
@@ -7080,7 +7080,7 @@ interactive_kill_client ()
 # Set use of hardware-address required
 interactive_hw_required ()
 {
-	unset opt_hw_required
+	unset -v opt_hw_required
 	default='1'
 	ia_question_help="
 * Select the level of hardware-address verification required ?
@@ -7183,7 +7183,7 @@ interactive_metadata_pattern ()
 automatic_no_ca ()
 {
 	opt_no_ca='-z'
-	[ $EASYTLS_NO_CA ] || unset opt_no_ca
+	[ $EASYTLS_NO_CA ] || unset -v opt_no_ca
 }
 
 
@@ -7274,7 +7274,7 @@ generate_wiscii_hash ()
 		}
 
 	# Clear accumulators
-	unset inline_seed tlskey_seed wiscii_seed counted_wiscii
+	unset -v inline_seed tlskey_seed wiscii_seed counted_wiscii
 
 	# Hash all inline-files
 	# shellcheck disable=SC2034
@@ -7314,7 +7314,7 @@ generate_wiscii_hash ()
 	done < "${EASYTLS_INLINE_INDEX}"
 
 	# Clean up
-	unset inline_file generated_valid_hash \
+	unset -v inline_file generated_valid_hash \
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Hash inline_seed
@@ -7334,7 +7334,7 @@ generate_wiscii_hash ()
 
 	# Build Master seed
 	wiscii_seed=${wiscii_seed}${inline_seed_hash}
-	unset inline_seed inline_seed_hash
+	unset -v inline_seed inline_seed_hash
 
 	# Hash all tlskey_file
 	# tls-auth / tls-crypt
@@ -7380,7 +7380,7 @@ generate_wiscii_hash ()
 		tlskey_seed=${tlskey_seed}${generated_valid_hash}
 
 	done < "${EASYTLS_KEY_INDEX}"
-	unset tlskey_file generated_valid_hash \
+	unset -v tlskey_file generated_valid_hash \
 		tlskey_serial cert_serial_UNUSED CN sub_key
 
 	# Hash tlskey_seed
@@ -7400,7 +7400,7 @@ generate_wiscii_hash ()
 
 	# Build Master seed
 	wiscii_seed=${wiscii_seed}${tlskey_seed_hash}
-	unset tlskey_seed tlskey_seed_hash
+	unset -v tlskey_seed tlskey_seed_hash
 
 	# Include other file hashes
 	config_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_CONFIG_HASH}")" || {
@@ -7423,7 +7423,7 @@ generate_wiscii_hash ()
 		return 1
 		}
 	counted_wiscii="${wiscii_hash}"
-	unset wiscii_hash wiscii_seed disabled_list_file_hash config_file_hash
+	unset -v wiscii_hash wiscii_seed disabled_list_file_hash config_file_hash
 } # => generate_wiscii_hash ()
 
 # Save wiscii hash
@@ -7585,7 +7585,7 @@ external_deps ()
 			echo "Errors occurred!"
 			exit 9
 			}
-		unset setup_err
+		unset -v setup_err
 
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
@@ -7622,8 +7622,8 @@ external_deps ()
 	# TODO
 
 	# Other ways to satify shellcheck
-	EASYTLS_KEY_INDEX=''; unset EASYTLS_KEY_INDEX
-	EASYTLS_MD_DIR=''; unset EASYTLS_MD_DIR
+	EASYTLS_KEY_INDEX=''; unset -v EASYTLS_KEY_INDEX
+	EASYTLS_MD_DIR=''; unset -v EASYTLS_MD_DIR
 } # => external_deps ()
 
 # vars setup
@@ -8063,7 +8063,7 @@ main ()
 				s|status)
 					status "$@" || \
 						die "Error: status"
-					unset status_disabled_auto_check
+					unset -v status_disabled_auto_check
 				;;
 				irn|irw|inline-renew)
 					inline_renew "$@" || \

@@ -638,7 +638,7 @@ init ()
 	VERIFY_hash=1
 
 	# Do not accept external settings
-	unset use_x509
+	unset -v use_x509
 
 	# TLS expiry age (days) Default 5 years, 1825 days
 	tlskey_max_age=$((365*5))
@@ -830,7 +830,7 @@ deps ()
 		}
 	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
-	unset lib_file
+	unset -v lib_file
 
 	# Default CUSTOM_GROUP
 	[ -n "${local_custom_g}" ] || local_custom_g='EASYTLS'
@@ -892,14 +892,14 @@ do
 	;;
 	-n|--no-hash)
 		empty_ok=1
-		unset VERIFY_hash
+		unset -v VERIFY_hash
 	;;
 	-x|--max-tls-age)
 		tlskey_max_age="${val}"
 	;;
 	-d|--disable-list)
 		empty_ok=1
-		unset use_disable_list
+		unset -v use_disable_list
 	;;
 	-k|--kill-client) # Use client-connect to kill client
 		empty_ok=1
@@ -981,7 +981,7 @@ deps
 	else
 		env > "${env_file}"
 	fi
-	unset env_file
+	unset -v env_file
 	}
 
 # Get metadata

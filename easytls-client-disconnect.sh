@@ -190,7 +190,7 @@ update_conntrac ()
 		}
 	# shellcheck source=./easytls-conntrac.lib
 	. "${lib_file}"
-	unset lib_file
+	unset -v lib_file
 
 	# Update connection tracking
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
@@ -331,7 +331,7 @@ update_conntrac ()
 		else
 			env > "${env_file}" || die "disconnect: env"
 		fi
-		unset env_file
+		unset -v env_file
 	fi
 
 	# This error is currently absolutely fatal
@@ -358,7 +358,7 @@ update_conntrac ()
 		:
 		#update_status "disconnect: succeeded"
 	fi
-	unset \
+	unset -v \
 		conntrac_fail conntrac_alt_fail \
 		conntrac_error conntrac_alt_error \
 		ip_pool_exhausted log_env
@@ -379,7 +379,7 @@ stack_down ()
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:acquire_lock-FAIL" 99
 
-	unset stack_err
+	unset -v stack_err
 	i=0
 	s=''
 
@@ -611,7 +611,7 @@ deps ()
 	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
 	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
-	unset lib_file
+	unset -v lib_file
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
@@ -706,7 +706,7 @@ deps
 	else
 		env > "${env_file}"
 	fi
-	unset env_file
+	unset -v env_file
 	}
 
 # Update log message

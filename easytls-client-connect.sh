@@ -214,7 +214,7 @@ update_conntrac ()
 		}
 	# shellcheck source=./easytls-conntrac.lib
 	. "${lib_file}"
-	unset prog_dir lib_file
+	unset -v prog_dir lib_file
 
 	# Absolute start time
 	easytls_start_d_file="${EASYTLS_CONN_TRAC}-start-d"
@@ -334,7 +334,7 @@ update_conntrac ()
 			update_status "IGNORE Duplicate TLS Key"
 		fi
 	fi
-	unset env_file conntrac_record conntrac_fail conntrac_error
+	unset -v env_file conntrac_record conntrac_fail conntrac_error
 } # => update_contrac ()
 
 # Stack down
@@ -347,7 +347,7 @@ stack_down ()
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:acquire_lock-FAIL" 99
 
-	unset stack_err
+	unset -v stack_err
 	i=0
 	s=''
 
@@ -582,7 +582,7 @@ deps ()
 	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
 	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
-	unset lib_file
+	unset -v lib_file
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
@@ -707,7 +707,7 @@ deps
 	else
 		env > "${env_file}"
 	fi
-	unset env_file
+	unset -v env_file
 	}
 
 # Update log message
@@ -767,7 +767,7 @@ then
 	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
 	[ -n "${c_tlskey_serial}" ] || \
 		fail_and_exit "failed to set c_tlskey_serial" 19
-	unset metadata_string
+	unset -v metadata_string
 	update_status "fixed_md_file loaded"
 
 	# shellcheck disable=SC2154

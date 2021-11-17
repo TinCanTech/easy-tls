@@ -29,7 +29,7 @@ conn_trac_connect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit record_found ct_ig_ipp_ex \
+	unset -v err_exit record_found ct_ig_ipp_ex \
 		ct_tlskey_found ct_tlskey_duplicate
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
@@ -48,7 +48,7 @@ conn_trac_connect ()
 		update_status "conntrac: pattern ${ct_pattern}"
 
 	ct_tlskey="${1%%=*}"
-	[ "${ct_tlskey}" = "TLSAC" ] && unset ct_tlskey
+	[ "${ct_tlskey}" = "TLSAC" ] && unset -v ct_tlskey
 
 	if [ -f "${2}" ]
 	then
@@ -116,7 +116,7 @@ conn_trac_connect ()
 
 	err_exit=${err_exit:-0}
 	[ $err_exit -eq 0 ] && [ $ct_tlskey_found ] && err_exit=6
-	unset easytls_ct_lock_file easytls_temp_file conn record_found \
+	unset -v easytls_ct_lock_file easytls_temp_file conn record_found \
 		ct_ig_ipp_ex ct_tlskey_found ct_tlskey_duplicate
 	return ${err_exit}
 } # => conn_trac_connect ()
@@ -129,7 +129,7 @@ conn_trac_disconnect ()
 	easytls_ct_lock_file="${2}.lock"
 	easytls_temp_file="${2}.tmp"
 	easytls_ct_log="${2}.log"
-	unset err_exit record_found ct_ig_ipp_ex
+	unset -v err_exit record_found ct_ig_ipp_ex
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
@@ -198,7 +198,7 @@ conn_trac_disconnect ()
 	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
 	err_exit=${err_exit:-0}
-	unset easytls_ct_lock_file easytls_temp_file conn \
+	unset -v easytls_ct_lock_file easytls_temp_file conn \
 			record_found ct_ig_ipp_ex
 	return ${err_exit}
 } # => conn_trac_disconnect ()
