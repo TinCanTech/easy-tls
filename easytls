@@ -4476,7 +4476,130 @@ build_tls_cv2_group_server ()
 # Build group TLS-Crypt-v2 Server
 build_tls_cv2_group_client ()
 {
-	:
+	[ $# -ge 2 ] || \
+	die "Required option(s): <server_filename_base> <client_filename_base>"
+
+	# Verify OpenVPN version and use correct syntax to --genkey
+	verify_openvpn
+	case ${openvpn_version} in
+		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	esac
+
+	srv_grp_name="${1}-grp-srv"; shift
+	cli_grp_name="${1}-grp-cli"; shift
+
+	in_file="${EASYTLS_PKI}/${srv_grp_name}-tls-crypt-v2.key"
+	tlskey_file="${EASYTLS_PKI}/${cli_grp_name}-tls-crypt-v2.key"
+	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
+
+	#[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+	#	full_name="${cli_name}-${TLSKEY_SUBNAME}"
+	#	tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+	#	metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+	#	}
+
+	# don't do that ..
+	#[ "${srv_name}" = "${cli_name}" ] && \
+	#	die "Server name cannot be the same as the client name."
+
+	# Server cert
+	#[ -f "${srv_cert}" ] || {
+	#	help_note="Easy-TLS requires that the X509 certificate has been built."
+	#	missing_file "${srv_cert}"
+	#	}
+
+	# Cert purpose
+	#srv_cert_purpose=
+	#verify_cert_purpose "${srv_cert}" srv_cert_purpose || {
+	#	error_msg "verify_cert_purpose failed"
+	#	return 1
+	#	}
+	#[ "${srv_cert_purpose}" = 'Server' ] || \
+	#	die "Certificate must be a Server: ${srv_cert}"
+
+	# Client cert
+	#[ -f "${cli_cert}" ] || {
+	#	help_note="Easy-TLS requires that the X509 certificate has been built."
+	#	missing_file "${cli_cert}"
+	#	}
+
+	# Cert purpose
+	#cli_cert_purpose=
+	#verify_cert_purpose "${cli_cert}" cli_cert_purpose || {
+	#	error_msg "verify_cert_purpose failed"
+	#	return 1
+	#	}
+	#[ "${cli_cert_purpose}" = 'Client' ] || \
+	#	die "Certificate must be a Client: ${cli_cert}"
+
+	# Server tlskey MUST exist
+	[ -f "${in_file}" ] || {
+		help_note="You must first build a TLS-Crypt-V2 Server key."
+		die "Server key does not exist: ${in_file}"
+		}
+
+	# Client tlskey MUST NOT exist
+	[ -f "${tlskey_file}" ] && {
+		help_note="To remove a TLS-key file use: easytls remove"
+		die "Client key already exists: ${tlskey_file}"
+		}
+
+	# Capture HW addresses
+	EASYTLS_TLSCV2_HWLIST=""
+	while [ -n "${1}" ]; do
+		# Needs to allow multiples. EG: eth & wifi
+		EASYTLS_TLSCV2_HWADDR="${1}"
+		# Verify this is a 12 digit hex only value
+		# and add it to the HWLIST
+		hw_addr_hex_check "${EASYTLS_TLSCV2_HWADDR}" || \
+			die "Invalid Hardware Address: ${EASYTLS_TLSCV2_HWADDR}"
+		shift
+	done
+
+	# Confirm metadata Custom-Group
+	[ "${TLSKEY_CUSTOM_GRP}" = "EASYTLS" ] || {
+		confirm "Is the Custom-Group field correct ? " "yes" \
+		"Custom-Group field for metadata: ${TLSKEY_CUSTOM_GRP}"
+		}
+
+	# Confirm --sub-key-name)
+	#[ "${TLSKEY_SUBNAME}" = "NOSUBKEY" ] || {
+	#	confirm "Is the Sub-key-name correct ? " "yes" \
+	#	"Sub-key-name field for metadata: ${TLSKEY_SUBNAME}"
+	#	}
+
+	# Confirm metadata Hardware-Address(es)
+	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
+		[ $EASYTLS_BATCH ] || \
+			print "All Hardware-Addresses are valid length hexidecimal values."
+		confirm "Is the Hardware-Address field correct ? " "yes" \
+		"Hardware-Address field for metadata: ${EASYTLS_TLSCV2_HWLIST}"
+		}
+
+	group_mode=1
+	metadata=""
+	b64_metadata=""
+	b64_enc_metadata || die "Failed to base64 encode metadata"
+
+	# Build key
+	"${EASYTLS_OPENVPN}" --tls-crypt-v2 "${in_file}" \
+		${build_string} "${tlskey_file}" "${b64_metadata}" || \
+		die "Failed to create tls-crypt-v2-client key: ${tlskey_file}"
+
+	# Save serial number to key-index
+	tlskey_index_update add || die "Failed to update tlskey-index"
+
+	notice "TLS crypt v2 client key created: ${tlskey_file}"
+	easytls_verbose
+
+	if [ $EASYTLS_BINLINE ]
+	then
+		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
+	fi
+
+	# Explicit return success
+	return 0
 }
 
 # Verify the input is a 12 digit hex value and export it to the HW list
@@ -4516,6 +4639,9 @@ b64_enc_metadata ()
 	# 2.1 Server Fingerprint - Formatted as a CA Identity
 	#     In No-CA mode the server fingerprint is used instead of the CA
 	#
+	# 2.2 Server name
+	#
+	#
 	# 3.  Client certificate serial
 	#     `OpenSSL output`; Drop the 'serial=' (Hex only field)
 	#
@@ -4540,21 +4666,6 @@ b64_enc_metadata ()
 	# metadata_version
 	metadata_version="easytls-${EASYTLS_VERSION}"
 
-	# CA Identity
-	generate_ca_identity || {
-		error_msg "b64_enc_metadata - generate_ca_identity"
-		return 1
-		}
-
-	# Append Server name to CA-ID
-	ca_identity="${ca_identity}-${srv_name}"
-
-	# get the serial number of the certificate from OpenSSL
-	x509_cert_serial "${cli_cert}" cert_serial || {
-		error_msg "b64_enc_metadata - cert_serial"
-		return 1
-		}
-
 	# Set creation Date
 	key_date=
 	generate_valid_date_now key_date epoch || {
@@ -4562,21 +4673,57 @@ b64_enc_metadata ()
 		return 1
 		}
 
-	# Build metadata
-	metadata="${metadata_version} ${ca_identity} ${cert_serial} ${key_date}"
+	if [ $group_mode ]
+	then
+		# Append Server name to CA-ID
+		ca_identity="${cv2_Srv_Serial}"
+		srv_name="${srv_grp_name}"
+		ca_identity="${ca_identity}-${srv_name}"
+		cert_serial="00000000000000000000000000000000"
 
-	# Append --custom-group
-	metadata="${metadata} ${TLSKEY_CUSTOM_GRP}"
+		# Build metadata
+		metadata="${metadata_version} ${ca_identity} ${cert_serial} ${key_date}"
 
-	# Append common_name
-	[ -z "${cli_name}" ] && {
-		error_msg "no client name"
-		return 1
-		}
-	metadata="${metadata} ${cli_name}"
+		# Append --custom-group
+		metadata="${metadata} ${TLSKEY_CUSTOM_GRP}"
 
-	# Append --sub-key-name
-	metadata="${metadata} ${TLSKEY_SUBNAME}"
+		# Append common_name
+		cli_name="${cli_grp_name}"
+		metadata="${metadata} ${cli_name}"
+
+	else
+
+		# CA Identity
+		generate_ca_identity || {
+			error_msg "b64_enc_metadata - generate_ca_identity"
+			return 1
+			}
+
+		# Append Server name to CA-ID
+		ca_identity="${ca_identity}-${srv_name}"
+
+		# get the serial number of the certificate from OpenSSL
+		x509_cert_serial "${cli_cert}" cert_serial || {
+			error_msg "b64_enc_metadata - cert_serial"
+			return 1
+			}
+
+		# Build metadata
+		metadata="${metadata_version} ${ca_identity} ${cert_serial} ${key_date}"
+
+		# Append --custom-group
+		metadata="${metadata} ${TLSKEY_CUSTOM_GRP}"
+
+		# Append common_name
+		[ -z "${cli_name}" ] && {
+			error_msg "no client name"
+			return 1
+			}
+		metadata="${metadata} ${cli_name}"
+
+		# Append --sub-key-name
+		metadata="${metadata} ${TLSKEY_SUBNAME}"
+	fi
 
 	# Append opt field (Usage is to be decided)
 	if [ -n "${EASYTLS_TLSCV2_OPT}" ]

@@ -205,7 +205,8 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"itcv2 s03" \
 			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
 			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
-			"-k=hw rmd c06 serial" "status"
+			"-k=hw rmd c06 serial" "status" \
+			"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
@@ -352,6 +353,7 @@ do
 		"--custom-group=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
+		"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}"
 		#"inline-index-rebuild" \
 		## EOL
 	do
