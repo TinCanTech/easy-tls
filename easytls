@@ -176,6 +176,14 @@ cmd_help()
       This allows an unlimited number of keys, see the following wiki article
       for further details:
       ${EASYTLS_github}/${EASYTLS_url}" ;;
+		bc2gs|btc2gs|btv2gs|btcv2gs|build-tls-crypt-v2-group-server)
+			text="
+  build-tls-crypt-v2-group-server <Server_Group_Name>
+      The Server Group name is simply a name for the key file." ;;
+		bc2gc|btc2gc|btv2gc|btcv2gc|build-tls-crypt-v2-group-client)
+			text="
+  build-tls-crypt-v2-group-client <Server_Group_Name> <Client_Group_Name>
+      The Client Group name is simply a name for the key file." ;;
 		rt|rtk|remove-tlskey) text="
   remove-tlskey <client_filename_base>
       Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
