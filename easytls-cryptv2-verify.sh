@@ -173,6 +173,7 @@ die ()
 	tlskey_status "FATAL" || update_status "tlskey_status FATAL"
 
 	#delete_metadata_files
+	easytls_version
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"

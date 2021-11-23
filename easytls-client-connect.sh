@@ -126,6 +126,7 @@ die ()
 	# TLSKEY connect log
 	tlskey_status "FATAL" || update_status "tlskey_status FATAL"
 
+	easytls_version
 	verbose_print "<ERROR> ${status_msg}"
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
