@@ -114,6 +114,8 @@ help_text ()
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
+  71  - USER ERROR Disallow connection, missing metadata.lib
+
   89  - BUG Disallow connection, failed to create client_md_file
   101 - BUG Disallow connection, stale metadata file.
   112 - BUG Disallow connection, invalid date
@@ -826,7 +828,7 @@ deps ()
 		easytls_file="/master/easytls-metadata.lib"
 		easytls_wiki="/wiki/download-and-install"
 		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file} - Source: ${easytls_rawurl}${easytls_file}"
+		die "Missing ${lib_file} - Source: ${easytls_rawurl}${easytls_file}" 71
 		}
 	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"

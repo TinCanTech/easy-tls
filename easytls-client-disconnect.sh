@@ -68,6 +68,7 @@ help_text ()
   68  - USER ERROR Disallow connection, missing sed.exe
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
+  71  - USER ERROR Disallow connection, missing metadata.lib
 
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
@@ -608,7 +609,7 @@ deps ()
 	# Source metadata lib
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || die "Missing ${lib_file}"
+	[ -f "${lib_file}" ] || die "Missing ${lib_file}" 71
 	# shellcheck source=./easytls-metadata.lib
 	. "${lib_file}"
 	unset -v lib_file
