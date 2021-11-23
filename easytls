@@ -4011,6 +4011,20 @@ inline_tls_crypt_v2 ()
 	easytls_verbose
 } # => inline_tls_crypt_v2 ()
 
+#
+inline_tls_crypt_v2_group_server ()
+{
+	#
+	:
+}
+
+#
+inline_tsl_crypt_v2_group_client ()
+{
+	#
+	:
+}
+
 # Share peer fingerprints
 inline_share_fingerprint ()
 {
@@ -6277,12 +6291,12 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" ' %s'  "-l=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
-			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "-g=${opt_customg}"
+			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
-			#[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "-x=${opt_key_age}"
+			#[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
 			#[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
 			#[ "$opt_kill_client" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_kill_client}"
-			#[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+			#[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
 			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
 			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
 			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
@@ -6299,7 +6313,7 @@ interactive_scripts ()
 			#	"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
 			#	[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			#	"$EASYTLS_PRINTF" ' %s' "-c=${opt_ca_path}"
-			#	[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+			#	[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
 			#	"$EASYTLS_PRINTF" '%s\n\n' "'"
 			#	}
 
@@ -6314,7 +6328,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
-				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
 
 			# easytls-client-disconnect.sh
 				"$EASYTLS_PRINTF" '%s\n' "'"
@@ -6914,9 +6928,9 @@ interactive_custom_group ()
 			# Otherwise, the Custom-Group is what-ever is configured
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
 			export TLSKEY_CUSTOM_GRP="${opt_customg}"
-			opt_customg="${opt_customg}"
+			opt_customg="-g=${opt_customg}"
 		fi
-	easytls_verbose "Config: -g=$opt_customg"
+	easytls_verbose "Config: $opt_customg"
 } # => interactive_custom_group ()
 
 # Set tlskey allowed age in days
@@ -6936,7 +6950,7 @@ interactive_key_age ()
   Enter the allowable age:'
 	interactive_question
 	key_age_days="${ia_answer:-$default}"
-	[ "$key_age_days" = "1825" ] || opt_key_age="${key_age_days}"
+	[ "$key_age_days" = "1825" ] || opt_key_age="-x=${key_age_days}"
 	easytls_verbose "Config: $opt_key_age"
 } # => interactive_key_age ()
 
@@ -7035,13 +7049,13 @@ interactive_tmp_dir ()
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		[ "${ans_tmp_dir}" = "${host_drv}/Windows/Temp" ] || {
-			opt_tmp_dir="${ans_tmp_dir}"
-			easytls_verbose "Config: -t=$opt_tmp_dir"
+			opt_tmp_dir="-t=${ans_tmp_dir}"
+			easytls_verbose "Config: $opt_tmp_dir"
 			}
 	else
 		[ "${ans_tmp_dir}" = "/tmp" ] || {
-			opt_tmp_dir="${ans_tmp_dir}"
-			easytls_verbose "Config: -t=$opt_tmp_dir"
+			opt_tmp_dir="-t=${ans_tmp_dir}"
+			easytls_verbose "Config: $opt_tmp_dir"
 			}
 	fi
 } # => interactive_tmp_dir ()
@@ -8091,6 +8105,24 @@ main ()
  * Some files have been manually altered, restore the changes to continue..'
 				die "Master hash check failed"
 				}
+
+			# Set "Temp-Dir of last resort", if not already set by config
+			if [ $EASYTLS_FOR_WINDOWS ]
+			then
+				set_var EASYTLS_tmp_dir "${host_drv}:/Windows/Temp"
+				[ -d "${EASYTLS_tmp_dir}" ] || {
+					help_note="
+ * Example: ./easytls config temp.dir ${host_drv}:/Windows/Temp"
+					die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
+					}
+			else
+				set_var EASYTLS_tmp_dir "/tmp"
+				[ -d "${EASYTLS_tmp_dir}" ] || {
+					help_note="
+ * Example: ./easytls config temp.dir /tmp"
+					die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
+					}
+			fi
 
 			# Commands which can run with or without a PKI
 			case "${cmd}" in
