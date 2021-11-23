@@ -1,5 +1,7 @@
 #!/bin/sh
 
+	EASYTLS_VERSION="2.6"
+
 # Copyright - negotiable
 copyright ()
 {
@@ -33,6 +35,7 @@ help_text ()
 
   Options:
   help|-h|--help         This help text.
+  -V|--version
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
   -a|--allow-no-check    If the key has a hardware-address configured
                          and the client did NOT use --push-peer-info
@@ -108,6 +111,14 @@ banner ()
 	[ "${EASYTLS_VERBOSE}" ] || return 0
 	"${EASYTLS_PRINTF}" '\n%s\n\n' "${1}"
 }
+
+# Set the Easy-TLS version
+easytls_version ()
+{
+	verbose_print
+	print "Easy-TLS version: ${EASYTLS_VERSION}"
+	verbose_print
+} # => easytls_version ()
 
 # Exit on error
 die ()
@@ -621,6 +632,10 @@ do
 	help|-h|--help)
 		empty_ok=1
 		help_text
+	;;
+	-V|--version)
+			easytls_version
+			exit 9
 	;;
 	-l|--vars)
 		vars_file="${val}"

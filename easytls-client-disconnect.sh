@@ -1,5 +1,7 @@
 #!/bin/sh
 
+	EASYTLS_VERSION="2.6"
+
 # Copyright - negotiable
 copyright ()
 {
@@ -33,6 +35,7 @@ help_text ()
 
   Options:
   help|-h|--help         This help text.
+  -V|--version
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
 
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
@@ -91,6 +94,14 @@ verbose_print ()
 	print "${1}"
 	print ""
 }
+
+# Set the Easy-TLS version
+easytls_version ()
+{
+	verbose_print
+	print "Easy-TLS version: ${EASYTLS_VERSION}"
+	verbose_print
+} # => easytls_version ()
 
 # Exit on error
 die ()
@@ -644,6 +655,10 @@ do
 	help|-h|--help)
 		empty_ok=1
 		help_text
+	;;
+	-V|--version)
+			easytls_version
+			exit 9
 	;;
 	-l)
 		vars_file="${val}"
