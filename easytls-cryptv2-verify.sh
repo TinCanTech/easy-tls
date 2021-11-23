@@ -99,6 +99,7 @@ help_text ()
   27  - USER ERROR Disallow connection, missing EasyTLS disabled list.
   28  - USER ERROR Disallow connection, missing openvpn server metadata_file.
   29  - USER ERROR Disallow connection, Invalid value for --tls-age.
+  30  - USER ERROR Disallow connection, missing EasyTLS data dir.
   33  - USER ERROR Disallow connection, missing EasyTLS CA Identity file.
   34  - USER ERROR Disallow connection, Invalid --cache-id and --preload-cache-id
   35  - USER ERROR Disallow connection, missing easy-rsa binary directory.
@@ -116,6 +117,7 @@ help_text ()
   70  - USER ERROR Disallow connection, missing rm.exe
   71  - USER ERROR Disallow connection, missing metadata.lib
 
+  77  - BUG Disallow connection, failed to sources vars file
   89  - BUG Disallow connection, failed to create client_md_file
   101 - BUG Disallow connection, stale metadata file.
   112 - BUG Disallow connection, invalid date
@@ -519,7 +521,7 @@ acquire_lock ()
 				9)	exec 9> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
 					;;
-				*) die "Invalid file descriptor" ;;
+				*) die "Invalid file descriptor" 191 ;;
 			esac
 			lock_acquired=1
 			break
@@ -544,7 +546,7 @@ release_lock ()
 		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
 		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
 		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-		*) die "Invalid file descriptor" ;;
+		*) die "Invalid file descriptor" 191 ;;
 		esac
 	"${EASYTLS_RM}" -f "${1}"
 	update_status "release_lock"
@@ -563,7 +565,7 @@ write_metadata_file ()
 	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
 	if [ -f "${client_md_file}" ]
 	then
-		stack_up || die "stack_up"
+		stack_up || die "stack_up" 160
 	fi
 
 	if [ -f "${client_md_file}" ]
@@ -586,7 +588,7 @@ write_metadata_file ()
 # Stack up
 stack_up ()
 {
-	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE"
+	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	i=1
@@ -751,7 +753,7 @@ deps ()
 	# Check TLS files
 	[ -d "${TLS_dir}" ] || {
 		help_note="Use './easytls init [no-ca]"
-		die "Missing EasyTLS dir: ${TLS_dir}"
+		die "Missing EasyTLS dir: ${TLS_dir}" 30
 		}
 
 	# CA required files
@@ -966,7 +968,7 @@ warn_die
 if [ -f "${vars_file}" ]
 then
 	# shellcheck source=./easytls-cryptv2-verify.vars-example
-	. "${vars_file}" || die "source failed: ${vars_file}"
+	. "${vars_file}" || die "source failed: ${vars_file}" 77
 	update_status "vars loaded"
 else
 	update_status "No vars loaded"
@@ -993,7 +995,7 @@ deps
 	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
 	# Populate metadata variables
-	key_metadata_string_to_vars || die "key_metadata_string_to_vars"
+	key_metadata_string_to_vars || die "key_metadata_string_to_vars" 87
 
 	# Update log message
 	update_status "CN: ${md_name}"

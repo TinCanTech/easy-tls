@@ -82,6 +82,8 @@ help_text ()
   70  - USER ERROR Disallow connection, missing rm.exe
   71  - USER ERROR Disallow connection, missing metadata.lib
 
+  77  - BUG Disallow connection, failed to sources vars file
+  160 - BUG Disallow connection, stack error
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
@@ -211,7 +213,7 @@ update_conntrac ()
 		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
 		#easytls_file="/master/easytls-conntrac.lib"
 		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}"
+		die "Missing ${lib_file}" 159
 		}
 	# shellcheck source=./easytls-conntrac.lib
 	. "${lib_file}"
@@ -299,15 +301,15 @@ update_conntrac ()
 				[ $conntrac_dupl ] && "${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
 				[ $conntrac_unknown ] && "${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "connect: conntrac file"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "connect: conntrac file" 156
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "connect: conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "connect: conntrac file" 157
 
 		env_file="${temp_stub}-client-connect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "connect: conntrac env"
+			set > "${env_file}" || die "connect: conntrac env" 158
 		else
-			env > "${env_file}" || die "connect: conntrac env"
+			env > "${env_file}" || die "connect: conntrac env" 159
 		fi
 
 		# Absolutely fatal
@@ -341,7 +343,7 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE"
+	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	# Lock
@@ -358,7 +360,7 @@ stack_down ()
 		# No-Stack means that this file must be deleted now
 		# No other clients can connect with this TCV2 key
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
-		[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR"
+		[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR" 162
 
 		# Unlock
 		release_lock "${easytls_lock_file}-stack" 6 || \
@@ -378,14 +380,14 @@ stack_down ()
 			if [ ${i} -eq 1 ]
 			then
 				# There are no stacked files so delete the original
-				[ -f "${fixed_md_file}" ] || die "***"
+				[ -f "${fixed_md_file}" ] || die "***" 163
 				"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 				update_status "stack-down: clear"
 				tlskey_status "  | =  stack: clear -"
 			else
 				# Delete the last file found
 				p=$(( i - 1 ))
-				[ -f "${fixed_md_file}_${p}" ] || die "_i***"
+				[ -f "${fixed_md_file}_${p}" ] || die "_i***" 164
 				"${EASYTLS_RM}" "${fixed_md_file}_${p}" || stack_err=1
 				update_status "stack-down: ${p}"
 				tlskey_status "  | <= stack:- ${s}${p} -"
@@ -398,7 +400,7 @@ stack_down ()
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:release_lock" 99
 
-	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
+	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
 }
 
 # TLSKEY tracking .. because ..
@@ -464,7 +466,7 @@ acquire_lock ()
 				9)	exec 9> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
 					;;
-				*) die "Invalid file descriptor" ;;
+				*) die "Invalid file descriptor" 191 ;;
 			esac
 			lock_acquired=1
 			break
@@ -491,7 +493,7 @@ release_lock ()
 		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
 		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
 		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-		*) die "Invalid file descriptor" ;;
+		*) die "Invalid file descriptor" 191 ;;
 		esac
 	"${EASYTLS_RM}" -f "${1}"
 	update_status "release_lock"
@@ -691,7 +693,7 @@ warn_die
 if [ -f "${vars_file}" ]
 then
 	# shellcheck source=./easytls-client-connect.vars-example
-	. "${vars_file}" || die "source failed: ${vars_file}"
+	. "${vars_file}" || die "source failed: ${vars_file}" 77
 	update_status "vars loaded"
 else
 	update_status "No vars loaded"
@@ -713,7 +715,7 @@ deps
 
 # Update log message
 # shellcheck disable=SC2154 # common_name
-[ -n "${common_name}" ] || die "Missing common_name"
+[ -n "${common_name}" ] || die "Missing common_name" 150
 update_status "CN: ${common_name}"
 
 # Set Client certificate serial number from Openvpn env
@@ -729,7 +731,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 # conntrac connect
 if [ $ENABLE_CONN_TRAC ]
 then
-	update_conntrac || die "update_conntrac FAIL"
+	update_conntrac || die "update_conntrac FAIL" 170
 	update_status "conn-trac updated"
 else
 	#update_status "conn-trac disabled"
@@ -765,7 +767,7 @@ then
 		fail_and_exit "failed to read fixed_md_file" 18
 
 	# Populate client metadata variables
-	client_metadata_string_to_vars || die "client_metadata_string_to_vars"
+	client_metadata_string_to_vars || die "client_metadata_string_to_vars" 151
 	[ -n "${c_tlskey_serial}" ] || \
 		fail_and_exit "failed to set c_tlskey_serial" 19
 	unset -v metadata_string
@@ -802,7 +804,7 @@ then
 	update_status "IGNORE TLS-Auth/Crypt-v1 only"
 
 else
-	die "Unexpected condition"
+	die "Unexpected condition" 152
 fi
 
 # Clear one stack now - fixed_md_file is no longer required
@@ -811,7 +813,7 @@ then
 	# TLS-AUTH/Crypt does not stack up
 	:
 else
-	stack_down || die "stack_down FAIL"
+	stack_down || die "stack_down FAIL" 165
 fi
 
 # Set hwaddr from Openvpn env
@@ -935,7 +937,7 @@ esac # allow_no_check
 if [ $absolute_fail -eq 0 ]
 then
 	# Delete all temp files
-	delete_metadata_files || die "CON: delete_metadata_files() ?"
+	delete_metadata_files || die "CON: delete_metadata_files() ?" 155
 
 	# TLSKEY connect log
 	tlskey_status " >>++> C-OK" || update_status "tlskey_status FAIL"

@@ -70,6 +70,7 @@ help_text ()
   70  - USER ERROR Disallow connection, missing rm.exe
   71  - USER ERROR Disallow connection, missing metadata.lib
 
+  77  - BUG Disallow connection, failed to sources vars file
   253 - Disallow connection, exit code when --help is called.
   254 - BUG Disallow connection, fail_and_exit() exited with default error code.
   255 - BUG Disallow connection, die() exited with default error code.
@@ -187,7 +188,7 @@ update_conntrac ()
 		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
 		#easytls_file="/master/easytls-conntrac.lib"
 		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}"
+		die "Missing ${lib_file}" 159
 		}
 	# shellcheck source=./easytls-conntrac.lib
 	. "${lib_file}"
@@ -303,9 +304,9 @@ update_conntrac ()
 			[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file" 156
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file" 157
 	fi
 
 	if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
@@ -318,9 +319,9 @@ update_conntrac ()
 			[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
 			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file"
+		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file" 158
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file"
+			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file" 159
 	fi
 
 	# Capture env
@@ -328,9 +329,9 @@ update_conntrac ()
 	then
 		env_file="${temp_stub}-client-disconnect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "disconnect: env"
+			set > "${env_file}" || die "disconnect: env" 167
 		else
-			env > "${env_file}" || die "disconnect: env"
+			env > "${env_file}" || die "disconnect: env" 168
 		fi
 		unset -v env_file
 	fi
@@ -339,7 +340,7 @@ update_conntrac ()
 	# If IP pool exhausted then ignore conntrac_alt_fail
 	[ ! $ip_pool_exhausted ] && [ $conntrac_alt_fail ] && {
 		ENABLE_KILL_PPID=1
-		die "disconnect: conntrac_alt_fail"
+		die "disconnect: conntrac_alt_fail" 169
 		}
 
 	# OpenVPN Bug #160
@@ -368,7 +369,7 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE"
+	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	[ $ENABLE_STACK ] || return 0
@@ -422,7 +423,7 @@ stack_down ()
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:release_lock" 99
 
-	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR"
+	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
 }
 
 # TLSKEY tracking .. because ..
@@ -487,7 +488,7 @@ acquire_lock ()
 				9)	exec 9> "${1}" || continue
 					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
 					;;
-				*) die "Invalid file descriptor" ;;
+				*) die "Invalid file descriptor" 191 ;;
 			esac
 			lock_acquired=1
 			break
@@ -512,7 +513,7 @@ release_lock ()
 		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
 		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
 		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-		*) die "Invalid file descriptor" ;;
+		*) die "Invalid file descriptor" 191 ;;
 		esac
 	"${EASYTLS_RM}" -f "${1}"
 	update_status "release_lock"
@@ -690,7 +691,7 @@ warn_die
 if [ -f "${vars_file}" ]
 then
 	# shellcheck source=./easytls-client-disconnect.vars-example
-	. "${vars_file}" || die "source failed: ${vars_file}"
+	. "${vars_file}" || die "source failed: ${vars_file}" 77
 	update_status "vars loaded"
 else
 	update_status "No vars loaded"
@@ -740,7 +741,7 @@ then
 	# TLS-AUTH/Crypt does not stack up
 	:
 else
-	stack_down || die "stack_down FAIL"
+	stack_down || die "stack_down FAIL" 165
 fi
 
 # disconnect can not fail ..
@@ -749,7 +750,7 @@ disconnect_accepted
 # conntrac disconnect
 if [ $ENABLE_CONN_TRAC ]
 then
-	update_conntrac || die "update_conntrac"
+	update_conntrac || die "update_conntrac" 170
 	update_status "conn-trac updated"
 else
 	#update_status "conn-trac disabled"
