@@ -4018,11 +4018,12 @@ inline_tls_crypt_v2_group_server ()
 		die "Required option(s): <server_common_name> <server_group_key>"
 
 	name="${1}"
-	file_name_stub="${1}-gs"
 	shift
 
 	group_key="${1}"
 	shift
+
+	file_name_stub="${name}-${group_key}"
 
 	cmd_opts=""
 	while [ -n "${1}" ]; do
@@ -4175,8 +4176,9 @@ inline_tls_crypt_v2_group_server ()
 
 	# Append TLS-Crypt-V2 key
 	{
-		"${EASYTLS_PRINTF}" "%s\n" \
-			"# metadata Easy-TLS-version ${EASYTLS_VERSION} - TLS-Crypt-v2 key"
+		"${EASYTLS_PRINTF}" '%s\n%s\n' \
+			"# metadata Easy-TLS-version ${EASYTLS_VERSION}" \
+			"# metadata TLS-Crypt-v2 GROUP Server Key: ${group_key}"
 
 		if [ $no_metadata ]
 		then
@@ -4256,11 +4258,12 @@ inline_tls_crypt_v2_group_client ()
 		die "Required option(s): <client_common_name> <client_group_key>"
 
 	name="${1}"
-	file_name_stub="${1}-gc"
 	shift
 
 	group_key="${1}"
 	shift
+
+	file_name_stub="${name}-${group_key}"
 
 	cmd_opts=""
 	while [ -n "${1}" ]; do
@@ -4413,8 +4416,9 @@ inline_tls_crypt_v2_group_client ()
 
 	# Append TLS-Crypt-V2 key
 	{
-		"${EASYTLS_PRINTF}" "%s\n" \
-			"# metadata Easy-TLS-version ${EASYTLS_VERSION} - TLS-Crypt-v2 key"
+		"${EASYTLS_PRINTF}" '%s\n%s\n' \
+			"# metadata Easy-TLS-version ${EASYTLS_VERSION}" \
+			"# metadata TLS-Crypt-v2 GROUP Client Key: ${group_key}"
 
 		if [ $no_metadata ]
 		then
