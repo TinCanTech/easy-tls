@@ -353,7 +353,8 @@ do
 		"--custom-group=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
-		"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}"
+		"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}" \
+		"ic2gs s01 g01" "ic2gc c01 g01" "ic2gc c01 g02"
 		#"inline-index-rebuild" \
 		## EOL
 	do
