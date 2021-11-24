@@ -653,6 +653,9 @@ init ()
 	# Verify tlskey-serial number by hash of metadata
 	VERIFY_hash=1
 
+	# Enable stacking by default
+	ENABLE_STACK=1
+
 	# Do not accept external settings
 	unset -v use_x509
 

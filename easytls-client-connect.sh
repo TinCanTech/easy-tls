@@ -371,8 +371,9 @@ stack_down ()
 	then
 		# No-Stack means that this file must be deleted now
 		# No other clients can connect with this TCV2 key
-		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
-		[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR" 162
+		"${EASYTLS_RM}" -f "${fixed_md_file}"
+		# || stack_err=1
+		#[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR" 162
 
 		# Unlock
 		release_lock "${easytls_lock_file}-stack" 6 || \
@@ -516,6 +517,9 @@ init ()
 {
 	# Fail by design
 	absolute_fail=1
+
+	# Enable stacking by default
+	ENABLE_STACK=1
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID

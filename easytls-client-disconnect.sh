@@ -537,6 +537,9 @@ init ()
 	# Fail by design
 	absolute_fail=1
 
+	# Enable stacking by default
+	ENABLE_STACK=1
+
 	# Defaults
 	EASYTLS_srv_pid=$PPID
 
