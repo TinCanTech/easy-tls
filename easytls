@@ -35,7 +35,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 easytls_version ()
 {
 	easytls_verbose
-	print "Easy-TLS version: ${EASYTLS_VERSION}"
+	print "Easy-TLS ${EASYTLS_VERSION}"
 	easytls_verbose
 } # => easytls_version ()
 
@@ -1171,6 +1171,31 @@ verify_openvpn ()
 	esac
 } # => verify_openvpn ()
 
+# Verify Openssl is available
+verify_openssl ()
+{
+	# extract openssl version
+	openssl_full_version="$("${EASYRSA_OPENSSL}" version)"
+	echo "openssl_full_version; $openssl_full_version"
+	openssl_version="${openssl_full_version%% *}"
+	case "${openssl_version}" in
+		OpenSSL) : ;;
+		*)
+			die "Missing or invalid OpenSSL: ${openssl_version}"
+		;;
+	esac
+
+	openssl_version="${openssl_full_version#OpenSSL }"
+	openssl_version="${openssl_version%% *}"
+	#openssl_version="${openssl_version%_*}"
+	[ ${#openssl_version} -gt 3 ] && openssl_version="${openssl_version%.*}"
+	case "${openssl_version}" in
+		3.0|3.1) : ;;
+		1.1) : ;;
+		*) die "Unsupported OpenSSL version: ${openssl_version}" ;;
+	esac
+}
+
 # Verify TLS has been initialised
 verify_tls_init ()
 {
@@ -1470,7 +1495,7 @@ generate_and_validate_file_hash ()
 # OpenSSL hash file
 openssl_generate_file_hash ()
 {
-	"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r "${1}" || return 1
+	"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r "${1}" || return 1
 } # => openssl_generate_file_hash ()
 
 # Generate data hash
@@ -1526,7 +1551,7 @@ generate_and_validate_data_hash ()
 # OpenSSL hash data
 openssl_generate_data_hash ()
 {
-		"${EASYRSA_OPENSSL}" ${EASYTLS_HASH_ALGO} -r || return 1
+		"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r || return 1
 } # => openssl_generate_data_hash ()
 
 # Wrapper for base64 encoding
@@ -8141,8 +8166,9 @@ external_deps ()
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
+	# use Easy RSA
 	set_var EASYRSA_OPENSSL "openssl"
-
+	# Use Easy TLS
 	set_var EASYTLS_OPENVPN "openvpn"
 
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
@@ -8254,6 +8280,10 @@ external_deps ()
 		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
 		die "Download the file from the URL above."
 		}
+
+	# Verify Openvpn and OpenSSL
+	verify_openvpn
+	verify_openssl
 
 	# Get the date/time now
 	# TODO
