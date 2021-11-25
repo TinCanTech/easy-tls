@@ -311,7 +311,7 @@ update_conntrac ()
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-			"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+			"${EASYTLS_PRINTF}" '%s '  "${local_date_ascii}"
 			[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
 			[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
@@ -326,7 +326,7 @@ update_conntrac ()
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-			"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+			"${EASYTLS_PRINTF}" '%s '  "${local_date_ascii}"
 			[ $conntrac_alt_fail ] && "${EASYTLS_PRINTF}" '%s ' "A-NFound"
 			[ $conntrac_alt_error ] && "${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
 			[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
@@ -391,7 +391,7 @@ stack_down ()
 
 	# Lock
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
-		die "cc-stack:acquire_lock-FAIL" 99
+		die "cd-stack:acquire_lock-FAIL" 99
 
 	unset -v stack_err
 	i=0
@@ -433,7 +433,7 @@ stack_down ()
 
 	# Unlock
 	release_lock "${easytls_lock_file}-stack" 6 || \
-		die "cc-stack:release_lock" 99
+		die "cd-stack:release_lock" 99
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
 }
@@ -547,6 +547,7 @@ init ()
 	status_msg="* EasyTLS-client-disconnect"
 
 	# Identify Windows
+	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
