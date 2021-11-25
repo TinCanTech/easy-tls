@@ -678,7 +678,6 @@ ${help_note}"
 
 	# explicitly return success for callers
 	return 0
-
 } # => verify_ca_init ()
 
 
@@ -991,7 +990,7 @@ config_use ()
 	cv2_Srv_Serial=0000000000000000000000000000000000000000000000000000000000000000
 	;;
 	*)
-		error_msg "verify_hash - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+		error_msg "config_use - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
 	;;
 	esac
@@ -1003,7 +1002,7 @@ config_use ()
 	fixed_tls_auth_serial=7A01
 	fixed_tls_cryptv1_serial=7C01
 
-	EASYTLS_VERSION="${EASYTLS_VERSION}/${EASYTLS_STATUS}"
+	EASYTLS_VERSION="${EASYTLS_VERSION}.${EASYTLS_STATUS}"
 
 	# maintenance
 	config_version || {
@@ -1098,7 +1097,7 @@ config_deletion ()
 
 	# Remove the pattern
 	"${EASYTLS_SED}" -i \
-	-e "/^${cfg_opt}[[:blank:]]=[[:blank:]].*$/d" \
+		-e "/^${cfg_opt}[[:blank:]]=[[:blank:]].*$/d" \
 		"${EASYTLS_CONFIG_FILE}" || {
 			error_msg "config_deletion - delete error: ${cfg_opt}"
 			return 1
@@ -1302,17 +1301,18 @@ and initialize a fresh TLS PKI here."
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
-	forbidden_hash=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
 	fixed_length=64
-	forbidden_hash=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
 	;;
 	*)
 		die "Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 	;;
 	esac
+
+	forbidden_hash="$(openssl_generate_empty_hash)"
+	forbidden_hash="${forbidden_hash%% *}"
 
 	# Save config-file hash
 	config_save_hash || die "Failed to hash config-file"
@@ -2316,10 +2316,11 @@ status_disabled_list ()
 # EASYTLS INLINE-INDEX Section
 #
 
+# OpenSSL certificate purpose
 openssl_cert_purpose ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -purpose || return 1
-} # => get_openssl_cert_purpose ()
+} # => openssl_cert_purpose ()
 
 # Verify certificate purpose
 verify_cert_purpose ()
@@ -2694,8 +2695,9 @@ inline_index_ilhash_to_serial ()
 inline_crt_common_name ()
 {
 	die "inline_crt_common_name DISABLED"
-	inline_common_name="$("${EASYTLS_GREP}" '^# Common name: .*$' "${inline_file}")"
-	inline_common_name="${inline_common_name##*name: }"
+	icn="$("${EASYTLS_GREP}" '^# Common name: .*$' "${inline_file}")"
+	inline_common_name="${icn##*name: }"
+	unset -v icn
 } # => inline_crt_common_name ()
 
 # Get OpenSSL serial number output
@@ -2825,10 +2827,6 @@ remove_inline ()
 
 	notice "Inline file removed: ${inline_file}"
 	easytls_verbose
-
-	# explicitly return success for callers
-	return 0
-
 } # => remove_inline ()
 
 # Remove metadata from inline file
@@ -3370,9 +3368,6 @@ remove_tlskey ()
 
 	notice "TLS-Crypt-V2 key removed: ${tlskey_file}"
 	easytls_verbose
-
-	# explicitly return success for callers
-	return 0
 } # => tlskey_remove ()
 
 
@@ -4805,9 +4800,6 @@ build_tls_crypt_v2_server ()
 	then
 		inline_tls_crypt_v2 "${srv_name}" || warn "Failed to build Inline file!"
 	fi
-
-	# Explicit return success
-	return 0
 } # => build_tls_crypt_v2_server ()
 
 # Create TLS crypt v2 client file
@@ -4951,9 +4943,6 @@ build_tls_crypt_v2_client ()
 	then
 		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
 	fi
-
-	# Explicit return success
-	return 0
 } # => build_tls_crypt_v2_client ()
 
 # Build group TLS-Crypt-v2 Server
@@ -4985,9 +4974,6 @@ build_tls_cv2_group_server ()
 
 	notice "TLS-Crypt-V2 GROUP Server Key created: ${tlskey_file}"
 	easytls_verbose
-
-	# Explicit return success
-	return 0
 }
 
 # Build group TLS-Crypt-v2 Server
@@ -5114,9 +5100,6 @@ build_tls_cv2_group_client ()
 	then
 		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
 	fi
-
-	# Explicit return success
-	return 0
 }
 
 # Verify the input is a 12 digit hex value and export it to the HW list
@@ -5136,8 +5119,8 @@ hw_addr_hex_check ()
 			return 1
 			}
 
-	export EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
-	return 0
+	EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
+	export EASYTLS_TLSCV2_HWLIST
 } # => hw_addr_hex_check ()
 
 # Base64 encode metadata fields
@@ -5400,10 +5383,6 @@ build_self_sign ()
 		"^.* Replace this line with your peer's fingerprint .*$" \
 		"${inline_file}" && print "   AND peer-fingerprint"
 	easytls_verbose
-
-	# Explicit return success
-	return 0
-
 } # => build_self_sign_server ()
 
 # Create an EC key/cert pair
