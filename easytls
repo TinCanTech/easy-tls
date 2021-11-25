@@ -983,13 +983,11 @@ config_use ()
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
-	forbidden_hash=adc83b19e793491b1c6ea0fd8b46cd9f32e592fc
 	cv2_Srv_Serial=0000000000000000000000000000000000000000
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
 	fixed_length=64
-	forbidden_hash=01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
 	cv2_Srv_Serial=0000000000000000000000000000000000000000000000000000000000000000
 	;;
 	*)
@@ -997,6 +995,9 @@ config_use ()
 		return 1
 	;;
 	esac
+
+	forbidden_hash="$(openssl_generate_empty_hash)"
+	forbidden_hash="${forbidden_hash%% *}"
 
 	# Fixed TLS key serial
 	fixed_tls_auth_serial=7A01
@@ -1489,8 +1490,14 @@ generate_and_validate_file_hash ()
 
 	# Clean up
 	unset -v target openssl_hash generated_hash
-
 } # => generate_and_validate_file_hash ()
+
+# OpenSSL hash of empty data for forbidden hash
+openssl_generate_empty_hash ()
+{
+	"${EASYTLS_PRINTF}" '%s' "" | \
+		"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r || return 1
+} # => openssl_generate_empty_hash ()
 
 # OpenSSL hash file
 openssl_generate_file_hash ()
