@@ -30,13 +30,12 @@
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1
-#ENABLE_STACK=1
 
-# Disable TLS-KEY serial number hash check
-#unset VERIFY_hash
+# Verify TLS-CRYPT-V2 KEY serial-number
+#ENABLE_TLSKEY_HASH
 
-# Disable the disbaled-list
-#unset use_disable_list
+# Ignore the disabled-list
+#IGNORE_DISABLED_LIST
 
 # Write environment to temporary log file
 #WRITE_ENV=1

@@ -923,7 +923,7 @@ do
 	;;
 	-d|--disable-list)
 		empty_ok=1
-		unset -v use_disable_list
+		IGNORE_DISABLED_LIST=1
 	;;
 	-k|--kill-client) # Use client-connect to kill client
 		empty_ok=1
@@ -1069,13 +1069,13 @@ deps
 
 # tlskey-serial checks
 
-	if [ $VERIFY_hash ]
+	if [ $ENABLE_TLSKEY_HASH ]
 	then
 		# Verify tlskey-serial is in index
-		"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
-			failure_msg="TLS-key is not recognised"
-			fail_and_exit "TLSKEY_SERIAL_ALIEN" 10
-			}
+		#"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
+		#	failure_msg="TLS-key is not recognised"
+		#	fail_and_exit "TLSKEY_SERIAL_ALIEN" 10
+		#	}
 
 		# HASH metadata sring without the tlskey-serial
 		# shellcheck disable=SC2154 # md_seed is referenced but not assigned
@@ -1129,8 +1129,10 @@ deps
 
 	# Check serial number is not disabled
 	# Use --disable-list to disable this check
-	if [ $use_disable_list ]
+	if [ $IGNORE_DISABLED_LIST ]
 	then
+		: # Ignored
+	else
 		[ -f "${disabled_list}" ] || \
 			die "Missing disabled list: ${disabled_list}" 27
 
