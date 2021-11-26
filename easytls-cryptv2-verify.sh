@@ -1072,10 +1072,10 @@ deps
 	if [ $ENABLE_TLSKEY_HASH ]
 	then
 		# Verify tlskey-serial is in index
-		#"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
-		#	failure_msg="TLS-key is not recognised"
-		#	fail_and_exit "TLSKEY_SERIAL_ALIEN" 10
-		#	}
+		"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
+			failure_msg="TLS-key is not recognised"
+			fail_and_exit "TLSKEY_SERIAL_ALIEN" 10
+			}
 
 		# HASH metadata sring without the tlskey-serial
 		# shellcheck disable=SC2154 # md_seed is referenced but not assigned

@@ -145,6 +145,7 @@ TLSVERIFY_OPTS="-v"
 CLICON_CMD="./easytls-client-connect.sh"
 CLICON_OPTS="-v"
 
+export ENABLE_TLSKEY_HASH=1
 
 # Identify Windows
 EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
