@@ -412,8 +412,7 @@ stack_down ()
 				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
 				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
-				"${EASYTLS_PRINTF}" '%s %s\n' "${local_date_ascii}" \
-					"${fixed_md_file}_${i}" >> "${EASYTLS_SE_XLOG}"
+				stale_error "${local_date_ascii} ${fixed_md_file}_${i}"
 			fi
 
 		else
@@ -427,8 +426,7 @@ stack_down ()
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 		update_status "stack-down: clear"
 		tlskey_status "  | =  stack: clear -"
-		"${EASYTLS_PRINTF}" '%s %s\n' "${local_date_ascii}" \
-			"${fixed_md_file}" >> "${EASYTLS_SE_XLOG}"
+		stale_error "${local_date_ascii} ${fixed_md_file}"
 	fi
 
 	# Unlock
@@ -436,6 +434,13 @@ stack_down ()
 		die "cd-stack:release_lock" 99
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
+}
+
+# Log stale files
+stale_error ()
+{
+	[ $ENABLE_STALE_LOG ] || return 0
+	"${EASYTLS_PRINTF}" '%s\n' "${1}" >> "${EASYTLS_SE_XLOG}"
 }
 
 # TLSKEY tracking .. because ..

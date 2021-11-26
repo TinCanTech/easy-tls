@@ -10,6 +10,7 @@
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1
+#ENABLE_STALE_LOG=1
 
 # Enable kill server mode
 #ENABLE_KILL_PPID=1
