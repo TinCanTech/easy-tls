@@ -233,16 +233,14 @@ update_conntrac ()
 
 	# Absolute start time
 	easytls_start_d_file="${EASYTLS_CONN_TRAC}-start-d"
-	if [ -f "${easytls_start_d_file}" ]
+	if [ ! -f "${easytls_start_d_file}" ]
 	then
-		easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
-	else
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s' \
 			"${daemon_start_time}" > "${easytls_start_d_file}"
-		# shellcheck disable=SC2034
-		easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
 	fi
+	# shellcheck disable=SC2034
+	easytls_start_d="$("$EASYTLS_CAT" "${easytls_start_d_file}")"
 
 	# Begin conntrac_record
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}=${client_serial}"
@@ -267,7 +265,7 @@ update_conntrac ()
 		[ $POOL_EXHAUST_KILL_CLIENT ] && {
 			"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n' "disable"
-		} > "${ovpn_dyn_opts_file}"
+			} > "${ovpn_dyn_opts_file}"
 	else
 		conntrac_record="${conntrac_record}==${ifconfig_pool_remote_ip}"
 	fi
@@ -303,7 +301,9 @@ update_conntrac ()
 	if [ $conntrac_dupl ] || [ $conntrac_fail ] || \
 		[ $conntrac_error ] ||[ $conntrac_unknown ]
 	then
-		{
+		if [ $ENABLE_CONNTRAC_FAIL_LOG ]
+		then
+			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
@@ -313,9 +313,10 @@ update_conntrac ()
 				[ $conntrac_dupl ] && "${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
 				[ $conntrac_unknown ] && "${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
-		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "connect: conntrac file" 156
-		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
-			"${EASYTLS_CONN_TRAC}.fail" || die "connect: conntrac file" 157
+			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conn: conntrac file" 156
+			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
+				"${EASYTLS_CONN_TRAC}.fail" || die "conn: conntrac file" 157
+		fi # ENABLE_CONNTRAC_FAIL_LOG
 
 		env_file="${temp_stub}-client-connect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
