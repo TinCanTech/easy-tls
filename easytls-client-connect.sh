@@ -362,6 +362,7 @@ stack_down ()
 	# Lock
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:acquire_lock-FAIL" 99
+	update_status "stack-lock-acquired"
 
 	unset -v stack_err
 	i=0
@@ -379,6 +380,7 @@ stack_down ()
 		# Unlock
 		release_lock "${easytls_lock_file}-stack" 6 || \
 			die "cc-stack:release_lock" 99
+		update_status "stack-lock-released"
 
 		return 0
 	fi
@@ -413,6 +415,7 @@ stack_down ()
 	# Unlock
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "cc-stack:release_lock" 99
+	update_status "stack-lock-released"
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
 }
@@ -488,8 +491,6 @@ acquire_lock ()
 		set +o noclobber
 		[ $lock_acquired ] || return 1
 	) || return 1
-
-	update_status "acquire_lock"
 } # => acquire_lock ()
 
 # Simple lock file - Move this to a lib
@@ -510,7 +511,6 @@ release_lock ()
 		*) die "Invalid file descriptor" 191 ;;
 		esac
 	"${EASYTLS_RM}" -f "${1}"
-	update_status "release_lock"
 } # => release_lock ()
 
 # Initialise

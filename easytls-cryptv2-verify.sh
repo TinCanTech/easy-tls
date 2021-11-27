@@ -541,7 +541,6 @@ acquire_lock ()
 		set +o noclobber
 		[ $lock_acquired ] || return 1
 	) || return 1
-	update_status "acquire_lock"
 }
 
 release_lock ()
@@ -561,7 +560,6 @@ release_lock ()
 		*) die "Invalid file descriptor" 191 ;;
 		esac
 	"${EASYTLS_RM}" -f "${1}"
-	update_status "release_lock"
 }
 
 # Write metadata file
@@ -573,6 +571,7 @@ write_metadata_file ()
 	# Lock
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
 		die "v2-stack:acquire_lock-FAIL" 99
+	update_status "stack-lock-acquired"
 
 	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
 	if [ -f "${client_md_file}" ]
@@ -595,6 +594,7 @@ write_metadata_file ()
 	# Lock
 	release_lock "${easytls_lock_file}-stack" 6 || \
 		die "v2-stack:release_lock" 99
+	update_status "stack-lock-released"
 } # => write_metadata_file ()
 
 # Stack up
@@ -650,9 +650,6 @@ init ()
 	# metadata version
 	local_easytls='easytls'
 
-	# Verify tlskey-serial number by hash of metadata
-	VERIFY_hash=1
-
 	# Enable stacking by default
 	ENABLE_STACK=1
 
@@ -678,9 +675,6 @@ init ()
 	# --v2|--via-ca    - client serial revokation via OpenSSL ca command (Broken)
 	# --v3|--via-index - client serial revokation via index.txt search (Preferred)
 	x509_method=0
-
-	# Enable disable list by default
-	use_disable_list=1
 
 	# Identify Windows
 	# shellcheck disable=SC2016
@@ -747,6 +741,7 @@ deps ()
 	# Lock
 	acquire_lock "${easytls_lock_file}-v2" 5 || \
 		die "v2:acquire_lock-FAIL" 99
+	update_status "V2-lock-acquired"
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-cryptv2-verify.log"
@@ -1241,6 +1236,7 @@ write_metadata_file
 
 # Unlock
 release_lock "${easytls_lock_file}-v2" 5 || die "v2:release_lock" 99
+update_status "V2-lock-released"
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
