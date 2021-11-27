@@ -753,7 +753,6 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 if [ $ENABLE_CONN_TRAC ]
 then
 	update_conntrac || die "update_conntrac FAIL" 170
-	update_status "conn-trac updated"
 else
 	#update_status "conn-trac disabled"
 	:

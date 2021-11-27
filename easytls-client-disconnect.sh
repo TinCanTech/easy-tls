@@ -776,7 +776,6 @@ disconnect_accepted
 if [ $ENABLE_CONN_TRAC ]
 then
 	update_conntrac || die "update_conntrac" 170
-	update_status "conn-trac updated"
 else
 	#update_status "conn-trac disabled"
 	:

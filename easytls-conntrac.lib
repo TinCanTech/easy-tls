@@ -211,6 +211,6 @@ conn_trac_stats ()
 	ctc=$(( ctc + 1 ))
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || return 1
 	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || return 1
-	update_status "conntrac: tallied"
+	#update_status "conntrac: tallied"
 	tlskey_status "  |;   ct: tallied  -"
 }
