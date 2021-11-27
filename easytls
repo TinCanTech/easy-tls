@@ -36,6 +36,8 @@ easytls_version ()
 {
 	easytls_verbose
 	print "Easy-TLS ${EASYTLS_VERSION}"
+	print "OpenVPN ${ovpn_ver_number}"
+	print "${openssl_full_version}"
 	easytls_verbose
 } # => easytls_version ()
 
@@ -108,6 +110,7 @@ Use the 'help' command above to get full usage details.
   d      | disable <filename_base>
   e      | enable <filename_base>
          | disabled-list-rehash
+  ver    | version
 
 Easy-TLS also has a useful Howto and wiki with expanded help and examples:
 * https://github.com/TinCanTech/easy-tls/blob/master/EasyTLS-Howto-ii.md
@@ -322,6 +325,8 @@ cmd_help()
 			opt_abbreviations ;;
 		cf|cfg|config)
 			opt_config ;;
+		ver|version) text="
+  Show version information." ;;			
 		"")
 			usage ;;
 		*) text="
@@ -348,6 +353,7 @@ non-empty values to options are mandatory.
 
 General options:
 
+-V                  Version
 --batch             Set automatic (no-prompts when possible) mode.
 -v|--verbose        Verbose output.
 -s|--silent         Silence all message output except prompts.
@@ -1162,6 +1168,7 @@ verify_openvpn ()
 
 	openvpn_version="${openvpn_full_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
+	ovpn_ver_number="${openvpn_version}"
 	openvpn_version="${openvpn_version%_*}"
 	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "${openvpn_version}" in
@@ -1176,7 +1183,6 @@ verify_openssl ()
 {
 	# extract openssl version
 	openssl_full_version="$("${EASYRSA_OPENSSL}" version)"
-	echo "openssl_full_version; $openssl_full_version"
 	openssl_version="${openssl_full_version%% *}"
 	case "${openssl_version}" in
 		OpenSSL) : ;;
@@ -8290,8 +8296,13 @@ main ()
 		empty_ok="" # Empty values are not allowed unless excepted
 
 		case "${opt}" in
+
 		''|help|-h|--help|--usage)
 			cmd='help'
+			break
+		;;
+		-V)
+			cmd='version'
 			break
 		;;
 		--batch)
@@ -8384,6 +8395,16 @@ main ()
 	# Intelligent env-var detection and auto-loading:
 	vars_setup
 
+	# Register cleanup on EXIT
+	trap "cleanup" EXIT
+	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
+	# explicitly exit to signal EXIT (non-bash shells)
+	trap "exit 1" 1
+	trap "exit 2" 2
+	trap "exit 3" 3
+	trap "exit 6" 6
+	trap "exit 14" 15
+
 	# Create lock-file
 	if [ -d "${EASYTLS_DATA_DIR}" ]
 	then
@@ -8401,18 +8422,9 @@ main ()
 		:
 	fi
 
-	# Register cleanup on EXIT
-	trap "cleanup" EXIT
-	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
-	# explicitly exit to signal EXIT (non-bash shells)
-	trap "exit 1" 1
-	trap "exit 2" 2
-	trap "exit 3" 3
-	trap "exit 6" 6
-	trap "exit 14" 15
-
 	# determine how we were called, then hand off to the function responsible
-	cmd="${1}"
+	# Notice, 'help' and 'version' are set above, so do not over-write
+	cmd="${cmd:-${1}}"
 	[ -n "${1}" ] && shift # scrape off command
 
 	case "${cmd}" in
@@ -8422,6 +8434,10 @@ main ()
 		cmd_help "${1}" || \
 			die "Error: cmd_help"
 		return 0
+	;;
+	ver|version)
+		easytls_version || :
+		exit
 	;;
 	init|init-tls)
 		init_tls "$@" || \
@@ -8434,11 +8450,7 @@ main ()
 		case "${cmd}" in
 		# case 2
 
-		v|version)
-			easytls_version || \
-				die "Error: easytls_version"
-		;;
-		*)
+			*)
 			# Must have init TLS now - and PKI when not No-CA mode
 			verify_tls_init || {
 				error_msg "Easy-TLS has not been initialised."
