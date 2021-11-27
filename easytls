@@ -8447,158 +8447,154 @@ main ()
 		# Load config options - Does not change command line options
 		config_use || die "config_use - Error: $?"
 
+		# Must have init TLS now - and PKI when not No-CA mode
+		verify_tls_init || {
+			error_msg "Easy-TLS has not been initialised."
+			error_msg "See help: ./easytls help init-tls"
+			error_msg "$(cmd_help init-tls)"
+			exit 1
+				}
+		[ $EASYTLS_NO_CA ] || verify_pki_init
+
+		# Verify me!
+		verify_wiscii_hash || {
+			help_note='
+ * Some files have been manually altered, restore the changes to continue..'
+			die "Master hash check failed"
+			}
+
+		# Set "Temp-Dir of last resort", if not already set by config
+		if [ $EASYTLS_FOR_WINDOWS ]
+		then
+			set_var EASYTLS_tmp_dir "${host_drv}:/Windows/Temp"
+			[ -d "${EASYTLS_tmp_dir}" ] || {
+				help_note="
+ * Example: ./easytls config temp.dir ${host_drv}:/Windows/Temp"
+				die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
+				}
+		else
+			set_var EASYTLS_tmp_dir "/tmp"
+			[ -d "${EASYTLS_tmp_dir}" ] || {
+				help_note="
+ * Example: ./easytls config temp.dir /tmp"
+				die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
+				}
+		fi
+
+		# Commands which can run with or without a PKI
 		case "${cmd}" in
 		# case 2
 
-			*)
-			# Must have init TLS now - and PKI when not No-CA mode
-			verify_tls_init || {
-				error_msg "Easy-TLS has not been initialised."
-				error_msg "See help: ./easytls help init-tls"
-				error_msg "$(cmd_help init-tls)"
-				exit 1
-				}
-			[ $EASYTLS_NO_CA ] || verify_pki_init
-
-			# Verify me!
-			verify_wiscii_hash || {
-				help_note='
- * Some files have been manually altered, restore the changes to continue..'
-				die "Master hash check failed"
-				}
-
-			# Set "Temp-Dir of last resort", if not already set by config
-			if [ $EASYTLS_FOR_WINDOWS ]
-			then
-				set_var EASYTLS_tmp_dir "${host_drv}:/Windows/Temp"
-				[ -d "${EASYTLS_tmp_dir}" ] || {
-					help_note="
- * Example: ./easytls config temp.dir ${host_drv}:/Windows/Temp"
-					die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
-					}
-			else
-				set_var EASYTLS_tmp_dir "/tmp"
-				[ -d "${EASYTLS_tmp_dir}" ] || {
-					help_note="
- * Example: ./easytls config temp.dir /tmp"
-					die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
-					}
-			fi
-
-			# Commands which can run with or without a PKI
-			case "${cmd}" in
-			# case 3
-
-			cf|cfg|config)
-				easytls_config "$@" || \
-					die "Error: easytls_config"
-			;;
-			build)
-				interactive_build || \
-					die "Error: interactive_build"
-			;;
-			inline)
-				interactive_inline || \
-					die "Error: interactive_inline"
-			;;
-			remove)
-				interactive_remove || \
-					die "Error: interactive_remove"
-			;;
-			script)
-				interactive_scripts || \
-					die "Error: interactive_scripts"
-			;;
-			ss|selfsign)
-				interactive_selfsign || \
-					die "Error: interactive_selfsign"
-			;;
-			bta|build-tls-auth)
-				build_tls_auth "$@" || \
-					die "Error: build_tls_auth"
-			;;
-			btc|build-tls-crypt)
-				build_tls_crypt_v1 "$@" || \
-					die "Error: build_tls_crypt_v1"
-			;;
-			ita|inline-tls-auth)
-				inline_tls_auth "$@" || \
-					die "Error: inline_tls_auth"
-			;;
-			itc|inline-tls-crypt)
-				inline_tls_crypt_v1 "$@" || \
-					die "Error: inline_tls_crypt_v1"
-			;;
-			bc2s|btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
-				build_tls_crypt_v2_server "$@" || \
-					die "Error: build_tls_crypt_v2_server"
-			;;
-			bc2c|btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
-				build_tls_crypt_v2_client "$@" || \
-					die "Error: build_tls_crypt_v2_client"
-			;;
-			itc2|itv2|itcv2|inline-tls-crypt-v2)
-				inline_tls_crypt_v2 "$@" || \
-					die "Error: inline_tls_crypt_v2"
-			;;
-			# GROUP Server
-			bc2gs|btc2gs|btv2gs|btcv2gs|build-tls-crypt-v2-group-server)
-				build_tls_cv2_group_server "$@" || \
-					die "Error: build_tls_crypt_v2_group_server"
-			;;
-			ic2gs|itc2gs|itcv2gs|inline-tls-crypt-v2-group-server)
-				inline_tls_crypt_v2_group_server "$@" || \
-					die "Error: inline_tls_crypt_v2_group_server"
-			;;
-			# GROUP Client
-			bc2gc|btc2gc|btv2gc|btcv2gc|build-tls-crypt-v2-group-client)
-				build_tls_cv2_group_client "$@" || \
-					die "Error: build_tls_crypt_v2_group_client"
-			;;
-			ic2gc|itc2gc|itcv2gc|inline-tls-crypt-v2-group-client)
-				inline_tls_crypt_v2_group_client "$@" || \
-					die "Error: inline_tls_crypt_v2_group_server"
-			;;
-			is|inline-show)
-				inline_show "$@" || \
-					die "Error: inline_show"
-			;;
-			ri|ril|remove-inline)
-				remove_inline "$@" || \
-					die "Error: remove_inline"
-			;;
-			rt|rk|rtk|remove-tlskey)
-				remove_tlskey "$@" || \
-					die "Error: remove_tlskey"
-			;;
-			rm|rmd|remove-metadata)
-				remove_metadata "$@" || \
-					die "Error: remove_metadata"
-			;;
-			ix|inline-expire)
-				inline_expire "$@" || \
-					die "Error: inline_expire"
-			;;
-			cx|cert-expire)
-				cert_expire "$@" || \
-					die "Error: cert_expire"
-			;;
-			d|disable)
-				disabled_list_manager "disable" "$@" || \
-					die "Error: disabled_list_manager"
-			;;
-			e|enable)
-				disabled_list_manager "enable" "$@" || \
-					die "Error: disabled_list_manager"
-			;;
-			disabled-list-rehash)
-				disabled_list_manager "rehash" "$@" || \
-					die "Error: disabled_list_manager rehash"
-			;;
-			*)
+		cf|cfg|config)
+			easytls_config "$@" || \
+				die "Error: easytls_config"
+		;;
+		build)
+			interactive_build || \
+				die "Error: interactive_build"
+		;;
+		inline)
+			interactive_inline || \
+				die "Error: interactive_inline"
+		;;
+		remove)
+			interactive_remove || \
+				die "Error: interactive_remove"
+		;;
+		script)
+			interactive_scripts || \
+				die "Error: interactive_scripts"
+		;;
+		ss|selfsign)
+			interactive_selfsign || \
+				die "Error: interactive_selfsign"
+		;;
+		bta|build-tls-auth)
+			build_tls_auth "$@" || \
+				die "Error: build_tls_auth"
+		;;
+		btc|build-tls-crypt)
+			build_tls_crypt_v1 "$@" || \
+				die "Error: build_tls_crypt_v1"
+		;;
+		ita|inline-tls-auth)
+			inline_tls_auth "$@" || \
+				die "Error: inline_tls_auth"
+		;;
+		itc|inline-tls-crypt)
+			inline_tls_crypt_v1 "$@" || \
+				die "Error: inline_tls_crypt_v1"
+		;;
+		bc2s|btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
+			build_tls_crypt_v2_server "$@" || \
+				die "Error: build_tls_crypt_v2_server"
+		;;
+		bc2c|btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
+			build_tls_crypt_v2_client "$@" || \
+				die "Error: build_tls_crypt_v2_client"
+		;;
+		itc2|itv2|itcv2|inline-tls-crypt-v2)
+			inline_tls_crypt_v2 "$@" || \
+				die "Error: inline_tls_crypt_v2"
+		;;
+		# GROUP Server
+		bc2gs|btc2gs|btv2gs|btcv2gs|build-tls-crypt-v2-group-server)
+			build_tls_cv2_group_server "$@" || \
+				die "Error: build_tls_crypt_v2_group_server"
+		;;
+		ic2gs|itc2gs|itcv2gs|inline-tls-crypt-v2-group-server)
+			inline_tls_crypt_v2_group_server "$@" || \
+				die "Error: inline_tls_crypt_v2_group_server"
+		;;
+		# GROUP Client
+		bc2gc|btc2gc|btv2gc|btcv2gc|build-tls-crypt-v2-group-client)
+			build_tls_cv2_group_client "$@" || \
+				die "Error: build_tls_crypt_v2_group_client"
+		;;
+		ic2gc|itc2gc|itcv2gc|inline-tls-crypt-v2-group-client)
+			inline_tls_crypt_v2_group_client "$@" || \
+				die "Error: inline_tls_crypt_v2_group_server"
+		;;
+		is|inline-show)
+			inline_show "$@" || \
+				die "Error: inline_show"
+		;;
+		ri|ril|remove-inline)
+			remove_inline "$@" || \
+				die "Error: remove_inline"
+		;;
+		rt|rk|rtk|remove-tlskey)
+			remove_tlskey "$@" || \
+				die "Error: remove_tlskey"
+		;;
+		rm|rmd|remove-metadata)
+			remove_metadata "$@" || \
+				die "Error: remove_metadata"
+		;;
+		ix|inline-expire)
+			inline_expire "$@" || \
+				die "Error: inline_expire"
+		;;
+		cx|cert-expire)
+			cert_expire "$@" || \
+				die "Error: cert_expire"
+		;;
+		d|disable)
+			disabled_list_manager "disable" "$@" || \
+				die "Error: disabled_list_manager"
+		;;
+		e|enable)
+			disabled_list_manager "enable" "$@" || \
+				die "Error: disabled_list_manager"
+		;;
+		disabled-list-rehash)
+			disabled_list_manager "rehash" "$@" || \
+				die "Error: disabled_list_manager rehash"
+		;;
+		*)
 			if [ $EASYTLS_NO_CA ]
 			then
-				# No-CA use these versions of commands
+			# No-CA use these versions of commands
 				case "${cmd}" in
 				sss|self-sign-server)
 					build_self_sign 'server' "$@" || \
@@ -8645,8 +8641,6 @@ main ()
 				;;
 				esac # CA mode
 			fi
-			;;
-			esac # case 3
 		;;
 		esac # case 2
 	;;
