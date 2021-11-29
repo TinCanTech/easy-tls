@@ -6563,14 +6563,20 @@ interactive_scripts ()
 		# Openvpn PID - opt_client_connect
 		interactive_client_connect
 
-		# -t|--tmp-dir - opt_tmp_dir
-		[ $opt_client_connect ] && interactive_tmp_dir
+		if [ $opt_client_connect ]
+		then
+			# -t|--tmp-dir - opt_tmp_dir
+			interactive_tmp_dir
 
-		# -a|-p|-c|-k hardware requirements
-		[ $opt_client_connect ] && interactive_hw_required
+			# --script-security
+			interactive_script_security
 
-		# Kill-client mode
-		[ $opt_client_connect ] && interactive_kill_client
+			# -a|-p|-c|-k hardware requirements
+			interactive_hw_required
+
+			# Kill-client mode
+			interactive_kill_client
+		fi
 
 		# Create vars files
 		{	# easytls-cryptv2-verify.vars
@@ -6632,7 +6638,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s\n' \
 				'# If your clients have username/password then set this to level 3'
-			"$EASYTLS_PRINTF" '%s\n\n' 'script-security 2'
+			"$EASYTLS_PRINTF" '%s\n\n' "script-security ${opt_script_security}"
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
@@ -7563,6 +7569,43 @@ interactive_client_connect ()
 	easytls_verbose
 	easytls_verbose "Config: $opt_hw_required"
 } # => interactive_client_connect ()
+
+
+# Openvpn --script-security
+interactive_script_security ()
+{
+	unset -v opt_script_security
+	default='N'
+	ia_question_help="
+* Do you want to use user/password authentication ?
+
+  Leave this blank to use the default
+
+  * Default: $default"
+	ia_question_text='
+  Enter (y)es or (n)o:'
+	while :
+	do
+		interactive_question
+		ia_answer="${ia_answer:-$default}"
+		case "$ia_answer" in
+			Y|y|Yes|yes|YES)
+				opt_script_security=3
+				break
+			;;
+			N|n|No|no|NO)
+				opt_script_security=2
+				break
+			;;
+			*)
+				: # Ignore
+			;;
+		esac
+	done
+
+	easytls_verbose
+	#easytls_verbose "Config: $opt_script_security"
+} # => interactive_script_security ()
 
 # Set use of kill-client mode
 interactive_kill_client ()
