@@ -1,6 +1,7 @@
 easypfp
 easytls-script.conf
 easytls-server.pid
+easytls-*.vars
 ia-*.*
 et-tdir*/*
 noca/*
