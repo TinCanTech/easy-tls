@@ -41,7 +41,7 @@ jobs:
         # This workflow contains a single job called "build"
   wtest:
     # The type of runner that the job will run on
-    runs-on: windows-2016
+    runs-on: windows-latest
 
     env:
       EASYTLS_REMOTE_CI: 1
