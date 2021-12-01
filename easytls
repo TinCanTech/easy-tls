@@ -4813,17 +4813,35 @@ build_tls_crypt_v2_client ()
 		die "Client key already exists: ${tlskey_file}"
 		}
 
-	# Capture HW addresses
+	# Capture HW and IP addresses
 	EASYTLS_TLSCV2_HWLIST=""
 	while [ -n "${1}" ]; do
 		# Needs to allow multiples. EG: eth & wifi
-		EASYTLS_TLSCV2_HWADDR="${1}"
-		# Verify this is a 12 digit hex only value
-		# and add it to the HWLIST
-		hw_addr_hex_check "${EASYTLS_TLSCV2_HWADDR}" || \
-			die "Invalid Hardware Address: ${EASYTLS_TLSCV2_HWADDR}"
+		md_temp_addr="${1}"
+		if hw_addr_hex_check "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
+		elif validate_ip4_address "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
+		elif validate_ip6_address "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
+		else
+			die "Invalid Address: ${md_temp_addr}"
+		fi
 		shift
 	done
+	export EASYTLS_TLSCV2_HWLIST
+
+	# Capture HW addresses
+	#EASYTLS_TLSCV2_HWLIST=""
+	#while [ -n "${1}" ]; do
+	#	# Needs to allow multiples. EG: eth & wifi
+	#	md_temp_addr="${1}"
+		# Verify this is a 12 digit hex only value
+		# and add it to the HWLIST
+	#	hw_addr_hex_check "${md_temp_addr}" || \
+	#		die "Invalid Hardware Address: ${md_temp_addr}"
+	#	shift
+	#done
 
 	# Confirm metadata Custom-Group
 	[ "${TLSKEY_CUSTOM_GRP}" = "EASYTLS" ] || {
@@ -4929,17 +4947,23 @@ build_tls_cv2_group_client ()
 		die "Client key already exists: ${tlskey_file}"
 		}
 
-	# Capture HW addresses
+	# Capture HW and IP addresses
 	EASYTLS_TLSCV2_HWLIST=""
 	while [ -n "${1}" ]; do
 		# Needs to allow multiples. EG: eth & wifi
-		EASYTLS_TLSCV2_HWADDR="${1}"
-		# Verify this is a 12 digit hex only value
-		# and add it to the HWLIST
-		hw_addr_hex_check "${EASYTLS_TLSCV2_HWADDR}" || \
-			die "Invalid Hardware Address: ${EASYTLS_TLSCV2_HWADDR}"
+		md_temp_addr="${1}"
+		if hw_addr_hex_check "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
+		elif validate_ip4_address "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
+		elif validate_ip6_address "${md_temp_addr}" >/dev/null 2>&1; then
+			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
+		else
+			die "Invalid Address: ${md_temp_addr}"
+		fi
 		shift
 	done
+	export EASYTLS_TLSCV2_HWLIST
 
 	# Confirm metadata Custom-Group
 	[ "${TLSKEY_CUSTOM_GRP}" = "EASYTLS" ] || {
@@ -4984,19 +5008,128 @@ hw_addr_hex_check ()
 		"${EASYTLS_SED}" -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
 
 	[ ${#temp_hw_addr} -eq 12 ] || {
-		help_note="Hardware Address must be 12 digits exactly!"
+		easytls_verbose "Hardware Address must be 12 digits exactly!"
 		return 1
 		}
 
 	# Verify hex only
 	[ ${temp_hw_addr} = ${temp_hw_addr%[!0123456789abcdefABCDEF]*} ] || {
-			error_msg "temp_hw_addr - !Hex: ${temp_hw_addr}"
+			easytls_verbose "temp_hw_addr - !Hex: ${temp_hw_addr}"
 			return 1
 			}
-
-	EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
-	export EASYTLS_TLSCV2_HWLIST
 } # => hw_addr_hex_check ()
+
+# Front end validate address
+validate_ip_address ()
+{
+echo "VALIDATE ADDRESS"
+	[ "${1}" = "${1%%.*}" ] || ipv4=1
+	[ "${1}" = "${1%%:*}" ] || ipv6=1
+	[ -n "${ipv4}${ipv6}" ] || return 1
+	[ $ipv4 ] && [ $ipv6 ] && easytls_verbose "Unsupported <:Port>" && return 1
+	[ $ipv4 ] && validate_ip4_address "$@" && valid4=1
+	[ $ipv6 ] && validate_ip6_address "$@" && valid6=1
+	[ $valid4 ] && [ $valid6 ] && return 1
+	[ $valid4 ] || [ $valid6 ] || return 1
+	[ $ipv6 ] || print "Valid IPv4: $*"
+	[ $ipv4 ] || print "Valid IPv6: $*"
+}
+
+# Validate IPv4 address
+validate_ip4_address ()
+{
+	temp_ip_addr="${1}"
+
+	case "${temp_ip_addr}" in
+	*":"* ) easytls_verbose "IPv4 error: colon"; return 1 ;;
+	*[!0123456789./]*) easytls_verbose "IPv4 error: illegal"; return 1 ;;
+	esac
+
+	o1=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
+	o2=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
+	o3=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
+	o4=${temp_ip_addr%%/*}; temp_ip_addr=${temp_ip_addr#*/};
+	fx=${temp_ip_addr};
+	[ "${fx}" = "${o4}" ] && fx=32
+	[ "${fx}" = 32 ] && [ "${o4}" = 0 ] && \
+		easytls_verbose "IPv4 address error: net/mask" && return 1
+
+	for i in "${o1}" "${o2}" "${o3}" "${o4}"
+	do
+		[ -z "${i}" ] && return 1
+		[ "${i}" = "${i%[!0123456789]*}" ] || return 1
+		if [ "${i}" -lt 0 ] || [ "${i}" -gt 255 ]
+		then
+			return 1
+		fi
+	done
+
+	[ -z "${fx}" ] && easytls_verbose "IPv4 error: bitmask" && return 1
+	[ "${fx}" = "${fx%[!0123456789]*}" ] || return 1
+	if [ "${fx}" -lt 0 ] || [ "${fx}" -gt 32 ]
+	then
+		return 1
+	fi
+}
+
+# Validate IPv6 address
+validate_ip6_address ()
+{
+	temp_ip_addr="${1}"
+
+	case "${temp_ip_addr}" in
+	*"::"*"::"* | *":::"* | *[!:]":" | *"."* )
+		easytls_verbose "IPv6 error: format"; return 1 ;;
+	*[!0123456789abcdefABCDEF:/]*)
+		easytls_verbose "IPv6 error: illegal"; return 1 ;;
+	esac
+
+	# Set bitmask - default /128
+	bitmask="${temp_ip_addr#*/}"
+	[ "${bitmask}" = "${temp_ip_addr}" ] && bitmask="128"
+	temp_ip_addr="${temp_ip_addr%/*}"
+
+	# Collapse first ::
+	delim_pair_1="${temp_ip_addr%%:*}"
+	delim_pair_2="${delim_pair_1%%:*}"
+	if [ "${delim_pair_1}" = "${delim_pair_2}" ]
+	then
+		temp_ip_addr="${temp_ip_addr#::}"
+	fi
+
+	while [ -n "${temp_ip_addr}" ]
+	do
+		oct_str=${temp_ip_addr%%:*}
+		hex="0x${oct_str:-0}"
+
+#easytls_verbose "IPv6: $(( hex )) -lt 65536"
+
+		[ $(( hex )) -lt 65536 ] || {
+			echo WTF#1
+			easytls_verbose "IPv6 error: oct-val"
+			return 1
+			}
+		if [ "${#oct_str}" != 4 ]
+		then
+			[ "${oct_str}" = "${oct_str#0}" ] || {
+				echo WTF#1
+				easytls_verbose "IPv6 error: format"
+				return 1
+				}
+		fi
+
+		temp_ip_addr=${temp_ip_addr#*:}
+		ip6_str="${ip6_str}:${oct_str}"
+		[ "${temp_ip_addr}" = "${oct_str}" ] && break
+	done
+
+	if [ "${bitmask}" -lt 0 ] || [ "${bitmask}" -gt 128 ]
+	then
+		easytls_verbose "IPv6 error: mask-val"
+		return 1
+	fi
+	return 0
+}
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
@@ -8485,6 +8618,22 @@ main ()
 	init|init-tls)
 		init_tls "$@" || \
 			die "Error: init_tls"
+	;;
+	vhw)
+		hw_addr_hex_check "$@" || print "Invalid address: $*" && exit 1
+		exit
+	;;
+	vip)
+		validate_ip_address "$@" || print "Invalid address: $*" && exit 1
+		exit
+	;;
+	v4ip)
+		validate_ip4_address "$@" || print "Invalid address: $*" && exit 1
+		exit
+	;;
+	v6ip)
+		validate_ip6_address "$@" || print "Invalid address: $*" && exit 1
+		exit
 	;;
 	*)
 		# Load config options - Does not change command line options

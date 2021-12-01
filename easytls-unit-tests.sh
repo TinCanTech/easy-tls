@@ -182,7 +182,10 @@ fi
 PKI_DIR="${WORK_DIR}/noca"
 export EASYRSA="$WORK_DIR"
 export EASYRSA_PKI="$PKI_DIR"
-hwaddr="00:15:5d:c9:6e:01"
+hwaddr1="00:15:5d:c9:6e:01"
+hwaddr2="00:80:ea:06:fe:fc"
+ip4addr="10.1.101.226"
+ip6addr="12fc:1918::10:1:101:226"
 
 echo "============================================================"
 echo "No-CA mode:"
@@ -201,13 +204,13 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"btc" "itc s02" "-r=s02 itc c03" "-r=s02 itc c04" \
 			"sss s03" "ssc c05" "ssc c06" \
 			"btcv2s s03" \
-			"btcv2c s03 c05" "-k=hw btcv2c s03 c05 ${hwaddr}" \
-			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr}" \
+			"btcv2c s03 c05" "-k=hw btcv2c s03 c05 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 			"itcv2 s03" \
 			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
 			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
 			"-k=hw rmd c06 serial" "status" \
-			"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}"
+			"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
@@ -322,11 +325,11 @@ do
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c06" \
 		"--custom-group=tincantech build-tls-crypt-v2-client s01 c08" \
 		"--custom-group=tincantech \
-			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
+			build-tls-crypt-v2-client s01 c09 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"--custom-group=tincantech --sub-key-name=bob \
-			build-tls-crypt-v2-client s01 c09 ef1234567890 1234567890fe" \
+			build-tls-crypt-v2-client s01 c09 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"--inline --custom-group=tincantech --sub-key-name=office \
-			build-tls-crypt-v2-client s01 c10 abcdefabcdef 123456543210" \
+			build-tls-crypt-v2-client s01 c10 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"--custom-group=tincantech inline-tls-auth s01 0 add-dh" \
 		"remove-inline s01" \
 		"--custom-group=tincantech inline-tls-auth c01 1" \
@@ -347,14 +350,14 @@ do
 		"--custom-group=tincantech --sub-key-name=bob inline-tls-crypt-v2 c09 add-hw" \
 		"--custom-group=tincantech --sub-key-name=bob rmd c09" \
 		"--custom-group=tincantech --sub-key-name=eve \
-			build-tls-crypt-v2-client s01 c10 ef1234567890 1234567890fe" \
+			build-tls-crypt-v2-client s01 c10 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"--custom-group=tincantech --sub-key-name=eve \
 			inline-tls-crypt-v2 c10 add-hw" \
 		"--custom-group=tincantech --sub-key-name=eve remove-inline c10" \
 		"--custom-group=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
-		"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr}" \
+		"bc2gs g01" "bc2gc g01 g01" "bc2gc g01 g02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"ic2gs s01 g01" "ic2gc c01 g01" "ic2gc c01 g02"
 		#"inline-index-rebuild" \
 		## EOL
