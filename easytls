@@ -7790,30 +7790,30 @@ interactive_hw_required ()
 	ia_question_help="
 * Select the level of hardware-address verification required ?
 +----------------------------------------
-| TLS-Auth/Crypt and TLS-Crypt-V2 Server
+| TLS-Auth/Crypt and TLS-Crypt-V2
 +----------------------------------------
-| [0] Low - Allow all keys to connect, hwaddr verification is not enforced.
-|
-| [1] Default - Do not require clients to push a hwaddr.
+| [0] Lowest - Allow all valid TLS-AUTH/Crypt/V2 keys to connect.
+|     ALL TLS-Crypt-V2 key extended tests are NOT peformed.
+| [1] Low - Functionally equivalent to [0] Low - Allow all..
+|     Except, ALL TLS-Crypt-V2 key extended tests are peformed.
+|     Same as default [2], except hwaddr-mismatches are IGNORED.
+| [2] Default - Do not require clients to push a hwaddr.
 |     TLS-Crypt-V2 keys with a hwaddr mismatch will be disconnected.
 |     TLS-Crypt-V2 keys without a hwaddr can connect.
 |     TLS Auth and Crypt-v1 keys can connect.
-|
-| [2] Medium - Require all clients to push a hwaddr.
+| [3] Medium - Require all clients to push a hwaddr.
 |     TLS-Crypt-V2 keys with a hwaddr mismatch will be disconnected.
 |     TLS-Crypt-V2 keys without a hwaddr can connect but must push a hwaddr.
 |     TLS Auth and Crypt-v1 keys can connect but must push a hwaddr.
 +----------------------------------------
-| TLS-Crypt-V2 ONLY Server
+| TLS-Crypt-V2 ONLY
 +----------------------------------------
-| [3] Medium-High - Do not require clients to push a hwaddr.
-|     TLS-Crypt-V2 keys without a Hardware-address can connect.
-|
-| [4] High - Require all clients to push a hwaddr.
-|     TLS-Crypt-v2 keys without a hwaddr can connect but must push a hwaddr.
-|
-| [5] Very High - hwaddr verification is enforced on all clients.
-|     TLS-Crypt-V2 key must have a hwaddr and client must push a hwaddr.
+|| [4] Medium-High - Do not require clients to push a hwaddr.
+||     TLS-Crypt-V2 keys without a Hardware-address can connect.
+|| [5] High - Require all clients to push a hwaddr.
+||     TLS-Crypt-v2 keys without a hwaddr can connect but must push a hwaddr.
+|| [6] Very-High - hwaddr verification is enforced on all clients.
+||     TLS-Crypt-V2 key must have a hwaddr and client must push a hwaddr.
 
    Leave this blank to use the default
 
@@ -7830,21 +7830,25 @@ interactive_hw_required ()
 				break
 			;;
 			1)
+				opt_hw_required='-M'
 				break
 			;;
 			2)
-				opt_hw_required='-p'
 				break
 			;;
 			3)
-				opt_hw_required='-c'
+				opt_hw_required='-p'
 				break
 			;;
 			4)
-				opt_hw_required='-p -c'
+				opt_hw_required='-c'
 				break
 			;;
 			5)
+				opt_hw_required='-p -c'
+				break
+			;;
+			6)
 				opt_hw_required='-k'
 				break
 			;;
