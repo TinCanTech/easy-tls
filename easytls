@@ -5019,10 +5019,9 @@ hw_addr_hex_check ()
 			}
 } # => hw_addr_hex_check ()
 
-# Front end validate address
+# Front end validate IP address
 validate_ip_address ()
 {
-echo "VALIDATE ADDRESS"
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1
@@ -5033,18 +5032,20 @@ echo "VALIDATE ADDRESS"
 	[ $valid4 ] || [ $valid6 ] || return 1
 	[ $ipv6 ] || print "Valid IPv4: $*"
 	[ $ipv4 ] || print "Valid IPv6: $*"
-}
+} # => validate_ip_address ()
 
 # Validate IPv4 address
 validate_ip4_address ()
 {
 	temp_ip_addr="${1}"
 
+	# Syntax
 	case "${temp_ip_addr}" in
 	*":"* ) easytls_verbose "IPv4 error: colon"; return 1 ;;
 	*[!0123456789./]*) easytls_verbose "IPv4 error: illegal"; return 1 ;;
 	esac
 
+	# Octets - Should really redo this
 	o1=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
 	o2=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
 	o3=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
@@ -5052,36 +5053,47 @@ validate_ip4_address ()
 	fx=${temp_ip_addr};
 	[ "${fx}" = "${o4}" ] && fx=32
 	[ "${fx}" = 32 ] && [ "${o4}" = 0 ] && \
-		easytls_verbose "IPv4 address error: net/mask" && return 1
+		easytls_verbose "IPv4 error: net/mask" && return 1
 
 	for i in "${o1}" "${o2}" "${o3}" "${o4}"
 	do
-		[ -z "${i}" ] && return 1
-		[ "${i}" = "${i%[!0123456789]*}" ] || return 1
+		[ -z "${i}" ] && easytls_verbose "IPv4 error: zero-val" && return 1
+		[ "${i}" = "${i%[!0123456789]*}" ] || {
+			easytls_verbose "IPv4 error: number"
+			return 1
+			}
 		if [ "${i}" -lt 0 ] || [ "${i}" -gt 255 ]
 		then
+			easytls_verbose "IPv4 error: value"
 			return 1
 		fi
 	done
 
+	# Bitmask
 	[ -z "${fx}" ] && easytls_verbose "IPv4 error: bitmask" && return 1
 	[ "${fx}" = "${fx%[!0123456789]*}" ] || return 1
 	if [ "${fx}" -lt 0 ] || [ "${fx}" -gt 32 ]
 	then
+		easytls_verbose "IPv4 error: mask-val"
 		return 1
 	fi
-}
+} # => validate_ip4_address ()
 
 # Validate IPv6 address
 validate_ip6_address ()
 {
 	temp_ip_addr="${1}"
 
+	# Syntax
 	case "${temp_ip_addr}" in
-	*"::"*"::"* | *":::"* | *[!:]":" | *"."* )
-		easytls_verbose "IPv6 error: format"; return 1 ;;
-	*[!0123456789abcdefABCDEF:/]*)
-		easytls_verbose "IPv6 error: illegal"; return 1 ;;
+		*"::"*"::"* | *":::"* | *[!:]":" | *"."* )
+			easytls_verbose "IPv6 error: format"
+			return 1
+			;;
+		*[!0123456789abcdefABCDEF:/]*)
+			easytls_verbose "IPv6 error: illegal"
+			return 1
+			;;
 	esac
 
 	# Set bitmask - default /128
@@ -5097,39 +5109,33 @@ validate_ip6_address ()
 		temp_ip_addr="${temp_ip_addr#::}"
 	fi
 
+	# Hextets
 	while [ -n "${temp_ip_addr}" ]
 	do
 		oct_str=${temp_ip_addr%%:*}
 		hex="0x${oct_str:-0}"
-
-#easytls_verbose "IPv6: $(( hex )) -lt 65536"
-
 		[ $(( hex )) -lt 65536 ] || {
-			echo WTF#1
 			easytls_verbose "IPv6 error: oct-val"
 			return 1
 			}
 		if [ "${#oct_str}" != 4 ]
 		then
 			[ "${oct_str}" = "${oct_str#0}" ] || {
-				echo WTF#1
 				easytls_verbose "IPv6 error: format"
 				return 1
 				}
 		fi
-
 		temp_ip_addr=${temp_ip_addr#*:}
-		ip6_str="${ip6_str}:${oct_str}"
 		[ "${temp_ip_addr}" = "${oct_str}" ] && break
 	done
 
+	# Bitmask
 	if [ "${bitmask}" -lt 0 ] || [ "${bitmask}" -gt 128 ]
 	then
 		easytls_verbose "IPv6 error: mask-val"
 		return 1
 	fi
-	return 0
-}
+} # => validate_ip6_address ()
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
