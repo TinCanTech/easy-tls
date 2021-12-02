@@ -41,10 +41,14 @@ help_text ()
                          and the client did NOT use --push-peer-info
                          then allow the connection.  Otherwise, keys with a
                          hardware-address MUST use --push-peer-info.
-  -m|--ignore-mismatch   Ignore tlskey-x509 vs openvpn-x509 mismatch.
+  -M|--ignore-x509-mismatch
+                         Ignore tlskey-x509 vs openvpn-x509 mismatch.
+  -m|--ignore-hw-mismatch
+                         Ignore tlskey-hwaddr vs openvpn-hwaddr mismatch.
   -p|--push-required     Require all clients to use --push-peer-info.
   -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
   -k|--key-required      Require all client keys to have a hardware-address.
+  -s|--source-ip-match   Match client source IP to Key metadata.
   -d|--dyn-opts=<FILE>   Path and name of Openvpn client dynamic options file.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
@@ -66,6 +70,8 @@ help_text ()
   7   - Disallow connection, X509 certificate incorrect for this TLS-key.
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
+
+  12  - Disallow connection, source IPaddr does not match.
 
   18  - BUG Disallow connection, failed to read c_ext_md_file
   19  - BUG Disallow connection, failed to parse metadata strig
@@ -659,9 +665,13 @@ do
 		empty_ok=1
 		allow_no_check=1
 	;;
-	-m|--ignore-mismatch) # tlskey-x509 does not match openvpn-x509
+	-m|--ignore-hw-mismatch) # tlskey-hwaddr does not match openvpn-hwaddr
 		empty_ok=1
-		ignore_x509_mismatch=1
+		IGNORE_HWADDR_MISMATCH=1
+	;;
+	-M|--ignore-x509-mismatch) # tlskey-x509 does not match openvpn-x509
+		empty_ok=1
+		IGNORE_X509_MISMATCH=1
 	;;
 	-p|--push-hwaddr-required)
 		empty_ok=1
@@ -674,6 +684,10 @@ do
 	-k|--key-hwaddr-required)
 		empty_ok=1
 		key_hwaddr_required=1
+	;;
+	-s|--source-ip-match)
+		empty_ok=1
+		SOURCE_IP_MATCH=1
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -798,7 +812,7 @@ then
 	then
 		update_status "metadata -> x509 serial match"
 	else
-		[ $ignore_x509_mismatch ] || {
+		[ $IGNORE_X509_MISMATCH ] || {
 			failure_msg="TLS-key is being used by the wrong client certificate"
 			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
 			}
@@ -853,6 +867,10 @@ then
 	update_status "IGNORE hwaddr not required"
 fi
 
+# Set IP addr from Openvpn env
+# shellcheck disable=SC2154
+source_ip="${trusted_ip}"
+
 # allow_no_check
 case $allow_no_check in
 1)
@@ -889,6 +907,46 @@ case $allow_no_check in
 			[ "${c_md_hwadds}" = '+000000000000+' ]
 		then
 			key_hwaddr_missing=1
+		fi
+
+		# IP address check
+		if [ $SOURCE_IP_MATCH ]
+		then
+			# First: Check metadata for IP addresses
+			# If no IP in metadata then this test will fail
+			# Thus, need a conditional for if NO IP Addr in metadata
+			unset found_ipv6 found_ipv4 source_match
+			ip_list="${c_md_hwadds%=}"
+			until [ -z "${ip_list}" ]
+			do
+				# hw_addr = the last hwaddr in the list
+				ip_addr="${ip_list##*=}"
+				# Drop the last hwaddr
+				ip_list="${ip_list%=*}"
+
+				[ "${ip_addr}" = "${ip_addr##*:}" ] || found_ipv6=1
+				[ "${ip_addr}" = "${ip_addr##*.}" ] || found_ipv4=1
+
+				if [ "${source_ip}" = "${ip_addr}" ]
+				then
+					# source ip MATCH!
+					update_status "IPaddr MATCH OK"
+					source_match=1
+					break
+				fi
+			done
+
+			if [ $found_ipv6 ] || [ $found_ipv4 ]
+			then
+				# matadata has an address and this test is enabled so ..
+				[ $source_match ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
+			else
+				# No IPaddr found in metadata then assume this test succeeds
+				update_status "No Key IPaddr IGNORED!"
+				source_match=1
+			fi
+			# Save the deep blue sea
+			unset found_ipv6 found_ipv4 source_match ip_list ip_addr
 		fi
 
 		# Verify hwaddr
@@ -929,8 +987,7 @@ case $allow_no_check in
 				connection_allowed
 			else
 				# push does not match key hwaddr
-				# If the x509 is a mismatch then hwaddr almost certainly will be
-				if [ $ignore_x509_mismatch ]
+				if [ $IGNORE_HWADDR_MISMATCH ]
 				then
 					connection_allowed
 					update_status "IGNORE hwaddr mismatch!"
