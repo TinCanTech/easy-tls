@@ -326,7 +326,7 @@ cmd_help()
 		cf|cfg|config)
 			opt_config ;;
 		ver|version) text="
-  Show version information." ;;			
+  Show version information." ;;
 		"")
 			usage ;;
 		*) text="
@@ -4820,9 +4820,13 @@ build_tls_crypt_v2_client ()
 		md_temp_addr="${1}"
 		if hw_addr_hex_check "${md_temp_addr}" >/dev/null 2>&1; then
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
-		elif validate_ip4_address "${md_temp_addr}" >/dev/null 2>&1; then
+		elif validate_ip4_data "${md_temp_addr}" >/dev/null 2>&1; then
+			md_temp_addr="${valid_octets}/${mask_len}"
+			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
-		elif validate_ip6_address "${md_temp_addr}" >/dev/null 2>&1; then
+		elif validate_ip6_data "${md_temp_addr}" >/dev/null 2>&1; then
+			md_temp_addr="${valid_hextets}/${mask_len}"
+			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 		else
 			die "Invalid Address: ${md_temp_addr}"
@@ -4954,9 +4958,13 @@ build_tls_cv2_group_client ()
 		md_temp_addr="${1}"
 		if hw_addr_hex_check "${md_temp_addr}" >/dev/null 2>&1; then
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${temp_hw_addr}"
-		elif validate_ip4_address "${md_temp_addr}" >/dev/null 2>&1; then
+		elif validate_ip4_data "${md_temp_addr}" >/dev/null 2>&1; then
+			md_temp_addr="${valid_octets}/${mask_len}"
+			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
-		elif validate_ip6_address "${md_temp_addr}" >/dev/null 2>&1; then
+		elif validate_ip6_data "${md_temp_addr}" >/dev/null 2>&1; then
+			md_temp_addr="${valid_hextets}/${mask_len}"
+			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 		else
 			die "Invalid Address: ${md_temp_addr}"
@@ -5013,7 +5021,7 @@ hw_addr_hex_check ()
 		}
 
 	# Verify hex only
-	[ ${temp_hw_addr} = ${temp_hw_addr%[!0123456789abcdefABCDEF]*} ] || {
+	[ ${temp_hw_addr} = ${temp_hw_addr%[!0123456789ABCDEF]*} ] || {
 			easytls_verbose "temp_hw_addr - !Hex: ${temp_hw_addr}"
 			return 1
 			}
@@ -5022,120 +5030,191 @@ hw_addr_hex_check ()
 # Front end validate IP address
 validate_ip_address ()
 {
+	# This is probably broken
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1
 	[ $ipv4 ] && [ $ipv6 ] && easytls_verbose "Unsupported <:Port>" && return 1
-	[ $ipv4 ] && validate_ip4_address "$@" && valid4=1
-	[ $ipv6 ] && validate_ip6_address "$@" && valid6=1
+	[ $ipv4 ] && validate_ip4_data "$@" && valid4=1
+	[ $ipv6 ] && validate_ip6_data "$@" && valid6=1
 	[ $valid4 ] && [ $valid6 ] && return 1
 	[ $valid4 ] || [ $valid6 ] || return 1
 	[ $ipv6 ] || print "Valid IPv4: $*"
 	[ $ipv4 ] || print "Valid IPv6: $*"
 } # => validate_ip_address ()
 
-# Validate IPv4 address
-validate_ip4_address ()
+# Validate IPv4 data
+validate_ip4_data ()
 {
+	[ -z "${2}" ] || return 10
 	temp_ip_addr="${1}"
 
 	# Syntax
 	case "${temp_ip_addr}" in
-	*":"* ) easytls_verbose "IPv4 error: colon"; return 1 ;;
-	*[!0123456789./]*) easytls_verbose "IPv4 error: illegal"; return 1 ;;
+	*".."* | *"[!0123456789./]"* )
+		return 11
 	esac
 
-	# Octets - Should really redo this
-	o1=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
-	o2=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
-	o3=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.};
-	o4=${temp_ip_addr%%/*}; temp_ip_addr=${temp_ip_addr#*/};
-	fx=${temp_ip_addr};
-	[ "${fx}" = "${o4}" ] && fx=32
-	[ "${fx}" = 32 ] && [ "${o4}" = 0 ] && \
-		easytls_verbose "IPv4 error: net/mask" && return 1
-
-	for i in "${o1}" "${o2}" "${o3}" "${o4}"
-	do
-		[ -z "${i}" ] && easytls_verbose "IPv4 error: zero-val" && return 1
-		[ "${i}" = "${i%[!0123456789]*}" ] || {
-			easytls_verbose "IPv4 error: number"
-			return 1
-			}
-		if [ "${i}" -lt 0 ] || [ "${i}" -gt 255 ]
-		then
-			easytls_verbose "IPv4 error: value"
-			return 1
-		fi
-	done
-
-	# Bitmask
-	[ -z "${fx}" ] && easytls_verbose "IPv4 error: bitmask" && return 1
-	[ "${fx}" = "${fx%[!0123456789]*}" ] || return 1
-	if [ "${fx}" -lt 0 ] || [ "${fx}" -gt 32 ]
+	# Netmask
+	mask_len=${temp_ip_addr##*/}
+	if [ "${mask_len}" = "${temp_ip_addr}" ]
 	then
-		easytls_verbose "IPv4 error: mask-val"
-		return 1
-	fi
-} # => validate_ip4_address ()
-
-# Validate IPv6 address
-validate_ip6_address ()
-{
-	temp_ip_addr="${1}"
-
-	# Syntax
-	case "${temp_ip_addr}" in
-		*"::"*"::"* | *":::"* | *[!:]":" | *"."* )
-			easytls_verbose "IPv6 error: format"
-			return 1
-			;;
-		*[!0123456789abcdefABCDEF:/]*)
-			easytls_verbose "IPv6 error: illegal"
-			return 1
-			;;
-	esac
-
-	# Set bitmask - default /128
-	bitmask="${temp_ip_addr#*/}"
-	[ "${bitmask}" = "${temp_ip_addr}" ] && bitmask="128"
-	temp_ip_addr="${temp_ip_addr%/*}"
-
-	# Collapse first ::
-	delim_pair_1="${temp_ip_addr%%:*}"
-	delim_pair_2="${delim_pair_1%%:*}"
-	if [ "${delim_pair_1}" = "${delim_pair_2}" ]
-	then
-		temp_ip_addr="${temp_ip_addr#::}"
+		mask_len=32
+	else
+		temp_ip_addr="${temp_ip_addr%/*}"
 	fi
 
-	# Hextets
+	[ -z "${mask_len}" ] && return 12
+	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 32 ]
+	then
+		return 13
+	fi
+
+	# Address
+	unset valid_octets octet_delim
+	i=0
 	while [ -n "${temp_ip_addr}" ]
 	do
-		oct_str=${temp_ip_addr%%:*}
-		hex="0x${oct_str:-0}"
-		[ $(( hex )) -lt 65536 ] || {
-			easytls_verbose "IPv6 error: oct-val"
-			return 1
-			}
-		if [ "${#oct_str}" != 4 ]
+		i=$(( i + 1 ))
+		octet=${temp_ip_addr%%.*}
+
+		if [ "${octet}" != "${octet#0}" ]
 		then
-			[ "${oct_str}" = "${oct_str#0}" ] || {
-				easytls_verbose "IPv6 error: format"
-				return 1
+			[ "${octet}" = "0" ] || {
+				return 14
 				}
 		fi
-		temp_ip_addr=${temp_ip_addr#*:}
-		[ "${temp_ip_addr}" = "${oct_str}" ] && break
-	done
 
-	# Bitmask
-	if [ "${bitmask}" -lt 0 ] || [ "${bitmask}" -gt 128 ]
+		if [ "${octet}" -lt 0 ] || [ "${octet}" -gt 255 ]
+		then
+			return 15
+		fi
+
+		valid_octets="${valid_octets}${octet_delim}${octet}"
+		octet_delim='.'
+		[ "${temp_ip_addr}" != "${temp_ip_addr#*.}" ] || break
+		temp_ip_addr=${temp_ip_addr#*.}
+	done
+	[ ${i} -eq 4 ] || return 16
+	unset temp_ip_addr octet_delim octet i
+	return 0
+} # => validate_ip4_data ()
+
+# Validate IPv6 data
+validate_ip6_data ()
+{
+	[ -z "${2}" ] || return 10
+	temp_ip_addr="${1}"
+
+	# Syntax
+	case "${temp_ip_addr}" in
+		:[!:]* ) return 1 ;;
+		*[!:]: ) return 11 ;;
+		*[!:]:/* ) return 11 ;;
+		*::*::* ) return 11 ;;
+		*/*:* ) return 11 ;;
+		*"[!0123456789abcdef:/]"* ) return 11 ;;
+		*)
+			: # OK
+	esac
+
+	# Netmask
+	mask_len=${temp_ip_addr##*/}
+	if [ "${mask_len}" = "${temp_ip_addr}" ]
 	then
-		easytls_verbose "IPv6 error: mask-val"
-		return 1
+		mask_len=128
+	else
+		temp_ip_addr="${temp_ip_addr%/*}"
 	fi
-} # => validate_ip6_address ()
+
+	[ -z "${mask_len}" ] && return 12
+	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 128 ]
+	then
+		return 13
+	fi
+
+	# Trailing :
+	if [ "${temp_ip_addr}" != "${temp_ip_addr%:}" ]
+	then
+		trailing_colon=1
+	fi
+
+
+	# Address
+	unset valid_hextets hextet_delim
+	i=0
+	while [ -n "${temp_ip_addr}" ]
+	do
+		i=$(( i + 1 ))
+		unset hextet
+
+		# Leading : to current string
+		if [ -z "${temp_ip_addr%%:*}" ]
+		then
+			if [ ${i} -eq 1 ]
+			then
+				# Leading single :
+				# Does not count as double_colon
+				# Leading single :
+				[ ! $lead_colon ] || return 19
+				lead_colon=1
+				hextet=:
+				#unset hextet_delim
+			else
+				# right-hand colon in '::'
+				# The left-hand colon was stripped with the last hextet
+				[ ! $double_colon ] || return 17
+				double_colon=1
+				hextet=:
+				unset hextet_delim
+			fi
+		fi
+
+		# Left to right
+		temptet=${temp_ip_addr%%:*}
+		hextet=${hextet:-${temptet}}
+		unset temptet
+
+		if [ "${hextet}" = ":" ]
+		then
+			# OK
+			:
+		else
+			# Normal hextet
+			# Leading zero
+			if [ "${hextet}" != "${hextet#0}" ]
+			then
+				[ "${hextet}" = "0" ] || {
+					return 14
+					}
+			fi
+
+			# Range: 0 < hextet < 65535
+			if [ 0 -gt $(( 0x${hextet} )) ] || [ $(( 0x${hextet} )) -gt 65535 ]
+			then
+				return 15
+			fi
+		fi
+
+		[ $lead_colon ] && [ ${i} -eq 1 ] && unset hextet
+		valid_hextets="${valid_hextets}${hextet_delim}${hextet}"
+		hextet_delim=':'
+		[ "${temp_ip_addr}" != "${temp_ip_addr#*:}" ] || break
+		# Drop the left most 'ffff:' not '::'
+		temp_ip_addr=${temp_ip_addr#*:}
+	done
+	[ ! $trailing_colon ] || valid_hextets="${valid_hextets}${hextet_delim}"
+
+	# shudder
+	if [ $double_colon ]
+	then
+		{ [ ${i} -gt 1 ] && [ ${i} -lt 9 ]; } || return 16
+	else
+		[ ${i} -eq 8 ] || return 16
+	fi
+	unset temp_ip_addr hextet_delim hextet i double_colon lead_colon
+	return 0
+} # => validate_ip6_data ()
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
@@ -8641,11 +8720,19 @@ main ()
 		exit
 	;;
 	v4ip)
-		validate_ip4_address "$@" || print "Invalid address: $*" && exit 1
+		validate_ip4_data "$@" || {
+			print "*** Invalid IP4: ${*} ***"
+			exit 1
+			}
+		print "VALID: ${valid_octets} ${mask_len}"
 		exit
 	;;
 	v6ip)
-		validate_ip6_address "$@" || print "Invalid address: $*" && exit 1
+		validate_ip6_data "$@" || {
+			print "*** Invalid IP6: ${*} ***"
+			exit 1
+			}
+		print "VALID: ${valid_hextets}/${mask_len}"
 		exit
 	;;
 	*)

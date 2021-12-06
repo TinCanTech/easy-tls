@@ -3,7 +3,7 @@
 Easy-TLS is an Easy-RSA extension utility to help manage:
 + Easy-RSA based x509 security credentials
 + OpenVPN specific TLS keys
-+ Verified `Inline` files for use with OpenVPN
++ Verified **`Inline`** files for use with OpenVPN
 + Concise OpenVPN TLS-Crypt-V2 Client Key Metadata definition
 + X509 Certificate **and matched** Easy-TLS Inline-file Expiry management tools
 + Complete **Inter-active Menus**
@@ -38,7 +38,7 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
   This script is used by Openvpn-Server to manage connection tracking.
 
 ## Environment
-`easytls` is intended to work **everywhere** that `openvpn` and `easyrsa` work.
+**`easytls`** is intended to work **everywhere** that **`openvpn`** and **`easyrsa`** work.
 
 ## Requirements
 + Easy-RSA Version 3.0.6+
