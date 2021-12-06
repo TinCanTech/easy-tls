@@ -5205,6 +5205,9 @@ b64_enc_metadata ()
 		cli_name="${cli_grp_name}"
 		metadata="${metadata} ${cli_name}"
 
+		# Append --sub-key-name
+		metadata="${metadata} ${TLSKEY_SUBNAME}"
+
 	else
 
 		# CA Identity
