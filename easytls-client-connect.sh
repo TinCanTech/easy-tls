@@ -952,7 +952,8 @@ case $allow_no_check in
 			# If no IP in metadata then cannot perform test, so ignore
 
 			# Extract and sort 4/6 IP addresses from metadata
-			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match
+			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match \
+					delim4 delim6
 			key_ip_list="${c_md_hwadds%=}"
 			until [ -z "${key_ip_list}" ]
 			do
@@ -969,6 +970,7 @@ case $allow_no_check in
 				else
 					found_ipv6=1
 					key_ip6_list="${key_ip6_list} ${key_ip_addr}"
+					delim6=' '
 				fi
 
 				# IPv4 key list
@@ -978,9 +980,11 @@ case $allow_no_check in
 					:
 				else
 					found_ipv4=1
-					key_ip4_list="${key_ip4_list} ${key_ip_addr}"
+					key_ip4_list="${key_ip4_list}${delim}${key_ip_addr}"
+					delim4=' '
 				fi
 			done
+			unset delim4 delim6
 
 			if [ $found_ipv6 ]
 			then
@@ -996,20 +1000,19 @@ case $allow_no_check in
 				# Set IP addr from Openvpn env
 				# shellcheck disable=SC2154
 				peer_ip4_addr="${trusted_ip}"
-
 				# Test
 				ip2dec "${peer_ip4_addr}"
 				peer_ip4_addr_dec=${ip4_dec}
 				unset ip4_dec peer_ip_match_ok
 				until [ -z "${key_ip4_list}" ]
 				do
-					key_ip_addr="${key_ip4_list%% *}"
+					key_ip_addr="${key_ip4_list% *}"
 					key_ip4_addr="${key_ip_addr%%/*}"
 					ip2dec "${key_ip4_addr}"
 					key_ip4_addr_dec=${ip4_dec}
 
 					key_ip4_bits="${key_ip_addr##*/}"
-					cidrmask2dec ${key_ip4_bits}
+					cidrmask2dec "${key_ip4_bits}"
 					key_ip4_mask_dec="${mask_dec}"
 					#key_ip4_imsk_dec="${imsk_dec}"
 					unset mask_dec imsk_dec ip4_dec
@@ -1025,6 +1028,11 @@ case $allow_no_check in
 					# Save the rain forest
 					unset key_ip_addr key_ip4_addr key_ip4_addr_dec key_ip4_bits \
 						key_ip4_mask_dec key_and4_mask_dec peer_and4_mask_dec
+
+					# Decapitate
+					key_ip4_list="${key_ip4_list#* }"
+					[ "${key_ip4_list}" = "${key_ip4_list#* }" ] && \
+						key_ip4_list="${key_ip4_list##*}"
 				done
 			else
 				# Ignore
@@ -1035,6 +1043,7 @@ case $allow_no_check in
 			then
 				# matadata has an address and this test is enabled so ..
 				[ $peer_ip_match_ok ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
+					update_status "IP Matched!"
 			else
 				# No IP-addr found in metadata then key not locked to IP
 				update_status "No Key IPaddr IGNORED!"
