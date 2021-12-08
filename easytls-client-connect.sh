@@ -213,12 +213,52 @@ format_number ()
 		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
+# IPv4 address to decimal
+ip2dec ()
+{
+	case ${1} in
+		*[!1234567890./]* ) return 1 ;;
+		*.*.*.* ) : ;; #OK
+		* ) return 1 ;;
+	esac
+	temp_ip_addr=${1}
+	a=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
+	b=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
+	c=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
+	d=${temp_ip_addr%%.*}
+	ip4_dec="$(( (${a} << 24) + (${b} << 16) + (${c} << 8) + ${d} ))" || return 1
+	unset temp_ip_addr a b c d
+}
+
+# IPv4 CIDR mask length to decimal
+cidrmask2dec ()
+{
+	mask_dec=0
+	imsk_dec=0
+	count=32 # or 128 - If possible..
+	power=1
+	while [ ${count} -gt 0 ]
+	do
+		count=$(( count - 1 ))
+		if [ ${1} -gt ${count} ]
+		then
+			# mask
+			mask_dec=$(( mask_dec + power ))
+		else
+			# inverse
+			imsk_dec=$(( imsk_dec + power ))
+		fi
+		power=$(( power * 2 ))
+	done
+	unset count power
+} # => cidrmask2dec ()
+
 # Allow connection
 connection_allowed ()
 {
 	absolute_fail=0
 	update_status "connection allowed"
-}
+} # => connection_allowed ()
 
 # Update conntrac
 update_conntrac ()
@@ -687,7 +727,7 @@ do
 	;;
 	-s|--source-ip-match)
 		empty_ok=1
-		SOURCE_IP_MATCH=1
+		PEER_IP_MATCH=1
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -867,10 +907,6 @@ then
 	update_status "IGNORE hwaddr not required"
 fi
 
-# Set IP addr from Openvpn env
-# shellcheck disable=SC2154
-source_ip="${trusted_ip}"
-
 # allow_no_check
 case $allow_no_check in
 1)
@@ -910,43 +946,102 @@ case $allow_no_check in
 		fi
 
 		# IP address check
-		if [ $SOURCE_IP_MATCH ]
+		if [ $PEER_IP_MATCH ]
 		then
 			# First: Check metadata for IP addresses
-			# If no IP in metadata then this test will fail
-			# Thus, need a conditional for if NO IP Addr in metadata
-			unset found_ipv6 found_ipv4 source_match
-			ip_list="${c_md_hwadds%=}"
-			until [ -z "${ip_list}" ]
+			# If no IP in metadata then cannot perform test, so ignore
+
+			# Extract and sort 4/6 IP addresses from metadata
+			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match
+			key_ip_list="${c_md_hwadds%=}"
+			until [ -z "${key_ip_list}" ]
 			do
 				# hw_addr = the last hwaddr in the list
-				ip_addr="${ip_list##*=}"
+				key_ip_addr="${key_ip_list##*=}"
 				# Drop the last hwaddr
-				ip_list="${ip_list%=*}"
+				key_ip_list="${key_ip_list%=*}"
 
-				[ "${ip_addr}" = "${ip_addr##*:}" ] || found_ipv6=1
-				[ "${ip_addr}" = "${ip_addr##*.}" ] || found_ipv4=1
-
-				if [ "${source_ip}" = "${ip_addr}" ]
+				# IPv6 key list
+				if [ "${key_ip_addr}" = "${key_ip_addr##*:}" ]
 				then
-					# source ip MATCH!
-					update_status "IPaddr MATCH OK"
-					source_match=1
-					break
+					# Not IPv6 Ignore
+					:
+				else
+					found_ipv6=1
+					key_ip6_list="${key_ip6_list} ${key_ip_addr}"
+				fi
+
+				# IPv4 key list
+				if [ "${key_ip_addr}" = "${key_ip_addr##*.}" ]
+				then
+					# Not IPv4 Ignore
+					:
+				else
+					found_ipv4=1
+					key_ip4_list="${key_ip4_list} ${key_ip_addr}"
 				fi
 			done
+
+			if [ $found_ipv6 ]
+			then
+				# Test
+				:
+			else
+				# Ignore
+				:
+			fi
+
+			if [ $found_ipv4 ]
+			then
+				# Set IP addr from Openvpn env
+				# shellcheck disable=SC2154
+				peer_ip4_addr="${trusted_ip}"
+
+				# Test
+				ip2dec "${peer_ip4_addr}"
+				peer_ip4_addr_dec=${ip4_dec}
+				unset ip4_dec peer_ip_match_ok
+				until [ -z "${key_ip4_list}" ]
+				do
+					key_ip_addr="${key_ip4_list%% *}"
+					key_ip4_addr="${key_ip_addr%%/*}"
+					ip2dec "${key_ip4_addr}"
+					key_ip4_addr_dec=${ip4_dec}
+
+					key_ip4_bits="${key_ip_addr##*/}"
+					cidrmask2dec ${key_ip4_bits}
+					key_ip4_mask_dec="${mask_dec}"
+					#key_ip4_imsk_dec="${imsk_dec}"
+					unset mask_dec imsk_dec ip4_dec
+
+					# Binary
+					key_and4_mask_dec=$(( key_ip4_addr_dec & key_ip4_mask_dec ))
+					peer_and4_mask_dec=$(( peer_ip4_addr_dec & key_ip4_mask_dec ))
+					if [ ${key_and4_mask_dec} -eq ${peer_and4_mask_dec} ]
+					then
+						# Any match is good v4 or v6
+						peer_ip_match_ok=1
+					fi
+					# Save the rain forest
+					unset key_ip_addr key_ip4_addr key_ip4_addr_dec key_ip4_bits \
+						key_ip4_mask_dec key_and4_mask_dec peer_and4_mask_dec
+				done
+			else
+				# Ignore
+				:
+			fi
 
 			if [ $found_ipv6 ] || [ $found_ipv4 ]
 			then
 				# matadata has an address and this test is enabled so ..
-				[ $source_match ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
+				[ $peer_ip_match_ok ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
 			else
-				# No IPaddr found in metadata then assume this test succeeds
+				# No IP-addr found in metadata then key not locked to IP
 				update_status "No Key IPaddr IGNORED!"
-				source_match=1
+				peer_ip_ignored=1
 			fi
 			# Save the deep blue sea
-			unset found_ipv6 found_ipv4 source_match ip_list ip_addr
+			unset found_ipv6 found_ipv4 source_match key_ip_list key_ip_addr
 		fi
 
 		# Verify hwaddr
@@ -971,7 +1066,6 @@ case $allow_no_check in
 				hw_addr="${hw_list##*=}"
 				# Drop the last hwaddr
 				hw_list="${hw_list%=*}"
-				#[ -n "${hw_list}" ] || break
 
 				if [ "${push_hwaddr}" = "${hw_addr}" ]
 				then
