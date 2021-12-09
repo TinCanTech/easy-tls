@@ -253,6 +253,127 @@ cidrmask2dec ()
 	unset count power
 } # => cidrmask2dec ()
 
+# EXPAND IPv6
+expand_ip6_address ()
+{
+	[ -z "${2}" ] || return 10
+	in_ip_addr="${1}"
+	shift
+
+	in_valid_hextets="${in_ip_addr}"
+	in_valid_mask_len=128
+	unset in_ip_addr
+
+	# ADDRESS 6
+	temp_valid_hextets="${in_valid_hextets}"
+
+	# expand leading colon
+	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
+		lead_colon=1
+	[ ! $lead_colon ] || temp_valid_hextets="0${temp_valid_hextets}"
+
+	# Count valid compressed hextets
+	count_valid_hextets=0
+	while [ -n "${temp_valid_hextets}" ]
+	do
+		count_valid_hextets=$(( count_valid_hextets + 1 ))
+		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+			temp_valid_hextets="${temp_valid_hextets}:"
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+		temp_valid_hextets="${temp_valid_hextets#:}"
+	done
+	#print "count_valid_hextets: ${count_valid_hextets}"
+
+	# expand double colon
+	temp_valid_hextets=${in_valid_hextets}
+	expa_valid_hextets=${in_valid_hextets}
+	if [ ${count_valid_hextets} -lt 8 ]
+	then
+		hi_part="${temp_valid_hextets%::*}"
+		lo_part="${temp_valid_hextets#*::}"
+		missing_zeros=$(( 8 - count_valid_hextets ))
+		while [ ${missing_zeros} -gt 0 ]
+		do
+			hi_part="${hi_part}:0"
+			missing_zeros=$(( missing_zeros - 1 ))
+		done
+		unset missing_zeros
+		expa_valid_hextets="${hi_part}:${lo_part}"
+		# Re-expand leading colon
+		[ ! $lead_colon ] || expa_valid_hextets="0${expa_valid_hextets}"
+	fi
+	# Save the orangutan
+	unset lead_colon lo_part hi_part count_valid_hextets
+	#print "expa_valid_hextets: ${expa_valid_hextets}"
+
+	temp_valid_hextets=${expa_valid_hextets}
+	hex_count=8
+	unset full_valid_hextets delim
+	# Expand compressed zeros
+	while [ "${hex_count}" -gt 0 ]
+	do
+		hextet="${temp_valid_hextets%%:*}"
+		while [ ${#hextet} -lt 4 ]
+		do
+			hextet="0${hextet}"
+		done
+		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
+		delim=':'
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+		hex_count=$(( hex_count - 1 ))
+	done
+	# Save "The violence inherant in the system"
+	unset hex_count delim
+	#print "full_valid_hextets: ${full_valid_hextets}"
+
+	# Split IP at mask_len
+	[ $(( in_valid_mask_len % 4 )) -eq 0 ] || \
+		die "in_valid_mask_len % 4: ${in_valid_mask_len}"
+	hex_mask=$(( in_valid_mask_len / 4 ))
+
+	temp_valid_hextets=${full_valid_hextets}
+	while [ ${hex_mask} -gt 0 ]
+	do
+		delete_mask="${temp_valid_hextets#?}"
+		#print "delete_mask: ${delete_mask}"
+		hex_char="${temp_valid_hextets%"${delete_mask}"}"
+		#print "hex_char: ${hex_char}"
+		temp_valid_hextets="${temp_valid_hextets#?}"
+		#print "temp_valid_hextets: ${temp_valid_hextets}"
+		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
+		#print "full_subnet_addr6: ${full_subnet_addr6}"
+		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
+		#print "*** hex_mask: ${hex_mask}"
+	done
+	# Save the polar ice-caps
+	unset hex_char hex_mask delete_mask
+
+	# The remainder should equal zero
+	while [ -n "${temp_valid_hextets}" ]
+	do
+		hextet="${temp_valid_hextets%%:*}"
+		if [ -z "${hextet}" ]
+		then
+			temp_valid_hextets="${temp_valid_hextets#*:}"
+			hextet="${temp_valid_hextets%%:*}"
+		fi
+
+		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+			temp_valid_hextets="${temp_valid_hextets}:"
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+
+		case ${hextet} in
+			*[!0:]* ) return 20 ;;
+		esac
+	done
+	#print "full_valid_hextets: ${full_valid_hextets}"
+	#print "subnet_addr6: ${subnet_addr6}"
+	#print "temp_valid_hextets: ${temp_valid_hextets}"
+	# Save the trees
+	unset hextet temp_valid_hextets
+	# Return full_valid_hextets full_subnet_addr6
+} # => expand_ip6_address ()
+
 # Allow connection
 connection_allowed ()
 {
@@ -413,6 +534,9 @@ stack_down ()
 	unset -v stack_err
 	i=0
 	s=''
+
+	# tfile exists or the client pushed an incorrect UV_TLSKEY_SERIAL
+	[ -f "${fixed_md_file}" ] || return 0
 
 	# No Stack DOWN
 	if [ ! $ENABLE_STACK ]
@@ -969,7 +1093,7 @@ case $allow_no_check in
 					:
 				else
 					found_ipv6=1
-					key_ip6_list="${key_ip6_list} ${key_ip_addr}"
+					key_ip6_list="${key_ip6_list}${delim6}${key_ip_addr}"
 					delim6=' '
 				fi
 
@@ -980,30 +1104,57 @@ case $allow_no_check in
 					:
 				else
 					found_ipv4=1
-					key_ip4_list="${key_ip4_list}${delim}${key_ip_addr}"
+					key_ip4_list="${key_ip4_list}${delim4}${key_ip_addr}"
 					delim4=' '
 				fi
 			done
 			unset delim4 delim6
 
-			if [ $found_ipv6 ]
+			# shellcheck disable=SC2154
+			if [ $found_ipv6 ] && [ -n "${trusted_ip6}" ]
 			then
+				unset peer_ip6_match_ok
 				# Test
-				:
+				peer_ip6_addr="${trusted_ip6}"
+				until [ -z "${key_ip6_list}" ]
+				do
+					key_ip_addr="${key_ip6_list% *}"
+					key_ip6_addr="${key_ip_addr%%/*}"
+
+					key_ip6_bits="${key_ip_addr##*/}"
+
+					expand_ip6_address "${peer_ip6_addr}"
+					exp_peer_ip6_addr="${full_valid_hextets}"
+
+					case "${exp_peer_ip6_addr}" in
+					"${key_ip6_addr}"* ) peer_ip_match_ok=1 ;;
+					* ) unset peer_ip_match_ok ;;
+					esac
+					# Save Pandas
+					unset key_ip_addr key_ip6_addr key_ip6_bits \
+						exp_peer_ip6_addr
+
+					# Discard lead hextet
+					key_ip6_list="${key_ip6_list#* }"
+					[ "${key_ip6_list}" = "${key_ip6_list#* }" ] && \
+						key_ip6_list="${key_ip6_list##*}"
+				done
+				unset key_ip6_list peer_ip6_addr
+
 			else
 				# Ignore
 				:
 			fi
 
-			if [ $found_ipv4 ]
+			# shellcheck disable=SC2154
+			if [ $found_ipv4 ] && [ -n "${trusted_ip}" ]
 			then
 				# Set IP addr from Openvpn env
-				# shellcheck disable=SC2154
 				peer_ip4_addr="${trusted_ip}"
 				# Test
 				ip2dec "${peer_ip4_addr}"
 				peer_ip4_addr_dec=${ip4_dec}
-				unset ip4_dec peer_ip_match_ok
+				unset ip4_dec peer_ip4_match_ok
 				until [ -z "${key_ip4_list}" ]
 				do
 					key_ip_addr="${key_ip4_list% *}"
@@ -1022,7 +1173,7 @@ case $allow_no_check in
 					peer_and4_mask_dec=$(( peer_ip4_addr_dec & key_ip4_mask_dec ))
 					if [ ${key_and4_mask_dec} -eq ${peer_and4_mask_dec} ]
 					then
-						# Any match is good v4 or v6
+						# v4 Match!
 						peer_ip_match_ok=1
 					fi
 					# Save the rain forest
