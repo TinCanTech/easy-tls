@@ -4830,6 +4830,7 @@ build_tls_crypt_v2_client ()
 			then
 				# Returned: ${full_valid_hextets} ${subnet_addr6}"
 				: # OK
+				md_temp_addr="${full_subnet_addr6}"
 			else
 				x6ip "${md_temp_addr}"
 				exit 1
@@ -5297,8 +5298,8 @@ expand_ip6_address ()
 
 	# Validate IPv6 IP/mask
 	validate_ip6_data "${in_ip_cidr}" || return $?
-	in_valid_hextets=${valid_hextets}
-	in_valid_mask_len=${valid_mask_len}
+	in_valid_hextets="${valid_hextets}"
+	in_valid_mask_len="${valid_mask_len}"
 	unset valid_hextets valid_mask_len in_ip_cidr
 	#print "VALID IPv6: ${in_valid_hextets}/${in_valid_mask_len}"
 
@@ -5372,14 +5373,14 @@ expand_ip6_address ()
 	temp_valid_hextets=${full_valid_hextets}
 	while [ ${hex_mask} -gt 0 ]
 	do
-		delete_mask=${temp_valid_hextets#?}
+		delete_mask="${temp_valid_hextets#?}"
 		#print "delete_mask: ${delete_mask}"
 		hex_char="${temp_valid_hextets%"${delete_mask}"}"
 		#print "hex_char: ${hex_char}"
 		temp_valid_hextets="${temp_valid_hextets#?}"
 		#print "temp_valid_hextets: ${temp_valid_hextets}"
-		subnet_addr6="${subnet_addr6}${hex_char}"
-		#print "subnet_addr6: ${subnet_addr6}"
+		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
+		#print "full_subnet_addr6: ${full_subnet_addr6}"
 		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
 		#print "*** hex_mask: ${hex_mask}"
 	done
@@ -5390,20 +5391,26 @@ expand_ip6_address ()
 	while [ -n "${temp_valid_hextets}" ]
 	do
 		hextet="${temp_valid_hextets%%:*}"
+		if [ -z "${hextet}" ]
+		then
+			temp_valid_hextets="${temp_valid_hextets#*:}"
+			hextet="${temp_valid_hextets%%:*}"
+		fi
+
+		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+			temp_valid_hextets="${temp_valid_hextets}:"
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+
 		case ${hextet} in
 			*[!0:]* ) return 20 ;;
 		esac
-		temp_valid_hextets="${temp_valid_hextets#*:}"
-		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
-			temp_valid_hextets="${temp_valid_hextets##*}"
 	done
-
 	#print "full_valid_hextets: ${full_valid_hextets}"
 	#print "subnet_addr6: ${subnet_addr6}"
 	#print "temp_valid_hextets: ${temp_valid_hextets}"
 	# Save the trees
 	unset hextet temp_valid_hextets
-	# Return full_valid_hextets subnet_addr6
+	# Return full_valid_hextets full_subnet_addr6
 }
 
 # Base64 encode metadata fields
@@ -8940,7 +8947,7 @@ main ()
 			exit 1
 			}
 		print "* full_valid_hextets: ${full_valid_hextets}"
-		print "*       subnet_addr6: ${subnet_addr6}"
+		print "* full_subnet_addr6 : ${full_subnet_addr6}"
 		exit
 	;;
 	*)
