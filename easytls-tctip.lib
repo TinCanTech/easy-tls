@@ -14,8 +14,7 @@ verbose_easytls_tctip_lib ()
 {
 	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
-}
-
+} # => verbose_easytls_tctip_lib ()
 
 # IPv4 address to decimal
 ip2dec ()
@@ -203,8 +202,7 @@ validate_ip4_data ()
 
 	# Syntax
 	case "${temp_ip_addr}" in
-	*[!0123456789./]* | .* | *. | *..* )
-		return 11
+		*[!0123456789./]* | .* | *. | *..* | */*.* ) return 11 ;;
 	esac
 
 	# Netmask
@@ -215,7 +213,7 @@ validate_ip4_data ()
 	else
 		temp_ip_addr="${temp_ip_addr%/*}"
 		[ -z "${mask_len}" ] && return 12
-		[ ] && 
+		[ -z "${mask_len%%0*}" ] && return 12
 		if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 32 ]
 		then
 			return 13
@@ -301,7 +299,7 @@ validate_ip6_data ()
 
 	[ -z "${mask_len}" ] && return 12
 	case "${mask_len}" in
-		*[!0123456789]* ) return 11 ;;
+		*[!0123456789]* | 0* ) return 11 ;;
 	esac
 	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 128 ]
 	then
