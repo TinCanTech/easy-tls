@@ -1,4 +1,4 @@
-## #!/bin/sh
+#!/bin/sh
 
 # Experimental - Use at your own risk
 
@@ -34,8 +34,7 @@ conn_trac_connect ()
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	if [ $ENABLE_CONN_TRAC_STATS ]
-	then
+	if [ $ENABLE_CONN_TRAC_STATS ]; then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
 			release_lock "${easytls_ct_lock_file}" 7 || return 9
@@ -50,8 +49,7 @@ conn_trac_connect ()
 	ct_tlskey="${1%%=*}"
 	[ "${ct_tlskey}" = "TLSAC" ] && unset -v ct_tlskey
 
-	if [ -f "${2}" ]
-	then
+	if [ -f "${2}" ]; then
 		{
 			while read full_conn
 			do
@@ -60,8 +58,7 @@ conn_trac_connect ()
 
 				[ ! "${tksn}" = "${ct_tlskey}" ] || ct_tlskey_found=1
 
-				if [ "${conn}" = "${ct_pattern}" ]
-				then
+				if [ "${conn}" = "${ct_pattern}" ]; then
 					# Log - only the first time - and count duplicate
 					[ $record_found ] || {
 						update_status "conntrac: already registered"
@@ -97,8 +94,7 @@ conn_trac_connect ()
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
 		# This was used for #160/1434 - Re-think it soon
-		if [ $record_found ]
-		then
+		if [ $record_found ]; then
 			# IP exhausted
 			:
 		else
@@ -133,8 +129,7 @@ conn_trac_disconnect ()
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	if [ $ENABLE_CONN_TRAC_STATS ]
-	then
+	if [ $ENABLE_CONN_TRAC_STATS ]; then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
 			release_lock "${easytls_ct_lock_file}" 7 || return 9
@@ -146,14 +141,12 @@ conn_trac_disconnect ()
 	[ $VERBOSE_CONN_TRAC ] && \
 		update_status "conntrac pattern: ${ct_pattern}"
 
-	if [ -f "${2}" ]
-	then
+	if [ -f "${2}" ]; then
 		{
 			while read full_conn
 			do
 				conn="${full_conn%++*}"
-				if [ "${conn}" = "${ct_pattern}" ]
-				then
+				if [ "${conn}" = "${ct_pattern}" ]; then
 					# If record_found then a record has been deleted
 					# Print the remaining duplicates
 					[ $record_found ] && \
