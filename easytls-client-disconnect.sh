@@ -119,10 +119,8 @@ die ()
 	#exit "${2:-255}"
 	echo 'XXXXX CD - Kill Server XXXXX'
 	echo 1 > "${temp_stub}-die"
-	if [ $ENABLE_KILL_PPID ]
-	then
-		if [ $EASYTLS_FOR_WINDOWS ]
-		then
+	if [ $ENABLE_KILL_PPID ]; then
+		if [ $EASYTLS_FOR_WINDOWS ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
@@ -159,8 +157,7 @@ delete_metadata_files ()
 # Log fatal warnings
 warn_die ()
 {
-	if [ -n "${1}" ]
-	then
+	if [ -n "${1}" ]; then
 		fatal_msg="${fatal_msg}
 ${1}"
 	else
@@ -219,8 +216,7 @@ update_conntrac ()
 	conntrac_record="${conntrac_record}==${common_name}"
 
 	# shellcheck disable=SC2154
-	if [ -z "${ifconfig_pool_remote_ip}" ]
-	then
+	if [ -z "${ifconfig_pool_remote_ip}" ]; then
 		[ $FATAL_CON_TRAC ] && fail_and_exit "IP_POOL_EXHASTED" 101
 		ip_pool_exhausted=1
 		conntrac_record="${conntrac_record}==0.0.0.0"
@@ -274,8 +270,7 @@ update_conntrac ()
 		}
 
 	# If the first failed for number two then try again ..
-	if [ $conntrac_fail ]
-	then
+	if [ $conntrac_fail ]; then
 		# Disconnect username
 		conn_trac_disconnect "${conntrac_alt_rec}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
@@ -306,8 +301,7 @@ update_conntrac ()
 	fi
 
 	# Log failure
-	if [ $conntrac_fail ] || [ $conntrac_error ]
-	then
+	if [ $conntrac_fail ] || [ $conntrac_error ]; then
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
@@ -321,8 +315,7 @@ update_conntrac ()
 			"${EASYTLS_CONN_TRAC}.fail" || die "disconnect: conntrac file" 157
 	fi
 
-	if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]
-	then
+	if [ $conntrac_alt_fail ] || [ $conntrac_alt_error ]; then
 		{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
@@ -337,8 +330,7 @@ update_conntrac ()
 	fi
 
 	# Capture env
-	if [ $log_env ]
-	then
+	if [ $log_env ]; then
 		env_file="${temp_stub}-client-disconnect.env"
 		if [ $EASYTLS_FOR_WINDOWS ]; then
 			set > "${env_file}" || die "disconnect: env" 167
@@ -356,10 +348,8 @@ update_conntrac ()
 		}
 
 	# OpenVPN Bug #160
-	if [ $conntrac_fail ]
-	then
-		if [ $ip_pool_exhausted ]
-		then
+	if [ $conntrac_fail ]; then
+		if [ $ip_pool_exhausted ]; then
 			# Ignored
 			update_status "IP_POOL_EXHAUSTED IGNORED"
 		else
@@ -398,32 +388,27 @@ stack_down ()
 	i=0
 	s=''
 
-	while :
-	do
+	while : ; do
 		i=$(( i + 1 ))
-		if [ -f "${fixed_md_file}_${i}" ]
-		then
+		if [ -f "${fixed_md_file}_${i}" ]; then
 			[ ${i} -eq 1 ] || s="${s}."
 
 			f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}_${i}")"
 
 			# shellcheck disable=SC2154
-			if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]
-			then
+			if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
 				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
 				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
 				stale_error "${local_date_ascii} ${fixed_md_file}_${i}"
 			fi
-
 		else
 			break
 		fi
 	done
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}")"
-	if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]
-	then
+	if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
 		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
 		update_status "stack-down: clear"
 		tlskey_status "  | =  stack: clear -"
@@ -460,8 +445,7 @@ tlskey_status ()
 # Retry pause
 retry_pause ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		ping -n 1 127.0.0.1
 	else
 		sleep 1
@@ -568,8 +552,7 @@ init ()
 	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		# Windows
 		host_drv="${PATH%%\:*}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
@@ -596,8 +579,7 @@ init ()
 # Dependancies
 deps ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
 	else
@@ -654,8 +636,7 @@ deps ()
 init
 
 # Options
-while [ -n "${1}" ]
-do
+while [ -n "${1}" ]; do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
@@ -691,8 +672,7 @@ do
 	;;
 	*)
 		empty_ok=1
-		if [ -f "${opt}" ]
-		then
+		if [ -f "${opt}" ]; then
 			# Do not need this in the log but keep it here for reference
 			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
 			:
@@ -713,8 +693,7 @@ done
 warn_die
 
 # Source vars file
-if [ -f "${vars_file}" ]
-then
+if [ -f "${vars_file}" ]; then
 	# shellcheck source=./easytls-client-disconnect.vars-example
 	. "${vars_file}" || die "source failed: ${vars_file}" 77
 	update_status "vars loaded"
@@ -751,8 +730,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # Fixed file for TLS-CV2
-if [ -n "${UV_TLSKEY_SERIAL}" ]
-then
+if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
@@ -761,8 +739,7 @@ fi
 
 # Clear old stack now - because there is still a stack problem
 # Could be the script or openvpn
-if [ $no_uv_tlskey_serial ]
-then
+if [ $no_uv_tlskey_serial ]; then
 	# TLS-AUTH/Crypt does not stack up
 	:
 else
@@ -773,8 +750,7 @@ fi
 disconnect_accepted
 
 # conntrac disconnect
-if [ $ENABLE_CONN_TRAC ]
-then
+if [ $ENABLE_CONN_TRAC ]; then
 	update_conntrac || die "update_conntrac" 170
 else
 	#update_status "conn-trac disabled"
@@ -789,8 +765,7 @@ fi
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]
-then
+if [ $absolute_fail -eq 0 ]; then
 	# Delete all temp files
 	delete_metadata_files
 
