@@ -233,8 +233,7 @@ ip2dec ()
 	b="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
 	c="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
 	d="${temp_ip_addr%%.*}"
-	for i in "${a}" "${b}" "${c}" "${d}"
-	do
+	for i in "${a}" "${b}" "${c}" "${d}"; do
 		[ ${#i} -eq 1 ] && continue
 		[ -z "${i%%0*}" ] && return 1
 		{ [ 0 -gt $(( i )) ] || [ $(( i )) -gt 255 ]; } && return 1
@@ -250,11 +249,9 @@ cidrmask2dec ()
 	imsk_dec=0
 	count=32 # or 128 - If possible..
 	power=1
-	while [ ${count} -gt 0 ]
-	do
+	while [ ${count} -gt 0 ]; do
 		count=$(( count - 1 ))
-		if [ ${1} -gt ${count} ]
-		then
+		if [ ${1} -gt ${count} ]; then
 			# mask
 			mask_dec=$(( mask_dec + power ))
 		else
@@ -298,8 +295,7 @@ expand_ip6_address ()
 
 	# Count valid compressed hextets
 	count_valid_hextets=0
-	while [ -n "${temp_valid_hextets}" ]
-	do
+	while [ -n "${temp_valid_hextets}" ]; do
 		count_valid_hextets=$(( count_valid_hextets + 1 ))
 		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
 			temp_valid_hextets="${temp_valid_hextets}:"
@@ -311,13 +307,11 @@ expand_ip6_address ()
 	# expand double colon
 	temp_valid_hextets="${in_valid_hextets}"
 	expa_valid_hextets="${in_valid_hextets}"
-	if [ ${count_valid_hextets} -lt 8 ]
-	then
+	if [ ${count_valid_hextets} -lt 8 ]; then
 		hi_part="${temp_valid_hextets%::*}"
 		lo_part="${temp_valid_hextets#*::}"
 		missing_zeros=$(( 8 - count_valid_hextets ))
-		while [ ${missing_zeros} -gt 0 ]
-		do
+		while [ ${missing_zeros} -gt 0 ]; do
 			hi_part="${hi_part}:0"
 			missing_zeros=$(( missing_zeros - 1 ))
 		done
@@ -334,11 +328,9 @@ expand_ip6_address ()
 	hex_count=8
 	unset -v full_valid_hextets delim
 	# Expand compressed zeros
-	while [ "${hex_count}" -gt 0 ]
-	do
+	while [ "${hex_count}" -gt 0 ]; do
 		hextet="${temp_valid_hextets%%:*}"
-		while [ ${#hextet} -lt 4 ]
-		do
+		while [ ${#hextet} -lt 4 ]; do
 			hextet="0${hextet}"
 		done
 		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
@@ -356,8 +348,7 @@ expand_ip6_address ()
 	hex_mask=$(( in_valid_mask_len / 4 ))
 
 	temp_valid_hextets="${full_valid_hextets}"
-	while [ ${hex_mask} -gt 0 ]
-	do
+	while [ ${hex_mask} -gt 0 ]; do
 		delete_mask="${temp_valid_hextets#?}"
 		verbose_easytls_tctip_lib "delete_mask: ${delete_mask}"
 		hex_char="${temp_valid_hextets%"${delete_mask}"}"
@@ -373,11 +364,9 @@ expand_ip6_address ()
 	unset -v hex_char hex_mask delete_mask
 
 	# The remainder should equal zero
-	while [ -n "${temp_valid_hextets}" ]
-	do
+	while [ -n "${temp_valid_hextets}" ]; do
 		hextet="${temp_valid_hextets%%:*}"
-		if [ -z "${hextet}" ]
-		then
+		if [ -z "${hextet}" ]; then
 			temp_valid_hextets="${temp_valid_hextets#*:}"
 			hextet="${temp_valid_hextets%%:*}"
 		fi
