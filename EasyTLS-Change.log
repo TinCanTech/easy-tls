@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Version 2.6
 * Q4 2021
+  Introduce easytls-tctip.lib (Optional library)
+    Commit f85e95e4bdd4a6d74bb180a8859206e1452f5aa1
+      Shared IPv4/6 address functions
   Introduce TLS-2 Key metadata "source IP" filter
     Commit 343652d89f9bc6a7cf3d4bdd927102a2b6db778c
       IPv4/6 Client source IP matching
