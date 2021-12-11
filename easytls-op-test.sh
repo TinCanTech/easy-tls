@@ -32,39 +32,23 @@ CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/Prebuilt-OpenVPN/maste
 curl -O "$CURL_TARGET" || exit 77
 echo
 
-Required_file="./easyrsa"
-if [ -e "$Required_file" ];
-then
-	# '-e' lol
-	chmod 744 "$Required_file"
-else
-	echo "Failed to DL $Required_file"
-	exit 71
-fi
-
-Required_file="./openssl-easyrsa.cnf"
-if [ -e "$Required_file" ];
-then
-	# '-e' lol
-	chmod 744 "$Required_file"
-else
-	echo "Failed to DL $Required_file"
-	exit 72
-fi
-
-Required_file="./openvpn"
-if [ -e "$Required_file" ];
-then
-	# '-e' lol
-	chmod 744 "$Required_file"
-else
-	echo "Failed to DL $Required_file"
-	exit 73
-fi
+for f in ./easyrsa ./openssl-easyrsa.cnf ./openvpn
+do
+	if [ -e "${f}" ];
+	then
+		# '-e' lol
+		chmod 744 "${f}"
+	else
+		echo "Failed to DL ${f}"
+		exit 71
+	fi
+done
 
 	export SHALLOW=1
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
+
+	sh easytls-shellcheck.sh
 
 	sh easytls-unit-tests.sh

@@ -2,10 +2,10 @@
 
 shellcheck_bin='shellcheck'
 [ -f '../shellcheck' ] && shellcheck_bin='../shellcheck'
-[ -f "${shellcheck_bin}" ] || {
-	echo "shellcheck binary not found"
-	exit 1
-	}
+#[ -f "${shellcheck_bin}" ] || {
+#	echo "shellcheck binary not found"
+#	exit 1
+#	}
 
 "${shellcheck_bin}" --version
 
