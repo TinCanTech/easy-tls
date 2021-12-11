@@ -240,7 +240,7 @@ ip2dec ()
 		{ [ 0 -gt $(( i )) ] || [ $(( i )) -gt 255 ]; } && return 1
 	done
 	ip4_dec=$(( (a << 24) + (b << 16) + (c << 8) + d )) || return 1
-	unset temp_ip_addr a b c d
+	unset -v temp_ip_addr a b c d
 } # => ip2dec ()
 
 # IPv4 CIDR mask length to decimal
@@ -263,7 +263,7 @@ cidrmask2dec ()
 		fi
 		power=$(( power * 2 ))
 	done
-	unset count power
+	unset -v count power
 } # => cidrmask2dec ()
 
 # EXPAND IPv6
@@ -275,7 +275,7 @@ expand_ip6_address ()
 
 	in_valid_hextets="${in_ip_addr%/*}"
 	in_valid_mask_len="${in_ip_addr##*/}"
-	unset in_ip_addr
+	unset -v in_ip_addr
 
 	# mask length
 	case "${in_valid_mask_len}" in
@@ -321,18 +321,18 @@ expand_ip6_address ()
 			hi_part="${hi_part}:0"
 			missing_zeros=$(( missing_zeros - 1 ))
 		done
-		unset missing_zeros
+		unset -v missing_zeros
 		expa_valid_hextets="${hi_part}:${lo_part}"
 		# Re-expand leading colon
 		[ ! $lead_colon ] || expa_valid_hextets="0${expa_valid_hextets}"
 	fi
 	# Save the orangutan
-	unset lead_colon lo_part hi_part count_valid_hextets
+	unset -v lead_colon lo_part hi_part count_valid_hextets
 	verbose_easytls_tctip_lib "expa_valid_hextets: ${expa_valid_hextets}"
 
 	temp_valid_hextets="${expa_valid_hextets}"
 	hex_count=8
-	unset full_valid_hextets delim
+	unset -v full_valid_hextets delim
 	# Expand compressed zeros
 	while [ "${hex_count}" -gt 0 ]
 	do
@@ -347,7 +347,7 @@ expand_ip6_address ()
 		hex_count=$(( hex_count - 1 ))
 	done
 	# Save "The violence inherant in the system"
-	unset hex_count delim
+	unset -v hex_count delim
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
 
 	# Split IP at mask_len
@@ -370,7 +370,7 @@ expand_ip6_address ()
 		verbose_easytls_tctip_lib "*** hex_mask: ${hex_mask}"
 	done
 	# Save the polar ice-caps
-	unset hex_char hex_mask delete_mask
+	unset -v hex_char hex_mask delete_mask
 
 	# The remainder should equal zero
 	while [ -n "${temp_valid_hextets}" ]
@@ -394,7 +394,7 @@ expand_ip6_address ()
 	verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
 	verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
 	# Save the trees
-	unset hextet temp_valid_hextets
+	unset -v hextet temp_valid_hextets
 	# Return full_valid_hextets full_subnet_addr6
 } # => expand_ip6_address ()
 
