@@ -4,7 +4,7 @@
 copyright ()
 {
 : << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
-# easytls-cryptv2-client-connect.sh -- Do simple magic
+# easytls-op-test.sh -- Remote CI unit test launcher
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
 # https://github.com/TinCanTech/easy-tls
@@ -13,11 +13,6 @@ copyright ()
 #
 # This code is released under version 2 of the GNU GPL
 # See LICENSE of this project for full licensing details.
-#
-# Acknowledgement:
-# syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
-#
-# Lock client connections to specific client devices.
 #
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
@@ -34,9 +29,8 @@ echo
 
 for f in ./easyrsa ./openssl-easyrsa.cnf ./openvpn
 do
-	if [ -e "${f}" ];
+	if [ -f "${f}" ];
 	then
-		# '-e' lol
 		chmod 744 "${f}"
 	else
 		echo "Failed to DL ${f}"

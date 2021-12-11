@@ -12,6 +12,7 @@ vars.example
 openssl-easyrsa.cnf
 safessl-easyrsa.cnf
 openvpn
+.travis.yml
 unit-test-tmp/*
 debug/*
 test/*
