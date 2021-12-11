@@ -52,6 +52,10 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-client-disconnect.vars-exampl
 "${shellcheck_bin}" easytls-client-disconnect.vars-example
 sc_easytls_client_disconnect_vars=$?
 
+printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-tctip.lib'
+"${shellcheck_bin}" easytls-tctip.lib
+sc_easytls_tctip=$?
+
 printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-conntrac.lib'
 "${shellcheck_bin}" easytls-conntrac.lib
 sc_easytls_conn_trac=$?
@@ -64,14 +68,14 @@ printf '\n%s\n%s\n' "$foo" '*** shellcheck easytls-shellcheck.sh'
 "${shellcheck_bin}" easytls-shellcheck.sh
 sc_easytls_shellcheck=$?
 
-exit_status=$(( \
-					sc_easytls + \
+exit_status=$(( 	sc_easytls + \
 					sc_easytls_cryptv2_verify + \
 					sc_easytls_client_connect + \
 					sc_easytls_client_disconnect + \
 					sc_easytls_cryptv2_verify_vars + \
 					sc_easytls_client_connect_vars + \
 					sc_easytls_client_disconnect_vars + \
+					sc_easytls_tctip + \
 					sc_easytls_conn_trac + \
 					sc_easytls_metadata + \
 					sc_easytls_shellcheck \
@@ -81,4 +85,4 @@ printf '\n'
 # dirty trick to fool my CI and still record a fail
 # IMHO, shellcheck should check for this but does not ...
 #[ $exit_status -gt 0 ] && echo "Easy-TLS Shellcheck exit status: $exit_status"
-[ $exit_status -eq 0 ] || echo "Easy-TLS Shellcheck exit status: $exit_status"
+[ $exit_status -eq 0 ] || echo "***ERROR*** Easy-TLS Shellcheck exit status: $exit_status"
