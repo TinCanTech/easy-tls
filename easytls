@@ -4812,7 +4812,6 @@ build_tls_crypt_v2_client ()
 		help_note="To remove a TLS-key file use: easytls remove"
 		die "Client key already exists: ${tlskey_file}"
 		}
-
 	# Capture HW and IP addresses
 	EASYTLS_TLSCV2_HWLIST=""
 	while [ -n "${1}" ]; do
@@ -4828,11 +4827,11 @@ build_tls_crypt_v2_client ()
 			md_temp_addr="${valid_hextets}/${mask_len}"
 			if expand_ip6_address "${md_temp_addr}"
 			then
-				# Returned: ${full_valid_hextets} ${subnet_addr6}"
+				# Returned: ${full_valid_hextets} ${full_subnet_addr6}"
 				: # OK
 				md_temp_addr="${full_subnet_addr6}"
 			else
-				x6ip "${md_temp_addr}"
+				expand_ip6_address "${md_temp_addr}"
 				exit 1
 			fi
 			unset valid_octets mask_len
@@ -4843,7 +4842,6 @@ build_tls_crypt_v2_client ()
 		shift
 	done
 	export EASYTLS_TLSCV2_HWLIST
-
 	# Confirm metadata Custom-Group
 	[ "${TLSKEY_CUSTOM_GRP}" = "EASYTLS" ] || {
 		confirm "Is the Custom-Group field correct ? " "yes" \
@@ -5062,22 +5060,35 @@ invalid_address ()
 	esac
 } # => invalid_address ()
 
+# Verbose message
+verbose_easytls_tctip_lib ()
+{
+	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
+	"${EASYTLS_PRINTF}" '%s\n' "${1}"
+} # => verbose_easytls_tctip_lib ()
+
 # IPv4 address to decimal
 ip2dec ()
 {
-	case ${1} in
-		*[!1234567890./]* ) return 1 ;;
+	case "${1}" in
+		*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
 		*.*.*.* ) : ;; #OK
 		* ) return 1 ;;
 	esac
-	temp_ip_addr=${1}
-	a=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	b=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	c=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	d=${temp_ip_addr%%.*}
-	ip4_dec="$(( (${a} << 24) + (${b} << 16) + (${c} << 8) + ${d} ))" || return 1
+	temp_ip_addr="${1}"
+	a="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	b="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	c="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	d="${temp_ip_addr%%.*}"
+	for i in "${a}" "${b}" "${c}" "${d}"
+	do
+		[ ${#i} -eq 1 ] && continue
+		[ -z "${i%%0*}" ] && return 1
+		{ [ 0 -gt $(( i )) ] || [ $(( i )) -gt 255 ]; } && return 1
+	done
+	ip4_dec=$(( (a << 24) + (b << 16) + (c << 8) + d )) || return 1
 	unset temp_ip_addr a b c d
-}
+} # => ip2dec ()
 
 # IPv4 CIDR mask length to decimal
 cidrmask2dec ()
@@ -5102,6 +5113,138 @@ cidrmask2dec ()
 	unset count power
 } # => cidrmask2dec ()
 
+# EXPAND IPv6
+expand_ip6_address ()
+{
+	[ -z "${2}" ] || return 10
+	in_ip_addr="${1}"
+	shift
+
+	in_valid_hextets="${in_ip_addr%/*}"
+	in_valid_mask_len="${in_ip_addr##*/}"
+	unset in_ip_addr
+
+	# mask length
+	case "${in_valid_mask_len}" in
+	"${in_valid_hextets}" | '' ) in_valid_mask_len=128 ;;
+	[!1234567890] | 0* ) return 11 ;;
+	* ) : # OK
+	esac
+	if [ 0 -gt "${in_valid_mask_len}" ] || [ "${in_valid_mask_len}" -gt 128 ]
+	then
+		return 11
+	fi
+
+	# ADDRESS 6
+	temp_valid_hextets="${in_valid_hextets}"
+
+	# expand leading colon
+	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
+		lead_colon=1
+	[ ! $lead_colon ] || temp_valid_hextets="0${temp_valid_hextets}"
+
+	# Count valid compressed hextets
+	count_valid_hextets=0
+	while [ -n "${temp_valid_hextets}" ]
+	do
+		count_valid_hextets=$(( count_valid_hextets + 1 ))
+		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+			temp_valid_hextets="${temp_valid_hextets}:"
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+		temp_valid_hextets="${temp_valid_hextets#:}"
+	done
+	verbose_easytls_tctip_lib "count_valid_hextets: ${count_valid_hextets}"
+
+	# expand double colon
+	temp_valid_hextets="${in_valid_hextets}"
+	expa_valid_hextets="${in_valid_hextets}"
+	if [ ${count_valid_hextets} -lt 8 ]
+	then
+		hi_part="${temp_valid_hextets%::*}"
+		lo_part="${temp_valid_hextets#*::}"
+		missing_zeros=$(( 8 - count_valid_hextets ))
+		while [ ${missing_zeros} -gt 0 ]
+		do
+			hi_part="${hi_part}:0"
+			missing_zeros=$(( missing_zeros - 1 ))
+		done
+		unset missing_zeros
+		expa_valid_hextets="${hi_part}:${lo_part}"
+		# Re-expand leading colon
+		[ ! $lead_colon ] || expa_valid_hextets="0${expa_valid_hextets}"
+	fi
+	# Save the orangutan
+	unset lead_colon lo_part hi_part count_valid_hextets
+	verbose_easytls_tctip_lib "expa_valid_hextets: ${expa_valid_hextets}"
+
+	temp_valid_hextets="${expa_valid_hextets}"
+	hex_count=8
+	unset full_valid_hextets delim
+	# Expand compressed zeros
+	while [ "${hex_count}" -gt 0 ]
+	do
+		hextet="${temp_valid_hextets%%:*}"
+		while [ ${#hextet} -lt 4 ]
+		do
+			hextet="0${hextet}"
+		done
+		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
+		delim=':'
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+		hex_count=$(( hex_count - 1 ))
+	done
+	# Save "The violence inherant in the system"
+	unset hex_count delim
+	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
+
+	# Split IP at mask_len
+	[ $(( in_valid_mask_len % 4 )) -eq 0 ] || \
+		die "in_valid_mask_len % 4: ${in_valid_mask_len}"
+	hex_mask=$(( in_valid_mask_len / 4 ))
+
+	temp_valid_hextets="${full_valid_hextets}"
+	while [ ${hex_mask} -gt 0 ]
+	do
+		delete_mask="${temp_valid_hextets#?}"
+		verbose_easytls_tctip_lib "delete_mask: ${delete_mask}"
+		hex_char="${temp_valid_hextets%"${delete_mask}"}"
+		verbose_easytls_tctip_lib "hex_char: ${hex_char}"
+		temp_valid_hextets="${temp_valid_hextets#?}"
+		verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
+		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
+		verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
+		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
+		verbose_easytls_tctip_lib "*** hex_mask: ${hex_mask}"
+	done
+	# Save the polar ice-caps
+	unset hex_char hex_mask delete_mask
+
+	# The remainder should equal zero
+	while [ -n "${temp_valid_hextets}" ]
+	do
+		hextet="${temp_valid_hextets%%:*}"
+		if [ -z "${hextet}" ]
+		then
+			temp_valid_hextets="${temp_valid_hextets#*:}"
+			hextet="${temp_valid_hextets%%:*}"
+		fi
+
+		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+			temp_valid_hextets="${temp_valid_hextets}:"
+		temp_valid_hextets="${temp_valid_hextets#*:}"
+
+		case ${hextet} in
+			*[!0:]* ) return 20 ;;
+		esac
+	done
+	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
+	verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
+	verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
+	# Save the trees
+	unset hextet temp_valid_hextets
+	# Return full_valid_hextets full_subnet_addr6
+} # => expand_ip6_address ()
+
 # Validate IPv4 data
 validate_ip4_data ()
 {
@@ -5110,23 +5253,22 @@ validate_ip4_data ()
 
 	# Syntax
 	case "${temp_ip_addr}" in
-	*".."* | *[!0123456789./]* )
-		return 11
+		*[!0123456789./]* | .* | *. | *..* | */*.* ) return 11 ;;
 	esac
 
 	# Netmask
-	mask_len=${temp_ip_addr##*/}
+	mask_len="${temp_ip_addr##*/}"
 	if [ "${mask_len}" = "${temp_ip_addr}" ]
 	then
 		mask_len=32
 	else
 		temp_ip_addr="${temp_ip_addr%/*}"
-	fi
-
-	[ -z "${mask_len}" ] && return 12
-	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 32 ]
-	then
-		return 13
+		[ -z "${mask_len}" ] && return 12
+		[ -z "${mask_len%%0*}" ] && return 12
+		if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 32 ]
+		then
+			return 13
+		fi
 	fi
 
 	# Valid mask to decimal
@@ -5141,7 +5283,7 @@ validate_ip4_data ()
 	while [ -n "${temp_ip_addr}" ]
 	do
 		i=$(( i + 1 ))
-		octet=${temp_ip_addr%%.*}
+		octet="${temp_ip_addr%%.*}"
 
 		if [ "${octet}" != "${octet#0}" ]
 		then
@@ -5162,7 +5304,7 @@ validate_ip4_data ()
 		[ "${temp_ip_addr}" != "${temp_ip_addr#*.}" ] || break
 
 		# Drop the left most "$octet."
-		temp_ip_addr=${temp_ip_addr#*.}
+		temp_ip_addr="${temp_ip_addr#*.}"
 	done
 	# *.*.*.* four octets?
 	[ ${i} -eq 4 ] || return 16
@@ -5198,7 +5340,7 @@ validate_ip6_data ()
 
 	# Netmask
 	unset valid_mask_len
-	mask_len=${temp_ip_addr##*/}
+	mask_len="${temp_ip_addr##*/}"
 	if [ "${mask_len}" = "${temp_ip_addr}" ]
 	then
 		mask_len=128
@@ -5207,11 +5349,14 @@ validate_ip6_data ()
 	fi
 
 	[ -z "${mask_len}" ] && return 12
+	case "${mask_len}" in
+		*[!0123456789]* | 0* ) return 11 ;;
+	esac
 	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 128 ]
 	then
 		return 13
 	fi
-	valid_mask_len=${mask_len}
+	valid_mask_len="${mask_len}"
 
 	# Address
 	unset valid_hextets hextet_delim
@@ -5236,7 +5381,7 @@ validate_ip6_data ()
 				# The left-hand colon was stripped with the last hextet
 				[ ! $double_colon ] || return 17
 				double_colon=1
-				hextet=:
+				hextet=":"
 				unset hextet_delim
 			fi
 		fi
@@ -5275,7 +5420,7 @@ validate_ip6_data ()
 		[ "${temp_ip_addr}" != "${temp_ip_addr#*:}" ] || break
 
 		# Drop the left most 'ffff:' not '::'
-		temp_ip_addr=${temp_ip_addr#*:}
+		temp_ip_addr="${temp_ip_addr#*:}"
 	done
 
 	# shudder
@@ -5286,132 +5431,12 @@ validate_ip6_data ()
 		[ ${i} -eq 8 ] || return 16
 	fi
 	unset temp_ip_addr hextet_delim hextet i double_colon lead_colon
-	return 0
+	# shellcheck disable=SC2034
+	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
+	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
 } # => validate_ip6_data ()
 
-# EXPAND IPv6
-expand_ip6_address ()
-{
-	[ -z "${2}" ] || return 10
-	in_ip_cidr="${1}"
-	shift
 
-	# Validate IPv6 IP/mask
-	validate_ip6_data "${in_ip_cidr}" || return $?
-	in_valid_hextets="${valid_hextets}"
-	in_valid_mask_len="${valid_mask_len}"
-	unset valid_hextets valid_mask_len in_ip_cidr
-	#print "VALID IPv6: ${in_valid_hextets}/${in_valid_mask_len}"
-
-	# ADDRESS 6
-	temp_valid_hextets=${in_valid_hextets}
-
-	# expand leading colon
-	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
-		lead_colon=1
-	[ ! $lead_colon ] || temp_valid_hextets="0${temp_valid_hextets}"
-
-	# Count valid compressed hextets
-	count_valid_hextets=0
-	while [ -n "${temp_valid_hextets}" ]
-	do
-		count_valid_hextets=$(( count_valid_hextets + 1 ))
-		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
-			temp_valid_hextets="${temp_valid_hextets}:"
-		temp_valid_hextets="${temp_valid_hextets#*:}"
-		temp_valid_hextets="${temp_valid_hextets#:}"
-	done
-	#print "count_valid_hextets: ${count_valid_hextets}"
-
-	# expand double colon
-	temp_valid_hextets=${in_valid_hextets}
-	expa_valid_hextets=${in_valid_hextets}
-	if [ ${count_valid_hextets} -lt 8 ]
-	then
-		hi_part="${temp_valid_hextets%::*}"
-		lo_part="${temp_valid_hextets#*::}"
-		missing_zeros=$(( 8 - count_valid_hextets ))
-		while [ ${missing_zeros} -gt 0 ]
-		do
-			hi_part="${hi_part}:0"
-			missing_zeros=$(( missing_zeros - 1 ))
-		done
-		unset missing_zeros
-		expa_valid_hextets="${hi_part}:${lo_part}"
-		# Re-expand leading colon
-		[ ! $lead_colon ] || expa_valid_hextets="0${expa_valid_hextets}"
-	fi
-	# Save the orangutan
-	unset lead_colon lo_part hi_part count_valid_hextets
-	#print "expa_valid_hextets: ${expa_valid_hextets}"
-
-	temp_valid_hextets=${expa_valid_hextets}
-	hex_count=8
-	unset full_valid_hextets delim
-	# Expand compressed zeros
-	while [ "${hex_count}" -gt 0 ]
-	do
-		hextet="${temp_valid_hextets%%:*}"
-		while [ ${#hextet} -lt 4 ]
-		do
-			hextet="0${hextet}"
-		done
-		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
-		delim=':'
-		temp_valid_hextets="${temp_valid_hextets#*:}"
-		hex_count=$(( hex_count - 1 ))
-	done
-	# Save "The violence inherant in the system"
-	unset hex_count delim
-	#print "full_valid_hextets: ${full_valid_hextets}"
-
-	# Split IP at mask_len
-	[ $(( in_valid_mask_len % 4 )) -eq 0 ] || \
-		die "in_valid_mask_len % 4: ${in_valid_mask_len}"
-	hex_mask=$(( in_valid_mask_len / 4 ))
-
-	temp_valid_hextets=${full_valid_hextets}
-	while [ ${hex_mask} -gt 0 ]
-	do
-		delete_mask="${temp_valid_hextets#?}"
-		#print "delete_mask: ${delete_mask}"
-		hex_char="${temp_valid_hextets%"${delete_mask}"}"
-		#print "hex_char: ${hex_char}"
-		temp_valid_hextets="${temp_valid_hextets#?}"
-		#print "temp_valid_hextets: ${temp_valid_hextets}"
-		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
-		#print "full_subnet_addr6: ${full_subnet_addr6}"
-		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
-		#print "*** hex_mask: ${hex_mask}"
-	done
-	# Save the polar ice-caps
-	unset hex_char hex_mask delete_mask
-
-	# The remainder should equal zero
-	while [ -n "${temp_valid_hextets}" ]
-	do
-		hextet="${temp_valid_hextets%%:*}"
-		if [ -z "${hextet}" ]
-		then
-			temp_valid_hextets="${temp_valid_hextets#*:}"
-			hextet="${temp_valid_hextets%%:*}"
-		fi
-
-		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
-			temp_valid_hextets="${temp_valid_hextets}:"
-		temp_valid_hextets="${temp_valid_hextets#*:}"
-
-		case ${hextet} in
-			*[!0:]* ) return 20 ;;
-		esac
-	done
-	#print "full_valid_hextets: ${full_valid_hextets}"
-	#print "subnet_addr6: ${subnet_addr6}"
-	#print "temp_valid_hextets: ${temp_valid_hextets}"
-	# Save the trees
-	unset hextet temp_valid_hextets
-	# Return full_valid_hextets full_subnet_addr6
-}
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
@@ -8614,6 +8639,13 @@ external_deps ()
 
 	# Get the date/time now
 	# TODO
+
+	# Source tctip lib
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-tctip.lib"
+	# shellcheck source=./easytls-tctip.lib
+	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_tctip_lib
+	unset -v lib_file
 
 	# Other ways to satify shellcheck
 	EASYTLS_KEY_INDEX=''; unset -v EASYTLS_KEY_INDEX

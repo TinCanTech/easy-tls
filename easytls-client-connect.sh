@@ -213,22 +213,35 @@ format_number ()
 		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
+# Verbose message
+verbose_easytls_tctip_lib ()
+{
+	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
+	"${EASYTLS_PRINTF}" '%s\n' "${1}"
+} # => verbose_easytls_tctip_lib ()
+
 # IPv4 address to decimal
 ip2dec ()
 {
-	case ${1} in
-		*[!1234567890./]* ) return 1 ;;
+	case "${1}" in
+		*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
 		*.*.*.* ) : ;; #OK
 		* ) return 1 ;;
 	esac
-	temp_ip_addr=${1}
-	a=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	b=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	c=${temp_ip_addr%%.*}; temp_ip_addr=${temp_ip_addr#*.}
-	d=${temp_ip_addr%%.*}
-	ip4_dec="$(( (${a} << 24) + (${b} << 16) + (${c} << 8) + ${d} ))" || return 1
+	temp_ip_addr="${1}"
+	a="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	b="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	c="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
+	d="${temp_ip_addr%%.*}"
+	for i in "${a}" "${b}" "${c}" "${d}"
+	do
+		[ ${#i} -eq 1 ] && continue
+		[ -z "${i%%0*}" ] && return 1
+		{ [ 0 -gt $(( i )) ] || [ $(( i )) -gt 255 ]; } && return 1
+	done
+	ip4_dec=$(( (a << 24) + (b << 16) + (c << 8) + d )) || return 1
 	unset temp_ip_addr a b c d
-}
+} # => ip2dec ()
 
 # IPv4 CIDR mask length to decimal
 cidrmask2dec ()
@@ -260,9 +273,20 @@ expand_ip6_address ()
 	in_ip_addr="${1}"
 	shift
 
-	in_valid_hextets="${in_ip_addr}"
-	in_valid_mask_len=128
+	in_valid_hextets="${in_ip_addr%/*}"
+	in_valid_mask_len="${in_ip_addr##*/}"
 	unset in_ip_addr
+
+	# mask length
+	case "${in_valid_mask_len}" in
+	"${in_valid_hextets}" | '' ) in_valid_mask_len=128 ;;
+	[!1234567890] | 0* ) return 11 ;;
+	* ) : # OK
+	esac
+	if [ 0 -gt "${in_valid_mask_len}" ] || [ "${in_valid_mask_len}" -gt 128 ]
+	then
+		return 11
+	fi
 
 	# ADDRESS 6
 	temp_valid_hextets="${in_valid_hextets}"
@@ -282,11 +306,11 @@ expand_ip6_address ()
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 		temp_valid_hextets="${temp_valid_hextets#:}"
 	done
-	#print "count_valid_hextets: ${count_valid_hextets}"
+	verbose_easytls_tctip_lib "count_valid_hextets: ${count_valid_hextets}"
 
 	# expand double colon
-	temp_valid_hextets=${in_valid_hextets}
-	expa_valid_hextets=${in_valid_hextets}
+	temp_valid_hextets="${in_valid_hextets}"
+	expa_valid_hextets="${in_valid_hextets}"
 	if [ ${count_valid_hextets} -lt 8 ]
 	then
 		hi_part="${temp_valid_hextets%::*}"
@@ -304,9 +328,9 @@ expand_ip6_address ()
 	fi
 	# Save the orangutan
 	unset lead_colon lo_part hi_part count_valid_hextets
-	#print "expa_valid_hextets: ${expa_valid_hextets}"
+	verbose_easytls_tctip_lib "expa_valid_hextets: ${expa_valid_hextets}"
 
-	temp_valid_hextets=${expa_valid_hextets}
+	temp_valid_hextets="${expa_valid_hextets}"
 	hex_count=8
 	unset full_valid_hextets delim
 	# Expand compressed zeros
@@ -324,26 +348,26 @@ expand_ip6_address ()
 	done
 	# Save "The violence inherant in the system"
 	unset hex_count delim
-	#print "full_valid_hextets: ${full_valid_hextets}"
+	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
 
 	# Split IP at mask_len
 	[ $(( in_valid_mask_len % 4 )) -eq 0 ] || \
 		die "in_valid_mask_len % 4: ${in_valid_mask_len}"
 	hex_mask=$(( in_valid_mask_len / 4 ))
 
-	temp_valid_hextets=${full_valid_hextets}
+	temp_valid_hextets="${full_valid_hextets}"
 	while [ ${hex_mask} -gt 0 ]
 	do
 		delete_mask="${temp_valid_hextets#?}"
-		#print "delete_mask: ${delete_mask}"
+		verbose_easytls_tctip_lib "delete_mask: ${delete_mask}"
 		hex_char="${temp_valid_hextets%"${delete_mask}"}"
-		#print "hex_char: ${hex_char}"
+		verbose_easytls_tctip_lib "hex_char: ${hex_char}"
 		temp_valid_hextets="${temp_valid_hextets#?}"
-		#print "temp_valid_hextets: ${temp_valid_hextets}"
+		verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
 		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
-		#print "full_subnet_addr6: ${full_subnet_addr6}"
+		verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
 		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
-		#print "*** hex_mask: ${hex_mask}"
+		verbose_easytls_tctip_lib "*** hex_mask: ${hex_mask}"
 	done
 	# Save the polar ice-caps
 	unset hex_char hex_mask delete_mask
@@ -366,9 +390,9 @@ expand_ip6_address ()
 			*[!0:]* ) return 20 ;;
 		esac
 	done
-	#print "full_valid_hextets: ${full_valid_hextets}"
-	#print "subnet_addr6: ${subnet_addr6}"
-	#print "temp_valid_hextets: ${temp_valid_hextets}"
+	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
+	verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
+	verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
 	# Save the trees
 	unset hextet temp_valid_hextets
 	# Return full_valid_hextets full_subnet_addr6
@@ -774,6 +798,13 @@ deps ()
 	. "${lib_file}"
 	unset -v lib_file
 
+	# Source tctip lib
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-tctip.lib"
+	# shellcheck source=./easytls-tctip.lib
+	[ -f "${lib_file}" ] && . "${lib_file}"
+	unset -v lib_file
+
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
@@ -1115,13 +1146,14 @@ case $allow_no_check in
 			then
 				unset peer_ip6_match_ok
 				# Test
-				peer_ip6_addr="${trusted_ip6}"
+				peer_ip6_addr="${trusted_ip6}/128"
 				until [ -z "${key_ip6_list}" ]
 				do
 					key_ip_addr="${key_ip6_list% *}"
 					key_ip6_addr="${key_ip_addr%%/*}"
 
-					key_ip6_bits="${key_ip_addr##*/}"
+					# bits is no longer saved to key for IPv6
+					#key_ip6_bits="${key_ip_addr##*/}"
 
 					expand_ip6_address "${peer_ip6_addr}"
 					exp_peer_ip6_addr="${full_valid_hextets}"
@@ -1194,11 +1226,11 @@ case $allow_no_check in
 			then
 				# matadata has an address and this test is enabled so ..
 				[ $peer_ip_match_ok ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
-					update_status "IP Matched!"
+				update_status "IP Matched!"
 			else
 				# No IP-addr found in metadata then key not locked to IP
 				update_status "No Key IPaddr IGNORED!"
-				peer_ip_ignored=1
+				#no_key_ip_addr=1
 			fi
 			# Save the deep blue sea
 			unset found_ipv6 found_ipv4 source_match key_ip_list key_ip_addr
