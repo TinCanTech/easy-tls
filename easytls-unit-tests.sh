@@ -791,6 +791,21 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v4ip '1.2.3.0/24' || \
+		fail "Unit test error 71: version"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v6ip '2000::1:2:3:4/64' || \
+		fail "Unit test error 71: version"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip '2000:1:2:3:4::/80' || \
+		fail "Unit test error 71: version"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS version"
 	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
 		fail "Unit test error 71: version"
 
