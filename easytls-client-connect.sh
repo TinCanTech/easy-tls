@@ -213,6 +213,8 @@ format_number ()
 		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
 }
 
+#=# 9273398a-5284-4c1f-aec5-d597ceb1d085
+
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
@@ -386,6 +388,8 @@ expand_ip6_address ()
 	unset -v hextet temp_valid_hextets
 	# Return full_valid_hextets full_subnet_addr6
 } # => expand_ip6_address ()
+
+#=# b66633f8-3746-436a-901f-29638199b187
 
 # Allow connection
 connection_allowed ()

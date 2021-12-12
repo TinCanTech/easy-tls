@@ -25,6 +25,8 @@ easytls_tctip_lib ()
 	"${EASYTLS_PRINTF}" '%s\n' "* easytls-tctip.lib loaded"
 }
 
+#=# 9273398a-5284-4c1f-aec5-d597ceb1d085
+
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
@@ -199,6 +201,8 @@ expand_ip6_address ()
 	# Return full_valid_hextets full_subnet_addr6
 } # => expand_ip6_address ()
 
+#=# b66633f8-3746-436a-901f-29638199b187
+
 # Validate IPv4 data
 validate_ip4_data ()
 {
@@ -341,14 +345,6 @@ validate_ip6_data ()
 			# OK
 			:
 		else
-			# Normal hextet
-			# Leading zero
-			#if [ "${hextet}" != "${hextet#0}" ]; then
-			#	[ "${hextet}" = "0" ] || {
-			#		return 14
-			#		}
-			#fi
-
 			# Range: 0 < hextet < 65535
 			if [ 0 -gt $(( 0x${hextet} )) ] || [ $(( 0x${hextet} )) -gt 65535 ]
 			then
@@ -379,3 +375,5 @@ validate_ip6_data ()
 	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
 	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
 } # => validate_ip6_data ()
+
+#=# 7f97f537-eafd-40c3-8f31-2fee10c12ad3

@@ -5060,6 +5060,8 @@ invalid_address ()
 	esac
 } # => invalid_address ()
 
+#=# 9273398a-5284-4c1f-aec5-d597ceb1d085
+
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
@@ -5411,6 +5413,8 @@ validate_ip6_data ()
 	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
 	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
 } # => validate_ip6_data ()
+
+#=# 7f97f537-eafd-40c3-8f31-2fee10c12ad3
 
 # Base64 encode metadata fields
 b64_enc_metadata ()
