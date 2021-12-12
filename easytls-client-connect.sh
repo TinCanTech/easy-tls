@@ -340,7 +340,7 @@ expand_ip6_address ()
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 		hex_count=$(( hex_count - 1 ))
 	done
-	# Save "The violence inherant in the system"
+	# Save "The violence inherent in the system"
 	unset -v hex_count delim
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
 

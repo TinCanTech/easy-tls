@@ -2,6 +2,7 @@ easypfp
 easytls-script.conf
 easytls-server.pid
 easytls-*.vars
+copy-tcpip.sh
 ia-*.*
 et-tdir*/*
 noca/*

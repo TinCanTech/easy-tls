@@ -5187,7 +5187,7 @@ expand_ip6_address ()
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 		hex_count=$(( hex_count - 1 ))
 	done
-	# Save "The violence inherant in the system"
+	# Save "The violence inherent in the system"
 	unset -v hex_count delim
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
 
@@ -5236,6 +5236,8 @@ expand_ip6_address ()
 	# Return full_valid_hextets full_subnet_addr6
 } # => expand_ip6_address ()
 
+#=# b66633f8-3746-436a-901f-29638199b187
+
 # Validate IPv4 data
 validate_ip4_data ()
 {
@@ -5245,6 +5247,8 @@ validate_ip4_data ()
 	# Syntax
 	case "${temp_ip_addr}" in
 		*[!0123456789./]* | .* | *. | *..* | */*.* ) return 11 ;;
+		*.*.*.* ) : ;; #OK
+		* ) return 1 ;;
 	esac
 
 	# Netmask
@@ -5267,7 +5271,7 @@ validate_ip4_data ()
 	unset -v mask_dec imsk_dec
 
 	# Address
-	unset -v valid_octets octet_delim
+	unset -v valid_octets delim
 	i=0
 	while [ -n "${temp_ip_addr}" ]; do
 		i=$(( i + 1 ))
@@ -5283,8 +5287,8 @@ validate_ip4_data ()
 			return 15
 		fi
 
-		valid_octets="${valid_octets}${octet_delim}${octet}"
-		octet_delim='.'
+		valid_octets="${valid_octets}${delim}${octet}"
+		delim='.'
 
 		# Break after last octet
 		[ "${temp_ip_addr}" != "${temp_ip_addr#*.}" ] || break
@@ -5294,7 +5298,7 @@ validate_ip4_data ()
 	done
 	# *.*.*.* four octets?
 	[ ${i} -eq 4 ] || return 16
-	unset -v temp_ip_addr octet_delim octet i
+	unset -v temp_ip_addr delim octet i
 
 	# Valid IPv4 to decimal
 	ip2dec "${valid_octets}" || return 19
@@ -5343,7 +5347,7 @@ validate_ip6_data ()
 	valid_mask_len="${mask_len}"
 
 	# Address
-	unset -v valid_hextets hextet_delim
+	unset -v valid_hextets delim
 	i=0
 	while [ -n "${temp_ip_addr}" ]; do
 		i=$(( i + 1 ))
@@ -5356,34 +5360,26 @@ validate_ip6_data ()
 				# Does not count as double_colon
 				[ ! $lead_colon ] || return 19
 				lead_colon=1
-				hextet=:
+				hextet=":"
 			else
 				# right-hand colon in '::'
 				# The left-hand colon was stripped with the last hextet
 				[ ! $double_colon ] || return 17
 				double_colon=1
 				hextet=":"
-				unset -v hextet_delim
+				unset -v delim
 			fi
 		fi
 
 		# Left to right
-		temptet=${temp_ip_addr%%:*}
-		hextet=${hextet:-${temptet}}
+		temptet="${temp_ip_addr%%:*}"
+		hextet="${hextet:-${temptet}}"
 		unset -v temptet
 
 		if [ "${hextet}" = ":" ]; then
 			# OK
 			:
 		else
-			# Normal hextet
-			# Leading zero
-			if [ "${hextet}" != "${hextet#0}" ]; then
-				[ "${hextet}" = "0" ] || {
-					return 14
-					}
-			fi
-
 			# Range: 0 < hextet < 65535
 			if [ 0 -gt $(( 0x${hextet} )) ] || [ $(( 0x${hextet} )) -gt 65535 ]
 			then
@@ -5392,8 +5388,8 @@ validate_ip6_data ()
 		fi
 
 		[ $lead_colon ] && [ ${i} -eq 1 ] && unset -v hextet
-		valid_hextets="${valid_hextets}${hextet_delim}${hextet}"
-		hextet_delim=':'
+		valid_hextets="${valid_hextets}${delim}${hextet}"
+		delim=':'
 
 		# Break after last hextet
 		[ "${temp_ip_addr}" != "${temp_ip_addr#*:}" ] || break
@@ -5408,7 +5404,8 @@ validate_ip6_data ()
 	else
 		[ ${i} -eq 8 ] || return 16
 	fi
-	unset -v temp_ip_addr hextet_delim hextet i double_colon lead_colon
+	# Save the atmosphere
+	unset -v temp_ip_addr delim hextet i double_colon lead_colon
 	# shellcheck disable=SC2034
 	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
 	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
