@@ -653,9 +653,6 @@ init ()
 	# Enable stacking by default
 	ENABLE_STACK=1
 
-	# Do not accept external settings
-	unset -v use_x509
-
 	# TLS expiry age (days) Default 5 years, 1825 days
 	TLSKEY_MAX_AGE=$((365*5))
 
@@ -801,7 +798,7 @@ deps ()
 		[ $use_cache_id ] && [ $PRELOAD_CA_ID ] && \
 			die "Cannot use --cache-id and --preload-cache-id together." 34
 
-		if [ $use_x509 ]
+		if [ ! ${X509_METHOD} -eq 0 ]
 		then
 			# Only check these files if using x509
 			[ -f "${crl_pem}" ] || {
@@ -930,19 +927,16 @@ do
 	--v1|--via-crl)
 		empty_ok=1
 		update_status "(crl)"
-		use_x509=1
 		X509_METHOD=1
 	;;
 	--v2|--via-ca)
 		empty_ok=1
 		update_status "(ca)"
-		use_x509=1
 		X509_METHOD=2
 	;;
 	--v3|--via-index)
 		empty_ok=1
 		update_status "(index)"
-		use_x509=1
 		X509_METHOD=3
 	;;
 	-a|--cache-id)
@@ -1144,8 +1138,8 @@ deps
 	fi
 
 
-# Start opptional X509 checks
-if [ ! $use_x509 ]
+# Start optional X509 checks
+if [ ${X509_METHOD} -eq 0 ]
 then
 	# No X509 required
 	update_status "metadata verified"
@@ -1183,7 +1177,7 @@ else
 
 
 	# Verify serial status
-	case $X509_METHOD in
+	case ${X509_METHOD} in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
@@ -1219,7 +1213,7 @@ else
 	;;
 	esac
 
-fi # => use_x509 ()
+fi # => End optional X509 checks
 
 # Allow connection
 connection_allowed
