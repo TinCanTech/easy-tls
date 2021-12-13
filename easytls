@@ -7000,11 +7000,11 @@ interactive_scripts ()
 		{	# easytls-cryptv2-verify.vars
 			print "# easytls-cryptv2-verify.vars"
 			xaprint "EASYTLS_VERBOSE=1"
-			xaprint "kill_client=1"
+			xaprint "ENABLE_KILL_CLIENT=1"
 			xaprint "TLSKEY_MAX_AGE=${key_age_days}"
 			xaprint "#unset use_disable_list"
 			print "# This means the disabled-list will be used"
-			xdprint "CA_dir=\"${opt_ca_path}\""
+			xdprint "CA_DIR=\"${opt_ca_path}\""
 			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
 			xdprint "local_custom_g=\"${opt_customg}\""
 			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""

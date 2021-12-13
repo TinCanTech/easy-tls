@@ -3,7 +3,7 @@
 #EASYTLS_VERBOSE=1
 
 # Easy-TLS PKI (No-CA mode) or Easy-RSA CA directory
-#CA_dir='/etc/openvpn/easyrsa/pki'
+#CA_DIR='/etc/openvpn/easyrsa/pki'
 
 # Easy-TLS No-CA mode
 #EASYTLS_NO_CA=1
@@ -15,7 +15,7 @@
 #multi_custom_g=1
 
 # Enable/disable kill_client mode
-#kill_client=1
+#ENABLE_KILL_CLIENT=1
 
 # Enable kill server mode
 #ENABLE_KILL_PPID=1
@@ -25,8 +25,8 @@
 #x509_method=2
 #x509_method=3
 
-# TLS-Crypt-V2 key max age
-#tlskey_max_age=365
+# TLS-Crypt-V2 key max age (5 years)
+#TLSKEY_MAX_AGE=1825
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1

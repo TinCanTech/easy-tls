@@ -235,9 +235,9 @@ fail_and_exit ()
 
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
-			"kill_client: ${kill_client:-0}" > "${EASYTLS_WLOG}"
+			"ENABLE_KILL_CLIENT: ${ENABLE_KILL_CLIENT:-0}" > "${EASYTLS_WLOG}"
 
-	[ $kill_client ] && {
+	[ $ENABLE_KILL_CLIENT ] && {
 		# Create kill client file
 		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
 		# Create metadata file for client-connect or kill-client
@@ -753,11 +753,11 @@ deps ()
 	# HASH
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
-	# CA_dir MUST be set with option: -c|--ca
-	[ -d "${CA_dir}" ] || die "Path to CA directory is required, see help" 22
+	# CA_DIR MUST be set with option: -c|--ca
+	[ -d "${CA_DIR}" ] || die "Path to CA directory is required, see help" 22
 
 	# Easy-TLS required files
-	TLS_dir="${CA_dir}/easytls/data"
+	TLS_dir="${CA_DIR}/easytls/data"
 	disabled_list="${TLS_dir}/easytls-disabled-list.txt"
 	tlskey_serial_index="${TLS_dir}/easytls-key-index.txt"
 
@@ -768,11 +768,11 @@ deps ()
 		}
 
 	# CA required files
-	ca_cert="${CA_dir}/ca.crt"
+	ca_cert="${CA_DIR}/ca.crt"
 	ca_identity_file="${TLS_dir}/easytls-ca-identity.txt"
-	crl_pem="${CA_dir}/crl.pem"
-	index_txt="${CA_dir}/index.txt"
-	openssl_cnf="${CA_dir}/safessl-easyrsa.cnf"
+	crl_pem="${CA_DIR}/crl.pem"
+	index_txt="${CA_DIR}/index.txt"
+	openssl_cnf="${CA_DIR}/safessl-easyrsa.cnf"
 
 	# Check X509 files
 	if [ $EASYTLS_NO_CA ]
@@ -894,7 +894,7 @@ do
 		vars_file="${val}"
 	;;
 	-c|--ca)
-		CA_dir="${val}"
+		CA_DIR="${val}"
 	;;
 	-z|--no-ca)
 		empty_ok=1
@@ -922,7 +922,7 @@ do
 	;;
 	-k|--kill-client) # Use client-connect to kill client
 		empty_ok=1
-		kill_client=1
+		ENABLE_KILL_CLIENT=1
 	;;
 	--hash)
 		EASYTLS_HASH_ALGO="${val}"
