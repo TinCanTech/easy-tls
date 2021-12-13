@@ -51,7 +51,7 @@ help_text ()
   -g|--custom-group=<GROUP>
                          Verify the client metadata against a custom group.
   -n|--no-hash           Do not verify metadata hash (TLS-key serial number).
-  -x|--max-tls-age=<DAYS>
+  -x|--max-tlskey-age=<DAYS>
                          TLS Crypt V2 Key allowable age in days (default: 1825).
                          To disable age check use 0
   -d|--disable-list      Disable the temporary disabled-list check.
@@ -657,7 +657,7 @@ init ()
 	unset -v use_x509
 
 	# TLS expiry age (days) Default 5 years, 1825 days
-	tlskey_max_age=$((365*5))
+	TLSKEY_MAX_AGE=$((365*5))
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID
@@ -822,13 +822,13 @@ deps ()
 	fi # X509 checks
 
 	# Ensure that TLS expiry age is numeric
-	case "${tlskey_max_age}" in
+	case "${TLSKEY_MAX_AGE}" in
 		''|*[!0-9]*) # Invalid value
-			die "Invalid value for --tls-age: ${tlskey_max_age}" 29
+			die "Invalid value for --tls-age: ${TLSKEY_MAX_AGE}" 29
 		;;
 		*) # Valid value
 			# maximum age in seconds
-			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
+			tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
 		;;
 	esac
 
@@ -913,8 +913,8 @@ do
 		empty_ok=1
 		unset -v VERIFY_hash
 	;;
-	-x|--max-tls-age)
-		tlskey_max_age="${val}"
+	-x|--max-tlskey-age)
+		TLSKEY_MAX_AGE="${val}"
 	;;
 	-d|--disable-list)
 		empty_ok=1
@@ -1099,7 +1099,7 @@ deps
 			die "Invalid value for local_date_sec: ${local_date_sec}" 112
 		;;
 		*) # Valid value
-			tlskey_expire_age_sec=$((tlskey_max_age*60*60*24))
+			tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
 
 			# days since key creation
 			tlskey_age_sec=$(( local_date_sec - md_date ))
@@ -1108,7 +1108,7 @@ deps
 			# Check key_age is less than --tls-age
 			if [ ${tlskey_age_sec} -gt ${tlskey_expire_age_sec} ]
 			then
-				max_age_msg="Max age: ${tlskey_max_age} days"
+				max_age_msg="Max age: ${TLSKEY_MAX_AGE} days"
 				key_age_msg="Key age: ${tlskey_age_day} days"
 				failure_msg="Key expired: ${max_age_msg} ${key_age_msg}"
 				fail_and_exit "TLSKEY_EXPIRED" 4

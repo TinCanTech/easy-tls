@@ -7001,7 +7001,7 @@ interactive_scripts ()
 			print "# easytls-cryptv2-verify.vars"
 			xaprint "EASYTLS_VERBOSE=1"
 			xaprint "kill_client=1"
-			xaprint "tlskey_max_age=${key_age_days}"
+			xaprint "TLSKEY_MAX_AGE=${key_age_days}"
 			xaprint "#unset use_disable_list"
 			print "# This means the disabled-list will be used"
 			xdprint "CA_dir=\"${opt_ca_path}\""
@@ -7009,22 +7009,6 @@ interactive_scripts ()
 			xdprint "local_custom_g=\"${opt_customg}\""
 			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 		} > "${EASYTLS_VERIFY_V2_VARS}" || die "Failed to create vars file"
-
-		{	# easytls-verify.vars
-			print "# easytls-verify.vars"
-			xaprint "EASYTLS_VERBOSE=1"
-			xaprint "kill_client=1"
-			xaprint "#ignore_x509_mismatch=1"
-			print "# Must also be set in easytls-client-connect.vars"
-			xaprint "#ignore_expired=1"
-			xaprint "#ignore_required=1"
-			xaprint "#ignore_revoked=1"
-			xaprint "ENABLE_CONN_TRAC=1"
-			xaprint "VERBOSE_CONN_TRAC=1"
-			xdprint "CA_dir=\"${opt_ca_path}\""
-			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
-		} > "${EASYTLS_VERIFY_V1_VARS}" || die "Failed to create vars file"
 
 		{	# easytls-client-connect.vars
 			print "# easytls-client-connect.vars"
