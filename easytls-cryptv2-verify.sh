@@ -212,7 +212,7 @@ fail_and_exit ()
 		print "${1}"
 		print "* ==> version       local: ${local_easytls}"
 		print "* ==> version      remote: ${md_easytls}"
-		print "* ==> custom_group  local: ${local_custom_g}"
+		print "* ==> custom_group  local: ${LOCAL_CUSTOM_G}"
 		print "* ==> custom_group remote: ${md_custom_g}"
 		print "* ==> identity      local: ${local_identity}"
 		print "* ==> identity     remote: ${md_identity}"
@@ -848,7 +848,7 @@ deps ()
 	unset -v lib_file
 
 	# Default CUSTOM_GROUP
-	[ -n "${local_custom_g}" ] || local_custom_g='EASYTLS'
+	[ -n "${LOCAL_CUSTOM_G}" ] || LOCAL_CUSTOM_G='EASYTLS'
 
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
@@ -901,12 +901,12 @@ do
 		EASYTLS_NO_CA=1
 	;;
 	-g|--custom-group)
-		if [ -z "${local_custom_g}" ]
+		if [ -z "${LOCAL_CUSTOM_G}" ]
 		then
-			local_custom_g="${val}"
+			LOCAL_CUSTOM_G="${val}"
 		else
-			multi_custom_g=1
-			local_custom_g="${val} ${local_custom_g}"
+			ENABLE_MULTI_CUSTOM_G=1
+			LOCAL_CUSTOM_G="${val} ${LOCAL_CUSTOM_G}"
 		fi
 	;;
 	-n|--no-hash)
@@ -1034,10 +1034,10 @@ deps
 
 # Metadata custom_group
 
-	if [ $multi_custom_g ]
+	if [ $ENABLE_MULTI_CUSTOM_G ]
 	then
 		# This will do for the time being ..
-		if "${EASYTLS_PRINTF}" "${local_custom_g}" | \
+		if "${EASYTLS_PRINTF}" "${LOCAL_CUSTOM_G}" | \
 			"${EASYTLS_GREP}" -q "${md_custom_g}"
 		then
 			update_status "MULTI custom_group ${md_custom_g} OK"
@@ -1046,9 +1046,9 @@ deps
 			fail_and_exit "MULTI_CUSTOM_GROUP" 98
 		fi
 	else
-		# md_custom_g MUST equal local_custom_g
+		# md_custom_g MUST equal LOCAL_CUSTOM_G
 		case "${md_custom_g}" in
-		"${local_custom_g}")
+		"${LOCAL_CUSTOM_G}")
 			update_status "custom_group ${md_custom_g} OK"
 		;;
 		'')
