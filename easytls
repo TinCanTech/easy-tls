@@ -7006,7 +7006,8 @@ interactive_scripts ()
 			print "# This means the disabled-list will be used"
 			xdprint "CA_DIR=\"${opt_ca_path}\""
 			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
-			xdprint "local_custom_g=\"${opt_customg}\""
+			xdprint "LOCAL_CUSTOM_G=\"${opt_customg}\""
+			[ -z "${X509_METHOD}" ] || xaprint "X509_METHOD=${X509_METHOD}"
 			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
 		} > "${EASYTLS_VERIFY_V2_VARS}" || die "Failed to create vars file"
 
@@ -7844,14 +7845,17 @@ interactive_x509_method ()
 			break
 		;;
 		1)	# crl
+			X509_METHOD=1
 			opt_x509_method="--v1"
 			break
 		;;
 		2)	# ca
+			X509_METHOD=2
 			opt_x509_method="--v2"
 			break
 		;;
 		3)	# index
+			X509_METHOD=3
 			opt_x509_method="--v3"
 			break
 		;;
