@@ -60,10 +60,10 @@ help_text ()
                          connected, so a failed connection must roll-over, then
                          easytls-client-connect.sh immediately kills the client.
   -s|--pid-file=<FILE>   The PID file for the openvpn server instance.
-  --v1|--via-crl         Do X509 certificate checks via x509_method 1, CRL check.
-  --v2|--via-ca          Do X509 certificate checks via x509_method 2,
+  --v1|--via-crl         Do X509 certificate checks via X509_METHOD 1, CRL check.
+  --v2|--via-ca          Do X509 certificate checks via X509_METHOD 2,
                          Use 'OpenSSL ca' commands.  NOT SUPPORTED
-  --v3|--via-index       Do X509 certificate checks via x509_method 3,
+  --v3|--via-index       Do X509 certificate checks via X509_METHOD 3,
                          Search OpenSSL index.txt  PREFERRED
                          This method does not require loading the OpenSSL binary.
   -a|--cache-id          Use the saved CA-Identity from EasyTLS.
@@ -674,7 +674,7 @@ init ()
 	# --v1|--via-crl   - client serial revokation via CRL search (Default)
 	# --v2|--via-ca    - client serial revokation via OpenSSL ca command (Broken)
 	# --v3|--via-index - client serial revokation via index.txt search (Preferred)
-	x509_method=0
+	X509_METHOD=0
 
 	# Identify Windows
 	# shellcheck disable=SC2016
@@ -931,19 +931,19 @@ do
 		empty_ok=1
 		update_status "(crl)"
 		use_x509=1
-		x509_method=1
+		X509_METHOD=1
 	;;
 	--v2|--via-ca)
 		empty_ok=1
 		update_status "(ca)"
 		use_x509=1
-		x509_method=2
+		X509_METHOD=2
 	;;
 	--v3|--via-index)
 		empty_ok=1
 		update_status "(index)"
 		use_x509=1
-		x509_method=3
+		X509_METHOD=3
 	;;
 	-a|--cache-id)
 		empty_ok=1
@@ -1183,7 +1183,7 @@ else
 
 
 	# Verify serial status
-	case $x509_method in
+	case $X509_METHOD in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
@@ -1215,7 +1215,7 @@ else
 		serial_status_via_pki_index
 	;;
 	*)
-		die "Unknown method for verify: ${x509_method}" 130
+		die "Unknown method for verify: ${X509_METHOD}" 130
 	;;
 	esac
 

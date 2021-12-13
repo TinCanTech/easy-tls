@@ -9,7 +9,8 @@
 #EASYTLS_NO_CA=1
 
 # Easy-TLS CUSTOM_GROUP
-#local_custom_g='EASYTLS'
+#LOCAL_CUSTOM_G='EASYTLS'
+
 # Multiple CUSTOM_GROUP
 #LOCAL_CUSTOM_G='EASYTLS TEST'
 #ENABLE_MULTI_CUSTOM_G=1
@@ -21,9 +22,9 @@
 #ENABLE_KILL_PPID=1
 
 # X509 method
-#x509_method=1
-#x509_method=2
-#x509_method=3
+#X509_METHOD=1
+#X509_METHOD=2
+#X509_METHOD=3
 
 # TLS-Crypt-V2 key max age (5 years)
 #TLSKEY_MAX_AGE=1825
