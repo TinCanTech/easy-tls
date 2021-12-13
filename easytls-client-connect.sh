@@ -863,7 +863,7 @@ do
 	;;
 	-p|--push-hwaddr-required)
 		empty_ok=1
-		push_hwaddr_required=1
+		ENFORCE_PUSH_HWADDR=1
 	;;
 	-c|--crypt-v2-required)
 		empty_ok=1
@@ -1047,7 +1047,7 @@ push_hwaddr="$(format_number "${IV_HWADDR}")"
 if [ $push_hwaddr_missing ]
 then
 	# hwaddr is NOT pushed
-	[ $push_hwaddr_required ] && {
+	[ $ENFORCE_PUSH_HWADDR ] && {
 		failure_msg="Client did not push required hwaddr"
 		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 		}
@@ -1068,7 +1068,7 @@ case $ENABLE_NO_CHECK in
 	then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
-		[ $push_hwaddr_required ] && [ $push_hwaddr_missing ] && {
+		[ $ENFORCE_PUSH_HWADDR ] && [ $push_hwaddr_missing ] && {
 			failure_msg="TLS Auth/Crypt no pushed hwaddr"
 			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 			}

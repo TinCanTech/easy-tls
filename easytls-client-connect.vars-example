@@ -5,7 +5,7 @@
 #IGNORE_HWADDR_MISMATCH=1
 #ENFORCE_UNIQUE_TLSKEY=1
 #ENFORCE_TLSKEY_SERIAL_MATCH=1
-#push_hwaddr_required=1
+#ENFORCE_PUSH_HWADDR=1
 #crypt_v2_required=1
 #key_hwaddr_required=1
 #PEER_IP_MATCH=1
