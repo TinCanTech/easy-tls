@@ -798,7 +798,7 @@ deps ()
 
 		# Check for either --cache-id or --preload-cache-id
 		# Do NOT allow both
-		[ $use_cache_id ] && [ $preload_cache_id ] && \
+		[ $use_cache_id ] && [ $PRELOAD_CA_ID ] && \
 			die "Cannot use --cache-id and --preload-cache-id together." 34
 
 		if [ $use_x509 ]
@@ -950,7 +950,7 @@ do
 		use_cache_id=1
 	;;
 	-p|--preload-id)
-		preload_cache_id="${val}"
+		PRELOAD_CA_ID="${val}"
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -1155,9 +1155,9 @@ else
 	if [ $use_cache_id ]
 	then
 		local_identity="$("${EASYTLS_CAT}" "${ca_identity_file}")"
-	elif [ -n "${preload_cache_id}" ]
+	elif [ -n "${PRELOAD_CA_ID}" ]
 	then
-		local_identity="${preload_cache_id}"
+		local_identity="${PRELOAD_CA_ID}"
 	else
 		# Verify CA is valid
 		verify_ca || die "Bad CA ${ca_cert}" 123

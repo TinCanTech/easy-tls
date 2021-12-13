@@ -46,7 +46,7 @@
 #EASYTLS_tmp_dir='C:/Windows/Temp'    # Win
 
 # Preload CA-ID
-#preload_cache_id='paste the CA-ID here'
+#PRELOAD_CA_ID='paste the CA-ID here'
 
 # Hash algorithm
 #EASYTLS_HASH_ALGO='SHA256'
