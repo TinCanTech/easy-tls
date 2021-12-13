@@ -871,7 +871,7 @@ do
 	;;
 	-k|--key-hwaddr-required)
 		empty_ok=1
-		key_hwaddr_required=1
+		ENFORCE_KEY_HWADDR=1
 	;;
 	-s|--source-ip-match)
 		empty_ok=1
@@ -1076,7 +1076,7 @@ case $ENABLE_NO_CHECK in
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
-		[ $key_hwaddr_required ] && {
+		[ $ENFORCE_KEY_HWADDR ] && {
 			failure_msg="TLS Auth/Crypt key enforce verify hwaddr"
 			fail_and_exit "TLS_CRYPT_V2 ONLY " 6
 			}
@@ -1235,7 +1235,7 @@ case $ENABLE_NO_CHECK in
 		then
 			# key does not have a hwaddr
 			update_status "Key is not locked to hwaddr"
-			[ $key_hwaddr_required ] && {
+			[ $ENFORCE_KEY_HWADDR ] && {
 				failure_msg="Key hwaddr required but missing"
 				fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
 				}

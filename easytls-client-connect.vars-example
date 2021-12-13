@@ -7,7 +7,7 @@
 #ENFORCE_TLSKEY_SERIAL_MATCH=1
 #ENFORCE_PUSH_HWADDR=1
 #ENFORCE_CRYPT_V2=1
-#key_hwaddr_required=1
+#ENFORCE_KEY_HWADDR=1
 #PEER_IP_MATCH=1
 #EASYTLS_DYN_OPTS_FILE=/etc/openvpn/server/easytls-dyn-opts
 
