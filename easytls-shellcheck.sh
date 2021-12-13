@@ -1,6 +1,6 @@
 #!/bin/sh
 
-EASYTLS_VERSION="2.7.0"
+./easytls version
 
 shellcheck_bin='shellcheck'
 [ -f '../shellcheck' ] && shellcheck_bin='../shellcheck'
