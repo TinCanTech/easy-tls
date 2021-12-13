@@ -851,7 +851,7 @@ do
 	;;
 	-a|--allow-no-check)
 		empty_ok=1
-		allow_no_check=1
+		ENABLE_NO_CHECK=1
 	;;
 	-m|--ignore-hw-mismatch) # tlskey-hwaddr does not match openvpn-hwaddr
 		empty_ok=1
@@ -1055,8 +1055,8 @@ then
 	update_status "IGNORE hwaddr not required"
 fi
 
-# allow_no_check
-case $allow_no_check in
+# ENABLE_NO_CHECK
+case $ENABLE_NO_CHECK in
 1)
 	# disable all checks
 	update_status "Allow ALL TLS keys"
@@ -1277,7 +1277,7 @@ case $allow_no_check in
 			fi
 		fi
 	fi
-esac # allow_no_check
+esac # ENABLE_NO_CHECK
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9

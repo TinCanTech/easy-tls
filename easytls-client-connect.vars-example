@@ -1,6 +1,6 @@
 # Change security settings without restarting the server
 #EASYTLS_VERBOSE=1
-#allow_no_check=1
+#ENABLE_NO_CHECK=1
 #IGNORE_X509_MISMATCH=1
 #IGNORE_HWADDR_MISMATCH=1
 #ENFORCE_UNIQUE_TLSKEY=1
