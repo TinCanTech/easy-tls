@@ -1,3 +1,5 @@
+# For use with Easy-TLS 2.5+ and OpenSSL or LibreSSL
+
 #
 # OpenSSL example configuration file.
 # This is mostly being used for generation of certificate requests.

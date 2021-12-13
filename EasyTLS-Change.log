@@ -1,8 +1,11 @@
 https://github.com/TinCanTech/easy-tls
   Change log:
 
-Version 2.6
-* Q4 2021
+Version 2.7.0
+* TBD
+
+Version 2.6.0
+* 2021-12-13
   Introduce easytls-tctip.lib (Optional library)
     Commit f85e95e4bdd4a6d74bb180a8859206e1452f5aa1
       Shared IPv4/6 address functions
