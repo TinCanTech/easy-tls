@@ -867,7 +867,7 @@ do
 	;;
 	-c|--crypt-v2-required)
 		empty_ok=1
-		crypt_v2_required=1
+		ENFORCE_CRYPT_V2=1
 	;;
 	-k|--key-hwaddr-required)
 		empty_ok=1
@@ -1019,7 +1019,7 @@ then
 elif [ $no_uv_tlskey_serial ]
 then
 	# Require crypt-v2
-	[ $crypt_v2_required ] && {
+	[ $ENFORCE_CRYPT_V2 ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
@@ -1072,7 +1072,7 @@ case $ENABLE_NO_CHECK in
 			failure_msg="TLS Auth/Crypt no pushed hwaddr"
 			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 			}
-		[ $crypt_v2_required ] && {
+		[ $ENFORCE_CRYPT_V2 ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
