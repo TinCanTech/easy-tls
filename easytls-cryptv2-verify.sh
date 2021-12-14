@@ -50,7 +50,7 @@ help_text ()
   -z|--no-ca             Run in No CA mode. Still requires --ca=<DIR>
   -g|--custom-group=<GROUP>
                          Verify the client metadata against a custom group.
-  -n|--no-hash           Do not verify metadata hash (TLS-key serial number).
+  -s|--serial-hash       Verify metadata hash (TLS-key serial number).
   -x|--max-tlskey-age=<DAYS>
                          TLS Crypt V2 Key allowable age in days (default: 1825).
                          To disable age check use 0
@@ -121,6 +121,7 @@ help_text ()
   71  - USER ERROR Disallow connection, missing metadata.lib
 
   77  - BUG Disallow connection, failed to sources vars file
+  78  - USER ERROR Disallow connection, missing vars file
   89  - BUG Disallow connection, failed to create client_md_file
   101 - BUG Disallow connection, stale metadata file.
   112 - BUG Disallow connection, invalid date
@@ -658,6 +659,7 @@ init ()
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID
+	unset -v LOAD_VARS VARS_FILE
 
 	# metadata file
 	# shellcheck disable=SC2154
@@ -880,15 +882,16 @@ do
 		help_text
 	;;
 	-V|--version)
-			easytls_version
-			exit 9
+		easytls_version
+		exit 9
 	;;
 	-v|--verbose)
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
 	-l)
-		vars_file="${val}"
+		LOAD_VARS=1
+		VARS_FILE="${val}"
 	;;
 	-c|--ca)
 		CA_DIR="${val}"
@@ -906,9 +909,9 @@ do
 			LOCAL_CUSTOM_G="${val} ${LOCAL_CUSTOM_G}"
 		fi
 	;;
-	-n|--no-hash)
+	-s|--serial-hash)
 		empty_ok=1
-		unset -v VERIFY_hash
+		ENABLE_TLSKEY_HASH=1
 	;;
 	-x|--max-tlskey-age)
 		TLSKEY_MAX_AGE="${val}"
@@ -974,13 +977,13 @@ done
 warn_die
 
 # Source vars file
-if [ -f "${vars_file}" ]
+if [ $LOAD_VARS ]
 then
+	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
 	# shellcheck source=./easytls-cryptv2-verify.vars-example
-	. "${vars_file}" || die "source failed: ${vars_file}" 77
+	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
 	update_status "vars loaded"
-else
-	update_status "No vars loaded"
+	unset -v LOAD_VARS VARS_FILE
 fi
 
 # Dependancies
@@ -1076,9 +1079,7 @@ deps
 			fail_and_exit "TLSKEY_SERIAL_HASH" 11
 			}
 
-		update_status "tlskey-serial verified OK"
-	else
-		update_status "tlskey-serial verification disabled"
+		update_status "tlskey-hash verified OK"
 	fi
 
 # tlskey expired
@@ -1108,7 +1109,6 @@ deps
 				fail_and_exit "TLSKEY_EXPIRED" 4
 			fi
 
-			# Success message
 			update_status "Key age ${tlskey_age_day} days OK"
 		;;
 		esac
