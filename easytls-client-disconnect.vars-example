@@ -1,16 +1,23 @@
-# Change security settings without restarting the server
+# Change settings without restarting the server
+# easytls-client-disconnect.vars-example
+
 #EASYTLS_VERBOSE=1
 
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
-#FATAL_CONN_TRAC=1
 #ENABLE_CONN_TRAC_STATS=1
-#ENABLE_STACK=1
-#EASYTLS_STALE_SEC=240
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1
 #ENABLE_STALE_LOG=1
+
+# One of these directories MUST exist
+#EASYTLS_tmp_dir=/tmp
+#EASYTLS_tmp_dir=/Windows/Temp
+
+# be careful..
+#EASYTLS_STALE_SEC=240
+#FATAL_CONN_TRAC=1
 
 # Enable kill server mode
 #ENABLE_KILL_PPID=1

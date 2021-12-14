@@ -552,7 +552,7 @@ stack_down ()
 	i=0
 	s=''
 
-	# tfile exists or the client pushed an incorrect UV_TLSKEY_SERIAL
+	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
 	[ -f "${fixed_md_file}" ] || return 0
 
 	# No Stack DOWN
@@ -706,11 +706,9 @@ init ()
 	# Fail by design
 	absolute_fail=1
 
-	# Enable stacking by default
-	ENABLE_STACK=1
-
 	# Defaults
 	EASYTLS_srv_pid=$PPID
+	ENABLE_STACK=1
 	unset -v LOAD_VARS VARS_FILE
 
 	# Log message

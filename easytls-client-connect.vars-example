@@ -1,4 +1,6 @@
-# Change security settings without restarting the server
+# Change settings without restarting the server
+# easytls-client-connect.vars-example
+
 #EASYTLS_VERBOSE=1
 #ENABLE_NO_CHECK=1
 #IGNORE_X509_MISMATCH=1
@@ -11,14 +13,19 @@
 #PEER_IP_MATCH=1
 #EASYTLS_DYN_OPTS_FILE=/etc/openvpn/server/easytls-dyn-opts
 
+# One of these directories MUST exist
+#EASYTLS_tmp_dir=/tmp
+#EASYTLS_tmp_dir=/Windows/Temp
+
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
+#ENABLE_CONN_TRAC_STATS=1
+
+# Be careful ..
 #FATAL_CONN_TRAC=1
 #FATAL_CONN_TRAC_2=1
-#ENABLE_CONN_TRAC_STATS=1
 #POOL_EXHAUST_FATAL=1
 #POOL_EXHAUST_KILL_CLIENT=1
-#ENABLE_STACK=1
 
 # Enable tlskey-status tracking
 #EASYTLS_TLSKEY_STATUS=1

@@ -1,4 +1,5 @@
 # Change settings without restarting the server
+# easytls-cryptv2-verify.vars-example
 
 #EASYTLS_VERBOSE=1
 
