@@ -922,7 +922,7 @@ config_use ()
 			test.bool) : ;;
 			auto.check)
 				case "${cfg_val}" in
-					off)	set_var auto_check_disabled 1 ;;
+					off)	set_var AUTO_CHECK_DISABLED 1 ;;
 					on)		: ;;
 					*)
 							error_msg "Config error: Invalid value: ${cfg_val}"
@@ -1399,7 +1399,7 @@ and initialize a fresh TLS PKI here."
 easytls_auto_check ()
 {
 	[ $status_disabled_auto_check ] && return 0
-	[ $auto_check_disabled ] && easytls_verbose "auto-check disabled" && return 0
+	[ $AUTO_CHECK_DISABLED ] && easytls_verbose "auto-check disabled" && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "${EASYTLS_INLINE_INDEX}" ] || return 0
@@ -1461,7 +1461,7 @@ generate_and_validate_file_hash ()
 	target="${1}"
 
 	# hash the file
-	if [ ! $force_hash ] && [ $file_hash_disabled ]
+	if [ ! $force_hash ] && [ $FILE_HASH_DISABLED ]
 	then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
@@ -1522,7 +1522,7 @@ generate_and_validate_data_hash ()
 	target="${1}"
 
 	# hash the data
-	if [ ! $force_hash ] && [ $file_hash_disabled ]
+	if [ ! $force_hash ] && [ $FILE_HASH_DISABLED ]
 	then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
@@ -8256,7 +8256,7 @@ generate_wiscii_hash ()
 		}
 
 	# Fixed Hash - If file hashing is disabled
-	[ $file_hash_disabled ] && {
+	[ $FILE_HASH_DISABLED ] && {
 		counted_wiscii=$fixed_hash
 		return 0
 		}
@@ -8417,7 +8417,7 @@ generate_wiscii_hash ()
 # Save wiscii hash
 save_wiscii_hash ()
 {
-	[ $file_hash_disabled ] && flash_config=1 && easytls_config status 1
+	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
 
 	if [ -f "${EASYTLS_WISCII_HASH}" ]
 	then
@@ -8823,11 +8823,11 @@ main ()
 		;;
 		-n|--no-auto-check)
 			empty_ok=1
-			auto_check_disabled=1
+			AUTO_CHECK_DISABLED=1
 		;;
 		-y|--why-disable-file-hash)
 			empty_ok=1
-			file_hash_disabled=1
+			FILE_HASH_DISABLED=1
 		;;
 		-b|--base-dir)
 			EASYTLS_base_dir="${val}"
