@@ -531,6 +531,7 @@ init ()
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID
+	unset -v LOAD_VARS VARS_FILE
 
 	# Log message
 	status_msg="* EasyTLS-client-disconnect"
@@ -652,7 +653,8 @@ while [ -n "${1}" ]; do
 			exit 9
 	;;
 	-l)
-		vars_file="${val}"
+		LOAD_VARS=1
+		VARS_FILE="${val}"
 	;;
 	-v|--verbose)
 		empty_ok=1
@@ -693,12 +695,13 @@ done
 warn_die
 
 # Source vars file
-if [ -f "${vars_file}" ]; then
+if [ $LOAD_VARS ]
+then
+	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
 	# shellcheck source=./easytls-client-disconnect.vars-example
-	. "${vars_file}" || die "source failed: ${vars_file}" 77
+	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
 	update_status "vars loaded"
-else
-	update_status "No vars loaded"
+	unset -v LOAD_VARS VARS_FILE
 fi
 
 # Dependencies
