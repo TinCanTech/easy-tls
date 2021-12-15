@@ -212,7 +212,8 @@ for cmd in "init no-ca" "cf cg easytls-unit-test" \
 			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
 			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
 			"-k=hw rmd c06 serial" "status" \
-			"bc2gs sg01" "bc2gc sg01 cg01" "bc2gc sg01 cg02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}"
+			"bc2gc s03 cg01" "bc2gc s03 cg02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+			"ic2gc c06 cg02"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	echo "--------------------"
@@ -359,8 +360,8 @@ do
 		"--custom-group=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
-		"bc2gs sg01" "bc2gc sg01 cg01" "bc2gc sg01 cg02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-		"ic2gs s01 sg01" "ic2gc c01 cg01" "ic2gc c01 cg02"
+		"bc2gc s01 cg01" "bc2gc s01 cg02 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+		"ic2gc c01 cg01" "ic2gc c01 cg02"
 		#"inline-index-rebuild" \
 		## EOL
 	do

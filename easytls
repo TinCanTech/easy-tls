@@ -4048,6 +4048,11 @@ inline_tls_crypt_v2 ()
 # Inline TLS-Crypt-V2 Group Server Key with X509 Certificate
 inline_tls_crypt_v2_group_server ()
 {
+	print "Only Client keys require the Group setting."
+	print "Use your current standard Server key to build"
+	print "a new server inline file."
+	return 1
+
 	[ $# -ge 2 ] || \
 		die "Required option(s): <server_common_name> <server_group_key>"
 
@@ -4891,6 +4896,11 @@ build_tls_crypt_v2_client ()
 # Build group TLS-Crypt-v2 Server
 build_tls_cv2_group_server ()
 {
+	print "Only Client keys require the Group setting."
+	print "Use your current standard Server key to build"
+	print "new Client Group key(s) with."
+	return 1
+
 	[ $# -ge 1 ] || die "Required option(s): <server_group_name>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
