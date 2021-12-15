@@ -4836,6 +4836,7 @@ build_tls_crypt_v2_client ()
 		help_note="To remove a TLS-key file use: easytls remove"
 		die "Client key already exists: ${tlskey_file}"
 		}
+
 	# Capture HW and IP addresses
 	EASYTLS_TLSCV2_HWLIST=""
 	while [ -n "${1}" ]; do
@@ -5046,14 +5047,14 @@ hw_addr_hex_check ()
 		"${EASYTLS_SED}" -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
 
 	[ ${#temp_hw_addr} -eq 12 ] || {
-		easytls_verbose "Hardware Address must be 12 digits exactly!"
-		return 1
+		#easytls_verbose "Hardware Address must be 12 digits exactly!"
+		return 2
 		}
 
 	# Verify hex only
 	[ ${temp_hw_addr} = ${temp_hw_addr%[!0123456789ABCDEF]*} ] || {
-			easytls_verbose "temp_hw_addr - !Hex: ${temp_hw_addr}"
-			return 1
+			#easytls_verbose "temp_hw_addr - !Hex: ${temp_hw_addr}"
+			return 3
 			}
 } # => hw_addr_hex_check ()
 
@@ -7249,7 +7250,7 @@ interactive_selfsign ()
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
 	;;
 	esac
-}
+} # => interactive_selfsign ()
 
 # Set commonName and verify this cert does not exist
 interactive_selfsign_CN ()
@@ -7275,7 +7276,7 @@ interactive_selfsign_CN ()
 		printf "\n%s\n\n" "  A certificate named ${common_name} already exists!"
 		interactive_wait_for_answer
 	done
-}
+} # => interactive_selfsign_CN ()
 
 # Set peer commonName and verify this cert does exist
 interactive_selfsign_peer ()
@@ -7303,7 +7304,7 @@ interactive_selfsign_peer ()
 		printf "\n%s\n\n" "  A certificate named ${common_name} does not exist!"
 		interactive_wait_for_answer
 	done
-}
+} # => interactive_selfsign_peer ()
 
 # Choose self-sign cert/key with/without password
 interactive_selfsign_PW ()
@@ -7339,7 +7340,7 @@ interactive_selfsign_PW ()
 
 	easytls_verbose
 	#easytls_verbose "Config: $opt_disable_list"
-}
+} # => interactive_selfsign_PW ()
 
 # Set commonName and verify cert purpose
 interactive_common_name ()
@@ -7364,7 +7365,7 @@ interactive_common_name ()
 	done
 } # => interactive_common_name ()
 
-# Set commonName and verify cert purpose
+# Set TLS-Crypt-V2 Client Group key name
 interactive_gkey_name ()
 {
 	unset -v opt_gkey_name
@@ -7381,7 +7382,7 @@ interactive_gkey_name ()
 		[ -f "${gkey_file}" ] || break
 		print "This key file already exists: ${gkey_file}"
 	done
-} # => interactive_common_name ()
+} # => interactive_gkey_name ()
 
 # Verify the certificate and purpose
 interactive_verify_cert ()
@@ -7629,30 +7630,63 @@ interactive_hwaddr ()
 {
 	opt_hardware=""
 	ia_question_help='
-* You can lock this key to specific MAC hardware addresses.
+* You can lock this key to specific filter-addresses.
 
-  Hardware addresses can be in the form of:
+  Hardware-addresses can be in the form of:
+  * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
 
-    * 0123456789ab or 01-23-45-67-89-AB or 01:23:45:67:89:AB
+  IP-addresses can be in the form of:
+  * IPv4 CIDR - eg: 1.2.0.0/16, 1.2.3.0/24 or 1.2.3.4/32
+  * IPv6 CIDR - eg: 2000:1:2:3::/64 or 2000:1:2:3:4:5:6:7/128
+  Ranges are in the first forms above. If you want to lock to a specific
+  IP address (Not recommended) then you must use a host mask:
+  * 1.2.3.4/32(v4) or 2000:1:2:3:4:5:6:7/128(v6)
 
-  If you do not require hardware address lock-down then leave this field blank.'
+  This field can contain any mixture of valid filter-addresses,
+  however, each filter-address MUST be entered individually.'
 	ia_question_text='
-  Enter a single MAC hardware address or leave blank to continue:'
+  Enter a single filter-address or leave blank to continue:'
 	while :
 	do
 		interactive_question
+		ia_question_help=''
 		# EASYTLS_TLSCV2_HWLIST is set in verify stage so unset it
 		# EASYTLS_TLSCV2_HWLIST will be recreated by the build routine
 		[ -z "$ia_answer" ] && unset -v EASYTLS_TLSCV2_HWLIST && break
 
 		# Verify valid HWADDR
-		hw_addr_hex_check "$ia_answer" || return 1
+		interactive_filter_address_check "$ia_answer" || return 1
 
 		# Add this HWADDR to the list
 		opt_hardware="$opt_hardware $ia_answer"
+		ia_question_text="Current list: $opt_hardware
+
+  Enter a single filter-address or leave blank to continue:"
 	done
 	cmd_line="${cmd_line} ${opt_hardware}"
 } # => interactive_hwaddr ()
+
+# Check filter-adress
+interactive_filter_address_check ()
+{
+	md_temp_addr="${1}"
+	if hw_addr_hex_check "${md_temp_addr}"; then return 0;
+	elif validate_ip4_data "${md_temp_addr}"; then return 0;
+	elif validate_ip6_data "${md_temp_addr}"; then
+		md_temp_addr="${valid_hextets}/${mask_len}"
+		if expand_ip6_address "${md_temp_addr}"
+		then
+			# Returned: ${full_valid_hextets} ${full_subnet_addr6}"
+			: # OK
+		else
+			die "Invalid Address: ${md_temp_addr}"
+		fi
+		unset valid_octets mask_len md_temp_addr
+		EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
+	else
+		die "Invalid Address: ${md_temp_addr}"
+	fi
+} # => interactive_filter_address_check ()
 
 # Get Full path
 get_full_path ()
@@ -7694,7 +7728,8 @@ get_full_path ()
 		fi
 	fi
 	"${EASYTLS_PRINTF}" "%s" "${part_path}"
-}
+} # => get_full_path ()
+
 # Set CA path
 interactive_ca_path ()
 {
