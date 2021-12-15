@@ -87,20 +87,21 @@ Use the 'help' command above to get full usage details.
          |
   bta    | build-tls-auth
   btc    | build-tls-crypt
-  bc2s   | build-tls-crypt-v2-server <server_filename_base>
+  bc2s   | build-tls-crypt-v2-server <server_common_name>
   bc2c   | build-tls-crypt-v2-client
-         |     <server_filename_base> <client_filename_base> <HW-ADDR> <HW-ADDR>
+         |     <server_common_name> <client_common_name> <HW-ADDR> <IP-ADDR>
          |
-  bc2gs  | build-tls-crypt-v2-group-server <server_group_name>
-  bc2gc  | build-tls-crypt-v2-group-client
-         |     <server_group_name> <client_group_name>
-         |
-  rk     | remove-tlskey <client_filename_base>
-  sid    | save-id
-  s      | status [ cmd-opts ]
   ita    | inline-tls-auth <filename_base> <key_direction> [ cmd-opts ]
   itc    | inline-tls-crypt <filename_base> [ cmd-opts ]
   ic2    | inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
+         |
+  bc2gc  | build-tls-crypt-v2-group-client
+         |     <server_common_name> <client_group_name> <HW-ADDR> <IP-ADDR>
+  ic2gc  | inline-tls-crypt-v2-group-client
+         |     <client_common_name> <client_group_name> [ cmd-opts ]
+         |
+  s      | status [ cmd-opts ]
+  rk     | remove-tlskey <client_filename_base>
   ri     | remove-inline <filename_base>
   rm     | remove-metadata <filename_base> pattern
   is     | inline-show <filename_base>
@@ -110,6 +111,7 @@ Use the 'help' command above to get full usage details.
   d      | disable <filename_base>
   e      | enable <filename_base>
          | disabled-list-rehash
+  sid    | save-id
   ver    | version
 
 Easy-TLS also has a useful Howto and wiki with expanded help and examples:
@@ -232,6 +234,18 @@ cmd_help()
   inline-tls-crypt-v2 <filename_base> [ cmd-opts ]
       Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
       for VPN node <filename_base> using the Easy-TLS TLS crypt v2 file"
+			opts="
+        no-key  - do not require an x509 key (default: key is required)
+        add-dh  - inline Diffie-Hellman parameters file (Server only)
+                  Default file is easyrsa3/pki/dh.pem
+                  To specify an alternative file use the --dh option
+        no-md   - Do not add public metadata details to inline file
+        add-hw  - Include hardware address in metadata details" ;;
+		ic2gc|itv2gc|itcv2gc|inline-tls-crypt-v2-group-client) text="
+  inline-tls-crypt-v2-group-client
+    <client_common_name> <client_group_name> [ cmd-opts ]
+      Create a complete OpenVPN node package from Easy-RSA and Easy-TLS files
+      for VPN node <client_common_name> using the Easy-TLS GROUP key file"
 			opts="
         no-key  - do not require an x509 key (default: key is required)
         add-dh  - inline Diffie-Hellman parameters file (Server only)
@@ -4046,7 +4060,7 @@ inline_tls_crypt_v2 ()
 } # => inline_tls_crypt_v2 ()
 
 # Inline TLS-Crypt-V2 Group Server Key with X509 Certificate
-inline_tls_crypt_v2_group_server ()
+inline_tls_cv2_group_server ()
 {
 	print "Only Client keys require the Group setting."
 	print "Use your current standard Server key to build"
@@ -4214,7 +4228,7 @@ inline_tls_crypt_v2_group_server ()
 } # => inline_tls_crypt_v2_group_server ()
 
 # Inline TLS-Crypt-V2 Group Client Key with X509 Certificate
-inline_tls_crypt_v2_group_client ()
+inline_tls_cv2_group_client ()
 {
 	[ $# -ge 2 ] || \
 		die "Required option(s): <client_common_name> <client_group_key>"
@@ -6052,11 +6066,12 @@ interactive_build ()
   [2] TLS-Crypt-V1 key               - Basic TLS-crypt-v1 pre-shared key
   [3] TLS-Crypt-V2 key for Server    - Advanced TLS-Crypt-v2 Server key
   [4] TLS-Crypt-V2 key for Client    - Advanced TLS-Crypt-v2 Client key
+  [5] TLS-Crypt-V2 GROUP Client key  - Advanced TLS-Crypt-v2 GROUP Client key
 
   Select the type of TLS-key to build:'
 	interactive_question
 
-	case $ia_answer in
+	case ${ia_answer} in
 	1)	# Build TLS Auth
 		"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
@@ -6160,15 +6175,24 @@ interactive_build ()
 
 		return 0
 	;;
-	4)	# Build TLS Crypt v2 Client
-		"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 key for Client'
+	4|5)	# Build TLS Crypt v2 Client
+		case ${ia_answer} in
+		4)
+			"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 key for Client'
+			unset -v group_key
+		;;
+		5)
+			"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 GROUP key for Client'
+			group_key=1
+		;;
+		esac
 
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
 
 		# Set Server name
 		opt_server_name=""
 		cert_type='Server'
-		ia_extra_help='* First you MUST enter your *Server* commonName.'
+		ia_extra_help='* First, you MUST enter your *Server* commonName.'
 		interactive_common_name
 		unset -v ia_extra_help
 		opt_server_name="$common_name"
@@ -6177,10 +6201,19 @@ interactive_build ()
 		# Set Client name
 		opt_client_name=""
 		cert_type='Client'
-		ia_extra_help='* Next you MUST enter your *Client* commonName.'
-		interactive_common_name
+		if [ $group_key ]
+		then
+			ia_extra_help='* Enter a unique name for your GROUP key. (eg. family)'
+			interactive_gkey_name
+			opt_client_name="$opt_gkey_name"
+			easytls_cmd='build_tls_cv2_group_client'
+		else
+			ia_extra_help='* Now, enter your *Client* commonName.'
+			interactive_common_name
+			opt_client_name="$common_name"
+			easytls_cmd='build_tls_crypt_v2_client'
+		fi
 		unset -v ia_extra_help
-		opt_client_name="$common_name"
 
 		# Either use default:EASYTLS or configured Custom-Group
 		# If the user selects a new Custom-Group here then this
@@ -6204,7 +6237,7 @@ interactive_build ()
 		require_batch=1
 
 		# Build key
-		build_tls_crypt_v2_client "$opt_server_name" "$opt_client_name" \
+		${easytls_cmd} "$opt_server_name" "$opt_client_name" \
 			${opt_hardware} || {
 				error_msg '**Build TLS-CryptV2 Client key failed'
 				return 1
@@ -6248,6 +6281,17 @@ interactive_build ()
 		# Invoke inline
 		if [ $build_and_inline ]
 		then
+			if [ $group_key ]
+			then
+				ia_extra_help='* Now, enter your *Client* commonName.'
+				interactive_common_name
+				opt_client_name="$common_name"
+				unset -v ia_extra_help
+				easytls_cmd='inline_tls_cv2_group_client'
+			else
+				easytls_cmd='inline_tls_crypt_v2'
+			fi
+
 			# Set opt_no_key
 			interactive_opt_no_key
 
@@ -6261,14 +6305,13 @@ interactive_build ()
 			interactive_show_cmd
 
 			# Create inline
-			inline_tls_crypt_v2 "$opt_client_name" \
+			 ${easytls_cmd} "$opt_client_name" "$opt_gkey_name" \
 				${opt_no_key} ${opt_no_md} ${opt_add_hw} || {
 					error_msg '**Create inline-file failed'
 					return 1
 					}
 		fi
-
-		return 0
+		#return 0
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
@@ -6294,6 +6337,7 @@ interactive_inline ()
   [4] Inline-file with TLS-Crypt-V1 key for Client
   [5] Inline-file with TLS-Crypt-V2 Server key
   [6] Inline-file with TLS-Crypt-V2 Client key
+  [7] Inline-file with TLS-Crypt-V2 Client GROUP key
 
   Select the type of Inline-file to build:'
 	interactive_question
@@ -6416,14 +6460,36 @@ interactive_inline ()
 				return 1
 				}
 	;;
-	6)	# Inline TLS Crypt v2 Client
-		"${EASYTLS_PRINTF}" '\n%s\n' '* Create TLS-Crypt-v2 Client inline-file'
+	6|7)	# Inline TLS Crypt v2 Client
+		case ${ia_answer} in
+		6)
+			"$EASYTLS_PRINTF" '\n%s\n' \
+				'* Create TLS-Crypt-v2 Client inline-file'
+			unset -v group_key
+		;;
+		7)
+			"$EASYTLS_PRINTF" '\n%s\n' \
+				'* Create TLS-Crypt-v2 Client GROUP key inline-file'
+			group_key=1
+		;;
+		esac
+		"${EASYTLS_PRINTF}" '\n%s\n' ''
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Client"
 
 		# Set commonName
+		ia_extra_help='* First, enter your *Client* commonName.'
 		interactive_common_name
-		opt_common_name="${common_name}"
+		opt_common_name="$common_name"
+		easytls_cmd='inline_tls_crypt_v2'
+		if [ $group_key ]
+		then
+			ia_extra_help='* Enter the unique name of your GROUP key. (eg. family)'
+			interactive_gkey_name
+			#opt_client_name="$opt_gkey_name"
+			easytls_cmd='inline_tls_cv2_group_client'
+		fi
+		unset -v ia_extra_help
 
 		# Verify purpose
 		interactive_verify_cert
@@ -6447,7 +6513,7 @@ interactive_inline ()
 		interactive_show_cmd
 
 		# Build .inline
-		inline_tls_crypt_v2 "${opt_common_name}" \
+		${easytls_cmd} "${opt_common_name}" "${opt_gkey_name}" \
 			${opt_no_key} ${opt_no_md} ${opt_add_hw} || {
 				error_msg '**Create inline-file failed'
 				return 1
@@ -7295,6 +7361,25 @@ interactive_common_name ()
 			cmd_line="${cmd_line} ${common_name}"
 			break
 			}
+	done
+} # => interactive_common_name ()
+
+# Set commonName and verify cert purpose
+interactive_gkey_name ()
+{
+	unset -v opt_gkey_name
+	ia_question_help='
+* This field requires a unique name for this TLS-Crypt-V2 GROUP key.'
+	ia_question_text="
+  Enter the unique name for your GROUP key:"
+
+	while :
+	do
+		interactive_question
+		opt_gkey_name="${ia_answer}"
+		gkey_file="${EASYTLS_PKI}/${opt_gkey_name}.key"
+		[ -f "${gkey_file}" ] || break
+		print "This key file already exists: ${gkey_file}"
 	done
 } # => interactive_common_name ()
 
@@ -9067,7 +9152,7 @@ main ()
 				die "Error: build_tls_crypt_v2_group_server"
 		;;
 		ic2gs|itc2gs|itcv2gs|inline-tls-crypt-v2-group-server)
-			inline_tls_crypt_v2_group_server "$@" || \
+			inline_tls_cv2_group_server "$@" || \
 				die "Error: inline_tls_crypt_v2_group_server"
 		;;
 		# GROUP Client
@@ -9076,7 +9161,7 @@ main ()
 				die "Error: build_tls_crypt_v2_group_client"
 		;;
 		ic2gc|itc2gc|itcv2gc|inline-tls-crypt-v2-group-client)
-			inline_tls_crypt_v2_group_client "$@" || \
+			inline_tls_cv2_group_client "$@" || \
 				die "Error: inline_tls_crypt_v2_group_server"
 		;;
 		is|inline-show)
