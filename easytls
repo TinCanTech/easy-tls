@@ -453,6 +453,8 @@ Easy-TLS abbreviations:
   inline-tls-auth                  - ita
   inline-tls-crypt                 - itc
   inline-tls-crypt-v2              - ic2 | itc2 | itv2 | itcv2
+  inline-tls-crypt-v2-group-client - ic2gc | itc2gc | itcv2gc
+
   remove-inline                    - ri | ril
   remove-metadata                  - rm | rmd
   inline-show                      - is
