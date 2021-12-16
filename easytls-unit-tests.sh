@@ -257,9 +257,9 @@ do
 	# github Windows runner takes too long, so just test once
 	if [ $loops -eq 2 ] && [ $EASYTLS_FOR_WINDOWS ]
 	then
-		print "Total verified expected errors = 54"
+		print "Total verified expected errors = 57"
 		print "total_expected_errors = $total_expected_errors"
-		[ $total_expected_errors -eq 54 ] || {
+		[ $total_expected_errors -eq 57 ] || {
 			end_time="$(date +%s)"
 			run_mins="$(( (end_time - start_time) / 60 ))"
 			run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
@@ -389,6 +389,17 @@ do
 		fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 
 	done
+
+	# Test for bad filter-addresses
+	print "============================================================"
+	echo "==> $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken o0:11:22:33:44:55"
+	"$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken o0:11:22:33:44:55 || expected_errors $?
+	print "============================================================"
+	echo "==> $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken 1.2.3.4/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 1.2.3.4/24 || expected_errors $?
+	print "============================================================"
+	echo "==> $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken 2000::2:1/64"
+	"$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 2000::2:1/64 || expected_errors $?
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
@@ -821,12 +832,12 @@ echo "Clean up"
 clean_up
 
 echo "============================================================"
-echo "subtot_1 $subtot_1 (Expected 54 Verified)"
-echo "subtot_2 $subtot_2 (Expected 54 Verified)"
-echo "subtot_3 $subtot_3 (Expected 54 Verified)"
+echo "subtot_1 $subtot_1 (Expected 57 Verified)"
+echo "subtot_2 $subtot_2 (Expected 57 Verified)"
+echo "subtot_3 $subtot_3 (Expected 57 Verified)"
 echo "Last part cross-polinated: $subtot_expected_errors (Expected 77 Verified)"
 
-echo "total_expected_errors=$total_expected_errors (Expected 239 Verified)"
+echo "total_expected_errors=$total_expected_errors (Expected 248 Verified)"
 echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 echo "============================================================"
 
@@ -842,7 +853,7 @@ run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
 print "Total Duration: $run_mins minutes $run_secs seconds"
 
 echo
-[ $total_expected_errors -eq 239 ] || {
+[ $total_expected_errors -eq 248 ] || {
 	echo "Expected ERROR count incorrect!"
 	exit 9
 	}
