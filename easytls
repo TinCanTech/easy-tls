@@ -1,7 +1,5 @@
 #!/bin/sh
 
-set -e
-
 # Copyright - negotiable
 copyright ()
 {
@@ -4627,13 +4625,16 @@ inline_share_fingerprint ()
 	"${EASYTLS_MV}" -f "${srv_inline}-temp" "${srv_inline}"
 
 	# Add node to inline-index
-	[ $do_not_index_server_inline_file ] || {
+	if [ $do_not_index_server_inline_file ]
+	then
+		: # OK
+	else
 		TLSKEY_SUBNAME='NOSUBKEY'
 		tlskey_serial=${cv2_Srv_Serial}
 		name="${srv_name}"
 		inline_file="${srv_inline}"
 		inline_index_update add || die "Failed to update inline-index"
-		}
+	fi
 } # => inline_share_fingerprint ()
 
 
@@ -8331,14 +8332,14 @@ interactive_metadata_pattern ()
 		opt_pattern="${ia_answer} ${opt_pattern}"
 	done
 	cmd_line="${cmd_line} ${opt_pattern}"
-}
+} # => interactive_metadata_pattern ()
 
 # Automatically detect no-ca mode
 automatic_no_ca ()
 {
 	opt_no_ca='-z'
 	[ $EASYTLS_NO_CA ] || unset -v opt_no_ca
-}
+} # => automatic_no_ca ()
 
 
 
