@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # Copyright - negotiable
 copyright ()
 {
@@ -654,7 +656,6 @@ verify_pki_init () {
 				error_msg "$(cmd_help init-tls)"
 				exit 1
 				}
-
 	done
 	unset -v help_note
 } # => verify_pki_init ()
@@ -849,13 +850,11 @@ easytls_config ()
 				}
 
 			confirm "Change your Custom-Group: " "yes" \
-"WARNING:
+"NOTICE:
 
-* Each TLS-Crypt-V2 Server key can only support one Custom-Group.
-  If you have already created Client keys for your Server and you
-  change the Custom-Group then not all of your clients will be
-  allowed to connect, unless you disable the Custom-Group check
-  for the easytls-crypt-v2-verify.sh script."
+* If you change your custom group here then you will need to use
+  ENABLE_MULTI_CUSTOM_G=1 in your easytls-cryptv2-verify.vars file.
+  And also insert all the custom groups into LOCAL_CUSTOM_G variable."
 		;;
 		custom.openvpn)
 			if [ -n "${cfg_val}" ]
@@ -1167,7 +1166,7 @@ config_version ()
 		save_wiscii_hash || return 1 # die "Error hashing config."
 	fi
 	unset -v flash_config save_me cfg_opt cfg_val
-}
+} # => config_version ()
 
 # Verify Openvpn is available
 verify_openvpn ()
@@ -1216,7 +1215,7 @@ verify_openssl ()
 		1.1) : ;;
 		*) die "Unsupported OpenSSL version: ${openssl_version}" ;;
 	esac
-}
+} # => verify_openssl ()
 
 # Verify TLS has been initialised
 verify_tls_init ()
@@ -1643,7 +1642,7 @@ validate_hash ()
 		}
 
 	# Test for empty input hash
-	[ ${test_hash} = ${forbidden_hash} ] && {
+	[ ${test_hash} != ${forbidden_hash} ] || {
 		error_msg "validate_hash - forbidden_hash"
 		unset -v test_hash test_length
 		return 1
@@ -1807,7 +1806,7 @@ generate_valid_date_now ()
 	# Set return variable
 	eval ${1}="${g_d}"
 	unset -v g_d
-}
+} # => generate_valid_date_now ()
 
 # Generate and validate a date from epoc seconds
 easytls_sec_to_date ()
@@ -1898,7 +1897,7 @@ noca_status ()
 		error_msg "status_easytls_tlskeys - noca_status"
 		return 1
 		}
-}
+} # => noca_status ()
 
 
 # Show Easy-TLS inlines and Easy-RSA certificates
@@ -2924,7 +2923,7 @@ remove_metadata ()
 	inline_index_update add || die "Failed to update inline-index"
 	[ $metadata_updated ] && notice "inline file updated"
 	easytls_verbose
-}
+} # => remove_metadata ()
 
 # Rebuild inline index
 inline_index_rebuild ()
