@@ -361,7 +361,7 @@ do
 		"cert-expire" \
 		"inline-expire" \
 		"bc2gc s01 family" "bc2gc s01 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends"
+		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" "rehash"
 		#"inline-index-rebuild" \
 		## EOL
 	do
@@ -371,6 +371,10 @@ do
 		#	EASYTLS_OPTS="--verbose --batch --no-auto-check" ### "-y"
 		[ $loops -eq 3 ] && [ "$test_cmd" = "init-tls" ] && {
 			test_cmd="$test_cmd SHA1"
+		#	EASYTLS_OPTS="--verbose --batch"
+			}
+		[ $loops -eq 3 ] && [ "$test_cmd" = "rehash" ] && {
+			test_cmd="$test_cmd SHA1 40"
 		#	EASYTLS_OPTS="--verbose --batch"
 			}
 		print "============================================================"
@@ -386,7 +390,7 @@ do
 		#fi
 
 		"$EASYTLS_CMD" $EASYTLS_OPTS $test_cmd || \
-		fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
+			fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 
 	done
 

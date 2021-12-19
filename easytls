@@ -34,11 +34,10 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Set the Easy-TLS version
 easytls_version ()
 {
-	easytls_verbose
+	config_use || :
 	print "Easy-TLS ${EASYTLS_VERSION}"
 	print "OpenVPN ${ovpn_ver_number}"
 	print "${openssl_full_version}"
-	easytls_verbose
 } # => easytls_version ()
 
 
@@ -1456,6 +1455,19 @@ easytls_auto_check ()
 
 	unset -v auto_check
 } # => easytls_auto_check ()
+
+# Rehash file hashes
+easytls_rehash ()
+{
+	EASYTLS_HASH_ALGO="${1:-SHA256}"
+	fixed_length="${2:-64}"
+	forbidden_hash="$(openssl_generate_empty_hash)"
+	forbidden_hash="${forbidden_hash%% *}"
+	flash_config=1 && easytls_config status 2
+	config_save_hash || die "config_save_hash - easytls_rehash"
+	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
+	save_wiscii_hash || die "save_wiscii_hash - easytls_rehash"
+} # => easytls_rehash ()
 
 # Generate file hash - Return $generated_valid_hash
 generate_and_validate_file_hash ()
@@ -5083,7 +5095,7 @@ hw_addr_hex_check ()
 		}
 
 	# Verify hex only
-	[ ${temp_hw_addr} = ${temp_hw_addr%[!0123456789ABCDEF]*} ] || {
+	[ "${temp_hw_addr}" = "${temp_hw_addr%[!0123456789ABCDEF]*}" ] || {
 			#easytls_verbose "temp_hw_addr - !Hex: ${temp_hw_addr}"
 			return 3
 			}
@@ -8601,7 +8613,10 @@ save_wiscii_hash ()
 	# TLS not initialised
 	[ "${counted_wiscii}" = '00' ] && return 0
 	# No files changed
-	[ "${counted_wiscii}" = "$bottled_wiscii" ] && return 0
+	[ "${counted_wiscii}" = "$bottled_wiscii" ] && {
+		easytls_verbose "save_master_hash Unchanged"
+		return 0
+		}
 
 	# Test it here Only!
 	validate_hash "${counted_wiscii}" || {
@@ -9136,6 +9151,13 @@ main ()
 		exit
 	;;
 	*)
+		# Rehash before everything
+		case "${cmd}" in
+		rehash)
+			easytls_rehash "$@" || die "easytls_rehash"
+			exit
+		esac
+
 		# Load config options - Does not change command line options
 		config_use || die "config_use - Error: $?"
 
@@ -9145,7 +9167,7 @@ main ()
 			error_msg "See help: ./easytls help init-tls"
 			error_msg "$(cmd_help init-tls)"
 			exit 1
-				}
+			}
 		[ $EASYTLS_NO_CA ] || verify_pki_init
 
 		# Verify me!
