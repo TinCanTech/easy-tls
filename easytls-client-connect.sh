@@ -154,7 +154,7 @@ die ()
 		fi
 	fi
 	exit "${2:-255}"
-}
+} # => die ()
 
 # failure not an error
 fail_and_exit ()
@@ -186,7 +186,7 @@ delete_metadata_files ()
 	# stack_down takes care of "${fixed_md_file}"
 
 	update_status "temp-files deleted"
-}
+} # => delete_metadata_files ()
 
 # Log fatal warnings
 warn_die ()
@@ -198,20 +198,20 @@ ${1}"
 	else
 		[ -z "${fatal_msg}" ] || die "${fatal_msg}" 21
 	fi
-}
+} # => warn_die ()
 
 # Update status message
 update_status ()
 {
 	status_msg="${status_msg} => ${*}"
-}
+} # => update_status ()
 
 # Remove colons ':' and up-case
 format_number ()
 {
 	"${EASYTLS_PRINTF}" '%s' "${1}" | \
 		"${EASYTLS_SED}" -e 's/://g' -e 'y/abcdef/ABCDEF/'
-}
+} # => format_number ()
 
 #=# 9273398a-5284-4c1f-aec5-d597ceb1d085
 
@@ -464,6 +464,9 @@ update_conntrac ()
 	fi
 
 	# shellcheck disable=SC2154
+	[ -z "${peer_id}" ] || conntrac_record="${conntrac_record}==${peer_id}"
+
+	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
@@ -554,7 +557,7 @@ stack_down ()
 
 	# Lock
 	acquire_lock "${easytls_lock_file}-stack" 6 || \
-		die "cc-stack:acquire_lock-FAIL" 99
+			die "cc-stack:acquire_lock-FAIL" 99
 	update_status "stack-lock-acquired"
 
 	unset -v stack_err
@@ -614,7 +617,7 @@ stack_down ()
 	update_status "stack-lock-released"
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
-}
+} # => stack_down ()
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
@@ -627,9 +630,9 @@ tlskey_status ()
 			"${UV_TLSKEY_SERIAL:-TLSAC}" "CONN:${1}" \
 			"${common_name} ${UV_REAL_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
-}
+} # => tlskey_status ()
 
-# Retry pause
+# Retry pause to acquire lock
 retry_pause ()
 {
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -638,74 +641,72 @@ retry_pause ()
 	else
 		sleep 1
 	fi
-}
+} # => retry_pause ()
 
-# Simple lock file - Move this to a lib
+# Simple lock file
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
 	[ ${2} -gt 0 ] || return 1
-	(
-		lock_attempt=5
-		set -o noclobber
-		while [ ${lock_attempt} -gt 0 ]; do
-			[ ${lock_attempt} -eq 5 ] || retry_pause
-			lock_attempt=$(( lock_attempt - 1 ))
-			case ${2} in
-				1)	exec 1> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
-					;;
-				2)	exec 2> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
-					;;
-				3)	exec 3> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
-					;;
-				4)	exec 4> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
-					;;
-				5)	exec 5> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
-					;;
-				6)	exec 6> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
-					;;
-				7)	exec 7> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
-					;;
-				8)	exec 8> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
-					;;
-				9)	exec 9> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
-					;;
-				*) die "Invalid file descriptor" 191 ;;
-			esac
-			lock_acquired=1
-			break
-		done
-		set +o noclobber
-		[ $lock_acquired ] || return 1
-	) || return 1
+	lock_attempt=9
+	set -o noclobber
+	while [ ${lock_attempt} -gt 0 ]; do
+		[ ${lock_attempt} -eq 9 ] || retry_pause
+		lock_attempt=$(( lock_attempt - 1 ))
+		case ${2} in
+		1)	exec 1> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
+		;;
+		2)	exec 2> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
+		;;
+		3)	exec 3> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
+		;;
+		4)	exec 4> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
+		;;
+		5)	exec 5> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
+		;;
+		6)	exec 6> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
+		;;
+		7)	exec 7> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
+		;;
+		8)	exec 8> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
+		;;
+		9)	exec 9> "${1}" || continue
+			"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
+		;;
+		*) die "Invalid file descriptor" 191 ;;
+		esac
+		lock_acquired=1
+		break
+	done
+	set +o noclobber
+	[ $lock_acquired ] || return 1
 } # => acquire_lock ()
 
-# Simple lock file - Move this to a lib
+# Simple lock file
 release_lock ()
 {
 	[ -n "${1}" ] || return 1
 	[ ${2} -gt 0 ] || return 1
-		case ${2} in
-		1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
-		2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
-		3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
-		4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
-		5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
-		6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
-		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
-		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
-		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-		*) die "Invalid file descriptor" 191 ;;
-		esac
+	case ${2} in
+	1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
+	2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
+	3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
+	4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
+	5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
+	6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
+	7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
+	8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
+	9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
+	*) die "Invalid file descriptor" 191 ;;
+	esac
 	"${EASYTLS_RM}" -f "${1}"
 } # => release_lock ()
 
@@ -1005,7 +1006,8 @@ then
 	update_status "fixed_md_file loaded"
 
 	# shellcheck disable=SC2154
-	if [ ${c_md_serial} = ${client_serial} ]
+	if [ ${c_md_serial} = ${client_serial} ] || \
+		[ ${c_md_serial} = '00000000000000000000000000000000' ]
 	then
 		update_status "metadata -> x509 serial match"
 	else
