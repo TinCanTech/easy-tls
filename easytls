@@ -9154,6 +9154,7 @@ main ()
 		# Rehash before everything
 		case "${cmd}" in
 		rehash)
+			unset FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
 			exit
 		esac
