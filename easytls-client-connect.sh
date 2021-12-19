@@ -393,6 +393,7 @@ expand_ip6_address ()
 # This tests that the subnet/mask are "equivalent"
 expand_ip4_address ()
 {
+	validate_ip4_data "$@" || die "$* - validate_ip4_data - expand_ip4_address"
 	# Verify IP matches mask (eg: 1.2.3.0/24 ok, 1.2.3.4/24 bad)
 	temp_a4andm_dec=$(( temp_ip4_addr_dec & temp_ip4_mask_dec ))
 	[ "${temp_a4andm_dec}" -eq "${temp_ip4_addr_dec}" ] && return 0

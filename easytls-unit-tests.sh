@@ -808,19 +808,24 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		fail "Unit test error 72: $TEST_CMD"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS version"
-	"$EASYTLS_CMD" $EASYTLS_OPTS v4ip '1.2.3.0/24' || \
-		fail "Unit test error 71: version"
+	print "$EASYTLS_CMD $EASYTLS_OPTS v4ip 1.2.3.0/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v4ip 1.2.3.0/24 || \
+		fail "Unit test error 71: v4ip 1.2.3.0/24"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS version"
-	"$EASYTLS_CMD" $EASYTLS_OPTS v6ip '2000::1:2:3:4/64' || \
-		fail "Unit test error 71: version"
+	print "$EASYTLS_CMD $EASYTLS_OPTS x4ip 1.2.3.0/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.0/24 || \
+		fail "Unit test error 71: x4ip 1.2.3.0/24"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS version"
-	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip '2000:1:2:3:4::/80' || \
-		fail "Unit test error 71: version"
+	print "$EASYTLS_CMD $EASYTLS_OPTS v6ip 2000::1:2:3:4/64"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v6ip 2000::1:2:3:4/64 || \
+		fail "Unit test error 71: v6ip 2000::1:2:3:4/64"
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS x6ip 2000:1:2:3:4::/80"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3:4::/80 || \
+		fail "Unit test error 71: x6ip 2000:1:2:3:4::/80"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS version"
