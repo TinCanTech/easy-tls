@@ -801,11 +801,11 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	"$EASYTLS_CMD" $EASYTLS_OPTS config || \
 		fail "Unit test error 70: help"
 
-	print "------------------------------------------------------------"
-	TEST_CMD="disabled-list-rehash"
-	print "$EASYTLS_CMD $EASYTLS_OPTS $TEST_CMD"
-	"$EASYTLS_CMD" $EASYTLS_OPTS $TEST_CMD || \
-		fail "Unit test error 72: $TEST_CMD"
+	#print "------------------------------------------------------------"
+	#TEST_CMD="disabled-list-rehash"
+	#print "$EASYTLS_CMD $EASYTLS_OPTS $TEST_CMD"
+	#"$EASYTLS_CMD" $EASYTLS_OPTS $TEST_CMD || \
+	#	fail "Unit test error 72: $TEST_CMD"
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS v4ip 1.2.3.0/24"
