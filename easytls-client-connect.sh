@@ -669,7 +669,7 @@ acquire_lock ()
 release_lock ()
 {
 	[ -d "${1}" ] || return 0
-	"${EASYTLS_RM}" -d "${1}"
+	"${EASYTLS_RM}" -r "${1}"
 } # => release_lock ()
 
 # Initialise
