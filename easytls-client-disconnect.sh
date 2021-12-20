@@ -387,8 +387,8 @@ stack_down ()
 	[ -f "${fixed_md_file}" ] || return 0
 
 	# Lock
-	acquire_lock "${easytls_lock_file}-stack" 6 || \
-		die "cd-stack:acquire_lock-FAIL" 99
+	acquire_lock "${easytls_lock_stub}-stack.d" || \
+		die "acquire_lock:stack FAIL" 99
 	update_status "stack-lock-acquired"
 
 	unset -v stack_err
@@ -423,8 +423,8 @@ stack_down ()
 	fi
 
 	# Unlock
-	release_lock "${easytls_lock_file}-stack" 6 || \
-		die "cd-stack:release_lock" 99
+	release_lock "${easytls_lock_stub}-stack.d" || \
+		die "release_lock:stack FAIL" 99
 	update_status "stack-lock-released"
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
@@ -449,7 +449,7 @@ tlskey_status ()
 	} >> "${EASYTLS_TK_XLOG}"
 } # => tlskey_status ()
 
-# Retry pause to acquire lock
+# Retry pause
 retry_pause ()
 {
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -460,46 +460,17 @@ retry_pause ()
 	fi
 } # => retry_pause ()
 
-# Simple lock file
+# Simple lock dir
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
-	[ ${2} -gt 0 ] || return 1
+	unset lock_acquired
 	lock_attempt=9
 	set -o noclobber
 	while [ ${lock_attempt} -gt 0 ]; do
 		[ ${lock_attempt} -eq 9 ] || retry_pause
 		lock_attempt=$(( lock_attempt - 1 ))
-		case ${2} in
-		1)	exec 1> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
-		;;
-		2)	exec 2> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
-		;;
-		3)	exec 3> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
-		;;
-		4)	exec 4> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
-		;;
-		5)	exec 5> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
-		;;
-		6)	exec 6> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
-		;;
-		7)	exec 7> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
-		;;
-		8)	exec 8> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
-		;;
-		9)	exec 9> "${1}" || continue
-			"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
-		;;
-		*) die "Invalid file descriptor" 191 ;;
-		esac
+		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
 		break
 	done
@@ -507,24 +478,11 @@ acquire_lock ()
 	[ $lock_acquired ] || return 1
 } # => acquire_lock ()
 
-# Simple lock file
+# Release lock
 release_lock ()
 {
-	[ -n "${1}" ] || return 1
-	[ ${2} -gt 0 ] || return 1
-	case ${2} in
-	1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
-	2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
-	3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
-	4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
-	5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
-	6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
-	7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
-	8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
-	9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-	*) die "Invalid file descriptor" 191 ;;
-	esac
-	"${EASYTLS_RM}" -f "${1}"
+	[ -d "${1}" ] || return 0
+	"${EASYTLS_RM}" -d "${1}"
 } # => release_lock ()
 
 # Initialise
@@ -552,6 +510,7 @@ init ()
 	EASYTLS_CAT='cat'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
+	EASYTLS_MKDIR='mkdir'
 	EASYTLS_MV='mv'
 	EASYTLS_SED='sed'
 	EASYTLS_PRINTF='printf'
@@ -573,6 +532,7 @@ init ()
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CAT}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MKDIR}.exe" ] || exit 72
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MV}.exe" ] || exit 71
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
@@ -598,8 +558,8 @@ deps ()
 	# Temp files name stub
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
-	# Lock file
-	easytls_lock_file="${temp_stub}-lock"
+	# Lock dir
+	easytls_lock_stub="${temp_stub}-lock"
 
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"

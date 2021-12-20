@@ -119,6 +119,7 @@ help_text ()
   69  - USER ERROR Disallow connection, missing printf.exe
   70  - USER ERROR Disallow connection, missing rm.exe
   71  - USER ERROR Disallow connection, missing metadata.lib
+  72  - USER ERROR Disallow connection, missing mkdir.exe
 
   77  - BUG Disallow connection, failed to sources vars file
   78  - USER ERROR Disallow connection, missing vars file
@@ -198,9 +199,9 @@ die ()
 fail_and_exit ()
 {
 	# Unlock
-	release_lock "${easytls_lock_file}-stack" 6 || \
+	release_lock "${easytls_lock_stub}-stack.d" || \
 		update_status "v2-stack-fail_and_exit:release_lock-FAIL"
-	release_lock "${easytls_lock_file}-v2" 5 || \
+	release_lock "${easytls_lock_stub}-v2.d" || \
 		update_status "v2-fail_and_exit:release_lock-FAIL"
 
 	delete_metadata_files
@@ -493,75 +494,32 @@ retry_pause ()
 	else
 		sleep 1
 	fi
-}
+} # => retry_pause ()
 
-# Simple lock file - Move this to a lib
+# Simple lock dir
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
-	[ ${2} -gt 0 ] || return 1
-	(
-		lock_attempt=5
-		set -o noclobber
-		while [ ${lock_attempt} -gt 0 ]; do
-			[ ${lock_attempt} -eq 5 ] || retry_pause
-			lock_attempt=$(( lock_attempt - 1 ))
-			case ${2} in
-				1)	exec 1> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&1 || continue
-					;;
-				2)	exec 2> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&2 || continue
-					;;
-				3)	exec 3> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&3 || continue
-					;;
-				4)	exec 4> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&4 || continue
-					;;
-				5)	exec 5> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&5 || continue
-					;;
-				6)	exec 6> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&6 || continue
-					;;
-				7)	exec 7> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&7 || continue
-					;;
-				8)	exec 8> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&8 || continue
-					;;
-				9)	exec 9> "${1}" || continue
-					"${EASYTLS_PRINTF}" "%s" "$$" >&9 || continue
-					;;
-				*) die "Invalid file descriptor" 191 ;;
-			esac
-			lock_acquired=1
-			break
-		done
-		set +o noclobber
-		[ $lock_acquired ] || return 1
-	) || return 1
-}
+	unset lock_acquired
+	lock_attempt=9
+	set -o noclobber
+	while [ ${lock_attempt} -gt 0 ]; do
+		[ ${lock_attempt} -eq 9 ] || retry_pause
+		lock_attempt=$(( lock_attempt - 1 ))
+		"${EASYTLS_MKDIR}" "${1}" || continue
+		lock_acquired=1
+		break
+	done
+	set +o noclobber
+	[ $lock_acquired ] || return 1
+} # => acquire_lock ()
 
+# Release lock
 release_lock ()
 {
-	[ -n "${1}" ] || return 1
-	[ ${2} -gt 0 ] || return 1
-		case ${2} in
-		1) exec 1<&- || return 1; exec 1>&- || return 1 ;;
-		2) exec 2<&- || return 1; exec 2>&- || return 1 ;;
-		3) exec 3<&- || return 1; exec 3>&- || return 1 ;;
-		4) exec 4<&- || return 1; exec 4>&- || return 1 ;;
-		5) exec 5<&- || return 1; exec 5>&- || return 1 ;;
-		6) exec 6<&- || return 1; exec 6>&- || return 1 ;;
-		7) exec 7<&- || return 1; exec 7>&- || return 1 ;;
-		8) exec 8<&- || return 1; exec 8>&- || return 1 ;;
-		9) exec 9<&- || return 1; exec 9>&- || return 1 ;;
-		*) die "Invalid file descriptor" 191 ;;
-		esac
-	"${EASYTLS_RM}" -f "${1}"
-}
+	[ -d "${1}" ] || return 0
+	"${EASYTLS_RM}" -d "${1}"
+} # => release_lock ()
 
 # Write metadata file
 write_metadata_file ()
@@ -570,8 +528,8 @@ write_metadata_file ()
 	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
 
 	# Lock
-	acquire_lock "${easytls_lock_file}-stack" 6 || \
-		die "v2-stack:acquire_lock-FAIL" 99
+	acquire_lock "${easytls_lock_stub}-stack.d" || \
+		die "acquire_lock:stack FAIL" 99
 	update_status "stack-lock-acquired"
 
 	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
@@ -593,8 +551,8 @@ write_metadata_file ()
 		update_status "Created client_md_file"
 	fi
 	# Lock
-	release_lock "${easytls_lock_file}-stack" 6 || \
-		die "v2-stack:release_lock" 99
+	release_lock "${easytls_lock_stub}-stack.d" || \
+		die "release_lock:stack FAIL" 99
 	update_status "stack-lock-released"
 } # => write_metadata_file ()
 
@@ -686,6 +644,7 @@ init ()
 	EASYTLS_CP='cp'
 	EASYTLS_DATE='date'
 	EASYTLS_GREP='grep'
+	EASYTLS_MKDIR='mkdir'
 	EASYTLS_MV='mv'
 	EASYTLS_SED='sed'
 	EASYTLS_PRINTF='printf'
@@ -708,6 +667,7 @@ init ()
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_CP}.exe" ] || exit 65
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_DATE}.exe" ] || exit 66
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_GREP}.exe" ] || exit 67
+		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MKDIR}.exe" ] || exit 72
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_MV}.exe" ] || exit 71
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_SED}.exe" ] || exit 68
 		[ -f "${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe" ] || exit 69
@@ -734,12 +694,12 @@ deps ()
 	# Temp files name stub
 	temp_stub="${EASYTLS_tmp_dir}/easytls-${EASYTLS_srv_pid}"
 
-	# Lock file
-	easytls_lock_file="${temp_stub}-lock"
+	# Lock dir
+	easytls_lock_stub="${temp_stub}-lock"
 
 	# Lock
-	acquire_lock "${easytls_lock_file}-v2" 5 || \
-		die "v2:acquire_lock-FAIL" 99
+	acquire_lock "${easytls_lock_stub}-v2.d" || \
+		die "acquire_lock:v2 FAIL" 99
 	update_status "V2-lock-acquired"
 
 	# Windows log
@@ -1229,8 +1189,8 @@ connection_allowed
 write_metadata_file
 
 # Unlock
-release_lock "${easytls_lock_file}-v2" 5 || die "v2:release_lock" 99
-update_status "V2-lock-released"
+release_lock "${easytls_lock_stub}-v2.d" || die "release_lock:v2 FAIL" 99
+update_status "v2-lock-released"
 
 # There is only one way out of this...
 if [ $absolute_fail -eq 0 ]
