@@ -4865,8 +4865,9 @@ build_tls_crypt_v2_client ()
 				: # OK
 				#md_temp_addr="${full_subnet_addr6}"
 			else
-				#expand_ip4_address "${md_temp_addr}"
-				die "Try: ./easytls x4ip ${md_temp_addr}"
+				error_msg "This is not a valid 'subnet/mask' for Easy-TLS."
+				help_note="To validate, use: ./easytls x4ip ${md_temp_addr}"
+				die "Invalid subnet/mask"
 			fi
 			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
@@ -4878,8 +4879,9 @@ build_tls_crypt_v2_client ()
 				: # OK
 				md_temp_addr="${full_subnet_addr6}"
 			else
-				#expand_ip6_address "${md_temp_addr}"
-				die "Try: ./easytls x6ip ${md_temp_addr}"
+				error_msg "This is not a valid 'subnet/mask' for Easy-TLS."
+				help_note="To validate, use: ./easytls x6ip ${md_temp_addr}"
+				die "Invalid subnet/mask"
 			fi
 			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
@@ -5021,8 +5023,9 @@ build_tls_cv2_group_client ()
 				: # OK
 				#md_temp_addr="${full_subnet_addr6}"
 			else
-				#expand_ip4_address "${md_temp_addr}"
-				die "Try: ./easytls x4ip ${md_temp_addr}"
+				error_msg "This is not a valid 'subnet/mask' for Easy-TLS."
+				help_note="To validate, use: ./easytls x4ip ${md_temp_addr}"
+				die "Invalid subnet/mask"
 			fi
 			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
@@ -5034,8 +5037,9 @@ build_tls_cv2_group_client ()
 				: # OK
 				md_temp_addr="${full_subnet_addr6}"
 			else
-				#expand_ip6_address "${md_temp_addr}"
-				die "Try: ./easytls x6ip ${md_temp_addr}"
+				error_msg "This is not a valid 'subnet/mask' for Easy-TLS."
+				help_note="To validate, use: ./easytls x6ip ${md_temp_addr}"
+				die "Invalid subnet/mask"
 			fi
 			unset valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
