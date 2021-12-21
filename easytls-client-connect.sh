@@ -142,10 +142,8 @@ die ()
 	#exit "${2:-255}"
 	echo 'XXXXX CC - Kill Server XXXXX'
 	echo 1 > "${temp_stub}-die"
-	if [ $ENABLE_KILL_PPID ]
-	then
-		if [ $EASYTLS_FOR_WINDOWS ]
-		then
+	if [ $ENABLE_KILL_PPID ]; then
+		if [ $EASYTLS_FOR_WINDOWS ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
@@ -194,8 +192,7 @@ delete_metadata_files ()
 # Log fatal warnings
 warn_die ()
 {
-	if [ -n "${1}" ]
-	then
+	if [ -n "${1}" ]; then
 		fatal_msg="${fatal_msg}
 ${1}"
 	else
@@ -430,8 +427,7 @@ update_conntrac ()
 
 	# Absolute start time
 	easytls_start_d_file="${EASYTLS_CONN_TRAC}-start-d"
-	if [ ! -f "${easytls_start_d_file}" ]
-	then
+	if [ ! -f "${easytls_start_d_file}" ]; then
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s' \
 			"${daemon_start_time}" > "${easytls_start_d_file}"
@@ -445,8 +441,7 @@ update_conntrac ()
 
 	# Detect IP Pool exhausted
 	# shellcheck disable=SC2154
-	if [ -z "${ifconfig_pool_remote_ip}" ]
-	then
+	if [ -z "${ifconfig_pool_remote_ip}" ]; then
 		# Kill the server
 		[ $POOL_EXHAUST_FATAL ] && {
 			ENABLE_KILL_PPID=1
@@ -501,8 +496,7 @@ update_conntrac ()
 	if [ $conntrac_dupl ] || [ $conntrac_fail ] || \
 		[ $conntrac_error ] ||[ $conntrac_unknown ]
 	then
-		if [ $ENABLE_CONNTRAC_FAIL_LOG ]
-		then
+		if [ $ENABLE_CONNTRAC_FAIL_LOG ]; then
 			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
@@ -544,8 +538,7 @@ update_conntrac ()
 			}
 
 		# Duplicate TLS keys
-		if [ $conntrac_dupl ]
-		then
+		if [ $conntrac_dupl ]; then
 			[ ! $ENFORCE_UNIQUE_TLSKEY ] || fail_and_exit "Duplicate TLS Key"
 			update_status "IGNORE Duplicate TLS Key"
 		fi
@@ -572,8 +565,7 @@ stack_down ()
 	[ -f "${fixed_md_file}" ] || return 0
 
 	# No Stack DOWN
-	if [ ! $ENABLE_STACK ]
-	then
+	if [ ! $ENABLE_STACK ]; then
 		# No-Stack means that this file must be deleted now
 		# No other clients can connect with this TCV2 key
 		"${EASYTLS_RM}" -f "${fixed_md_file}"
@@ -592,12 +584,10 @@ stack_down ()
 	while :
 	do
 		i=$(( i + 1 ))
-		if [ -f "${fixed_md_file}_${i}" ]
-		then
+		if [ -f "${fixed_md_file}_${i}" ]; then
 			[ ${i} -eq 1 ] || s="${s}."
 		else
-			if [ ${i} -eq 1 ]
-			then
+			if [ ${i} -eq 1 ]; then
 				# There are no stacked files so delete the original
 				[ -f "${fixed_md_file}" ] || die "***" 163
 				"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
@@ -639,8 +629,7 @@ tlskey_status ()
 # Retry pause
 retry_pause ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		ping -n 1 127.0.0.1
 	else
 		sleep 1
@@ -702,8 +691,7 @@ init ()
 	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		# Windows
 		host_drv="${PATH%%\:*}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
@@ -730,8 +718,7 @@ init ()
 # Dependancies
 deps ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
 	else
@@ -781,8 +768,7 @@ deps ()
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# Dynamic opts file
-	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ] && [ -n "${ovpn_dyn_opts_file}" ]
-	then
+	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ] && [ -n "${ovpn_dyn_opts_file}" ]; then
 		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_dyn_opts_file}"
 		update_status "dyn opts loaded"
 	fi
@@ -794,8 +780,7 @@ deps ()
 init
 
 # Options
-while [ -n "${1}" ]
-do
+while [ -n "${1}" ]; do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
@@ -865,8 +850,7 @@ do
 	;;
 	*)
 		empty_ok=1
-		if [ -f "${opt}" ]
-		then
+		if [ -f "${opt}" ]; then
 			# Do not need this in the log but keep it here for reference
 			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
 			ovpn_dyn_opts_file="${opt}"
@@ -925,8 +909,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 	}
 
 # conntrac connect
-if [ $ENABLE_CONN_TRAC ]
-then
+if [ $ENABLE_CONN_TRAC ]; then
 	update_conntrac || die "update_conntrac FAIL" 170
 else
 	#update_status "conn-trac disabled"
@@ -943,8 +926,7 @@ then
 fi
 
 # Fixed file for TLS-CV2
-if [ -n "${UV_TLSKEY_SERIAL}" ]
-then
+if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
@@ -954,8 +936,7 @@ else
 fi
 
 # Verify tcv2_metadata_file
-if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]
-then
+if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]; then
 	# Get client metadata_string
 	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
 	[ -n "${metadata_string}" ] || \
@@ -981,8 +962,7 @@ then
 		update_status "IGNORE metadata -> x509 serial mismatch"
 	fi
 
-elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]
-then
+elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]; then
 	# This client pushed an incorrect UV_TLSKEY_SERIAL
 	[ ! $ENFORCE_TLSKEY_SERIAL_MATCH ] || {
 		failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
@@ -990,8 +970,7 @@ then
 		}
 	update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
 
-elif [ $no_uv_tlskey_serial ]
-then
+elif [ $no_uv_tlskey_serial ]; then
 	# Require crypt-v2
 	[ $ENFORCE_CRYPT_V2 ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
@@ -1004,8 +983,7 @@ else
 fi
 
 # Clear one stack now - fixed_md_file is no longer required
-if [ $no_uv_tlskey_serial ]
-then
+if [ $no_uv_tlskey_serial ]; then
 	# TLS-AUTH/Crypt does not stack up
 	:
 else
@@ -1018,8 +996,7 @@ push_hwaddr="$(format_number "${IV_HWADDR}")"
 [ -z "${push_hwaddr}" ] && push_hwaddr_missing=1 && \
 	update_status "hwaddr not pushed"
 
-if [ $push_hwaddr_missing ]
-then
+if [ $push_hwaddr_missing ]; then
 	# hwaddr is NOT pushed
 	[ $ENFORCE_PUSH_HWADDR ] && {
 		failure_msg="Client did not push required hwaddr"
@@ -1038,8 +1015,7 @@ case $ENABLE_NO_CHECK in
 ;;
 *)
 	# Check for TLS Auth/Crypt
-	if [ $no_uv_tlskey_serial ]
-	then
+	if [ $no_uv_tlskey_serial ]; then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
 		[ $ENFORCE_PUSH_HWADDR ] && [ $push_hwaddr_missing ] && {
@@ -1068,8 +1044,7 @@ case $ENABLE_NO_CHECK in
 		fi
 
 		# IP address check
-		if [ $PEER_IP_MATCH ]
-		then
+		if [ $PEER_IP_MATCH ]; then
 			# First: Check metadata for IP addresses
 			# If no IP in metadata then cannot perform test, so ignore
 
@@ -1077,16 +1052,14 @@ case $ENABLE_NO_CHECK in
 			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match \
 					delim4 delim6
 			key_ip_list="${c_md_hwadds%=}"
-			until [ -z "${key_ip_list}" ]
-			do
+			until [ -z "${key_ip_list}" ]; do
 				# hw_addr = the last hwaddr in the list
 				key_ip_addr="${key_ip_list##*=}"
 				# Drop the last hwaddr
 				key_ip_list="${key_ip_list%=*}"
 
 				# IPv6 key list
-				if [ "${key_ip_addr}" = "${key_ip_addr##*:}" ]
-				then
+				if [ "${key_ip_addr}" = "${key_ip_addr##*:}" ]; then
 					# Not IPv6 Ignore
 					:
 				else
@@ -1096,8 +1069,7 @@ case $ENABLE_NO_CHECK in
 				fi
 
 				# IPv4 key list
-				if [ "${key_ip_addr}" = "${key_ip_addr##*.}" ]
-				then
+				if [ "${key_ip_addr}" = "${key_ip_addr##*.}" ]; then
 					# Not IPv4 Ignore
 					:
 				else
@@ -1109,13 +1081,11 @@ case $ENABLE_NO_CHECK in
 			unset delim4 delim6
 
 			# shellcheck disable=SC2154
-			if [ $found_ipv6 ] && [ -n "${trusted_ip6}" ]
-			then
+			if [ $found_ipv6 ] && [ -n "${trusted_ip6}" ]; then
 				unset peer_ip6_match_ok
 				# Test
 				peer_ip6_addr="${trusted_ip6}/128"
-				until [ -z "${key_ip6_list}" ]
-				do
+				until [ -z "${key_ip6_list}" ]; do
 					key_ip_addr="${key_ip6_list% *}"
 					key_ip6_addr="${key_ip_addr%%/*}"
 
@@ -1146,16 +1116,14 @@ case $ENABLE_NO_CHECK in
 			fi
 
 			# shellcheck disable=SC2154
-			if [ $found_ipv4 ] && [ -n "${trusted_ip}" ]
-			then
+			if [ $found_ipv4 ] && [ -n "${trusted_ip}" ]; then
 				# Set IP addr from Openvpn env
 				peer_ip4_addr="${trusted_ip}"
 				# Test
 				ip2dec "${peer_ip4_addr}"
 				peer_ip4_addr_dec=${ip4_dec}
 				unset ip4_dec peer_ip4_match_ok
-				until [ -z "${key_ip4_list}" ]
-				do
+				until [ -z "${key_ip4_list}" ]; do
 					key_ip_addr="${key_ip4_list% *}"
 					key_ip4_addr="${key_ip_addr%%/*}"
 					ip2dec "${key_ip4_addr}"
@@ -1189,8 +1157,7 @@ case $ENABLE_NO_CHECK in
 				:
 			fi
 
-			if [ $found_ipv6 ] || [ $found_ipv4 ]
-			then
+			if [ $found_ipv6 ] || [ $found_ipv4 ]; then
 				# matadata has an address and this test is enabled so ..
 				[ $peer_ip_match_ok ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
 				update_status "IP Matched!"
@@ -1205,8 +1172,7 @@ case $ENABLE_NO_CHECK in
 
 		# Verify hwaddr
 		# hwaddr is pushed
-		if [ $key_hwaddr_missing ]
-		then
+		if [ $key_hwaddr_missing ]; then
 			# key does not have a hwaddr
 			update_status "Key is not locked to hwaddr"
 			[ $ENFORCE_KEY_HWADDR ] && {
@@ -1219,29 +1185,25 @@ case $ENABLE_NO_CHECK in
 			#[ -f "${fixed_md_file}" ] || die "CC Missing fixed_md_file"
 
 			hw_list="${c_md_hwadds%=}"
-			until [ -z "${hw_list}" ]
-			do
+			until [ -z "${hw_list}" ]; do
 				# hw_addr = the last hwaddr in the list
 				hw_addr="${hw_list##*=}"
 				# Drop the last hwaddr
 				hw_list="${hw_list%=*}"
 
-				if [ "${push_hwaddr}" = "${hw_addr}" ]
-				then
+				if [ "${push_hwaddr}" = "${hw_addr}" ]; then
 					# push and MATCH!
 					push_and_match=1
 					break
 				fi
 			done
 
-			if [ $push_and_match ]
-			then
+			if [ $push_and_match ]; then
 				update_status "hwaddr ${push_hwaddr} pushed and matched"
 				connection_allowed
 			else
 				# push does not match key hwaddr
-				if [ $IGNORE_HWADDR_MISMATCH ]
-				then
+				if [ $IGNORE_HWADDR_MISMATCH ]; then
 					connection_allowed
 					update_status "IGNORE hwaddr mismatch!"
 				else
@@ -1264,8 +1226,7 @@ esac # ENABLE_NO_CHECK
 [ $kill_this_client ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]
-then
+if [ $absolute_fail -eq 0 ]; then
 	# Delete all temp files
 	delete_metadata_files || die "CON: delete_metadata_files() ?" 155
 

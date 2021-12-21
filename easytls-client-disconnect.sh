@@ -452,8 +452,7 @@ tlskey_status ()
 # Retry pause
 retry_pause ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		ping -n 1 127.0.0.1
 	else
 		sleep 1
