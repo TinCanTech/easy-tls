@@ -925,69 +925,65 @@ then
 	update_status "Kill client signal"
 fi
 
+# Cannot verify UV_TLSKEY_SERIAL yet
+
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
+	if [ -f "${fixed_md_file}" ]; then
+		# Get client metadata_string
+		metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
+		[ -n "${metadata_string}" ] || \
+			fail_and_exit "failed to read fixed_md_file" 18
+
+		# Populate client metadata variables
+		client_metadata_string_to_vars || die "client_metadata_string_to_vars" 151
+		[ -n "${c_tlskey_serial}" ] || \
+			fail_and_exit "failed to set c_tlskey_serial" 19
+		unset -v metadata_string
+		update_status "fixed_md_file loaded"
+
+		# shellcheck disable=SC2154
+		if [ ${c_md_serial} = ${client_serial} ]; then
+			update_status "metadata -> x509 serial match"
+
+		elif [ ${c_md_serial} = '00000000000000000000000000000000' ]; then
+			# Client could still push a fake UV_TLSKEY_SERIAL
+			# is only vulnerable if many clients use the same GROUP key
+			# client must still have valid X509 keys and certs
+			update_status "metadata -> GROUP key"
+		else
+			# Client pushed UV_TLSKEY_SERIAL which does not match X509
+			# Should NOT be allowed - Client has copied another key
+			[ $IGNORE_X509_MISMATCH ] || {
+				failure_msg="TLS-key is being used by the wrong client certificate"
+				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
+				}
+			update_status "IGNORE metadata -> x509 serial mismatch"
+		fi
+
+	else
+		# Client pushed an incorrect UV_TLSKEY_SERIAL
+		# Should NOT be allowed - Client has copied another UV_TLSKEY_SERIAL only
+		[ ! $ENFORCE_TLSKEY_SERIAL_MATCH ] || {
+			failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
+			fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
+			}
+		update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
+	fi
+	# Clear one stack now - fixed_md_file is no longer required
+	stack_down || die "stack_down FAIL" 165
 else
 	# This is correct behaviour for --tls-auth/crypt v1
 	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
 	no_uv_tlskey_serial=1
-fi
-
-# Verify tcv2_metadata_file
-if [ -n "${fixed_md_file}" ] && [ -f "${fixed_md_file}" ]; then
-	# Get client metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
-	[ -n "${metadata_string}" ] || \
-		fail_and_exit "failed to read fixed_md_file" 18
-
-	# Populate client metadata variables
-	client_metadata_string_to_vars || die "client_metadata_string_to_vars" 151
-	[ -n "${c_tlskey_serial}" ] || \
-		fail_and_exit "failed to set c_tlskey_serial" 19
-	unset -v metadata_string
-	update_status "fixed_md_file loaded"
-
-	# shellcheck disable=SC2154
-	if [ ${c_md_serial} = ${client_serial} ] || \
-		[ ${c_md_serial} = '00000000000000000000000000000000' ]
-	then
-		update_status "metadata -> x509 serial match"
-	else
-		[ $IGNORE_X509_MISMATCH ] || {
-			failure_msg="TLS-key is being used by the wrong client certificate"
-			fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
-			}
-		update_status "IGNORE metadata -> x509 serial mismatch"
-	fi
-
-elif [ -n "${fixed_md_file}" ] && [ ! -f "${fixed_md_file}" ]; then
-	# This client pushed an incorrect UV_TLSKEY_SERIAL
-	[ ! $ENFORCE_TLSKEY_SERIAL_MATCH ] || {
-		failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
-		fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
-		}
-	update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
-
-elif [ $no_uv_tlskey_serial ]; then
 	# Require crypt-v2
 	[ $ENFORCE_CRYPT_V2 ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
 	update_status "IGNORE TLS-Auth/Crypt-v1 only"
-
-else
-	die "Unexpected condition" 152
-fi
-
-# Clear one stack now - fixed_md_file is no longer required
-if [ $no_uv_tlskey_serial ]; then
-	# TLS-AUTH/Crypt does not stack up
-	:
-else
-	stack_down || die "stack_down FAIL" 165
 fi
 
 # Set hwaddr from Openvpn env
