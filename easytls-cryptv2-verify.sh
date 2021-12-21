@@ -956,7 +956,7 @@ if [ $WRITE_ENV ]; then
 	else
 		env > "${env_file}"
 	fi
-	unset -v env_file
+	unset -v env_file WRITE_ENV
 fi
 
 # Get metadata
