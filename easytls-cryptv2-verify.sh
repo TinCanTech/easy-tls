@@ -937,8 +937,7 @@ done
 warn_die
 
 # Source vars file
-if [ $LOAD_VARS ]
-then
+if [ $LOAD_VARS ]; then
 	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
 	# shellcheck source=./easytls-cryptv2-verify.vars-example
 	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
@@ -950,7 +949,7 @@ fi
 deps
 
 # Write env file
-[ $WRITE_ENV ] && {
+if [ $WRITE_ENV ]; then
 	env_file="${temp_stub}-cryptv2-verify.env"
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		set > "${env_file}"
@@ -958,7 +957,7 @@ deps
 		env > "${env_file}"
 	fi
 	unset -v env_file
-	}
+fi
 
 # Get metadata
 
