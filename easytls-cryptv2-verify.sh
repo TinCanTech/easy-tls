@@ -213,16 +213,16 @@ fail_and_exit ()
 		print "${failure_msg}"
 		print "${1}"
 		print "* ==> version       local: ${local_easytls}"
-		print "* ==> version      remote: ${md_easytls}"
+		print "* ==> version      remote: ${MD_EASYTLS}"
 		print "* ==> custom_group  local: ${LOCAL_CUSTOM_G}"
-		print "* ==> custom_group remote: ${md_custom_g}"
+		print "* ==> custom_group remote: ${MD_CUSTOM_G}"
 		print "* ==> identity      local: ${local_identity}"
-		print "* ==> identity     remote: ${md_identity}"
-		print "* ==> X509 serial  remote: ${md_serial}"
-		print "* ==> name         remote: ${md_name}"
-		print "* ==> TLSK serial  remote: ${tlskey_serial}"
-		print "* ==> sub-key      remote: ${md_subkey}"
-		print "* ==> date         remote: ${md_date}"
+		print "* ==> identity     remote: ${MD_IDENTITY}"
+		print "* ==> X509 serial  remote: ${MD_x509_SERIAL}"
+		print "* ==> name         remote: ${MD_NAME}"
+		print "* ==> TLSK serial  remote: ${MD_TLSKEY_SERIAL}"
+		print "* ==> sub-key      remote: ${MD_SUBKEY}"
+		print "* ==> date         remote: ${MD_DATE}"
 		[ ${2} -eq 2 ] && print "* ==> Client serial status: revoked"
 		[ ${2} -eq 3 ] && print "* ==> Client serial status: disabled"
 		[ -n "${help_note}" ] && print "${help_note}"
@@ -241,7 +241,7 @@ fail_and_exit ()
 
 	[ $ENABLE_KILL_CLIENT ] && {
 		# Create kill client file
-		"${EASYTLS_PRINTF}" "%s\n" "${md_serial}" > "${EASYTLS_KILL_FILE}"
+		"${EASYTLS_PRINTF}" "%s\n" "${MD_x509_SERIAL}" > "${EASYTLS_KILL_FILE}"
 		# Create metadata file for client-connect or kill-client
 		write_metadata_file
 		# Exit without error to kill client
@@ -308,14 +308,14 @@ fn_read_crl ()
 fn_search_crl ()
 {
 	"${EASYTLS_PRINTF}" "%s\n" "${crl_text}" | \
-		"${EASYTLS_GREP}" -c "^[[:blank:]]*Serial Number: ${md_serial}$"
+		"${EASYTLS_GREP}" -c "^[[:blank:]]*Serial Number: ${MD_x509_SERIAL}$"
 }
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
 {
 	"${EASYTLS_GREP}" -c \
-		"^V.*[[:blank:]]${md_serial}[[:blank:]].*/CN=${md_name}.*$" \
+		"^V.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*/CN=${MD_NAME}.*$" \
 		"${index_txt}"
 }
 
@@ -335,7 +335,7 @@ serial_status_via_crl ()
 		client_passed_x509_tests
 		;;
 		*)
-		die "Duplicate serial numbers: ${md_serial}" 127
+		die "Duplicate serial numbers: ${MD_x509_SERIAL}" 127
 		;;
 		esac
 	;;
@@ -344,8 +344,8 @@ serial_status_via_crl ()
 	;;
 	*)
 		insert_msg="Duplicate serial numbers detected:"
-		failure_msg="${insert_msg} ${md_serial}"
-		die "Duplicate serial numbers: ${md_serial}" 128
+		failure_msg="${insert_msg} ${MD_x509_SERIAL}"
+		die "Duplicate serial numbers: ${MD_x509_SERIAL}" 128
 	;;
 	esac
 }
@@ -383,7 +383,7 @@ openssl_serial_status ()
 {
 	# OpenSSL appears to always exit with error - but here I do not care
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
-		-status "${md_serial}" 2>&1
+		-status "${MD_x509_SERIAL}" 2>&1
 }
 
 # Capture serial status
@@ -399,7 +399,7 @@ verify_openssl_serial_status ()
 	return 0 # Disable this `return` if you want to test
 	# OpenSSL appears to always exit with error - have not solved this
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
-		-status "${md_serial}" || \
+		-status "${MD_x509_SERIAL}" || \
 		die "OpenSSL returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
@@ -432,7 +432,7 @@ serial_status_via_pki_index ()
 		else
 			# Cert is not known
 			insert_msg="Serial number is not in the CA database:"
-			failure_msg="${insert_msg} ${md_serial}"
+			failure_msg="${insert_msg} ${MD_x509_SERIAL}"
 			fail_and_exit "SERIAL NUMBER UNKNOWN" 121
 		fi
 	else
@@ -444,7 +444,7 @@ serial_status_via_pki_index ()
 fn_search_valid_pki_index ()
 {
 	"${EASYTLS_GREP}" -c \
-	"^V.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
+	"^V.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*\/CN=${MD_NAME}.*$" \
 		"${index_txt}"
 }
 
@@ -452,7 +452,7 @@ fn_search_valid_pki_index ()
 fn_search_revoked_pki_index ()
 {
 	"${EASYTLS_GREP}" -c \
-	"^R.*[[:blank:]]${md_serial}[[:blank:]].*\/CN=${md_name}.*$" \
+	"^R.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*\/CN=${MD_NAME}.*$" \
 		"${index_txt}"
 }
 
@@ -460,14 +460,14 @@ fn_search_revoked_pki_index ()
 client_passed_x509_tests ()
 {
 	insert_msg="Client certificate is recognised and Valid:"
-	update_status "${insert_msg} ${md_serial}"
+	update_status "${insert_msg} ${MD_x509_SERIAL}"
 }
 
 # This is the only way to fail for Revokation - X509
 client_passed_x509_tests_certificate_revoked ()
 {
 	insert_msg="Client certificate is revoked:"
-	failure_msg="${insert_msg} ${md_serial}"
+	failure_msg="${insert_msg} ${MD_x509_SERIAL}"
 	fail_and_exit "CERTIFICATE REVOKED" 2
 }
 
@@ -525,7 +525,7 @@ release_lock ()
 write_metadata_file ()
 {
 	# Set the client_md_file
-	client_md_file="${temp_stub}-tcv2-metadata-${tlskey_serial}"
+	client_md_file="${temp_stub}-tcv2-metadata-${MD_TLSKEY_SERIAL}"
 
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
@@ -596,7 +596,7 @@ tlskey_status ()
 	{
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
-			"${tlskey_serial}" "*VF >${1}" "${md_name}"
+			"${MD_TLSKEY_SERIAL}" "*VF >${1}" "${MD_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
@@ -966,24 +966,25 @@ fi
 	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
 	# Populate metadata variables
-	key_metadata_string_to_vars || die "key_metadata_string_to_vars" 87
+	metadata_string_to_vars  $metadata_string || \
+		die "key_metadata_string_to_vars" 87
 
 	# Update log message
-	update_status "CN: ${md_name}"
+	update_status "CN: ${MD_NAME}"
 
 # Metadata version
 
 	# metadata_version MUST equal 'easytls'
-	case "${md_easytls}" in
+	case "${MD_EASYTLS}" in
 	"${local_easytls}")
-		update_status "${md_easytls} OK"
+		update_status "${MD_EASYTLS} OK"
 	;;
 	'')
 		failure_msg="metadata version is missing"
 		fail_and_exit "METADATA_VERSION" 7
 	;;
 	*)
-		failure_msg="metadata version is not recognised: ${md_easytls}"
+		failure_msg="metadata version is not recognised: ${MD_EASYTLS}"
 		fail_and_exit "METADATA_VERSION" 7
 	;;
 	esac
@@ -994,25 +995,25 @@ fi
 	then
 		# This will do for the time being ..
 		if "${EASYTLS_PRINTF}" "${LOCAL_CUSTOM_G}" | \
-			"${EASYTLS_GREP}" -q "${md_custom_g}"
+			"${EASYTLS_GREP}" -q "${MD_CUSTOM_G}"
 		then
-			update_status "MULTI custom_group ${md_custom_g} OK"
+			update_status "MULTI custom_group ${MD_CUSTOM_G} OK"
 		else
 			failure_msg="multi_custom_g"
 			fail_and_exit "MULTI_CUSTOM_GROUP" 98
 		fi
 	else
-		# md_custom_g MUST equal LOCAL_CUSTOM_G
-		case "${md_custom_g}" in
+		# MD_CUSTOM_G MUST equal LOCAL_CUSTOM_G
+		case "${MD_CUSTOM_G}" in
 		"${LOCAL_CUSTOM_G}")
-			update_status "custom_group ${md_custom_g} OK"
+			update_status "custom_group ${MD_CUSTOM_G} OK"
 		;;
 		'')
 			failure_msg="metadata custom_group is missing"
 			fail_and_exit "METADATA_CUSTOM_GROUP" 5
 		;;
 		*)
-			failure_msg="metadata custom_group is not correct: ${md_custom_g}"
+			failure_msg="metadata custom_group is not correct: ${MD_CUSTOM_G}"
 			fail_and_exit "METADATA_CUSTOM_GROUP" 5
 		;;
 		esac
@@ -1023,19 +1024,18 @@ fi
 	if [ $ENABLE_TLSKEY_HASH ]
 	then
 		# Verify tlskey-serial is in index
-		"${EASYTLS_GREP}" -q "${tlskey_serial}" "${tlskey_serial_index}" || {
+		"${EASYTLS_GREP}" -q "${MD_TLSKEY_SERIAL}" "${tlskey_serial_index}" || {
 			failure_msg="TLS-key is not recognised"
-			fail_and_exit "TLSKEY_SERIAL_ALIEN" 10
+			fail_and_exit "ALIEN MD_TLSKEY_SERIAL" 10
 			}
 
 		# HASH metadata sring without the tlskey-serial
-		# shellcheck disable=SC2154 # md_seed is referenced but not assigned
-		md_hash="$("${EASYTLS_PRINTF}" '%s' "${md_seed}" | \
+		md_hash="$("${EASYTLS_PRINTF}" '%s' "${MD_SEED}" | \
 			"${EASYTLS_OPENSSL}" ${EASYTLS_HASH_ALGO} -r)"
 		md_hash="${md_hash%% *}"
-		[ "${md_hash}" = "${tlskey_serial}" ] || {
+		[ "${md_hash}" = "${MD_TLSKEY_SERIAL}" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
-			fail_and_exit "TLSKEY_SERIAL_HASH" 11
+			fail_and_exit "MD_TLSKEY_SERIAL" 11
 			}
 
 		update_status "tlskey-hash verified OK"
@@ -1056,7 +1056,7 @@ fi
 			tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
 
 			# days since key creation
-			tlskey_age_sec=$(( local_date_sec - md_date ))
+			tlskey_age_sec=$(( local_date_sec - MD_DATE ))
 			tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
 
 			# Check key_age is less than --tls-age
@@ -1085,10 +1085,11 @@ fi
 			die "Missing disabled list: ${disabled_list}" 27
 
 		# Search the disabled_list for client serial number
-		if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" "${disabled_list}"
+		if "${EASYTLS_GREP}" -q "^${MD_TLSKEY_SERIAL}[[:blank:]]" \
+			"${disabled_list}"
 		then
 			# Client is disabled
-			failure_msg="TLS key serial number is disabled: ${tlskey_serial}"
+			failure_msg="TLS key serial number is disabled: ${MD_TLSKEY_SERIAL}"
 			fail_and_exit "TLSKEY_DISABLED" 3
 		else
 			# Client is not disabled
@@ -1126,7 +1127,7 @@ else
 		}
 
 	# Check metadata Identity against local Identity
-	if [ "${local_identity}" = "${md_identity}" ]
+	if [ "${local_identity}" = "${MD_IDENTITY}" ]
 	then
 		update_status "identity OK"
 	else

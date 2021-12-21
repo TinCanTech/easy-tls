@@ -938,17 +938,18 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 			fail_and_exit "failed to read fixed_md_file" 18
 
 		# Populate client metadata variables
-		client_metadata_string_to_vars || die "client_metadata_string_to_vars" 151
-		[ -n "${c_tlskey_serial}" ] || \
-			fail_and_exit "failed to set c_tlskey_serial" 19
+		metadata_string_to_vars $metadata_string || \
+			die "client_metadata_string_to_vars" 151
+		[ -n "${MD_TLSKEY_SERIAL}" ] || \
+			fail_and_exit "failed to set MD_TLSKEY_SERIAL" 19
 		unset -v metadata_string
 		update_status "fixed_md_file loaded"
 
 		# shellcheck disable=SC2154
-		if [ ${c_md_serial} = ${client_serial} ]; then
+		if [ "${MD_x509_SERIAL}" = "${client_serial}" ]; then
 			update_status "metadata -> x509 serial match"
 
-		elif [ ${c_md_serial} = '00000000000000000000000000000000' ]; then
+		elif [ "${MD_x509_SERIAL}" = '00000000000000000000000000000000' ]; then
 			# Client could still push a fake UV_TLSKEY_SERIAL
 			# is only vulnerable if many clients use the same GROUP key
 			# client must still have valid X509 keys and certs
@@ -992,6 +993,8 @@ push_hwaddr="$(format_number "${IV_HWADDR}")"
 [ -z "${push_hwaddr}" ] && push_hwaddr_missing=1 && \
 	update_status "hwaddr not pushed"
 
+# This test being here allows to force all clients to use push-peer-info
+# May need the same for IP addresses
 if [ $push_hwaddr_missing ]; then
 	# hwaddr is NOT pushed
 	[ $ENFORCE_PUSH_HWADDR ] && {
@@ -1003,13 +1006,11 @@ if [ $push_hwaddr_missing ]; then
 fi
 
 # ENABLE_NO_CHECK
-case $ENABLE_NO_CHECK in
-1)
+if [ $ENABLE_NO_CHECK ]; then
 	# disable all checks
 	update_status "Allow ALL TLS keys"
 	connection_allowed
-;;
-*)
+else
 	# Check for TLS Auth/Crypt
 	if [ $no_uv_tlskey_serial ]; then
 		# TLS Auth/Crypt
@@ -1033,8 +1034,8 @@ case $ENABLE_NO_CHECK in
 
 		# Set only for NO keyed hwaddr
 		# shellcheck disable=SC2154
-		if [ "${c_md_hwadds}" = '=000000000000=' ] || \
-			[ "${c_md_hwadds}" = '+000000000000+' ]
+		if [ "${MD_FILTERS}" = '=000000000000=' ] || \
+			[ "${MD_FILTERS}" = '+000000000000+' ]
 		then
 			key_hwaddr_missing=1
 		fi
@@ -1047,7 +1048,7 @@ case $ENABLE_NO_CHECK in
 			# Extract and sort 4/6 IP addresses from metadata
 			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match \
 					delim4 delim6
-			key_ip_list="${c_md_hwadds%=}"
+			key_ip_list="${MD_FILTERS%=}"
 			until [ -z "${key_ip_list}" ]; do
 				# hw_addr = the last hwaddr in the list
 				key_ip_addr="${key_ip_list##*=}"
@@ -1180,7 +1181,7 @@ case $ENABLE_NO_CHECK in
 		else
 			#[ -f "${fixed_md_file}" ] || die "CC Missing fixed_md_file"
 
-			hw_list="${c_md_hwadds%=}"
+			hw_list="${MD_FILTERS%=}"
 			until [ -z "${hw_list}" ]; do
 				# hw_addr = the last hwaddr in the list
 				hw_addr="${hw_list##*=}"
@@ -1209,7 +1210,7 @@ case $ENABLE_NO_CHECK in
 			fi
 		fi
 	fi
-esac # ENABLE_NO_CHECK
+fi # ENABLE_NO_CHECK
 
 # Any failure_msg means fail_and_exit
 [ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9

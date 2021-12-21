@@ -23,55 +23,24 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # shellcheck disable=SC2034
 metadata_string_to_vars ()
 {
-	tlskey_serial="${1%%-*}"
-	[ $generic_metadata ] && g_tlskey_serial=${tlskey_serial} && unset -v tlskey_serial
-	[ $client_metadata ] && c_tlskey_serial=${tlskey_serial} && unset -v tlskey_serial
+	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
 
-	[ $key_metadata ] && seed="${*}" && md_seed="${seed#*-}" && unset -v seed
-	#md_padding="${md_seed%%--*}"
-	[ $key_metadata ] && md_easytls_ver="${1#*--}"
-	[ $key_metadata ] && md_easytls="${md_easytls_ver%-*}" && unset -v md_easytls_ver
+	seed="${*}" || return 1
+	MD_SEED="${seed#*-}" || return 1
+	unset -v seed
 
-	[ $key_metadata ] && md_identity="${2%%-*}"
-	#md_srv_name="${2##*-}"
+	#md_padding="${md_seed%%--*}" || return 1
+	md_easytls_ver="${1#*--}" || return 1
+	MD_EASYTLS="${md_easytls_ver%-*}" || return 1
+	unset -v md_easytls_ver
 
-	md_serial="${3}"
-	[ $generic_metadata ] && g_md_serial=${md_serial} && unset -v md_serial
-	[ $client_metadata ] && c_md_serial=${md_serial} && unset -v md_serial
-
-	if [ $key_metadata ]; then
-		md_date="${4}"
-		md_custom_g="${5}"
-		md_name="${6}"
-		md_subkey="${7}"
-		md_opt="${8}"
-	fi
-
-	md_hwadds="${9}"
-	[ $generic_metadata ] && g_md_hwadds=${md_hwadds} && unset -v md_hwadds
-	[ $client_metadata ] && c_md_hwadds=${md_hwadds} && unset -v md_hwadds
-
-	return 0
+	MD_IDENTITY="${2%%-*}" || return 1
+	#md_srv_name="${2##*-}" || return 1
+	MD_x509_SERIAL="${3}" || return 1
+	MD_DATE="${4}" || return 1
+	MD_CUSTOM_G="${5}" || return 1
+	MD_NAME="${6}" || return 1
+	MD_SUBKEY="${7}" || return 1
+	MD_OPT="${8}" || return 1
+	MD_FILTERS="${9}" || return 1
 } # => metadata_string_to_vars ()
-
-# shellcheck disable=SC2154 # metadata_string
-key_metadata_string_to_vars ()
-{
-	key_metadata=1
-	metadata_string_to_vars $metadata_string || return 1
-	unset -v metadata_string key_metadata
-}
-
-generic_metadata_string_to_vars ()
-{
-	generic_metadata=1
-	metadata_string_to_vars $metadata_string || return 1
-	unset -v metadata_string generic_metadata tlskey_serial md_serial
-}
-
-client_metadata_string_to_vars ()
-{
-	client_metadata=1
-	metadata_string_to_vars $metadata_string || return 1
-	unset -v metadata_string client_metadata tlskey_serial md_serial
-}
