@@ -600,6 +600,32 @@ tlskey_status ()
 	} >> "${EASYTLS_TK_XLOG}"
 }
 
+# Break metadata_string into variables
+# shellcheck disable=SC2034
+metadata_string_to_vars ()
+{
+	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
+
+	seed="${*}" || return 1
+	MD_SEED="${seed#*-}" || return 1
+	unset -v seed
+
+	#md_padding="${md_seed%%--*}" || return 1
+	md_easytls_ver="${1#*--}" || return 1
+	MD_EASYTLS="${md_easytls_ver%-*}" || return 1
+	unset -v md_easytls_ver
+
+	MD_IDENTITY="${2%%-*}" || return 1
+	#md_srv_name="${2##*-}" || return 1
+	MD_x509_SERIAL="${3}" || return 1
+	MD_DATE="${4}" || return 1
+	MD_CUSTOM_G="${5}" || return 1
+	MD_NAME="${6}" || return 1
+	MD_SUBKEY="${7}" || return 1
+	MD_OPT="${8}" || return 1
+	MD_FILTERS="${9}" || return 1
+} # => metadata_string_to_vars ()
+
 # Initialise
 init ()
 {
@@ -794,16 +820,8 @@ deps ()
 	# Source metadata lib
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		easytls_file="/master/easytls-metadata.lib"
-		easytls_wiki="/wiki/download-and-install"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file} - Source: ${easytls_rawurl}${easytls_file}" 71
-		}
-	# shellcheck source=./easytls-metadata.lib
-	. "${lib_file}"
+	# shellcheck source=./easytls--metadata.lib
+	[ -f "${lib_file}" ] && . "${lib_file}"
 	unset -v lib_file
 
 	# Default CUSTOM_GROUP
