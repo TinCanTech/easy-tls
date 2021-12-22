@@ -18,19 +18,17 @@ Easy-TLS also supports No-CA mode, which does not require an Easy-RSA CA:
 Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls) and [**`easytls-openssl.cnf`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf) to your `easyrsa3` working directory.
 
 For full support, you will also need these scripts for use by your OpenVPN Server:
-+ [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - **Can be used stand-alone**<br>
-  This script is used by Openvpn-Server to enforce TLS-Crypt-V2 `metadata` access policy rules.<br>
-  Also required for EasyTLS `address-filter` access policy rules.
++ [**`easytls-cryptv2-verify.sh (1)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - **Can be used stand-alone**<br>
+  Used by Openvpn-Server to enforce TLS-Crypt-V2 `metadata` access policy rules.<br>
 
-+ [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - **Can NOT be used stand-alone**<br>
-  This script is used by Openvpn-Server to enforce `TLS-Key-type` and `address-filter` access policy rules.<br>
-  Can also be used to monitor connection tracking.
++ [**`easytls-client-connect.sh (2)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - **Requires script (1)(3)**<br>
+  Used by Openvpn-Server to enforce `TLS-Key-type` and `address-filter` access policy rules.<br>
 
-+ [**`easytls-client-disconnect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh) - **Can NOT be used stand-alone**<br>
-  This script is used by Openvpn-Server to monitor connection tracking.
++ [**`easytls-client-disconnect.sh (3)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh) - **Requires script (1)(2)**<br>
+  This Disconnect script is **required by** the Connect script.
 
-+ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Connection tracking plug-in (Required for connection tracking)**<br>
-  This script is used by Openvpn-Server to manage connection tracking.<br>
++ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Requires script (1)(2)(3)**<br>
+  Connection tracking plug-in, required for connection tracking.
 
 ### Environment
 **`easytls`** is intended to work **everywhere** that **`openvpn`** and **`easyrsa`** work.
