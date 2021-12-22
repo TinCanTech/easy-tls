@@ -21,13 +21,13 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 + [**`easytls-cryptv2-verify.sh (1)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - **Can be used stand-alone**<br>
   Used by Openvpn-Server to enforce TLS-Crypt-V2 `metadata` access policy rules.<br>
 
-+ [**`easytls-client-connect.sh (2)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - **Requires script (1)(3)**<br>
++ [**`easytls-client-connect.sh (2)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh) - **Requires script `(1)(3)`**<br>
   Used by Openvpn-Server to enforce `TLS-Key-type` and `address-filter` access policy rules.<br>
 
-+ [**`easytls-client-disconnect.sh (3)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh) - **Requires script (1)(2)**<br>
++ [**`easytls-client-disconnect.sh (3)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh) - **Requires script `(1)(2)`**<br>
   This Disconnect script is **required by** the Connect script.
 
-+ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Requires script (1)(2)(3)**<br>
++ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Requires script `(1)(2)(3)`**<br>
   Connection tracking plug-in, required for connection tracking.
 
 ### Environment
