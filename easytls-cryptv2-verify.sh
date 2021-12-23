@@ -123,7 +123,7 @@ help_text ()
 
   77  - BUG Disallow connection, failed to sources vars file
   78  - USER ERROR Disallow connection, missing vars file
-  89  - BUG Disallow connection, failed to create client_md_file
+  89  - BUG Disallow connection, failed to create client_md_file_stack
   101 - BUG Disallow connection, stale metadata file.
   112 - BUG Disallow connection, invalid date
   113 - BUG Disallow connection, missing dependency file.
@@ -255,7 +255,7 @@ fail_and_exit ()
 delete_metadata_files ()
 {
 	[ $keep_metadata ] || {
-		"${EASYTLS_RM}" -f "${client_md_file}"
+		"${EASYTLS_RM}" -f "${client_md_file_stack}"
 		update_status "temp-files deleted"
 		}
 }
@@ -501,10 +501,10 @@ acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
 	unset lock_acquired
-	lock_attempt=9
+	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ ${lock_attempt} -gt 0 ]; do
-		[ ${lock_attempt} -eq 9 ] || retry_pause
+		[ ${lock_attempt} -eq "${LOCK_TIMEOUT}" ] || retry_pause
 		lock_attempt=$(( lock_attempt - 1 ))
 		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
@@ -524,8 +524,8 @@ release_lock ()
 # Write metadata file
 write_metadata_file ()
 {
-	# Set the client_md_file
-	client_md_file="${temp_stub}-tcv2-metadata-${MD_TLSKEY_SERIAL}"
+	# Set the client_md_file_stack
+	client_md_file_stack="${temp_stub}-tcv2-metadata-${MD_TLSKEY_SERIAL}"
 
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
@@ -533,22 +533,26 @@ write_metadata_file ()
 	update_status "stack-lock-acquired"
 
 	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
-	if [ -f "${client_md_file}" ]
+	if [ -f "${client_md_file_stack}" ]
 	then
 		stack_up || die "stack_up" 160
 	fi
 
-	if [ -f "${client_md_file}" ]
+	if [ -f "${client_md_file_stack}" ]
 	then
-		# If client_md_file still exists then fail
+		# If client_md_file_stack still exists then fail
 		tlskey_status "STALE_FILE_ERROR"
 		keep_metadata=1
-		fail_and_exit "STALE_FILE_ERROR" 101
+		die "STALE_FILE_ERROR" 101
 	else
 		# Otherwise stack-up
-		"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" "${client_md_file}" || \
-			die "Failed to create client_md_file" 89
-		update_status "Created client_md_file"
+		if [ $split_stack ]; then
+			update_status "split_stack"
+		else
+			"${EASYTLS_MV}" "${OPENVPN_METADATA_FILE}" "${client_md_file_stack}" || \
+				die "Failed to create client_md_file_stack" 89
+			update_status "Created client_md_file_stack"
+		fi
 	fi
 	# Lock
 	release_lock "${easytls_lock_stub}-stack.d" || \
@@ -562,29 +566,26 @@ stack_up ()
 	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	i=1
-	s=''
-
 	# No Stack UP
-	if [ ! $ENABLE_STACK ]
-	then
-		return 0
+	[ $ENABLE_STACK ] || return 0
+
+	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
+	unset split_stack
+	if [ $(( local_time_unix - f_date )) -gt 60 ]; then
+		split_stack=1
 	fi
 
 	# Full Stack UP
-	while :
+	i=1
+	s=''
+	while [ -f "${client_md_file_stack}_${i}" ]
 	do
-		if [ -f "${client_md_file}_${i}" ]
-		then
-			s="${s}."
-			i=$(( i + 1 ))
-			continue
-		else
-			client_md_file="${client_md_file}_${i}"
-			s="${s}${i}"
-			break
-		fi
+		s="${s}."
+		i=$(( i + 1 ))
 	done
+	client_md_file_stack="${client_md_file_stack}_${i}"
+	s="${s}${i}"
+
 	update_status "stack-up"
 	tlskey_status "  | => stack:+ ${s} -"
 }
@@ -722,6 +723,7 @@ deps ()
 
 	# Lock dir
 	easytls_lock_stub="${temp_stub}-lock"
+	LOCK_TIMEOUT="${LOCK_TIMEOUT:-30}"
 
 	# Lock
 	acquire_lock "${easytls_lock_stub}-v2.d" || \
@@ -830,7 +832,7 @@ deps ()
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
 	local_date_ascii="${full_date##* }"
-	local_date_sec="${full_date%% *}"
+	local_time_unix="${full_date%% *}"
 
 	# $metadata_file - Must be set by openvpn
 	# If the script fails for metadata file then
@@ -1065,16 +1067,16 @@ fi
 	# Disable check if --tls-age=0 (Default age is 5 years)
 	if [ "${tlskey_expire_age_sec}" -gt 0 ]
 	then
-		case "${local_date_sec}" in
+		case "${local_time_unix}" in
 		''|*[!0-9]*)
 			# Invalid value - date.exe is missing
-			die "Invalid value for local_date_sec: ${local_date_sec}" 112
+			die "Invalid value for local_time_unix: ${local_time_unix}" 112
 		;;
 		*) # Valid value
 			tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
 
 			# days since key creation
-			tlskey_age_sec=$(( local_date_sec - MD_DATE ))
+			tlskey_age_sec=$(( local_time_unix - MD_DATE ))
 			tlskey_age_day=$(( tlskey_age_sec / (60*60*24) ))
 
 			# Check key_age is less than --tls-age

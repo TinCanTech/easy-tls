@@ -55,7 +55,7 @@ help_text ()
   8   - Disallow connection, missing X509 client cert serial. (BUG)
   9   - Disallow connection, unexpected failure. (BUG)
 
-  18  - BUG Disallow connection, failed to read c_ext_md_file
+  18  - BUG Disallow connection, failed to read client_md_file_stack
   19  - BUG Disallow connection, failed to parse metadata strig
 
   21  - USER ERROR Disallow connection, options error.
@@ -384,7 +384,7 @@ stack_down ()
 	[ $ENABLE_STACK ] || return 0
 
 	# Only required if this file exists
-	[ -f "${fixed_md_file}" ] || return 0
+	[ -f "${client_md_file_stack}" ] || return 0
 
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
@@ -397,29 +397,29 @@ stack_down ()
 
 	while : ; do
 		i=$(( i + 1 ))
-		if [ -f "${fixed_md_file}_${i}" ]; then
+		if [ -f "${client_md_file_stack}_${i}" ]; then
 			[ ${i} -eq 1 ] || s="${s}."
 
-			f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}_${i}")"
+			f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}_${i}")"
 
 			# shellcheck disable=SC2154
 			if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
-				"${EASYTLS_RM}" "${fixed_md_file}_${i}" || stack_err=1
+				"${EASYTLS_RM}" "${client_md_file_stack}_${i}" || stack_err=1
 				update_status "stack-down: ${i} STALE"
 				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
-				stale_error "${local_date_ascii} ${fixed_md_file}_${i}"
+				stale_error "${local_date_ascii} ${client_md_file_stack}_${i}"
 			fi
 		else
 			break
 		fi
 	done
 
-	f_date="$("${EASYTLS_DATE}" +%s -r "${fixed_md_file}")"
+	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
 	if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
-		"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
+		"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
 		update_status "stack-down: clear"
 		tlskey_status "  | =  stack: clear -"
-		stale_error "${local_date_ascii} ${fixed_md_file}"
+		stale_error "${local_date_ascii} ${client_md_file_stack}"
 	fi
 
 	# Unlock
@@ -464,10 +464,10 @@ acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
 	unset lock_acquired
-	lock_attempt=9
+	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ ${lock_attempt} -gt 0 ]; do
-		[ ${lock_attempt} -eq 9 ] || retry_pause
+		[ ${lock_attempt} -eq "${LOCK_TIMEOUT}" ] || retry_pause
 		lock_attempt=$(( lock_attempt - 1 ))
 		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
@@ -559,6 +559,7 @@ deps ()
 
 	# Lock dir
 	easytls_lock_stub="${temp_stub}-lock"
+	LOCK_TIMEOUT="${LOCK_TIMEOUT:-30}"
 
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
@@ -697,7 +698,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]; then
-	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
+	client_md_file_stack="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
 else
 	no_uv_tlskey_serial=1

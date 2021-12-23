@@ -73,7 +73,7 @@ help_text ()
 
   12  - Disallow connection, source IPaddr does not match.
 
-  18  - BUG Disallow connection, failed to read c_ext_md_file
+  18  - BUG Disallow connection, failed to read client_md_file_stack
   19  - BUG Disallow connection, failed to parse metadata strig
 
   21  - USER ERROR Disallow connection, options error.
@@ -184,7 +184,7 @@ delete_metadata_files ()
 	# shellcheck disable=SC2154 # auth_control_file
 	"${EASYTLS_RM}" -f "${EASYTLS_KILL_FILE}"
 
-	# stack_down takes care of "${fixed_md_file}"
+	# stack_down takes care of "${client_md_file_stack}"
 
 	update_status "temp-files deleted"
 } # => delete_metadata_files ()
@@ -552,6 +552,11 @@ stack_down ()
 	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
+	[ $ENABLE_STACK ] || return 0
+
+	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
+	[ -f "${client_md_file_stack}" ] || return 0
+
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
 			die "acquire_lock:stack FAIL" 99
@@ -561,43 +566,24 @@ stack_down ()
 	i=0
 	s=''
 
-	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
-	[ -f "${fixed_md_file}" ] || return 0
-
-	# No Stack DOWN
-	if [ ! $ENABLE_STACK ]; then
-		# No-Stack means that this file must be deleted now
-		# No other clients can connect with this TCV2 key
-		"${EASYTLS_RM}" -f "${fixed_md_file}"
-		# || stack_err=1
-		#[ ! $stack_err ] || die "STACK_DOWN_PART_ERROR" 162
-
-		# Unlock
-		release_lock "${easytls_lock_stub}-stack.d" || \
-			die "release_lock:stack FAIL" 99
-		update_status "stack-lock-released"
-
-		return 0
-	fi
-
 	# Full Stack DOWN
 	while :
 	do
 		i=$(( i + 1 ))
-		if [ -f "${fixed_md_file}_${i}" ]; then
+		if [ -f "${client_md_file_stack}_${i}" ]; then
 			[ ${i} -eq 1 ] || s="${s}."
 		else
 			if [ ${i} -eq 1 ]; then
 				# There are no stacked files so delete the original
-				[ -f "${fixed_md_file}" ] || die "***" 163
-				"${EASYTLS_RM}" "${fixed_md_file}" || stack_err=1
+				[ -f "${client_md_file_stack}" ] || die "***" 163
+				"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
 				update_status "stack-down: clear"
 				tlskey_status "  | =  stack: clear -"
 			else
 				# Delete the last file found
 				p=$(( i - 1 ))
-				[ -f "${fixed_md_file}_${p}" ] || die "_i***" 164
-				"${EASYTLS_RM}" "${fixed_md_file}_${p}" || stack_err=1
+				[ -f "${client_md_file_stack}_${p}" ] || die "_i***" 164
+				"${EASYTLS_RM}" "${client_md_file_stack}_${p}" || stack_err=1
 				update_status "stack-down: ${p}"
 				tlskey_status "  | <= stack:- ${s}${p} -"
 			fi
@@ -641,10 +627,10 @@ acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
 	unset lock_acquired
-	lock_attempt=9
+	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ ${lock_attempt} -gt 0 ]; do
-		[ ${lock_attempt} -eq 9 ] || retry_pause
+		[ ${lock_attempt} -eq "${LOCK_TIMEOUT}" ] || retry_pause
 		lock_attempt=$(( lock_attempt - 1 ))
 		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
@@ -759,6 +745,7 @@ deps ()
 
 	# Lock dir
 	easytls_lock_stub="${temp_stub}-lock"
+	LOCK_TIMEOUT="${LOCK_TIMEOUT:-30}"
 
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
@@ -954,13 +941,13 @@ fi
 
 # Fixed file for TLS-CV2
 if [ -n "${UV_TLSKEY_SERIAL}" ]; then
-	fixed_md_file="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
+	client_md_file_stack="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
-	if [ -f "${fixed_md_file}" ]; then
+	if [ -f "${client_md_file_stack}" ]; then
 		# Get client metadata_string
-		metadata_string="$("${EASYTLS_CAT}" "${fixed_md_file}")"
+		metadata_string="$("${EASYTLS_CAT}" "${client_md_file_stack}")"
 		[ -n "${metadata_string}" ] || \
-			fail_and_exit "failed to read fixed_md_file" 18
+			fail_and_exit "failed to read client_md_file_stack" 18
 
 		# Populate client metadata variables
 		metadata_string_to_vars $metadata_string || \
@@ -968,7 +955,7 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 		[ -n "${MD_TLSKEY_SERIAL}" ] || \
 			fail_and_exit "failed to set MD_TLSKEY_SERIAL" 19
 		unset -v metadata_string
-		update_status "fixed_md_file loaded"
+		update_status "client_md_file_stack loaded"
 
 		# shellcheck disable=SC2154
 		if [ "${MD_x509_SERIAL}" = "${client_serial}" ]; then
@@ -998,7 +985,7 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 			}
 		update_status "IGNORE incorrect UV_TLSKEY_SERIAL"
 	fi
-	# Clear one stack now - fixed_md_file is no longer required
+	# Clear one stack now - client_md_file_stack is no longer required
 	stack_down || die "stack_down FAIL" 165
 else
 	# This is correct behaviour for --tls-auth/crypt v1
@@ -1204,7 +1191,8 @@ else
 			# No keyed hwaddr and TLS-crypt-v2
 			connection_allowed
 		else
-			#[ -f "${fixed_md_file}" ] || die "CC Missing fixed_md_file"
+			#[ -f "${client_md_file_stack}" ] || \
+			#		die "CC Missing client_md_file_stack"
 
 			hw_list="${MD_FILTERS%=}"
 			until [ -z "${hw_list}" ]; do
