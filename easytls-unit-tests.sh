@@ -268,9 +268,9 @@ do
 	# github Windows runner takes too long, so just test once
 	if [ $loops -eq 2 ] && [ $EASYTLS_FOR_WINDOWS ]
 	then
-		print "Total verified expected errors = 57"
+		print "Total verified expected errors = $sknown_1"
 		print "total_expected_errors = $total_expected_errors"
-		[ $total_expected_errors -eq 57 ] || {
+		[ $total_expected_errors -eq $sknown_1 ] || {
 			end_time="$(date +%s)"
 			run_mins="$(( (end_time - start_time) / 60 ))"
 			run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
