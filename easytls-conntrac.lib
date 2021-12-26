@@ -137,7 +137,7 @@ conn_trac_disconnect ()
 	fi
 
 	# Pattern to match - Anything after ++ cannot be used
-	ct_pattern="${1%++*}"
+	ct_pattern="${1%%++*}"
 	[ $VERBOSE_CONN_TRAC ] && \
 		update_status "conntrac pattern: ${ct_pattern}"
 
@@ -145,7 +145,7 @@ conn_trac_disconnect ()
 		{
 			while read full_conn
 			do
-				conn="${full_conn%++*}"
+				conn="${full_conn%%++*}"
 				if [ "${conn}" = "${ct_pattern}" ]; then
 					# If record_found then a record has been deleted
 					# Print the remaining duplicates
