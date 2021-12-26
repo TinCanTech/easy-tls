@@ -236,6 +236,12 @@ update_conntrac ()
 	fi
 
 	# shellcheck disable=SC2154
+	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
+		conntrac_record="${conntrac_record}++${time_ascii}"
+	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
+		conntrac_alt_rec="${conntrac_alt_rec}++${time_ascii}"
+	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
+		conntrac_alt2_rec="${conntrac_alt2_rec}++${time_ascii}"
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 	conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
 	conntrac_alt2_rec="${conntrac_alt2_rec}++${untrusted_ip}:${untrusted_port}"
@@ -383,43 +389,44 @@ stack_down ()
 
 	[ $ENABLE_STACK ] || return 0
 
-	# Only required if this file exists
-	[ -f "${client_md_file_stack}" ] || return 0
-
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
 		die "acquire_lock:stack FAIL" 99
 	update_status "stack-lock-acquired"
 
-	unset -v stack_err
-	i=0
-	s=''
+	# Only required if this file exists
+	if [ -f "${client_md_file_stack}" ]; then
 
-	while : ; do
-		i=$(( i + 1 ))
-		if [ -f "${client_md_file_stack}_${i}" ]; then
-			[ ${i} -eq 1 ] || s="${s}."
+		unset -v stack_err
+		i=0
+		s=''
 
-			f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}_${i}")"
+		while : ; do
+			i=$(( i + 1 ))
+			if [ -f "${client_md_file_stack}_${i}" ]; then
+				[ ${i} -eq 1 ] || s="${s}."
 
-			# shellcheck disable=SC2154
-			if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
-				"${EASYTLS_RM}" "${client_md_file_stack}_${i}" || stack_err=1
-				update_status "stack-down: ${i} STALE"
-				tlskey_status "  | =$ stack:- ${s}${i} STALE -"
-				stale_error "${local_date_ascii} ${client_md_file_stack}_${i}"
+				f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}_${i}")"
+
+				# shellcheck disable=SC2154
+				if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
+					"${EASYTLS_RM}" "${client_md_file_stack}_${i}" || stack_err=1
+					update_status "stack-down: ${i} STALE"
+					tlskey_status "  | =$ stack:- ${s}${i} STALE -"
+					stale_error "${local_date_ascii} ${client_md_file_stack}_${i}"
+				fi
+			else
+				break
 			fi
-		else
-			break
-		fi
-	done
+		done
 
-	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
-	if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
-		"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
-		update_status "stack-down: clear"
-		tlskey_status "  | =  stack: clear -"
-		stale_error "${local_date_ascii} ${client_md_file_stack}"
+		f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
+		if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
+			"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
+			update_status "stack-down: clear"
+			tlskey_status "  | =  stack: clear -"
+			stale_error "${local_date_ascii} ${client_md_file_stack}"
+		fi
 	fi
 
 	# Unlock

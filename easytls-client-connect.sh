@@ -466,12 +466,14 @@ update_conntrac ()
 	[ -z "${peer_id}" ] || conntrac_record="${conntrac_record}==${peer_id}"
 
 	# shellcheck disable=SC2154
+	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
+		conntrac_record="${conntrac_record}++${time_ascii}"
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
 			case $? in
 			6)	# Duplicate TLSKEY
-				update_status "conn_trac_connect DUPLICATE_TLSKEY"
+			update_status "conn_trac_connect DUPLICATE_TLSKEY"
 				conntrac_dupl=1
 			;;
 			2)	# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
