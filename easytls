@@ -2297,7 +2297,7 @@ status_easytls_tlskeys ()
 		"${EASYTLS_PRINTF}" '%s\t'   "Common-Name ${common_name}"
 		[ "${sub_key}" = 'NOSUBKEY' ] || \
 			"${EASYTLS_PRINTF}" '%s\t' "sub-key ${sub_key}"
-		"${EASYTLS_PRINTF}" '\n'
+		"${EASYTLS_PRINTF}" '%s\n' " : ${tlskey_serial}"
 
 		# List
 		etls_valid_tlskey_list="${etls_valid_tlskey_list} ${tlskey_serial}"
