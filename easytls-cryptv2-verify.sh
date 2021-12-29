@@ -532,28 +532,29 @@ write_metadata_file ()
 		die "acquire_lock:stack FAIL" 99
 	update_status "stack-lock-acquired"
 
-	# Stack up duplicate metadata files or fail - vars ENABLE_STACK
-	if [ -f "${client_md_file_stack}" ]
-	then
+	# Stack up duplicate metadata files - check for split_stack
+	unset split_stack
+	if [ -f "${client_md_file_stack}" ]; then
 		stack_up || die "stack_up" 160
 	fi
 
-	if [ -f "${client_md_file_stack}" ]
-	then
-		# If client_md_file_stack still exists then fail
-		tlskey_status "STALE_FILE_ERROR"
-		keep_metadata=1
-		die "STALE_FILE_ERROR" 101
+	if [ $split_stack ]; then
+		update_status "split_stack"
 	else
-		# Otherwise stack-up
-		if [ $split_stack ]; then
-			update_status "split_stack"
+		if [ -f "${client_md_file_stack}" ]; then
+			# If client_md_file_stack still exists then fail
+			tlskey_status "STALE_FILE_ERROR"
+			keep_metadata=1
+			die "STALE_FILE_ERROR" 101
 		else
-			"${EASYTLS_MV}" "${OPENVPN_METADATA_FILE}" "${client_md_file_stack}" || \
-				die "Failed to create client_md_file_stack" 89
+			# Otherwise stack-up
+			"${EASYTLS_MV}" "${OPENVPN_METADATA_FILE}" \
+				"${client_md_file_stack}" || \
+					die "Failed to update client_md_file_stack" 89
 			update_status "Created client_md_file_stack"
 		fi
 	fi
+
 	# Lock
 	release_lock "${easytls_lock_stub}-stack.d" || \
 		die "release_lock:stack FAIL" 99
@@ -573,6 +574,7 @@ stack_up ()
 	unset split_stack
 	if [ $(( local_time_unix - f_date )) -gt 60 ]; then
 		split_stack=1
+		return 0
 	fi
 
 	# Full Stack UP
