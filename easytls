@@ -2287,17 +2287,18 @@ status_easytls_tlskeys ()
 		if  [ "${tlskey_serial}" = "${cv2_Srv_Serial}" ]; then
 			# Must be a server key with no metadata
 			# All server key tls-serial are only 40 chars, no need for SHA256
-			"${EASYTLS_PRINTF}" '%s\t'   "  Server"
+			"${EASYTLS_PRINTF}" '%s\t' "  Server"
 		else
 			[ -f "${metadata_debug}" ] || \
-				"${EASYTLS_PRINTF}" '%s\t'   "Missing metadata"
-			"${EASYTLS_PRINTF}" '%s\t'   "    Client"
+				"${EASYTLS_PRINTF}" '%s\t' "  * Missing metadata"
+			"${EASYTLS_PRINTF}" '%s\t' "    Client"
 		fi
 
-		"${EASYTLS_PRINTF}" '%s\t'   "Common-Name ${common_name}"
+		"${EASYTLS_PRINTF}" '%s  ' "${tlskey_serial}"
+		"${EASYTLS_PRINTF}" '%s  ' "Common-Name ${common_name}"
 		[ "${sub_key}" = 'NOSUBKEY' ] || \
-			"${EASYTLS_PRINTF}" '%s\t' "sub-key ${sub_key}"
-		"${EASYTLS_PRINTF}" '%s\n' " : ${tlskey_serial}"
+			"${EASYTLS_PRINTF}" '%s  ' "sub-key ${sub_key}"
+		"${EASYTLS_PRINTF}" '\n'
 
 		# List
 		etls_valid_tlskey_list="${etls_valid_tlskey_list} ${tlskey_serial}"
@@ -3321,7 +3322,7 @@ remove_tlskey ()
 		}
 
 	# Check required files (No metadata_file for servers)
-	[ -f "${cert_file}" ] || missing_file "${cert_file}"
+	#[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
 
 	# Get tlskey serial number from tlskey-index
