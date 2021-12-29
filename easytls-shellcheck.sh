@@ -1,6 +1,6 @@
 #!/bin/sh
 
-./easytls version
+./easytls version || { echo 'croak!' && exit 1; }
 
 shellcheck_bin='shellcheck'
 [ -f '../shellcheck' ] && shellcheck_bin='../shellcheck'
@@ -9,7 +9,7 @@ shellcheck_bin='shellcheck'
 #	exit 1
 #	}
 
-"${shellcheck_bin}" --version
+"${shellcheck_bin}" --version || { echo 'croak!' && exit 1; }
 
 # shell-o check-o doesn't have -v
 if [ "${1}" = '-v' ]; then
