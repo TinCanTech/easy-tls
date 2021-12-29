@@ -20,7 +20,6 @@
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
 #ENABLE_CONN_TRAC_STATS=1
-#ENABLE_CONNTRAC_TIMESTAMP=1
 
 # Be careful ..
 #FATAL_CONN_TRAC=1

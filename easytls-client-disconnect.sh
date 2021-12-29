@@ -236,12 +236,11 @@ update_conntrac ()
 	fi
 
 	# shellcheck disable=SC2154
-	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
-		conntrac_record="${conntrac_record}++${time_ascii}"
-	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
-		conntrac_alt_rec="${conntrac_alt_rec}++${time_ascii}"
-	[ $ENABLE_CONNTRAC_TIMESTAMP ] && \
-		conntrac_alt2_rec="${conntrac_alt2_rec}++${time_ascii}"
+	conntrac_record="${conntrac_record}==${time_ascii}"
+	conntrac_alt_rec="${conntrac_alt_rec}==${time_ascii}"
+	conntrac_alt2_rec="${conntrac_alt2_rec}==${time_ascii}"
+
+	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 	conntrac_alt_rec="${conntrac_alt_rec}++${untrusted_ip}:${untrusted_port}"
 	conntrac_alt2_rec="${conntrac_alt2_rec}++${untrusted_ip}:${untrusted_port}"
