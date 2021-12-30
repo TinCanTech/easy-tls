@@ -107,8 +107,8 @@ Use the 'help' command above to get full usage details.
          | inline-index-rebuild
   ix     | inline-expire <filename_base>
   cx     | cert-expire <filename_base> | <ca>
-  d      | disable <filename_base>
-  e      | enable <filename_base>
+  d      | disable <filename_base> (Or display the current disabled list)
+  e      | enable <filename_base> (Or display the current disabled list)
          | disabled-list-rehash
   sid    | save-id
   ver    | version
@@ -1258,8 +1258,8 @@ You are about to remove the EASYTLS_PKI at: ${EASYTLS_PKI}
 and initialize a fresh TLS PKI here."
 		# now remove it:
 		exec 6<&-
-		"${EASYTLS_RM}" -rf "${EASYTLS_PKI}" \
-		|| die "Removal of TLS dir failed. Check/correct errors above"
+		"${EASYTLS_RM}" -rf "${EASYTLS_PKI}" || \
+			die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
 	# Create easytls dir in EasyRSA-PKI dir
@@ -1281,6 +1281,7 @@ and initialize a fresh TLS PKI here."
 		read -r <&6 EASYTLS_lock_PID
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
+		unset update_wiscii_hash
 	else
 		# Easy-TLS is not initialised
 		:
@@ -1371,6 +1372,7 @@ and initialize a fresh TLS PKI here."
 	# Create empty master hash
 	"${EASYTLS_PRINTF}" '%s' "" > "${EASYTLS_WISCII_HASH}" || \
 		die "Create master-hash failed"
+	save_wiscii_hash || die "easytls_rehash"
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
@@ -1694,7 +1696,7 @@ save_file_hash ()
 		error_msg "save hash - save_file_hash"
 		return 1
 		}
-
+	update_wiscii_hash=1
 	unset -v hash_file valid_hash valid_target
 } # => save_file_hash ()
 
@@ -2603,6 +2605,7 @@ inline_index_save_hash ()
 			error_msg "generate_and_save_file_hash - inline_index_save_hash"
 			return 1
 			}
+	update_wiscii_hash=1
 	easytls_verbose "Inline-index hash save OK"
 } # => inline_index_save_hash ()
 
@@ -2903,6 +2906,7 @@ remove_metadata ()
 inline_index_rebuild ()
 {
 	# Temporarily disable
+	warn "inline_index_rebuild is currently disabled."
 	return 0
 
 	# TODO
@@ -3169,6 +3173,7 @@ tlskey_index_save_hash ()
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
+	update_wiscii_hash=1
 	easytls_verbose "tlskey-index hash save OK"
 } # => tlskey_index_save_hash ()
 
@@ -4610,6 +4615,7 @@ build_tls_auth ()
 		die "Failed to create TLS auth key: ${tlskey_file}"
 
 	notice "TLS auth key created: ${tlskey_file}"
+	update_wiscii_hash=1
 	easytls_verbose
 } # => build_tls_auth ()
 
@@ -4633,6 +4639,7 @@ build_tls_crypt_v1 ()
 		die "Failed to create TLS crypt v1 key: ${tlskey_file}"
 
 	notice "TLS crypt v1 key created: ${tlskey_file}"
+	update_wiscii_hash=1
 	easytls_verbose
 } # => build_tls_crypt_v1 ()
 
@@ -5705,6 +5712,8 @@ create_self_sign_cert_pair ()
 		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text \
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 		${openssl_eku}=${EASYTLS_EKU} || return 1
+
+	update_wiscii_hash=1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
 } # => create_self_sign_cert_pair ()
 
@@ -5770,54 +5779,59 @@ save_id ()
 # Manage easytls/disabled-list.txt - Used by easytls-cryptv2-verify.sh
 disabled_list_manager ()
 {
-	action="${1}"
+	[ $# -ge 1 ] || die "Required option(s): disable|enable <NAME>"
 
-	case ${action} in
-	rehash)
-		# This needs more work to recreate the Date stamps.
-		disabled_list_update_and_hash || die "Failed to rehash disabled-list."
-		notice "disabled-list rehash successful."
+	action="${1}"; shift
+	if [ -z "${1}" ]; then
+		easytls_verbose
+		"${EASYTLS_CAT}" "${EASYTLS_DISABLED_LIST}"
+		easytls_verbose
 		return 0
-	;;
-	enable|disable)
-		: # Allow
-	;;
-	*)
-		die "disabled_list_manager - Invalid action: ${action}"
-	;;
-	esac
+	fi
+	name="${1}"; shift
 
-	# Verify disabled-list Hash
-	disabled_list_verify_hash || die "Disabled list is corrupt."
-
-	name="${2}"
 	if [ $EASYTLS_NO_CA ]; then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
-		[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	else
 		cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-		[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	fi
 
-	# get the serial number of the certificate from OpenSSL
-	# https://github.com/TinCanTech/easy-tls/issues/80
-	x509_cert_serial "${cert_file}" cert_serial || \
-		die "disabled_list_manager - cert_serial"
+	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
+	metadata_file="${EASYTLS_MD_DIR}/${name}-tls-crypt-v2.metadata"
 
-	# Check unique record from tlskey-index
-	"${EASYTLS_GREP}" -q \
-		"${cert_serial}[[:blank:]]${name}[[:blank:]]${TLSKEY_SUBNAME}" \
-		"${EASYTLS_KEY_INDEX}" || die "No valid tlskey for this certificate"
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+		full_name="${name}-${TLSKEY_SUBNAME}"
+		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_file="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		}
 
-	# Get tlskey-serial number from tlskey-index
+	# Check required files (No metadata_file for servers)
+	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
+	[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
+
+	# Get tlskey serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
 
-	# Test it
+	# Verify this tlskey-serial
 	validate_hash "${tlskey_serial}" || {
 		error_msg "disabled_list_manager - tlskey_serial failed: ${tlskey_serial}"
 		unset -v tlskey_serial
 		return 1
 		}
+
+	# Get x509 serial number from tlskey-index
+	cert_serial="$(tlskey_index_fname_2_x509ser)" || \
+		die "disabled_list_manager - cert_serial"
+
+	# Verify this cert-serial
+	verify_cert_serial "${cert_serial}" || \
+		die "disabled_list_manager - verify_cert_serial"
+
+	# Confirm remove
+	confirm  "${action} tlskey file ? " "yes" "${action}: ${tlskey_file}"
+
+	# Verify disabled-list Hash
+	disabled_list_verify_hash || die "Disabled list is corrupt."
 
 	# Check disabled-list for this tlskey-serial
 	if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
@@ -5889,7 +5903,7 @@ disabled_list_manager ()
 			:
 		fi
 	;;
-	*) die "disabled-list action invalid: ${1}"
+	*) die "disabled-list action invalid: ${action}"
 	;;
 	esac
 
@@ -5902,10 +5916,9 @@ disabled_list_manager ()
 			error_msg "disabled_list_update_and_hash - failed"
 			return 1
 			}
-
-		notice "Updated disabled-list: ${name} ${1}d"
+		notice "Updated disabled-list: ${name} ${action}d"
 	else
-		notice "No change: ${name} is already ${1}d"
+		notice "No change: ${name} is already ${action}d"
 	fi
 	easytls_verbose
 } # => disabled_list_manager ()
@@ -5974,6 +5987,7 @@ disabled_list_save_hash ()
 			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
+	update_wiscii_hash=1
 	easytls_verbose "Disabled-list hash save OK"
 } # => disabled_list_save_hash ()
 
@@ -8521,6 +8535,8 @@ save_wiscii_hash ()
 {
 	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
 
+	[ $update_wiscii_hash ] || return 0
+
 	if [ -f "${EASYTLS_WISCII_HASH}" ]; then
 		bottled_wiscii="$("${EASYTLS_CAT}" "${EASYTLS_WISCII_HASH}")" || {
 		error_msg "read EASYTLS_WISCII_HASH"
@@ -8991,6 +9007,7 @@ main ()
 		read -r <&6 EASYTLS_lock_PID
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
+		unset update_wiscii_hash
 	else
 		# Easy-TLS is not initialised
 		:
@@ -9005,24 +9022,23 @@ main ()
 	# case 1
 
 	''|help|-h|--help|--usage)
-		cmd_help "${1}" || \
-			die "Error: cmd_help"
+		cmd_help "${1}" || die "cmd_help"
 		return 0
 	;;
 	ver|version)
-		easytls_version || :
-		exit
+		easytls_version || die "easytls_version"
+		return 0
 	;;
 	init|init-tls)
-		init_tls "$@" || \
-			die "Error: init_tls"
+		init_tls "$@" || die "init_tls"
+		return 0
 	;;
 	vhw)
 		hw_addr_hex_check "$@" || {
 			print "Invalid HW address: ${*}"
 			exit 1
 			}
-		exit
+		return 0
 	;;
 	vip)
 		validate_ip_address "$@" || {
@@ -9030,7 +9046,7 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len} ** TODO"
-		exit
+		return 0
 	;;
 	v4ip)
 		validate_ip4_data "$@" || {
@@ -9039,7 +9055,7 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len}"
-		exit
+		return 0
 	;;
 	x4ip)
 		expand_ip4_address "$@" || {
@@ -9048,7 +9064,7 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len}"
-		exit
+		return 0
 	;;
 	v6ip)
 		validate_ip6_data "$@" || {
@@ -9057,7 +9073,7 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_hextets}/${mask_len}"
-		exit
+		return 0
 	;;
 	x6ip)
 		expand_ip6_address "$@" || {
@@ -9067,7 +9083,7 @@ main ()
 			}
 		print "* full_valid_hextets: ${full_valid_hextets}"
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
-		exit
+		return 0
 	;;
 	*)
 		# Rehash before everything
@@ -9075,6 +9091,7 @@ main ()
 		rehash)
 			unset FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
+			return 0
 		esac
 
 		# Load config options - Does not change command line options

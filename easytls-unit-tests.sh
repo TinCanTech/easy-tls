@@ -246,7 +246,7 @@ sknown_2=42
 subtot_3=0
 sknown_3=42
 subtot_expected_errors=0
-sknown_expected_errors=77
+sknown_expected_errors=78
 known_expected_errors=$(( sknown_1 + sknown_2 + sknown_3 + sknown_expected_errors ))
 
 QUIT_LOOP=${QUIT_LOOP:-0}
@@ -659,12 +659,13 @@ printf '\n\n\n%s\n\n\n' "Now test a cross-polinated TCV2 key"
 DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	# Test tls-crypt-v2-verify.sh
+	export metadata_file="$DBUG_DIR/test-tls-crypt-v2.metadata"
 	for c in "c01" "c05" "c06" "c07-nomd" "c09"
 	do
+		rm "${metadata_file}"
 		print "============================================================"
 		print "real_metadata_file=$DBUG_DIR/${c}-tls-crypt-v2.metadata"
 		export real_metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
-		export metadata_file="$DBUG_DIR/test-tls-crypt-v2.metadata"
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
@@ -855,24 +856,28 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	#	fail "Unit test error 72: $TEST_CMD"
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS v4ip 1.2.3.0/24"
-	"$EASYTLS_CMD" $EASYTLS_OPTS v4ip 1.2.3.0/24 || \
-		fail "Unit test error 71: v4ip 1.2.3.0/24"
+	print "$EASYTLS_CMD $EASYTLS_OPTS v4ip 1.2.3.4/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v4ip 1.2.3.4/24 || expected_errors $?
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS x4ip 1.2.3.4/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.4/24 || expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS x4ip 1.2.3.0/24"
-	"$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.0/24 || \
-		fail "Unit test error 71: x4ip 1.2.3.0/24"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.0/24 || expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS v6ip 2000::1:2:3:4/64"
-	"$EASYTLS_CMD" $EASYTLS_OPTS v6ip 2000::1:2:3:4/64 || \
-		fail "Unit test error 71: v6ip 2000::1:2:3:4/64"
+	"$EASYTLS_CMD" $EASYTLS_OPTS v6ip 2000::1:2:3:4/64 || expected_errors $?
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS x6ip 2000:1:2:3:4::/80"
-	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3:4::/80 || \
-		fail "Unit test error 71: x6ip 2000:1:2:3:4::/80"
+	print "$EASYTLS_CMD $EASYTLS_OPTS x6ip 2000::1:2:3:4/64"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000::1:2:3:4/64 || expected_errors $?
+
+	print "------------------------------------------------------------"
+	print "$EASYTLS_CMD $EASYTLS_OPTS x6ip 2000:1:2:3::/64"
+	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3::/64 || expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "$EASYTLS_CMD $EASYTLS_OPTS version"
