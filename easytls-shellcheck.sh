@@ -1,7 +1,5 @@
 #!/bin/sh
 
-./easytls version || { echo 'croak!' && exit 1; }
-
 shellcheck_bin='shellcheck'
 [ -f '../shellcheck' ] && shellcheck_bin='../shellcheck'
 #[ -f "${shellcheck_bin}" ] || {
@@ -88,6 +86,8 @@ exit_status=$(( 	sc_easytls + \
 					sc_easytls_shellcheck \
 			 ))
 printf '\n'
+
+./easytls version || { echo 'croak!' && exit 1; }
 
 # dirty trick to fool my CI and still record a fail
 # IMHO, shellcheck should check for this but does not ...
