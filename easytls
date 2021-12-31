@@ -1372,7 +1372,8 @@ and initialize a fresh TLS PKI here."
 	# Create empty master hash
 	"${EASYTLS_PRINTF}" '%s' "" > "${EASYTLS_WISCII_HASH}" || \
 		die "Create master-hash failed"
-	save_wiscii_hash || die "easytls_rehash"
+echo "update_wiscii_hash: $update_wiscii_hash"
+	save_wiscii_hash || die "save_wiscii_hash"
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
@@ -1619,8 +1620,8 @@ openssl_base64_data ()
 validate_hash ()
 {
 	[ ${#} -eq 1 ] || {
-		help_note="input: ${*}"
-		die "validate_hash - invalid input"
+		error_msg "validate_hash - invalid input: ${*}"
+		return 1
 		}
 
 	test_hash="${1}"
@@ -1628,7 +1629,7 @@ validate_hash ()
 
 	# Verify length
 	[ ${test_length} -eq ${fixed_length} ] || {
-		error_msg "validate_hash - test_length"
+		error_msg "validate_hash - test_length: ${test_length}"
 		unset -v test_hash test_length
 		return 1
 		}
@@ -1680,6 +1681,7 @@ save_file_hash ()
 
 	# Must be a valid target fle
 	unset -v valid_target
+	[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
@@ -8399,6 +8401,16 @@ generate_wiscii_hash ()
 		# inline_file MUST exist
 		[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
+		if [ -n "${inline_file_list}" ]; then
+			inline_file_list="${inline_file_list}
+${inline_file}"
+		else
+			inline_file_list="${inline_file}"
+		fi
+
+		# Faster hash does not require individual file hashes
+		[ $want_faster_hash ] && continue
+
 		# Hash inline_file
 		generate_and_validate_file_hash \
 			"${inline_file}" generated_valid_hash || {
@@ -8419,13 +8431,20 @@ generate_wiscii_hash ()
 
 	done < "${EASYTLS_INLINE_INDEX}"
 
+	if [ -n "${inline_file_list}" ]; then
+		inline_file_list="${inline_file_list}
+${EASYTLS_INLINE_INDEX}"
+	else
+		inline_file_list="${EASYTLS_INLINE_INDEX}"
+	fi
+
 	# Clean up
 	unset -v inline_file generated_valid_hash \
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Hash inline_seed
 	inline_seed_hash=
-	if [ -n "${inline_seed}" ]; then
+	if [ -z "$want_faster_hash" ] && [ -n "${inline_seed}" ]; then
 		generate_and_validate_data_hash "${inline_seed}" inline_seed_hash || {
 			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "inline_seed '${inline_seed}'"
@@ -8447,6 +8466,16 @@ generate_wiscii_hash ()
 		"${EASYTLS_PKI}/tls-auth.key" "${EASYTLS_PKI}/tls-crypt.key"
 	do
 		if [ -f "${tlskey_file}" ]; then
+			if [ -n "${tlskey_file_list}" ]; then
+				tlskey_file_list="${tlskey_file_list}
+${tlskey_file}"
+			else
+				tlskey_file_list="${tlskey_file}"
+			fi
+
+			# Faster hash does not require individual file hashes
+			[ $want_faster_hash ] && continue
+
 			generate_and_validate_file_hash \
 				"${tlskey_file}" generated_valid_hash || {
 				error_msg "generate_wiscii_hash - generate_and_validate_file_hash"
@@ -8473,6 +8502,16 @@ generate_wiscii_hash ()
 		# tlskey_file MUST exist
 		[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
 
+		if [ -n "${tlskey_file_list}" ]; then
+			tlskey_file_list="${tlskey_file_list}
+${tlskey_file}"
+		else
+			tlskey_file_list="${tlskey_file}"
+		fi
+
+		# Faster hash does not require individual file hashes
+		[ $want_faster_hash ] && continue
+
 		# Hash tlskey_file
 		generate_and_validate_file_hash \
 			"${tlskey_file}" generated_valid_hash || {
@@ -8485,12 +8524,20 @@ generate_wiscii_hash ()
 		tlskey_seed="${tlskey_seed}${generated_valid_hash}"
 
 	done < "${EASYTLS_KEY_INDEX}"
+
+	if [ -n "${tlskey_file_list}" ]; then
+		tlskey_file_list="${tlskey_file_list}
+${EASYTLS_KEY_INDEX}"
+	else
+		tlskey_file_list="${EASYTLS_KEY_INDEX}"
+	fi
+
 	unset -v tlskey_file generated_valid_hash \
 		tlskey_serial cert_serial_UNUSED CN sub_key
 
 	# Hash tlskey_seed
 	tlskey_seed_hash=
-	if [ -n "${tlskey_seed}" ]; then
+	if [ ! $want_faster_hash ] && [ -n "${tlskey_seed}" ]; then
 		generate_and_validate_data_hash "${tlskey_seed}" tlskey_seed_hash || {
 			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "tlskey_seed ${tlskey_seed}"
@@ -8502,32 +8549,38 @@ generate_wiscii_hash ()
 		:
 	fi
 
-	# Build Master seed
-	wiscii_seed="${wiscii_seed}${tlskey_seed_hash}"
-	unset -v tlskey_seed tlskey_seed_hash
+	if [ ! $want_faster_hash ]; then
+		# Build Master seed
+		wiscii_seed="${wiscii_seed}${tlskey_seed_hash}"
+		unset -v tlskey_seed tlskey_seed_hash
 
-	# Include other file hashes
-	config_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_CONFIG_HASH}")" || {
-		error_msg "read EASYTLS_CONFIG_HASH"
-		return 1
-		}
-	wiscii_seed="${wiscii_seed}${config_file_hash}"
-	disabled_list_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_DISABLED_HASH}")" || {
-		error_msg "read EASYTLS_DISABLED_HASH"
-		return 1
-		}
-	wiscii_seed="${wiscii_seed}${disabled_list_file_hash}"
+		# Include other file hashes
+		config_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_CONFIG_HASH}")" || {
+			error_msg "read EASYTLS_CONFIG_HASH"
+			return 1
+			}
+		wiscii_seed="${wiscii_seed}${config_file_hash}"
+		disabled_list_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_DISABLED_HASH}")" || {
+			error_msg "read EASYTLS_DISABLED_HASH"
+			return 1
+			}
+		wiscii_seed="${wiscii_seed}${disabled_list_file_hash}"
 
-	# master a.k.a. wiscii hash
-	wiscii_hash=
-	generate_and_validate_data_hash "${wiscii_seed}" wiscii_hash || {
-		error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
-		error_msg "wiscii_seed ${wiscii_seed}"
-		error_msg "wiscii_hash ${wiscii_hash}"
-		return 1
-		}
-	counted_wiscii="${wiscii_hash}"
-	unset -v wiscii_hash wiscii_seed disabled_list_file_hash config_file_hash
+		# master a.k.a. wiscii hash
+		wiscii_hash=
+		generate_and_validate_data_hash "${wiscii_seed}" wiscii_hash || {
+			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
+			error_msg "wiscii_seed ${wiscii_seed}"
+			error_msg "wiscii_hash ${wiscii_hash}"
+			return 1
+			}
+		counted_wiscii="${wiscii_hash}"
+		unset -v wiscii_hash wiscii_seed disabled_list_file_hash config_file_hash
+	fi
+
+	util_file_list="${EASYTLS_CONFIG_FILE}
+${EASYTLS_DISABLED_LIST}"
+
 } # => generate_wiscii_hash ()
 
 # Save wiscii hash
@@ -8593,6 +8646,50 @@ verify_wiscii_hash ()
 		}
 	easytls_verbose "verify_master_hash OK"
 } # => verify_wiscii_hash ()
+
+# Master hash
+generate_faster_hash ()
+{
+	want_faster_hash=1
+	unset inline_file_list tlskey_file_list util_file_list
+	# Generate the lists above
+	generate_wiscii_hash || die "generate_faster_hash/generate_wiscii_hash"
+	unset want_faster_hash
+
+	# Missing file are part of the test
+	generated_faster_hash="$(
+		{
+			for f in ${inline_file_list}; do
+				"${EASYTLS_CAT}" "${f}"
+			done
+			for f in ${tlskey_file_list}; do
+				"${EASYTLS_CAT}" "${f}"
+			done
+			for f in ${util_file_list}; do
+				"${EASYTLS_CAT}" "${f}"
+			done
+		} | openssl_generate_data_hash
+	)" || die "generate_faster_hash/faster_hash"
+	unset inline_file_list tlskey_file_list util_file_list
+	generated_faster_hash="${generated_faster_hash%% *}"
+} # => generate_faster_hash ()
+
+# Save faster hash
+save_faster_hash ()
+{
+	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
+	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
+		die "save_faster_hash"
+} # => save_faster_hash ()
+
+# Verify faster hash
+verify_faster_hash ()
+{
+	[ -f  "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
+	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
+	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
+	[ "${generated_faster_hash}" = "${saved_faster_hash}" ] && return 0
+} # => verify_faster_hash ()
 
 
 
@@ -8808,6 +8905,7 @@ vars_setup()
 	set_var EASYTLS_PKI             "${EASYRSA_PKI}/easytls"
 	set_var EASYTLS_MD_DIR          "${EASYTLS_PKI}/metadata"
 	set_var EASYTLS_DATA_DIR        "${EASYTLS_PKI}/data"
+	set_var EASYTLS_FASTER_HASH		"${EASYTLS_DATA_DIR}/easytls-faster.hash"
 	set_var EASYTLS_WISCII_HASH     "${EASYTLS_DATA_DIR}/easytls-wiscii.hash"
 	set_var EASYTLS_CONFIG_FILE     "${EASYTLS_DATA_DIR}/easytls-config.txt"
 	set_var EASYTLS_CONFIG_HASH     "${EASYTLS_DATA_DIR}/easytls-config.hash"
@@ -9105,6 +9203,25 @@ main ()
 			exit 1
 			}
 		[ $EASYTLS_NO_CA ] || verify_pki_init
+
+		case "${cmd}" in
+		gfh|gen-fast-hash)
+			generate_faster_hash "$@" || die "generate_faster_hash"
+			print "generated_faster_hash: ${generated_faster_hash}"
+			return 0
+		;;
+		sfh|save-fast-hash)
+			save_faster_hash "$@" || die "save_faster_hash"
+			print "saved_faster_hash: ${generated_faster_hash}"
+			return 0
+		;;
+		vfh|verify-faster-hash)
+			verify_faster_hash "$@" || die "verify_faster_hash"
+			print "generated_faster_hash: ${generated_faster_hash}"
+			print "saved_faster_hash    : ${saved_faster_hash}"
+			return 0
+		;;
+		esac
 
 		# Verify me!
 		verify_wiscii_hash || {
