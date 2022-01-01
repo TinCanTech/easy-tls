@@ -285,12 +285,14 @@ cmd_help()
   d|disable <filename_base>
       Add serial number for <filename_base> to the disabled list
       for immediate use by the easytls-cryptv2-verify.sh script.
-      This also supports --sub-key-name for clients with multiple keys" ;;
+      This also supports --sub-key-name for clients with multiple keys.
+      If no <filename_base> is given then show the disabled-list." ;;
 		e|enable) text="
   e|enable <filename_base>
       Remove serial number for <filename_base> from the disabled list
       for immediate use by the easytls-cryptv2-verify.sh script.
-      This also supports --sub-key-name for clients with multiple keys" ;;
+      This also supports --sub-key-name for clients with multiple keys.
+      If no <filename_base> is given then show the disabled-list." ;;
 		disabled-list-rehash) text="
   disabled-list-rehash
        Rehash the disabled-list if the current hash is corrupted.
@@ -1214,7 +1216,6 @@ verify_tls_init ()
 {
 	if \
 		[ -d "${EASYTLS_PKI}" ] && \
-		[ -f "${EASYTLS_WISCII_HASH}" ] && \
 		[ -f "${EASYTLS_CONFIG_FILE}" ] && \
 		[ -f "${EASYTLS_CONFIG_HASH}" ] && \
 		[ -f "${EASYTLS_INLINE_INDEX}" ] && \
@@ -1369,11 +1370,8 @@ and initialize a fresh TLS PKI here."
 		unset -v EASYTLS_INIT
 	fi
 
-	# Create empty master hash
-	"${EASYTLS_PRINTF}" '%s' "" > "${EASYTLS_WISCII_HASH}" || \
-		die "Create master-hash failed"
-echo "update_wiscii_hash: $update_wiscii_hash"
-	save_wiscii_hash || die "save_wiscii_hash"
+	# Save master hash
+	save_master_hash || die "save_master_hash"
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
@@ -1459,7 +1457,7 @@ easytls_rehash ()
 	forbidden_hash="${forbidden_hash%% *}"
 	config_save_hash || die "config_save_hash - easytls_rehash"
 	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
-	save_wiscii_hash || die "save_wiscii_hash - easytls_rehash"
+	save_master_hash || die "save_master_hash - easytls_rehash"
 } # => easytls_rehash ()
 
 # Generate file hash - Return $generated_valid_hash
@@ -4050,7 +4048,6 @@ inline_tls_cv2_group_server ()
 			add-dh) cmd_opts="${cmd_opts} add-dh" ;;
 			no-key) cmd_opts="${cmd_opts} no-key" ;;
 			no-md) no_metadata=1 ;;
-			#add-hw) add_hardware=1 ;;
 			*) warn "Ignoring unknown command option: '${1}'" ;;
 		esac
 		shift
@@ -4068,12 +4065,10 @@ inline_tls_cv2_group_server ()
 	[ "${cert_purpose}" = 'Server' ] || die "Require Server Certificate"
 
 	# Set file names
-	#tlskey_file="${EASYTLS_PKI}/${group_key}-grp-srv-tls-crypt-v2.key"
 	tlskey_file="${EASYTLS_PKI}/${group_key}-tls-crypt-v2.key"
 	inline_file="${EASYTLS_PKI}/${file_name_stub}.inline"
 	inline_temp="${EASYTLS_PKI}/${file_name_stub}.temp"
 	inline_base="${EASYTLS_PKI}/${file_name_stub}.base"
-	#metadata_file="${EASYTLS_MD_DIR}/${group_key}-grp-srv-tls-crypt-v2.metadata"
 	metadata_file="${EASYTLS_MD_DIR}/${group_key}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
@@ -4204,7 +4199,6 @@ inline_tls_cv2_group_client ()
 	cmd_opts=""
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			#add-dh) cmd_opts="${cmd_opts} add-dh" ;;
 			no-key) cmd_opts="${cmd_opts} no-key" ;;
 			no-md) no_metadata=1 ;;
 			add-hw) add_hardware=1 ;;
@@ -4225,12 +4219,10 @@ inline_tls_cv2_group_client ()
 	[ "${cert_purpose}" = 'Client' ] || die "Require Client Certificate"
 
 	# Set file names
-	#tlskey_file="${EASYTLS_PKI}/${group_key}-grp-cli-tls-crypt-v2.key"
 	tlskey_file="${EASYTLS_PKI}/${group_key}-tls-crypt-v2.key"
 	inline_file="${EASYTLS_PKI}/${file_name_stub}.inline"
 	inline_temp="${EASYTLS_PKI}/${file_name_stub}.temp"
 	inline_base="${EASYTLS_PKI}/${file_name_stub}.base"
-	#metadata_file="${EASYTLS_MD_DIR}/${group_key}-grp-cli-tls-crypt-v2.metadata"
 	metadata_file="${EASYTLS_MD_DIR}/${group_key}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
@@ -8366,6 +8358,26 @@ import_key ()
 # EASYTLS master a.k.a. wiscii hash Section
 #
 
+# Choose hash algorithm and verify hash
+verify_master_hash ()
+{
+	if [ -n "${use_wiscii_hash}" ]; then
+		verify_wiscii_hash || die "verify_wiscii_hash"
+	else
+		verify_faster_hash || die "verify_faster_hash"
+	fi
+} # => verify_master_hash ()
+
+# Choose hash algorithm and save hash
+save_master_hash ()
+{
+	if [ -n "${use_wiscii_hash}" ]; then
+		save_wiscii_hash || die "save_wiscii_hash"
+	else
+		save_faster_hash || die "save_faster_hash"
+	fi
+} # => save_master_hash ()
+
 # riscii wiscii hash
 generate_wiscii_hash ()
 {
@@ -9205,7 +9217,7 @@ main ()
 		[ $EASYTLS_NO_CA ] || verify_pki_init
 
 		case "${cmd}" in
-		gfh|gen-fast-hash)
+		gfh|generate-fast-hash)
 			generate_faster_hash "$@" || die "generate_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			return 0
@@ -9215,7 +9227,7 @@ main ()
 			print "saved_faster_hash: ${generated_faster_hash}"
 			return 0
 		;;
-		vfh|verify-faster-hash)
+		vfh|verify-fast-hash)
 			verify_faster_hash "$@" || die "verify_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			print "saved_faster_hash    : ${saved_faster_hash}"
@@ -9224,11 +9236,7 @@ main ()
 		esac
 
 		# Verify me!
-		verify_wiscii_hash || {
-			help_note='
- * Some files have been manually altered, restore the changes to continue..'
-			die "Master hash check failed"
-			}
+		verify_master_hash || die "verify_master_hash"
 
 		# Set "Temp-Dir of last resort", if not already set by config
 		if [ $EASYTLS_FOR_WINDOWS ]; then
@@ -9414,7 +9422,7 @@ main ()
 	easytls_auto_check || die "easytls_auto_check fail"
 
 	# save me!
-	save_wiscii_hash || die "save master hash fail"
+	save_master_hash || die "save_master_hash"
 } # => main ()
 
 main "$@" || die "main $*"
