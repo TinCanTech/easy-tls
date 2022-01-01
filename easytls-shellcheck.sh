@@ -10,17 +10,30 @@ shellcheck_bin='shellcheck'
 "${shellcheck_bin}" --version || { echo 'croak!' && exit 1; }
 
 # shell-o check-o doesn't have -v
-if [ "${1}" = '-v' ]; then
+if [ "${1}" = '-v' ] || [ $EASYTLS_VERBOSE ]; then
 	shift
-	export SHELLCHECK_OPTS="--shell=sh -x $*"
-elif [ $EASYTLS_VERBOSE ]; then
-	export SHELLCHECK_OPTS="--shell=sh -x $*"
+	SHELLCHECK_OPTS="--shell=sh -x $*"
+elif [ "${1}" = '-vv' ]; then
+	shift
+	SHELLCHECK_OPTS="--shell=sh -x $* -o all"
 else
-	export SHELLCHECK_OPTS="--shell=sh -S warning -x $*"
+	 SHELLCHECK_OPTS="--shell=sh -S warning -x $*"
 fi
 
-# SC1090 - Can't follow non-constant source
-# Recommend -e 2034
+# Permanently silence
+# SC2016 (info):
+#   Expressions don't expand in single quotes, use double quotes for that
+# eg. "${EASYTLS_AWK}" '{print $2}'
+# seen as a likely error but this information is not needed
+#
+# SC2086 (info):
+#   Double quote to prevent globbing and word splitting.
+# eg '[ $foo ] ] || bar' (the extra ']' is not seen if foo is not quoted)
+# Double quote everything or get hoisted! I will fix this..
+SHELLCHECK_OPTS="-e 2016,2086 ${SHELLCHECK_OPTS}"
+export SHELLCHECK_OPTS
+
+
 
 foo='========================================================================'
 

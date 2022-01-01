@@ -585,9 +585,8 @@ deps ()
 	# Source metadata lib
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || die "Missing ${lib_file}" 71
 	# shellcheck source=./easytls-metadata.lib
-	. "${lib_file}"
+	[ -f "${lib_file}" ] && . "${lib_file}"
 	unset -v lib_file
 
 	# Conn track
