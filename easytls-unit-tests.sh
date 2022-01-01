@@ -292,6 +292,11 @@ do
 		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
 		}
 
+	[ $loops -eq 3 ] && [ $EASYTLS_REMOTE_CI ] && {
+		EASYTLS_OPTS="${EASYTLS_OPTS% -y}"
+		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-ENABLED MODE <<<<< *"
+		}
+
 	# Switch to SHA1
 	[ $loops -eq 3 ] && TLSCV2V_OPTS="-v --hash=SHA1"
 

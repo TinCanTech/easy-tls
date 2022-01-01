@@ -8662,6 +8662,13 @@ verify_wiscii_hash ()
 # Master hash
 generate_faster_hash ()
 {
+	# Respect no file hash mode
+	if [ $FILE_HASH_DISABLED ]; then
+		generated_faster_hash="${fixed_hash}"
+		unset inline_file_list tlskey_file_list util_file_list
+		return 0
+	fi
+
 	want_faster_hash=1
 	unset inline_file_list tlskey_file_list util_file_list
 	# Generate the lists above
@@ -8689,7 +8696,7 @@ generate_faster_hash ()
 # Save faster hash
 save_faster_hash ()
 {
-	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
+	generate_faster_hash || die "save_faster_hash/generate_faster_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
 		die "save_faster_hash"
 } # => save_faster_hash ()
@@ -8700,7 +8707,11 @@ verify_faster_hash ()
 	[ -f  "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
 	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
 	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
-	[ "${generated_faster_hash}" = "${saved_faster_hash}" ] && return 0
+	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"; then
+		return 0
+	fi
+	print "gen'd:${generated_faster_hash} ===== saved:${saved_faster_hash}"
+	return 1
 } # => verify_faster_hash ()
 
 
