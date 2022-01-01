@@ -287,6 +287,11 @@ do
 			}
 	fi
 
+	[ $EASYTLS_FOR_WINDOWS ] && [ $EASYTLS_REMOTE_CI ] && {
+		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
+		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
+		}
+
 	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
 		EASYTLS_OPTS="${EASYTLS_OPTS} -y"
 		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
