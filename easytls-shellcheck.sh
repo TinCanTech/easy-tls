@@ -31,9 +31,23 @@ fi
 # eg '[ $foo ] ] || bar' (the extra ']' is not seen if foo is not quoted)
 # Double quote everything or get hoisted! I will fix this..
 SHELLCHECK_OPTS="-e 2016,2086 ${SHELLCHECK_OPTS}"
+
+# Others:
+# SC2250 (style):
+#   Prefer putting braces around variable references even when not strictly required.
+# SC2248 (style):
+#   Prefer double quoting even when variables don't contain special characters.
+# SC2244 (style):
+#   Prefer explicit -n to check non-empty string (or use =/-ne to check boolean/integer
+# SC2154 (warning): EASYTLS_RM is referenced but not assigned.
+OPTIONAL_OPTS="-e 2244,2248,2250"
+ANNOYING_OPTS="-e 2154"
+
+# Add opts - disable at will
+SHELLCHECK_OPTS="${OPTIONAL_OPTS} ${ANNOYING_OPTS} ${SHELLCHECK_OPTS}"
+
+# export shellcheck opts
 export SHELLCHECK_OPTS
-
-
 
 foo='========================================================================'
 

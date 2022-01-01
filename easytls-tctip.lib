@@ -188,6 +188,7 @@ expand_ip6_address ()
 			temp_valid_hextets="${temp_valid_hextets}:"
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 
+		# shellcheck disable=SC2249 # (info): default *) case
 		case ${hextet} in
 			*[!0:]* ) return 20 ;;
 		esac
@@ -309,6 +310,7 @@ validate_ip6_data ()
 	fi
 
 	[ -z "${mask_len}" ] && return 12
+	# shellcheck disable=SC2249 # (info): default *) case
 	case "${mask_len}" in
 		*[!0123456789]* | 0* ) return 11 ;;
 	esac

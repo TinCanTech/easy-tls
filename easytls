@@ -5237,6 +5237,7 @@ expand_ip6_address ()
 			temp_valid_hextets="${temp_valid_hextets}:"
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 
+		# shellcheck disable=SC2249 # (info): default *) case
 		case ${hextet} in
 			*[!0:]* ) return 20 ;;
 		esac
@@ -5358,6 +5359,7 @@ validate_ip6_data ()
 	fi
 
 	[ -z "${mask_len}" ] && return 12
+	# shellcheck disable=SC2249 # (info): default *) case
 	case "${mask_len}" in
 		*[!0123456789]* | 0* ) return 11 ;;
 	esac
@@ -6159,6 +6161,8 @@ interactive_build ()
 		return 0
 	;;
 	4|5)	# Build TLS Crypt v2 Client
+
+		# shellcheck disable=SC2249 # (info): default *) case
 		case ${ia_answer} in
 		4)
 			"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 key for Client'
@@ -6444,6 +6448,8 @@ interactive_inline ()
 				}
 	;;
 	6|7)	# Inline TLS Crypt v2 Client
+
+		# shellcheck disable=SC2249 # (info): default *) case
 		case ${ia_answer} in
 		6)
 			"$EASYTLS_PRINTF" '\n%s\n' \
@@ -9208,6 +9214,7 @@ main ()
 	;;
 	*)
 		# Rehash before everything
+		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
 		rehash)
 			unset FILE_HASH_DISABLED
@@ -9227,6 +9234,7 @@ main ()
 			}
 		[ $EASYTLS_NO_CA ] || verify_pki_init
 
+		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
 		gfh|generate-fast-hash)
 			generate_faster_hash "$@" || die "generate_faster_hash"

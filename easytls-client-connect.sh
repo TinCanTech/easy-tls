@@ -377,6 +377,7 @@ expand_ip6_address ()
 			temp_valid_hextets="${temp_valid_hextets}:"
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 
+		# shellcheck disable=SC2249 # (info): default *) case
 		case ${hextet} in
 			*[!0:]* ) return 20 ;;
 		esac
