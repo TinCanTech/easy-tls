@@ -3719,7 +3719,7 @@ inline_tls_auth ()
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
-	# Use cat for its intended porpose
+	# Use cat for its intended purpose
 	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
@@ -3791,7 +3791,7 @@ inline_tls_crypt_v1 ()
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
-	# Use cat for its intended porpose
+	# Use cat for its intended purpose
 	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
@@ -4010,7 +4010,7 @@ inline_tls_crypt_v2 ()
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
-	# Use cat for its intended porpose
+	# Use cat for its intended purpose
 	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
@@ -4165,7 +4165,7 @@ inline_tls_cv2_group_server ()
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
-	# Use cat for its intended porpose
+	# Use cat for its intended purpose
 	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
@@ -4389,7 +4389,7 @@ inline_tls_cv2_group_client ()
 		inline_share_fingerprint
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
-	# Use cat for its intended porpose
+	# Use cat for its intended purpose
 	"${EASYTLS_CAT}" "${inline_base}" "${inline_temp}" > "${inline_file}"
 
 	# Remove temp files
