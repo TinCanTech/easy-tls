@@ -22,7 +22,7 @@ easytls_tctip_lib ()
 {
 	[ $EASYTLS_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "* easytls-tctip.lib loaded"
-}
+} # => easytls_tctip_lib ()
 
 #=# 9273398a-5284-4c1f-aec5-d597ceb1d085
 
@@ -36,7 +36,6 @@ verbose_easytls_tctip_lib ()
 # Front end validate IP address
 validate_ip_address ()
 {
-	# This is probably broken
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1

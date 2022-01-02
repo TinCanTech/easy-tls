@@ -225,7 +225,6 @@ verbose_easytls_tctip_lib ()
 # Front end validate IP address
 validate_ip_address ()
 {
-	# This is probably broken
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1
