@@ -199,10 +199,11 @@ die ()
 fail_and_exit ()
 {
 	# Unlock
-	release_lock "${easytls_lock_stub}-stack.d" || \
-		update_status "v2-stack-fail_and_exit:release_lock-FAIL"
-	release_lock "${easytls_lock_stub}-v2.d" || \
+	if release_lock "${easytls_lock_stub}-v2.d"; then
+		update_status "v2-lock-released"
+	else
 		update_status "v2-fail_and_exit:release_lock-FAIL"
+	fi
 
 	delete_metadata_files
 
@@ -532,14 +533,14 @@ write_metadata_file ()
 		die "acquire_lock:stack FAIL" 99
 	update_status "stack-lock-acquired"
 
-	# Stack up duplicate metadata files - check for split_stack
-	unset split_stack
+	# Stack up duplicate metadata files - check for stale_stack
+	unset stale_stack
 	if [ -f "${client_md_file_stack}" ]; then
 		stack_up || die "stack_up" 160
 	fi
 
-	if [ $split_stack ]; then
-		update_status "split_stack"
+	if [ $stale_stack ]; then
+		update_status "stale_stack"
 	else
 		if [ -f "${client_md_file_stack}" ]; then
 			# If client_md_file_stack still exists then fail
@@ -571,9 +572,9 @@ stack_up ()
 	[ $ENABLE_STACK ] || return 0
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
-	unset split_stack
+	unset stale_stack
 	if [ $(( local_time_unix - f_date )) -gt 60 ]; then
-		split_stack=1
+		stale_stack=1
 		return 0
 	fi
 
