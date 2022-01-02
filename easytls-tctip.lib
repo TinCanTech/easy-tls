@@ -33,6 +33,44 @@ verbose_easytls_tctip_lib ()
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
 
+# Front end validate IP address
+validate_ip_address ()
+{
+	# This is probably broken
+	[ "${1}" = "${1%%.*}" ] || ipv4=1
+	[ "${1}" = "${1%%:*}" ] || ipv6=1
+	[ -n "${ipv4}${ipv6}" ] || return 1
+	[ $ipv4 ] && [ $ipv6 ] && easytls_verbose "Unsupported <:Port>" && return 1
+	[ $ipv4 ] && validate_ip4_data "$@" && valid4=1
+	[ $ipv6 ] && validate_ip6_data "$@" && valid6=1
+	[ $valid4 ] && [ $valid6 ] && return 1
+	[ $valid4 ] || [ $valid6 ] || return 1
+	[ $ipv6 ] || print "Valid IPv4: $*"
+	[ $ipv4 ] || print "Valid IPv6: $*"
+} # => validate_ip_address ()
+
+# Exit with error
+invalid_address ()
+{
+	case ${1} in
+	10) print "excess input" ;;
+	11) print "illegal format" ;;
+	12) print "illegal mask" ;;
+	13) print "mask range" ;;
+	14) print "leading zero" ;;
+	15) print "class range" ;;
+	16) print "class count" ;;
+	17) print "cidr mask" ;;
+	18) print "input error" ;;
+	19) print "ip2dec error" ;;
+	20)
+		print "ip6/mask-length mismatch"
+		print "ip6/mask correct example: 1:22:333:4444:5::/80"
+	;;
+	*) print "undocumented ${1} ?" ;;
+	esac
+} # => invalid_address ()
+
 # IPv4 address to decimal
 ip2dec ()
 {

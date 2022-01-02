@@ -5037,6 +5037,15 @@ hw_addr_hex_check ()
 		}
 } # => hw_addr_hex_check ()
 
+#=# 9273398a-5284-4c1f-aec5-d597ceb1d085
+
+# Verbose message
+verbose_easytls_tctip_lib ()
+{
+	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
+	"${EASYTLS_PRINTF}" '%s\n' "${1}"
+} # => verbose_easytls_tctip_lib ()
+
 # Front end validate IP address
 validate_ip_address ()
 {
@@ -5074,15 +5083,6 @@ invalid_address ()
 	*) print "undocumented ${1} ?" ;;
 	esac
 } # => invalid_address ()
-
-#=# 9273398a-5284-4c1f-aec5-d597ceb1d085
-
-# Verbose message
-verbose_easytls_tctip_lib ()
-{
-	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
-	"${EASYTLS_PRINTF}" '%s\n' "${1}"
-} # => verbose_easytls_tctip_lib ()
 
 # IPv4 address to decimal
 ip2dec ()
@@ -9055,7 +9055,7 @@ main ()
 			export EASYRSA_DH_FILE="${val}"
 		;;
 		-g|--custom-group)
-		export TLSKEY_CUSTOM_GRP="${val}"
+			export TLSKEY_CUSTOM_GRP="${val}"
 		;;
 		-k|--subkey|--sub-key-name)
 			export TLSKEY_SUBNAME="${val}"
