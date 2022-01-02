@@ -1282,7 +1282,7 @@ and initialize a fresh TLS PKI here."
 		read -r <&6 EASYTLS_lock_PID
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
-		unset update_wiscii_hash
+		unset update_master_hash
 	else
 		# Easy-TLS is not initialised
 		:
@@ -1457,6 +1457,8 @@ easytls_rehash ()
 	forbidden_hash="${forbidden_hash%% *}"
 	config_save_hash || die "config_save_hash - easytls_rehash"
 	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
+	inline_index_save_hash || die "inline_index_save_hash - easytls_rehash"
+	tlskey_index_save_hash || die "tlskey_index_save_hash - easytls_rehash"
 	save_master_hash || die "save_master_hash - easytls_rehash"
 } # => easytls_rehash ()
 
@@ -1696,7 +1698,7 @@ save_file_hash ()
 		error_msg "save hash - save_file_hash"
 		return 1
 		}
-	update_wiscii_hash=1
+	update_master_hash=1
 	unset -v hash_file valid_hash valid_target
 } # => save_file_hash ()
 
@@ -2605,7 +2607,7 @@ inline_index_save_hash ()
 			error_msg "generate_and_save_file_hash - inline_index_save_hash"
 			return 1
 			}
-	update_wiscii_hash=1
+	update_master_hash=1
 	easytls_verbose "Inline-index hash save OK"
 } # => inline_index_save_hash ()
 
@@ -3173,7 +3175,7 @@ tlskey_index_save_hash ()
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
-	update_wiscii_hash=1
+	update_master_hash=1
 	easytls_verbose "tlskey-index hash save OK"
 } # => tlskey_index_save_hash ()
 
@@ -4609,7 +4611,7 @@ build_tls_auth ()
 		die "Failed to create TLS auth key: ${tlskey_file}"
 
 	notice "TLS auth key created: ${tlskey_file}"
-	update_wiscii_hash=1
+	update_master_hash=1
 	easytls_verbose
 } # => build_tls_auth ()
 
@@ -4633,7 +4635,7 @@ build_tls_crypt_v1 ()
 		die "Failed to create TLS crypt v1 key: ${tlskey_file}"
 
 	notice "TLS crypt v1 key created: ${tlskey_file}"
-	update_wiscii_hash=1
+	update_master_hash=1
 	easytls_verbose
 } # => build_tls_crypt_v1 ()
 
@@ -5709,7 +5711,7 @@ create_self_sign_cert_pair ()
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 		${openssl_eku}=${EASYTLS_EKU} || return 1
 
-	update_wiscii_hash=1
+	update_master_hash=1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
 } # => create_self_sign_cert_pair ()
 
@@ -5983,7 +5985,7 @@ disabled_list_save_hash ()
 			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
-	update_wiscii_hash=1
+	update_master_hash=1
 	easytls_verbose "Disabled-list hash save OK"
 } # => disabled_list_save_hash ()
 
@@ -8606,7 +8608,7 @@ save_wiscii_hash ()
 {
 	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
 
-	[ $update_wiscii_hash ] || return 0
+	[ $update_master_hash ] || return 0
 
 	if [ -f "${EASYTLS_WISCII_HASH}" ]; then
 		bottled_wiscii="$("${EASYTLS_CAT}" "${EASYTLS_WISCII_HASH}")" || {
@@ -8702,7 +8704,11 @@ generate_faster_hash ()
 # Save faster hash
 save_faster_hash ()
 {
+	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
+	[ $update_master_hash ] || return 0
 	generate_faster_hash || die "save_faster_hash/generate_faster_hash"
+	validate_hash "${generated_faster_hash}" || \
+		die "save_faster_hash/validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
 		die "save_faster_hash"
 } # => save_faster_hash ()
@@ -9134,7 +9140,7 @@ main ()
 		read -r <&6 EASYTLS_lock_PID
 		[ $$ -eq ${EASYTLS_lock_PID} ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
-		unset update_wiscii_hash
+		unset update_master_hash
 	else
 		# Easy-TLS is not initialised
 		:
@@ -9223,7 +9229,7 @@ main ()
 		esac
 
 		# Load config options - Does not change command line options
-		config_use || die "config_use - Error: $?"
+		config_use || die "config_use"
 
 		# Must have init TLS now - and PKI when not No-CA mode
 		verify_tls_init || {
@@ -9279,106 +9285,85 @@ main ()
 		# case 2
 
 		cf|cfg|config)
-			easytls_config "$@" || \
-				die "Error: easytls_config"
+			easytls_config "$@" || die "easytls_config"
 		;;
 		build)
-			interactive_build || \
-				die "Error: interactive_build"
+			interactive_build || die "interactive_build"
 		;;
 		inline)
-			interactive_inline || \
-				die "Error: interactive_inline"
+			interactive_inline || die "interactive_inline"
 		;;
 		remove)
-			interactive_remove || \
-				die "Error: interactive_remove"
+			interactive_remove || die "interactive_remove"
 		;;
 		script)
-			interactive_scripts || \
-				die "Error: interactive_scripts"
+			interactive_scripts || die "interactive_scripts"
 		;;
 		ss|selfsign)
-			interactive_selfsign || \
-				die "Error: interactive_selfsign"
+			interactive_selfsign || die "interactive_selfsign"
 		;;
 		bta|build-tls-auth)
-			build_tls_auth "$@" || \
-				die "Error: build_tls_auth"
+			build_tls_auth "$@" || die "build_tls_auth"
 		;;
 		btc|build-tls-crypt)
-			build_tls_crypt_v1 "$@" || \
-				die "Error: build_tls_crypt_v1"
+			build_tls_crypt_v1 "$@" || die "build_tls_crypt_v1"
 		;;
 		ita|inline-tls-auth)
-			inline_tls_auth "$@" || \
-				die "Error: inline_tls_auth"
+			inline_tls_auth "$@" || die "inline_tls_auth"
 		;;
 		itc|inline-tls-crypt)
-			inline_tls_crypt_v1 "$@" || \
-				die "Error: inline_tls_crypt_v1"
+			inline_tls_crypt_v1 "$@" || die "inline_tls_crypt_v1"
 		;;
 		bc2s|btc2s|btv2s|btcv2s|build-tls-crypt-v2-server)
-			build_tls_crypt_v2_server "$@" || \
-				die "Error: build_tls_crypt_v2_server"
+			build_tls_crypt_v2_server "$@" || die "build_tls_crypt_v2_server"
 		;;
 		bc2c|btc2c|btv2c|btcv2c|build-tls-crypt-v2-client)
-			build_tls_crypt_v2_client "$@" || \
-				die "Error: build_tls_crypt_v2_client"
+			build_tls_crypt_v2_client "$@" || die "build_tls_crypt_v2_client"
 		;;
 		itc2|itv2|itcv2|inline-tls-crypt-v2)
-			inline_tls_crypt_v2 "$@" || \
-				die "Error: inline_tls_crypt_v2"
+			inline_tls_crypt_v2 "$@" || die "inline_tls_crypt_v2"
 		;;
 		# GROUP Server
 		bc2gs|btc2gs|btv2gs|btcv2gs|build-tls-crypt-v2-group-server)
 			build_tls_cv2_group_server "$@" || \
-				die "Error: build_tls_crypt_v2_group_server"
+				die "build_tls_crypt_v2_group_server"
 		;;
 		ic2gs|itc2gs|itcv2gs|inline-tls-crypt-v2-group-server)
 			inline_tls_cv2_group_server "$@" || \
-				die "Error: inline_tls_crypt_v2_group_server"
+				die "inline_tls_crypt_v2_group_server"
 		;;
 		# GROUP Client
 		bc2gc|btc2gc|btv2gc|btcv2gc|build-tls-crypt-v2-group-client)
 			build_tls_cv2_group_client "$@" || \
-				die "Error: build_tls_crypt_v2_group_client"
+				die "build_tls_crypt_v2_group_client"
 		;;
 		ic2gc|itc2gc|itcv2gc|inline-tls-crypt-v2-group-client)
 			inline_tls_cv2_group_client "$@" || \
-				die "Error: inline_tls_crypt_v2_group_server"
+				die "inline_tls_crypt_v2_group_server"
 		;;
 		is|inline-show)
-			inline_show "$@" || \
-				die "Error: inline_show"
+			inline_show "$@" || die "inline_show"
 		;;
 		ri|ril|remove-inline)
-			remove_inline "$@" || \
-				die "Error: remove_inline"
+			remove_inline "$@" || die "remove_inline"
 		;;
 		rt|rk|rtk|remove-tlskey)
-			remove_tlskey "$@" || \
-				die "Error: remove_tlskey"
+			remove_tlskey "$@" || die "remove_tlskey"
 		;;
 		rm|rmd|remove-metadata)
-			remove_metadata "$@" || \
-				die "Error: remove_metadata"
+			remove_metadata "$@" || die "remove_metadata"
 		;;
 		ix|inline-expire)
-			inline_expire "$@" || \
-				die "Error: inline_expire"
+			inline_expire "$@" || die "inline_expire"
 		;;
 		cx|cert-expire)
-			cert_expire "$@" || \
-				die "Error: cert_expire"
+			cert_expire "$@" || die "cert_expire"
 		;;
 		d|disable)
-			disabled_list_manager "disable" "$@" || \
-				die "Error: disabled_list_manager"
+			disabled_list_manager "disable" "$@" || die "disabled_list_manager"
 		;;
 		e|enable)
-			disabled_list_manager "enable" "$@" || \
-				die "Error: disabled_list_manager"
+			disabled_list_manager "enable" "$@" || die "disabled_list_manager"
 		;;
 		rehash)
 			flash_config=1 && easytls_config status $(( EASYTLS_STATUS + 1 ))
@@ -9388,16 +9373,13 @@ main ()
 			# No-CA use these versions of commands
 				case "${cmd}" in
 				sss|self-sign-server)
-					build_self_sign 'server' "$@" || \
-						die "Error: self-sign-server"
+					build_self_sign 'server' "$@" || die "self-sign-server"
 				;;
 				ssc|self-sign-client)
-					build_self_sign 'client' "$@" || \
-						die "Error: self-sign-client"
+					build_self_sign 'client' "$@" || die "self-sign-client"
 				;;
 				s|status)
-					noca_status "$@" || \
-						die "Error: noca_status"
+					noca_status "$@" || die "noca_status"
 				;;
 				*)
 				die "Unknown command '${cmd}'. Run without commands for help."
@@ -9407,25 +9389,20 @@ main ()
 				# CA mode
 				case "${cmd}" in
 				sid|save-id)
-					save_id || \
-						die "Error: save_id"
+					save_id || die "save_id"
 				;;
 				s|status)
-					status "$@" || \
-						die "Error: status"
+					status "$@" || die "status"
 					unset -v status_disabled_auto_check
 				;;
 				irn|irw|inline-renew)
-					inline_renew "$@" || \
-						die "Error: inline_renew"
+					inline_renew "$@" || die "inline_renew"
 				;;
 				inline-index-rebuild)
-					inline_index_rebuild "$@" || \
-						die "Error: inline_index_rebuild"
+					inline_index_rebuild "$@" || die "inline_index_rebuild"
 				;;
 				import-key)
-					import_key "$@" || \
-						die "Error: import_key"
+					import_key "$@" || die "import_key"
 				;;
 				*)
 				die "Unknown command '${cmd}'. Run without commands for help."

@@ -288,8 +288,8 @@ do
 	fi
 
 	[ $EASYTLS_FOR_WINDOWS ] && [ $EASYTLS_REMOTE_CI ] && {
+		# disable auto-check ~60% time saving (13m to 5m)
 		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
-		printf "\n\n\n%s\n\n\n" "* >>>>> FILE-HASH-DISABLED MODE <<<<< *"
 		}
 
 	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
@@ -382,7 +382,8 @@ do
 		"cert-expire" \
 		"inline-expire" \
 		"bc2gc s01 family" "bc2gc s01 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" "rehash"
+		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" \
+		"rehash"
 		#"inline-index-rebuild" \
 		## EOL
 	do
