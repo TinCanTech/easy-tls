@@ -234,14 +234,13 @@ validate_ip_address ()
 	[ $ipv6 ] && validate_ip6_data "$@" && valid6=1
 	[ $valid4 ] && [ $valid6 ] && return 1
 	[ $valid4 ] || [ $valid6 ] || return 1
-	[ $ipv6 ] || print "Valid IPv4: $*"
-	[ $ipv4 ] || print "Valid IPv6: $*"
 } # => validate_ip_address ()
 
 # Exit with error
 invalid_address ()
 {
 	case ${1} in
+	1) print "easytls invalid" ;;
 	10) print "excess input" ;;
 	11) print "illegal format" ;;
 	12) print "illegal mask" ;;
