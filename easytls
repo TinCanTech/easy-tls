@@ -5042,6 +5042,7 @@ hw_addr_hex_check ()
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
+	[ $EASYTLS_SILENT ] && return 0
 	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
@@ -9153,10 +9154,12 @@ main ()
 	# case 1
 
 	''|help|-h|--help|--usage)
+		unset -v EASYTLS_SILENT
 		cmd_help "${1}" || die "cmd_help"
 		return 0
 	;;
 	ver|version)
+		unset -v EASYTLS_SILENT
 		easytls_version || die "easytls_version"
 		return 0
 	;;
@@ -9166,12 +9169,14 @@ main ()
 	;;
 	vhw)
 		hw_addr_hex_check "$@" || {
+		unset -v EASYTLS_SILENT
 			print "Invalid HW address: ${*}"
 			exit 1
 			}
 		return 0
 	;;
 	vip)
+		unset -v EASYTLS_SILENT
 		validate_ip_address "$@" || {
 			print "*** Invalid IP: ${*} ***"
 			exit 1
@@ -9180,6 +9185,7 @@ main ()
 		return 0
 	;;
 	v4ip)
+		unset -v EASYTLS_SILENT
 		validate_ip4_data "$@" || {
 			invalid_address $?
 			print "*** Invalid IP4: ${*} ***"
@@ -9189,6 +9195,7 @@ main ()
 		return 0
 	;;
 	x4ip)
+		unset -v EASYTLS_SILENT
 		expand_ip4_address "$@" || {
 			invalid_address $?
 			print "*** Invalid IP4: ${*} ***"
@@ -9198,6 +9205,7 @@ main ()
 		return 0
 	;;
 	v6ip)
+		unset -v EASYTLS_SILENT
 		validate_ip6_data "$@" || {
 			invalid_address $?
 			print "*** Invalid IP6: ${*} ***"
@@ -9207,6 +9215,7 @@ main ()
 		return 0
 	;;
 	x6ip)
+		unset -v EASYTLS_SILENT
 		expand_ip6_address "$@" || {
 			invalid_address $?
 			print "*** Invalid IP6: ${*} ***"
@@ -9241,16 +9250,19 @@ main ()
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
 		gfh|generate-fast-hash)
+			unset -v EASYTLS_SILENT
 			generate_faster_hash "$@" || die "generate_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			return 0
 		;;
 		sfh|save-fast-hash)
+			unset -v EASYTLS_SILENT
 			save_faster_hash "$@" || die "save_faster_hash"
 			print "saved_faster_hash: ${generated_faster_hash}"
 			return 0
 		;;
 		vfh|verify-fast-hash)
+			unset -v EASYTLS_SILENT
 			verify_faster_hash "$@" || die "verify_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			print "saved_faster_hash    : ${saved_faster_hash}"
@@ -9286,18 +9298,23 @@ main ()
 			easytls_config "$@" || die "easytls_config"
 		;;
 		build)
+			unset -v EASYTLS_SILENT
 			interactive_build || die "interactive_build"
 		;;
 		inline)
+			unset -v EASYTLS_SILENT
 			interactive_inline || die "interactive_inline"
 		;;
 		remove)
+			unset -v EASYTLS_SILENT
 			interactive_remove || die "interactive_remove"
 		;;
 		script)
+			unset -v EASYTLS_SILENT
 			interactive_scripts || die "interactive_scripts"
 		;;
 		ss|selfsign)
+			unset -v EASYTLS_SILENT
 			interactive_selfsign || die "interactive_selfsign"
 		;;
 		bta|build-tls-auth)
@@ -9377,6 +9394,7 @@ main ()
 					build_self_sign 'client' "$@" || die "self-sign-client"
 				;;
 				s|status)
+					unset -v EASYTLS_SILENT
 					noca_status "$@" || die "noca_status"
 				;;
 				*)
@@ -9390,6 +9408,7 @@ main ()
 					save_id || die "save_id"
 				;;
 				s|status)
+					unset -v EASYTLS_SILENT
 					status "$@" || die "status"
 					unset -v status_disabled_auto_check
 				;;

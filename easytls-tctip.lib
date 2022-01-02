@@ -20,6 +20,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Loaded message
 easytls_tctip_lib ()
 {
+	[ $EASYTLS_SILENT ] && return 0
 	[ $EASYTLS_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "* easytls-tctip.lib loaded"
 } # => easytls_tctip_lib ()
@@ -29,6 +30,7 @@ easytls_tctip_lib ()
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
+	[ $EASYTLS_SILENT ] && return 0
 	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
