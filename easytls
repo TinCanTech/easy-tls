@@ -5706,7 +5706,7 @@ create_self_sign_cert_pair ()
 		> "${EASYTLS_ECPARAM_TMP}"
 	# If ecparams fail then so does req
 	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text \
+		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text -utf8 \
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 		${openssl_eku}=${EASYTLS_EKU} || return 1
 
@@ -8729,6 +8729,64 @@ verify_faster_hash ()
 
 ############################################################################
 #
+# EASYTLS openssl Section
+#
+
+#
+easytls_openssl_file ()
+{
+	[ -f "${OPENSSL_CONF}" ] && export OPENSSL_CONF && return 0
+	"${EASYTLS_PRINTF}" '%s\n' '# For use with Easy-TLS and OpenSSL or LibreSSL
+
+HOME					= .
+
+####################################################################
+[ ca ]
+default_ca				= CA_default	# The default ca section
+
+####################################################################
+[ CA_default ]
+# Comment out the following two lines for the traditional
+# (and highly broken) format
+name_opt 				= ca_default	# Subject Name options
+cert_opt 				= ca_default	# Certificate field options
+
+[ policy_anything ]
+commonName		= supplied
+
+####################################################################
+[ req ]
+default_bits			= 2048
+distinguished_name		= req_distinguished_name
+attributes				= req_attributes
+
+# The extensions to add to the self signed cert
+x509_extensions			= easytls
+
+[ req_distinguished_name ]
+commonName				= Common Name
+commonName_max			= 64
+
+[ req_attributes ]
+challengePassword		= A challenge password
+challengePassword_min	= 4
+challengePassword_max	= 20
+
+####################################################################
+[ easytls ]
+# Easy-TLS self-signed certificate
+keyUsage 				= digitalSignature, keyEncipherment
+basicConstraints 		= CA:true
+
+# PKIX recommendation
+subjectKeyIdentifier	= hash
+authorityKeyIdentifier	= keyid:always,issuer
+' > "${OPENSSL_CONF}" || return 1
+	export OPENSSL_CONF
+} # => easytls_openssl_file ()
+
+############################################################################
+#
 # EASYTLS SETUP Section
 #
 
@@ -8849,8 +8907,9 @@ external_deps ()
 	fi
 
 	# OpenSSL config
-	export OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
-	[ -f "${OPENSSL_CONF}" ] || {
+	OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
+	# Ensure $OPENSSL_CONF is present and export $OPENSSL_CONF
+	easytls_openssl_file || {
 		EASYTLS_github="https://raw.githubusercontent.com"
 		EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
 		error_msg "Missing openssl config file: ${OPENSSL_CONF}"
