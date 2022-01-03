@@ -1,6 +1,8 @@
 [![CI](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml/badge.svg)](https://github.com/TinCanTech/easy-tls/actions/workflows/blank.yml)
 # Easy-TLS
 
+From that list above, the only file which you need is: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls)
+
 ## Standard Features
 Easy-TLS is an Easy-RSA extension utility to help manage:
 + Easy-RSA based x509 security credentials
@@ -15,7 +17,7 @@ Easy-TLS also supports No-CA mode, which does not require an Easy-RSA CA:
 + Use Easy-TLS to build **self-signed** X509 Certificates and keys.
 
 ### Installation
-Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls) and [**`easytls-openssl.cnf`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf) to your `easyrsa3` working directory.
+Download: [**`easytls`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls) to your `easyrsa3` working directory.
 
 For full support, you will also need these scripts for use by your OpenVPN Server:
 + [**`easytls-cryptv2-verify.sh (1)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh) - **Can be used stand-alone**<br>
@@ -27,8 +29,8 @@ For full support, you will also need these scripts for use by your OpenVPN Serve
 + [**`easytls-client-disconnect.sh (3)`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh) - **Requires script `(1)(2)`**<br>
   This Disconnect script is **required by** the Connect script.
 
-+ [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Requires script `(1)(2)(3)`**<br>
-  Connection tracking plug-in, required for connection tracking.
++ Optional - [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib) - **Requires script `(1)(2)(3)`**<br>
+  Connection tracking plug-in, required for optional connection tracking.
 
 ### Environment
 **`easytls`** is intended to work **everywhere** that **`openvpn`** and **`easyrsa`** work.
@@ -52,4 +54,6 @@ to include direct support for OpenVPN specific TLS keys and Inline credentials.<
 
 ### Easy-TLS is inspired by **syzzer**<br>
 See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt<br>
+
+I hope that you find Easy-TLS to be a useful tool.
 
