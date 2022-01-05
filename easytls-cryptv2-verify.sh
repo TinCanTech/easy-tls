@@ -209,8 +209,7 @@ fail_and_exit ()
 	delete_metadata_files
 
 	# shellcheck disable=SC2154
-	if [ "${EASYTLS_VERBOSE}" ]
-	then
+	if [ "${EASYTLS_VERBOSE}" ]; then
 		print "${status_msg}"
 		print "${failure_msg}"
 		print "${1}"
@@ -265,8 +264,7 @@ delete_metadata_files ()
 # Log fatal warnings
 warn_die ()
 {
-	if [ -n "${1}" ]
-	then
+	if [ -n "${1}" ]; then
 		fatal_msg="${fatal_msg}
 ${1}"
 	else
@@ -426,10 +424,8 @@ serial_status_via_pki_index ()
 	# This needs improvement
 	is_valid="$(fn_search_valid_pki_index)"
 	is_revoked="$(fn_search_revoked_pki_index)"
-	if [ $is_revoked -eq 0 ]
-	then
-		if [ $is_valid -eq 1 ]
-		then
+	if [ $is_revoked -eq 0 ]; then
+		if [ $is_valid -eq 1 ]; then
 			client_passed_x509_tests
 		else
 			# Cert is not known
@@ -490,8 +486,7 @@ connection_allowed ()
 # Retry pause
 retry_pause ()
 {
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		ping -n 1 127.0.0.1
 	else
 		sleep 1
@@ -582,8 +577,7 @@ stack_up ()
 	# Full Stack UP
 	i=1
 	s=''
-	while [ -f "${client_md_file_stack}_${i}" ]
-	do
+	while [ -f "${client_md_file_stack}_${i}" ]; do
 		s="${s}."
 		i=$(( i + 1 ))
 	done
@@ -679,8 +673,7 @@ init ()
 	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		# Windows
 		host_drv="${PATH%%\:*}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
@@ -733,8 +726,7 @@ deps ()
 	fi
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
-	if [ $EASYTLS_FOR_WINDOWS ]
-	then
+	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
 	else
@@ -788,8 +780,7 @@ deps ()
 	openssl_cnf="${CA_DIR}/safessl-easyrsa.cnf"
 
 	# Check X509 files
-	if [ $EASYTLS_NO_CA ]
-	then
+	if [ $EASYTLS_NO_CA ]; then
 		# Do not need CA cert
 		# Cannot do any X509 verification
 		:
@@ -800,8 +791,7 @@ deps ()
 			die "Missing CA certificate: ${ca_cert}" 23
 			}
 
-		if [ $use_cache_id ]
-		then
+		if [ $use_cache_id ]; then
 			# This can soon be deprecated
 			[ -f "${ca_identity_file}" ] || {
 				help_note="This script requires an EasyTLS generated CA identity."
@@ -814,8 +804,7 @@ deps ()
 		[ $use_cache_id ] && [ $PRELOAD_CA_ID ] && \
 			die "Cannot use --cache-id and --preload-cache-id together." 34
 
-		if [ ! ${X509_METHOD} -eq 0 ]
-		then
+		if [ ! ${X509_METHOD} -eq 0 ]; then
 			# Only check these files if using x509
 			[ -f "${crl_pem}" ] || {
 				help_note="This script requires an EasyRSA generated CRL."
@@ -869,8 +858,7 @@ deps ()
 init
 
 # Options
-while [ -n "${1}" ]
-do
+while [ -n "${1}" ]; do
 	# Separate option from value:
 	opt="${1%%=*}"
 	val="${1#*=}"
@@ -913,8 +901,7 @@ do
 		esac
 	;;
 	-g|--custom-group)
-		if [ -z "${LOCAL_CUSTOM_G}" ]
-		then
+		if [ -z "${LOCAL_CUSTOM_G}" ]; then
 			LOCAL_CUSTOM_G="${val}"
 		else
 			ENABLE_MULTI_CUSTOM_G=1
@@ -1034,8 +1021,7 @@ fi
 
 # Metadata custom_group
 
-	if [ $ENABLE_MULTI_CUSTOM_G ]
-	then
+	if [ $ENABLE_MULTI_CUSTOM_G ]; then
 		# This will do for the time being ..
 		if "${EASYTLS_PRINTF}" "${LOCAL_CUSTOM_G}" | \
 			"${EASYTLS_GREP}" -q "${MD_CUSTOM_G}"
@@ -1064,8 +1050,7 @@ fi
 
 # tlskey-serial checks
 
-	if [ $ENABLE_TLSKEY_HASH ]
-	then
+	if [ $ENABLE_TLSKEY_HASH ]; then
 		# Verify tlskey-serial is in index
 		"${EASYTLS_GREP}" -q "${MD_TLSKEY_SERIAL}" "${tlskey_serial_index}" || {
 			failure_msg="TLS-key is not recognised"
@@ -1088,8 +1073,7 @@ fi
 
 	# Verify key date and expire by --tls-age
 	# Disable check if --tls-age=0 (Default age is 5 years)
-	if [ "${tlskey_expire_age_sec}" -gt 0 ]
-	then
+	if [ "${tlskey_expire_age_sec}" -gt 0 ]; then
 		case "${local_time_unix}" in
 		''|*[!0-9]*)
 			# Invalid value - date.exe is missing
@@ -1120,8 +1104,7 @@ fi
 
 	# Check serial number is not disabled
 	# Use --disable-list to disable this check
-	if [ $IGNORE_DISABLED_LIST ]
-	then
+	if [ $IGNORE_DISABLED_LIST ]; then
 		: # Ignored
 	else
 		[ -f "${disabled_list}" ] || \
@@ -1142,18 +1125,15 @@ fi
 
 
 # Start optional X509 checks
-if [ ${X509_METHOD} -eq 0 ]
-then
+if [ ${X509_METHOD} -eq 0 ]; then
 	# No X509 required
 	update_status "metadata verified"
 else
 
 	# Verify CA cert is valid and/or set the CA identity
-	if [ $use_cache_id ]
-	then
+	if [ $use_cache_id ]; then
 		local_identity="$("${EASYTLS_CAT}" "${ca_identity_file}")"
-	elif [ -n "${PRELOAD_CA_ID}" ]
-	then
+	elif [ -n "${PRELOAD_CA_ID}" ]; then
 		local_identity="${PRELOAD_CA_ID}"
 	else
 		# Verify CA is valid
@@ -1170,8 +1150,7 @@ else
 		}
 
 	# Check metadata Identity against local Identity
-	if [ "${local_identity}" = "${MD_IDENTITY}" ]
-	then
+	if [ "${local_identity}" = "${MD_IDENTITY}" ]; then
 		update_status "identity OK"
 	else
 		failure_msg="identity mismatch"
@@ -1236,8 +1215,7 @@ release_lock "${easytls_lock_stub}-v2.d" || die "release_lock:v2 FAIL" 99
 update_status "v2-lock-released"
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]
-then
+if [ $absolute_fail -eq 0 ]; then
 	# TLSKEY connect log
 	tlskey_status ">>:    V-OK" || update_status "tlskey_status FAIL"
 
