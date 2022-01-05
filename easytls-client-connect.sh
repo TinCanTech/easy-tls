@@ -37,6 +37,7 @@ help_text ()
   help|-h|--help         This help text.
   -V|--version
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
+  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
   -a|--allow-no-check    If the key has a hardware-address configured
                          and the client did NOT use --push-peer-info
                          then allow the connection.  Otherwise, keys with a
@@ -140,15 +141,15 @@ die ()
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
-	echo 'XXXXX CC - Kill Server XXXXX'
-	echo 1 > "${temp_stub}-die"
-	if [ $ENABLE_KILL_PPID ]; then
+	if [ $ENABLE_KILL_SERVER ]; then
+		echo 1 > "${temp_stub}-die"
+		echo 'XXXXX CC XXXXX KILL SERVER'
 		if [ $EASYTLS_FOR_WINDOWS ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
+			taskkill /F /PID ${EASYTLS_srv_pid}
 		else
-			[ $DISABLE_KILL_PPID ] || kill -15 ${EASYTLS_srv_pid}
+			kill -15 ${EASYTLS_srv_pid}
 		fi
 	fi
 	exit "${2:-255}"
@@ -449,6 +450,16 @@ connection_allowed ()
 # Update conntrac
 update_conntrac ()
 {
+	# Source tctip lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-conntrac.lib"
+	# shellcheck source=./easytls-tctip.lib
+	if [ -f "${lib_file}" ]; then
+		. "${lib_file}" || die "Source failed: ${lib_file}" 77
+		unset lib_file
+	else
+		die "Missing file: ${lib_file}" 77
+	fi
+
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-conntrac.lib"
 	[ -f "${lib_file}" ] || {
@@ -482,7 +493,7 @@ update_conntrac ()
 	if [ -z "${ifconfig_pool_remote_ip}" ]; then
 		# Kill the server
 		[ $POOL_EXHAUST_FATAL ] && {
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "IP_POOL_EXHASTED" 101
 			}
 
@@ -523,7 +534,7 @@ update_conntrac ()
 				conntrac_error=1
 			;;
 			9)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
+				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_CONNECT_CT_LOCK_9" 96
 			;;
 			*)	# Absolutely fatal
@@ -561,19 +572,19 @@ update_conntrac ()
 
 		# Absolutely fatal
 		[ $conntrac_unknown ] && {
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_UNKNOWN" 98
 			}
 
 		# # Fatal because these are usage errors
 		[ $conntrac_error ] && [ $FATAL_CONN_TRAC ] && {
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_ERROR" 99
 			}
 
 		# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
 		[ $conntrac_fail ] && [ $FATAL_CONN_TRAC_2 ] && {
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_FAIL_2" 91
 			}
 
@@ -592,7 +603,7 @@ stack_down ()
 	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	[ $ENABLE_STACK ] || return 0
+	#[ $ENABLE_STACK ] || return 0
 
 	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
 	[ -f "${client_md_file_stack}" ] || return 0
@@ -721,7 +732,7 @@ init ()
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID
-	ENABLE_STACK=1
+	#ENABLE_STACK=1
 	unset -v LOAD_VARS VARS_FILE
 
 	# Log message
@@ -770,6 +781,36 @@ init ()
 # Dependancies
 deps ()
 {
+
+	# Source vars file
+	prog_dir="${0%/*}"
+	EASYTLS_WORK_DIR="${EASYTLS_WORK_DIR:-${prog_dir}}"
+	default_vars="${EASYTLS_WORK_DIR}/easytls-client-connect.vars"
+	EASYTLS_VARS_FILE="${EASYTLS_VARS_FILE:-${default_vars}}"
+	if [ -f "${EASYTLS_VARS_FILE}" ]; then
+		# .vars-example is correct for shellcheck
+		# shellcheck source=./easytls-client-connect.vars-example
+		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
+		update_status "vars loaded"
+	else
+		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+	fi
+
+	# Source metadata lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	# shellcheck source=./easytls-metadata.lib
+	if [ -f "${lib_file}" ]; then
+		. "${lib_file}" || die "source failed: ${lib_file}" 77
+	fi
+
+	# Source tctip lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-tctip.lib"
+	# shellcheck source=./easytls-tctip.lib
+	if [ -f "${lib_file}" ]; then
+		. "${lib_file}" || die "source failed: ${lib_file}" 77
+	fi
+	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
+
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
@@ -796,20 +837,6 @@ deps ()
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
 	EASYTLS_TK_XLOG="${temp_stub}-tcv2-ct.x-log"
 
-	# Source metadata lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-metadata.lib"
-	# shellcheck source=./easytls-metadata.lib
-	[ -f "${lib_file}" ] && . "${lib_file}"
-	unset -v lib_file
-
-	# Source tctip lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-tctip.lib"
-	# shellcheck source=./easytls-tctip.lib
-	[ -f "${lib_file}" ] && . "${lib_file}"
-	unset -v lib_file
-
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
@@ -824,6 +851,7 @@ deps ()
 		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_dyn_opts_file}"
 		update_status "dyn opts loaded"
 	fi
+
 }
 
 #######################################
@@ -846,10 +874,6 @@ while [ -n "${1}" ]; do
 	-V|--version)
 			easytls_version
 			exit 9
-	;;
-	-l)
-		LOAD_VARS=1
-		VARS_FILE="${val}"
 	;;
 	-v|--verbose)
 		empty_ok=1
@@ -884,9 +908,22 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		ENFORCE_KEY_HWADDR=1
 	;;
-	-s|--source-ip-match)
+	-i|--client-ip-match)
 		empty_ok=1
 		PEER_IP_MATCH=1
+	;;
+	-w|--work-dir)
+		EASYTLS_WORK_DIR="${val}"
+	;;
+	-s|--source-vars)
+		empty_ok=1
+		EASYTLS_REQUIRE_VARS=1
+		case "${val}" in
+			-s|--source-vars)
+				unset EASYTLS_VARS_FILE ;;
+			*)
+				EASYTLS_VARS_FILE="${val}" ;;
+		esac
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -922,15 +959,6 @@ done
 # Report and die on fatal warnings
 warn_die
 
-# Source vars file
-if [ $LOAD_VARS ]; then
-	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
-	# shellcheck source=./easytls-client-connect.vars-example
-	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
-	update_status "vars loaded"
-	unset -v LOAD_VARS VARS_FILE
-fi
-
 # Dependencies
 deps
 
@@ -955,10 +983,7 @@ update_status "CN: ${common_name}"
 client_serial="$(format_number "${tls_serial_hex_0}")"
 
 # Verify Client certificate serial number
-[ -z "${client_serial}" ] && {
-	help_note="Openvpn failed to pass a client serial number"
-	die "NO CLIENT SERIAL" 8
-	}
+[ -n "${client_serial}" ] || die "Missing client_serial" 8
 
 # conntrac connect
 if [ $ENABLE_CONN_TRAC ]; then
