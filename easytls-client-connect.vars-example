@@ -31,7 +31,11 @@
 #EASYTLS_TLSKEY_STATUS=1
 
 # Enable kill server mode
-#ENABLE_KILL_PPID=1
+#ENABLE_KILL_SERVER=1
 
+# Write environment to temporary log file
 #WRITE_ENV=1
+
+# Fine tune lock time-out
+#LOCK_TIMEOUT=30
 

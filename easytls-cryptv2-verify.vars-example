@@ -40,6 +40,9 @@
 #EASYTLS_tmp_dir='/tmp'               # *nix
 #EASYTLS_tmp_dir='C:/Windows/Temp'    # Win
 
+# If easytls-cryptv2-verify.sh is run stand alone then use this
+#EASYTLS_STAND_ALONE=1
+
 # Hash algorithm
 #EASYTLS_HASH_ALGO='SHA256'
 
@@ -50,6 +53,8 @@
 #EASYTLS_TLSKEY_STATUS=1
 
 # Enable kill server mode
-#ENABLE_KILL_PPID=1
+#ENABLE_KILL_SERVER=1
 
+# Fine tune lock time-out
+#LOCK_TIMEOUT=30
 
