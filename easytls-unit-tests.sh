@@ -45,10 +45,28 @@ test_md_file ()
 	:
 }
 
+finish ()
+{
+	rm -f "${WORK_DIR}/easytls-cryptv2-verify.vars"
+	if [ -f "${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" ]; then
+		mv	"${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" \
+			"${WORK_DIR}/easytls-cryptv2-verify.vars" || \
+				die "move vars file"
+	fi
+}
+
 clean_up ()
 {
+	# remove tmp dir
 	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir}" != "/" ] && \
 		rm -rfv "${EASYTLS_tmp_dir}"/*
+	# make tmp dir
+	mkdir -p "${WORK_DIR}/unit-test-tmp" || \
+		fail "Cannot create: ${WORK_DIR}/unit-test-tmp"
+	# Build vars file
+	{
+		printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	} > "${UTMP_VARS}"
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -128,14 +146,31 @@ build_vars ()
 	} > "$EASYTLS_VARS"
 } # => build_vars ()
 
+build_etlscv2v_vars ()
+{
+	:
+}
+
 print '===[  Easy-TLS Unit Tests ]==='
 
 start_time="$(date +%s)"
 
+	# Register finish() on EXIT
+	trap "finish" EXIT
+	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
+	# explicitly exit to signal EXIT (non-bash shells)
+	trap "exit 1" 1
+	trap "exit 2" 2
+	trap "exit 3" 3
+	trap "exit 6" 6
+	trap "exit 14" 15
+
 export DISABLE_KILL_PPID=1
 
 WORK_DIR="$(pwd)"
-#mkdir -p "${WORK_DIR}/unit-test" || fail "Cannot create: ${WORK_DIR}/unit-test"
+UTMP_DIR="${WORK_DIR}/unit-test-tmp"
+UTMP_VARS="${UTMP_DIR}/etlscv2v.vars"
+clean_up
 
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
@@ -144,13 +179,13 @@ EASYTLS_CMD="./easytls"
 EASYTLS_OPTS="--verbose --batch"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
-TLSCV2V_OPTS="-v"
-
-TLSVERIFY_CMD="./easytls-verify.sh"
-TLSVERIFY_OPTS="-v"
+TLSCV2V_OPTS="-v -w=${WORK_DIR} -s=${UTMP_VARS}"
 
 CLICON_CMD="./easytls-client-connect.sh"
 CLICON_OPTS="-v"
+
+CLIDIS_CMD="./easytls-client-disconnect.sh"
+CLIDIS_OPTS="-v"
 
 export ENABLE_TLSKEY_HASH=1
 
@@ -184,6 +219,8 @@ fi
 #[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
 "${CLICON_CMD}" --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
+"${CLIDIS_CMD}" --help || exit_code=$?
+[ $exit_code -eq 253 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} --help ($?)"
 
 # No-CA test
 PKI_DIR="${WORK_DIR}/noca"
@@ -315,7 +352,7 @@ do
 		}
 
 	# Switch to SHA1
-	[ $loops -eq 3 ] && TLSCV2V_OPTS="-v --hash=SHA1"
+	[ $loops -eq 3 ] && TLSCV2V_OPTS="${TLSCV2V_OPTS} --hash=SHA1"
 
 	export EASYRSA_REQ_CN="easytls"
 	# Setup EasyRSA
@@ -494,6 +531,7 @@ do
 	# because errors are expected and accounted for manually
 	#set +e
 
+	clean_up
 	for c in "c01" "c05" "c06" "c09"
 	do
 		print "============================================================"
@@ -511,6 +549,13 @@ do
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+
+	#export common_name=${c}
+	#export client_serial=
+	#"$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+	#"$CLIDIS_CMD" $CLIDIS_OPTS -c="$PKI_DIR" || expected_errors $?
+	#exit 99
+
 		clean_up
 
 		print "------------------------------------------------------------"
