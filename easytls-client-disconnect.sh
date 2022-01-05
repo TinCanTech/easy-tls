@@ -117,15 +117,15 @@ die ()
 	[ $EASYTLS_FOR_WINDOWS ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
-	echo 'XXXXX CD - Kill Server XXXXX'
-	echo 1 > "${temp_stub}-die"
-	if [ $ENABLE_KILL_PPID ]; then
+	if [ $ENABLE_KILL_SERVER ]; then
+		echo 1 > "${temp_stub}-die"
+		echo 'XXXXX CD XXXXX KILL SERVER'
 		if [ $EASYTLS_FOR_WINDOWS ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
+			taskkill /F /PID ${EASYTLS_srv_pid}
 		else
-			[ $DISABLE_KILL_PPID ] || kill -15 ${EASYTLS_srv_pid}
+			kill -15 ${EASYTLS_srv_pid}
 		fi
 	fi
 	exit "${2:-255}"
@@ -250,7 +250,7 @@ update_conntrac ()
 		case $? in
 		3)	# Missing conntrac file - Can happen if IP Pool exhausted
 			[ $ip_pool_exhausted ] || {
-				ENABLE_KILL_PPID=1
+				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_DISCONNECT_FILE_MISSING" 97
 				}
 			# Ignore this error because it is expected
@@ -263,7 +263,7 @@ update_conntrac ()
 		;;
 		1)	# Fatal because these are usage errors
 			[ $FATAL_CONN_TRAC ] && {
-				ENABLE_KILL_PPID=1
+				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_DISCONNECT_FILE_ERROR" 99
 				}
 			update_status "conn_trac_disconnect ERROR"
@@ -271,11 +271,11 @@ update_conntrac ()
 			log_env=1
 		;;
 		9)	# Absolutely fatal
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_DISCONNECT_CT_LOCK_9.1" 96
 		;;
 		*)	# Absolutely fatal
-			ENABLE_KILL_PPID=1
+			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_DISCONNECT_UNKNOWN" 98
 		;;
 		esac
@@ -293,7 +293,7 @@ update_conntrac ()
 			;;
 			1)	# Fatal because these are usage errors
 				[ $FATAL_CONN_TRAC ] && {
-					ENABLE_KILL_PPID=1
+					ENABLE_KILL_SERVER=1
 					die "CONNTRAC_DISCONNECT_ALT_FILE_ERROR" 99
 					}
 				update_status "conn_trac_disconnect A-ERROR"
@@ -301,11 +301,11 @@ update_conntrac ()
 				log_env=1
 			;;
 			9)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
+				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_DISCONNECT_CT_LOCK_9.2" 96
 			;;
 			*)	# Absolutely fatal
-				ENABLE_KILL_PPID=1
+				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_DISCONNECT_UNKNOWN" 98
 			;;
 			esac
@@ -355,7 +355,7 @@ update_conntrac ()
 	# This error is currently absolutely fatal
 	# If IP pool exhausted then ignore conntrac_alt_fail
 	[ ! $ip_pool_exhausted ] && [ $conntrac_alt_fail ] && {
-		ENABLE_KILL_PPID=1
+		ENABLE_KILL_SERVER=1
 		die "disconnect: conntrac_alt_fail" 169
 		}
 
@@ -386,7 +386,7 @@ stack_down ()
 	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	[ $ENABLE_STACK ] || return 0
+	#[ $ENABLE_STACK ] || return 0
 
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
@@ -498,7 +498,7 @@ init ()
 
 	# Defaults
 	EASYTLS_srv_pid=$PPID
-	ENABLE_STACK=1
+	#ENABLE_STACK=1
 	unset -v LOAD_VARS VARS_FILE
 
 	# Log message
@@ -550,6 +550,21 @@ init ()
 # Dependancies
 deps ()
 {
+	# Source vars file
+	prog_dir="${0%/*}"
+	EASYTLS_WORK_DIR="${EASYTLS_WORK_DIR:-${prog_dir}}"
+	default_vars="${EASYTLS_WORK_DIR}/easytls-client-disconnect.vars"
+	EASYTLS_VARS_FILE="${EASYTLS_VARS_FILE:-${default_vars}}"
+	if [ -f "${EASYTLS_VARS_FILE}" ]; then
+		# .vars-example is correct for shellcheck
+		# shellcheck source=./easytls-client-disconnect.vars-example
+		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
+		update_status "vars loaded"
+	else
+		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+	fi
+	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir
+
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
@@ -622,13 +637,22 @@ while [ -n "${1}" ]; do
 			easytls_version
 			exit 9
 	;;
-	-l)
-		LOAD_VARS=1
-		VARS_FILE="${val}"
-	;;
 	-v|--verbose)
 		empty_ok=1
 		EASYTLS_VERBOSE=1
+	;;
+	-w|--work-dir)
+		EASYTLS_WORK_DIR="${val}"
+	;;
+	-s|--source-vars)
+		empty_ok=1
+		EASYTLS_REQUIRE_VARS=1
+		case "${val}" in
+			-s|--source-vars)
+				unset EASYTLS_VARS_FILE ;;
+			*)
+				EASYTLS_VARS_FILE="${val}" ;;
+		esac
 	;;
 	-b|--base-dir)
 		EASYTLS_base_dir="${val}"
@@ -663,15 +687,6 @@ done
 
 # Report and die on fatal warnings
 warn_die
-
-# Source vars file
-if [ $LOAD_VARS ]; then
-	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
-	# shellcheck source=./easytls-client-disconnect.vars-example
-	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
-	update_status "vars loaded"
-	unset -v LOAD_VARS VARS_FILE
-fi
 
 # Dependencies
 deps
