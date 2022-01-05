@@ -50,16 +50,19 @@ help_text ()
   -z|--no-ca             Run in No CA mode. Still requires --ca=<DIR>
   -g|--custom-group=<GROUP>
                          Verify the client metadata against a custom group.
-  -s|--serial-hash       Verify metadata hash (TLS-key serial number).
+  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
+  -s|--source-vars=<FILENAME>
+                         Force Easy-TLS to source a vars file.
+                         The default vars file is sourced if no FILENAME is given.
   -x|--max-tlskey-age=<DAYS>
                          TLS Crypt V2 Key allowable age in days (default: 1825).
                          To disable age check use 0
+  -y|--tlskey-hash       Verify metadata hash (TLS-key serial number).
   -d|--disable-list      Disable the temporary disabled-list check.
   -k|--kill-client       Use easytls-client-connect script to kill client.
                          Killing a client can only be done once a client has
                          connected, so a failed connection must roll-over, then
                          easytls-client-connect.sh immediately kills the client.
-  -s|--pid-file=<FILE>   The PID file for the openvpn server instance.
   --v1|--via-crl         Do X509 certificate checks via X509_METHOD 1, CRL check.
   --v2|--via-ca          Do X509 certificate checks via X509_METHOD 2,
                          Use 'OpenSSL ca' commands.  NOT SUPPORTED
@@ -179,17 +182,15 @@ die ()
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
-	echo 'XXXXX CV2 XXXXX'
-	echo 1 > "${temp_stub}-die"
-	if [ $ENABLE_KILL_PPID ]
-	then
-		if [ $EASYTLS_FOR_WINDOWS ]
-		then
+	if [ $ENABLE_KILL_SERVER ]; then
+		echo 1 > "${temp_stub}-die"
+		echo 'XXXXX CV2 XXXXX KILL SERVER'
+		if [ $EASYTLS_FOR_WINDOWS ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			[ $DISABLE_KILL_PPID ] || taskkill /F /PID ${EASYTLS_srv_pid}
+			taskkill /F /PID ${EASYTLS_srv_pid}
 		else
-			[ $DISABLE_KILL_PPID ] || kill -15 ${EASYTLS_srv_pid}
+			kill -15 ${EASYTLS_srv_pid}
 		fi
 	fi
 	exit "${2:-255}"
@@ -544,7 +545,7 @@ write_metadata_file ()
 	else
 		if [ -f "${client_md_file_stack}" ]; then
 			# If client_md_file_stack still exists then fail
-			tlskey_status "STALE_FILE_ERROR"
+			update_status "STALE_FILE_ERROR"
 			keep_metadata=1
 			die "STALE_FILE_ERROR" 101
 		else
@@ -568,8 +569,8 @@ stack_up ()
 	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	# No Stack UP
-	[ $ENABLE_STACK ] || return 0
+	# No Stack UP - No stack in stand alone mode
+	[ $EASYTLS_STAND_ALONE ] && return 0
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
 	unset stale_stack
@@ -591,7 +592,7 @@ stack_up ()
 
 	update_status "stack-up"
 	tlskey_status "  | => stack:+ ${s} -"
-}
+} # => stack_up ()
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
@@ -602,7 +603,7 @@ tlskey_status ()
 		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
 			"${MD_TLSKEY_SERIAL}" "*VF >${1}" "${MD_NAME}"
 	} >> "${EASYTLS_TK_XLOG}"
-}
+} # => tlskey_status ()
 
 # Break metadata_string into variables
 # shellcheck disable=SC2034
@@ -638,9 +639,6 @@ init ()
 
 	# metadata version
 	local_easytls='easytls'
-
-	# Enable stacking by default
-	ENABLE_STACK=1
 
 	# TLS expiry age (days) Default 5 years, 1825 days
 	TLSKEY_MAX_AGE=$((365*5))
@@ -710,6 +708,31 @@ init ()
 # Dependancies
 deps ()
 {
+	# OpenVPN only provides a minimal shell for --tls-crypt-v2
+	# Thus, this extra loop to jump through to source vars
+	# Also, vars MUST be loaded successfully.
+	# Source vars file
+	prog_dir="${0%/*}"
+	EASYTLS_WORK_DIR="${EASYTLS_WORK_DIR:-${prog_dir}}"
+	default_vars="${EASYTLS_WORK_DIR}/easytls-cryptv2-verify.vars"
+	EASYTLS_VARS_FILE="${EASYTLS_VARS_FILE:-${default_vars}}"
+	if [ -f "${EASYTLS_VARS_FILE}" ]; then
+		# .vars-example is correct for shellcheck
+		# shellcheck source=./easytls-cryptv2-verify.vars-example
+		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
+		update_status "vars loaded"
+	else
+		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+	fi
+
+	# Source metadata lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	if [ -f "${lib_file}" ]; then
+		# shellcheck source=./easytls-metadata.lib
+		. "${lib_file}" || die "source failed: ${lib_file}" 77
+	fi
+	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
+
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
@@ -822,13 +845,6 @@ deps ()
 		;;
 	esac
 
-	# Source metadata lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-metadata.lib"
-	# shellcheck source=./easytls-metadata.lib
-	[ -f "${lib_file}" ] && . "${lib_file}"
-	unset -v lib_file
-
 	# Default CUSTOM_GROUP
 	[ -n "${LOCAL_CUSTOM_G}" ] || LOCAL_CUSTOM_G='EASYTLS'
 
@@ -873,8 +889,8 @@ do
 		EASYTLS_VERBOSE=1
 	;;
 	-l)
-		LOAD_VARS=1
-		VARS_FILE="${val}"
+		empty_ok=1
+		EASYTLS_STAND_ALONE=1
 	;;
 	-c|--ca)
 		CA_DIR="${val}"
@@ -882,6 +898,19 @@ do
 	-z|--no-ca)
 		empty_ok=1
 		EASYTLS_NO_CA=1
+	;;
+	-w|--work-dir)
+		EASYTLS_WORK_DIR="${val}"
+	;;
+	-s|--source-vars)
+		empty_ok=1
+		EASYTLS_REQUIRE_VARS=1
+		case "${val}" in
+			-s|--source-vars)
+				unset EASYTLS_VARS_FILE ;;
+			*)
+				EASYTLS_VARS_FILE="${val}" ;;
+		esac
 	;;
 	-g|--custom-group)
 		if [ -z "${LOCAL_CUSTOM_G}" ]
@@ -891,10 +920,6 @@ do
 			ENABLE_MULTI_CUSTOM_G=1
 			LOCAL_CUSTOM_G="${val} ${LOCAL_CUSTOM_G}"
 		fi
-	;;
-	-s|--serial-hash)
-		empty_ok=1
-		ENABLE_TLSKEY_HASH=1
 	;;
 	-x|--max-tlskey-age)
 		TLSKEY_MAX_AGE="${val}"
@@ -906,6 +931,10 @@ do
 	-k|--kill-client) # Use client-connect to kill client
 		empty_ok=1
 		ENABLE_KILL_CLIENT=1
+	;;
+	-y|--tlskey-hash)
+		empty_ok=1
+		ENABLE_TLSKEY_HASH=1
 	;;
 	--hash)
 		EASYTLS_HASH_ALGO="${val}"
@@ -958,15 +987,6 @@ done
 
 # Report and die on fatal warnings
 warn_die
-
-# Source vars file
-if [ $LOAD_VARS ]; then
-	[ -f "${VARS_FILE}" ] || die "source missing: ${VARS_FILE}" 78
-	# shellcheck source=./easytls-cryptv2-verify.vars-example
-	. "${VARS_FILE}" || die "source failed: ${VARS_FILE}" 77
-	update_status "vars loaded"
-	unset -v LOAD_VARS VARS_FILE
-fi
 
 # Dependancies
 deps
