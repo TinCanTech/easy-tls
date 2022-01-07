@@ -537,6 +537,12 @@ write_metadata_file ()
 
 	if [ $stale_stack ]; then
 		update_status "stale_stack"
+		if [ $ENABLE_STALE_LOG ]; then
+			EASYTLS_stale_log="${temp_stub}-stale.x-log"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"${local_date_ascii} - ${client_md_file_stack}" \
+					>> "${EASYTLS_stale_log}" || :
+		fi
 	else
 		if [ -f "${client_md_file_stack}" ]; then
 			# If client_md_file_stack still exists then fail
