@@ -563,13 +563,6 @@ update_conntrac ()
 				"${EASYTLS_CONN_TRAC}.fail" || die "conn: conntrac file" 157
 		fi # ENABLE_CONNTRAC_FAIL_LOG
 
-		env_file="${temp_stub}-client-connect.env"
-		if [ $EASYTLS_FOR_WINDOWS ]; then
-			set > "${env_file}" || die "connect: conntrac env" 158
-		else
-			env > "${env_file}" || die "connect: conntrac env" 159
-		fi
-
 		# Absolutely fatal
 		[ $conntrac_unknown ] && {
 			ENABLE_KILL_SERVER=1
