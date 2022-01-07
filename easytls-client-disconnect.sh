@@ -397,34 +397,20 @@ stack_down ()
 	if [ -f "${client_md_file_stack}" ]; then
 
 		unset -v stack_err
-		i=0
+		i=1
+		p=0
 		s=''
 
-		while : ; do
+		while [ -f "${client_md_file_stack}_${i}" ]; do
+			[ ${i} -eq 1 ] || s="${s}."
+			p=${i}
 			i=$(( i + 1 ))
-			if [ -f "${client_md_file_stack}_${i}" ]; then
-				[ ${i} -eq 1 ] || s="${s}."
-
-				f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}_${i}")"
-
-				# shellcheck disable=SC2154
-				if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
-					"${EASYTLS_RM}" "${client_md_file_stack}_${i}" || stack_err=1
-					update_status "stack-down: ${i} STALE"
-					tlskey_status "  | =$ stack:- ${s}${i} STALE -"
-					stale_error "${local_date_ascii} ${client_md_file_stack}_${i}"
-				fi
-			else
-				break
-			fi
 		done
 
-		f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
-		if [ $((local_date_sec - f_date)) -gt ${EASYTLS_STALE_SEC} ]; then
+		if [ ${p} -eq 0 ]; then
 			"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
-			update_status "stack-down: clear"
-			tlskey_status "  | =  stack: clear -"
-			stale_error "${local_date_ascii} ${client_md_file_stack}"
+		else
+			"${EASYTLS_RM}" "${client_md_file_stack}_${p}" || stack_err=1
 		fi
 	fi
 
@@ -432,6 +418,8 @@ stack_down ()
 	release_lock "${easytls_lock_stub}-stack.d" || \
 		die "release_lock:stack FAIL" 99
 	update_status "stack-lock-released"
+	# Save pies
+	unset -v i p s
 
 	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
 } # => stack_down ()
@@ -585,7 +573,7 @@ deps ()
 	# Need the date/time ..
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
 	local_date_ascii="${full_date##* }"
-	local_date_sec="${full_date%% *}"
+	#local_date_sec="${full_date%% *}"
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"
