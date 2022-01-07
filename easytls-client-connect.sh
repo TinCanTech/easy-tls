@@ -774,7 +774,6 @@ init ()
 # Dependancies
 deps ()
 {
-
 	# Source vars file
 	prog_dir="${0%/*}"
 	EASYTLS_WORK_DIR="${EASYTLS_WORK_DIR:-${prog_dir}}"
