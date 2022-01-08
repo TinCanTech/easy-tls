@@ -59,14 +59,12 @@ clean_up ()
 {
 	# remove tmp dir
 	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir}" != "/" ] && \
-		rm -rfv "${EASYTLS_tmp_dir}"/*
+		rm -rf "${EASYTLS_tmp_dir}"/*
 	# make tmp dir
 	mkdir -p "${WORK_DIR}/unit-test-tmp" || \
 		fail "Cannot create: ${WORK_DIR}/unit-test-tmp"
 	# Build vars file
-	{
-		printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
-	} > "${UTMP_VARS}"
+	build_easytls_vars || fail "Cannot create vars files"
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
@@ -146,9 +144,16 @@ build_vars ()
 	} > "$EASYTLS_VARS"
 } # => build_vars ()
 
-build_etlscv2v_vars ()
+build_easytls_vars ()
 {
-	:
+	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	} > "${TLSCV2V_VARS}"
+
+	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	} > "${CLICON_VARS}"
+
+	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	} > "${CLIDIS_VARS}"
 }
 
 print '===[  Easy-TLS Unit Tests ]==='
@@ -165,27 +170,40 @@ start_time="$(date +%s)"
 	trap "exit 6" 6
 	trap "exit 14" 15
 
-export DISABLE_KILL_PPID=1
+export EASYTLS_UNIT_TEST=1
 
 WORK_DIR="$(pwd)"
 UTMP_DIR="${WORK_DIR}/unit-test-tmp"
-UTMP_VARS="${UTMP_DIR}/etlscv2v.vars"
-clean_up
 
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--verbose --batch"
+EASYTLS_OPTS="--batch"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
-TLSCV2V_OPTS="-v -w=${WORK_DIR} -s=${UTMP_VARS}"
+TLSCV2V_VARS="${UTMP_DIR}/easytls-cryptv2-verify.vars"
+TLSCV2V_OPTS="-v -w=${WORK_DIR} -s=${TLSCV2V_VARS}"
 
 CLICON_CMD="./easytls-client-connect.sh"
-CLICON_OPTS="-v"
+CLICON_VARS="${UTMP_DIR}/unit-test.vars"
+CLICON_OPTS="-v -s=${CLICON_VARS} -m"
 
 CLIDIS_CMD="./easytls-client-disconnect.sh"
-CLIDIS_OPTS="-v"
+CLIDIS_VARS="${UTMP_DIR}/easytls-client-disconnect.vars"
+CLIDIS_OPTS="-v -s=${CLIDIS_VARS}"
+
+[ -f "./easytls-metadata.lib" ] || { echo "Missing metadata.lib"; exit 9; }
+. "./easytls-metadata.lib"
+
+[ -f "./easytls-conntrac.lib" ] || { echo "Missing conntrac.lib"; exit 9; }
+. "./easytls-metadata.lib"
+
+[ -f "./easytls-tctip.lib" ] || { echo "Missing tctip.lib"; exit 9; }
+. "./easytls-metadata.lib"
+
+# create vars files
+clean_up
 
 export ENABLE_TLSKEY_HASH=1
 
@@ -534,15 +552,35 @@ do
 	clean_up
 	for c in "c01" "c05" "c06" "c09"
 	do
+
 		print "============================================================"
 		print "real_metadata_file=$DBUG_DIR/${c}-tls-crypt-v2.metadata"
 		export real_metadata_file="$DBUG_DIR/${c}-tls-crypt-v2.metadata"
 		export metadata_file="$DBUG_DIR/test-tls-crypt-v2.metadata"
 
+		#cat "${real_metadata_file}"
+		metadata_string="$(cat "${real_metadata_file}")"
+		metadata_string_to_vars ${metadata_string} || fail "metadata_string_to_vars"
+		real_client_serial=${MD_x509_SERIAL}
+		real_UV_TLSKEY_SERIAL=${MD_TLSKEY_SERIAL}
+		export UV_TLSKEY_SERIAL=${real_UV_TLSKEY_SERIAL}
+		export common_name=${c}
+		export ifconfig_pool_remote_ip=1.2.3.4
+		export tls_serial_hex_0=${real_client_serial}
+
+		# Read metadata file for tests
+		#print " * metadata loaded"
+
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
-		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
+		print "$TLSCV2V_CMD $TLSCV2V_OPTS -c=$PKI_DIR"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -550,36 +588,59 @@ do
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
 
-	#export common_name=${c}
-	#export client_serial=
-	#"$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
-	#"$CLIDIS_CMD" $CLIDIS_OPTS -c="$PKI_DIR" || expected_errors $?
-	#exit 99
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
 
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		echo "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
 		     "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -587,6 +648,12 @@ do
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 	# Set errexit for all easytls
@@ -604,36 +671,72 @@ do
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -641,6 +744,12 @@ do
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print
@@ -652,10 +761,26 @@ do
 		export real_metadata_file="$DBUG_DIR/c09-bob-tls-crypt-v2.metadata"
 		export metadata_file="$DBUG_DIR/test-tls-crypt-v2.metadata"
 
+		#cat "${real_metadata_file}"
+		metadata_string="$(cat "${real_metadata_file}")"
+		metadata_string_to_vars ${metadata_string} || fail "metadata_string_to_vars"
+		real_client_serial=${MD_x509_SERIAL}
+		real_UV_TLSKEY_SERIAL=${MD_TLSKEY_SERIAL}
+		export UV_TLSKEY_SERIAL=${real_UV_TLSKEY_SERIAL}
+		export common_name=${c}
+		export ifconfig_pool_remote_ip=1.2.3.4
+		export tls_serial_hex_0=${real_client_serial}
+
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 	# Set errexit for all easytls
@@ -673,6 +798,12 @@ do
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 	# Set errexit for all easytls
@@ -751,36 +882,72 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -788,6 +955,12 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -798,24 +971,48 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --disable-list || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-ca || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -828,6 +1025,12 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		cp "${real_metadata_file}" "${metadata_file}"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -835,6 +1038,12 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --preload-id="$plcid" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		print "------------------------------------------------------------"
@@ -842,6 +1051,12 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		plcid="$(cat "$PKI_DIR/easytls/data/easytls-ca-identity.txt")"
 		print "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid"
 		      "$TLSCV2V_CMD" $TLSCV2V_OPTS -c="$PKI_DIR" -g=tincantech --via-index --cache-id --preload-id="$plcid" || expected_errors $?
+
+		print "$CLICON_CMD $CLICON_OPTS -c=$PKI_DIR"
+			  "$CLICON_CMD" $CLICON_OPTS -c="$PKI_DIR" || expected_errors $?
+
+		print "$CLIDIS_CMD $CLIDIS_OPTS"
+			  "$CLIDIS_CMD" $CLIDIS_OPTS || expected_errors $?
 		clean_up
 
 		echo

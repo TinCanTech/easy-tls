@@ -724,9 +724,11 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_srv_pid=$PPID
-	#ENABLE_STACK=1
-	unset -v LOAD_VARS VARS_FILE
+	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
+		EASYTLS_srv_pid=$PPID
+	else
+		EASYTLS_srv_pid=999
+	fi
 
 	# Log message
 	status_msg="* EasyTLS-client-connect"
@@ -1000,6 +1002,7 @@ fi
 if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 	client_md_file_stack="${temp_stub}-tcv2-metadata-${UV_TLSKEY_SERIAL}"
 	update_status "tls key serial: ${UV_TLSKEY_SERIAL}"
+
 	if [ -f "${client_md_file_stack}" ]; then
 		# Get client metadata_string
 		metadata_string="$("${EASYTLS_CAT}" "${client_md_file_stack}")"

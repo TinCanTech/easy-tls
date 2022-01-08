@@ -485,9 +485,11 @@ init ()
 	absolute_fail=1
 
 	# Defaults
-	EASYTLS_srv_pid=$PPID
-	#ENABLE_STACK=1
-	unset -v LOAD_VARS VARS_FILE
+	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
+		EASYTLS_srv_pid=$PPID
+	else
+		EASYTLS_srv_pid=999
+	fi
 
 	# Log message
 	status_msg="* EasyTLS-client-disconnect"

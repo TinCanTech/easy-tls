@@ -489,6 +489,7 @@ retry_pause ()
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		ping -n 1 127.0.0.1
 	else
+		# kill -0 $PPID
 		sleep 1
 	fi
 } # => retry_pause ()
@@ -644,8 +645,11 @@ init ()
 	TLSKEY_MAX_AGE=$((365*5))
 
 	# Defaults
-	EASYTLS_srv_pid=$PPID
-	unset -v LOAD_VARS VARS_FILE
+	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
+		EASYTLS_srv_pid=$PPID
+	else
+		EASYTLS_srv_pid=999
+	fi
 
 	# metadata file
 	# shellcheck disable=SC2154
