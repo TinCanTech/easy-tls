@@ -141,7 +141,7 @@ build_vars ()
 		printf '%s\n' ' set_var EASYRSA_REQ_CITY      "TEST ,./<>  ?;:@~  []!%^  *()-=  _+| (23) TEST"'
 		printf '%s\n' ' set_var EASYRSA_REQ_ORG       "example.org"'
 		printf '%s\n' ' set_var EASYRSA_REQ_EMAIL     "me@example.net"'
-		printf '%s\n' ' set_var EASYRSA_REQ_OU        "TEST esc \{ \} \£ \¬ (4) TEST"'
+		printf '%s\n' ' set_var EASYRSA_REQ_OU        "TEST esc \\{ \\} \\£ \\¬ (4) TEST"'
 	} > "$EASYTLS_VARS"
 } # => build_vars ()
 
