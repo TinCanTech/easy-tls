@@ -47,12 +47,13 @@ test_md_file ()
 
 finish ()
 {
-	rm -f "${WORK_DIR}/easytls-cryptv2-verify.vars"
-	if [ -f "${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" ]; then
-		mv	"${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" \
-			"${WORK_DIR}/easytls-cryptv2-verify.vars" || \
-				die "move vars file"
-	fi
+	:
+	#rm -f "${WORK_DIR}/easytls-cryptv2-verify.vars"
+	#if [ -f "${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" ]; then
+	#	mv	"${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" \
+	#		"${WORK_DIR}/easytls-cryptv2-verify.vars" || \
+	#			die "move vars file"
+	#fi
 }
 
 clean_up ()
@@ -146,14 +147,55 @@ build_vars ()
 
 build_easytls_vars ()
 {
-	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	{	printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+			"# Easy-TLS crypt-v2 unit-test-tmp vars file" \
+			"#EASYTLS_VERBOSE=1" \
+			"#CA_DIR='/etc/openvpn/easyrsa/pki'" \
+			"#EASYTLS_NO_CA=1" \
+			"#LOCAL_CUSTOM_G='EASYTLS'" \
+			"#LOCAL_CUSTOM_G='EASYTLS TEST'" \
+			"#ENABLE_MULTI_CUSTOM_G=1" \
+			"#TLSKEY_MAX_AGE=1825" \
+			"#ENABLE_TLSKEY_HASH=1" \
+			"#EASYTLS_tmp_dir='/tmp'" \
+			# EOL
+
 	} > "${TLSCV2V_VARS}"
 
-	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	{	printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+			"# Easy-TLS client-connect unit-test-tmp vars file" \
+			"#EASYTLS_VERBOSE=1" \
+			"#IGNORE_X509_MISMATCH=1" \
+			"#IGNORE_HWADDR_MISMATCH=1" \
+			"#ENFORCE_UNIQUE_TLSKEY=1" \
+			"#ENFORCE_TLSKEY_SERIAL_MATCH=1" \
+			"#ENFORCE_PUSH_HWADDR=1" \
+			"#ENFORCE_CRYPT_V2=1" \
+			"#ENFORCE_KEY_HWADDR=1" \
+			"#PEER_IP_MATCH=1" \
+			"#EASYTLS_DYN_OPTS_FILE=/etc/openvpn/server/easytls-dyn-opts" \
+			"#ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh" \
+			"#VERBOSE_CONN_TRAC=1" \
+			"#ENABLE_CONN_TRAC_STATS=1" \
+			"#EASYTLS_TLSKEY_STATUS=1" \
+			"#EASYTLS_tmp_dir=/tmp" \
+			# EOL
+
 	} > "${CLICON_VARS}"
 
-	{	printf '%s\n' "# Easy-TLS unit-test-tmp vars file"
+	{	printf '%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n' \
+			"# Easy-TLS client-disconnect unit-test-tmp vars file" \
+			"#EASYTLS_VERBOSE=1" \
+			"#ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh" \
+			"#VERBOSE_CONN_TRAC=1" \
+			"#ENABLE_CONN_TRAC_STATS=1" \
+			"#EASYTLS_TLSKEY_STATUS=1" \
+			"#ENABLE_STALE_LOG=1" \
+			"#EASYTLS_tmp_dir=/tmp" \
+			# EOL
+
 	} > "${CLIDIS_VARS}"
+	echo "* vars rebuilt"
 }
 
 print '===[  Easy-TLS Unit Tests ]==='
@@ -186,7 +228,7 @@ TLSCV2V_VARS="${UTMP_DIR}/easytls-cryptv2-verify.vars"
 TLSCV2V_OPTS="-v -w=${WORK_DIR} -s=${TLSCV2V_VARS}"
 
 CLICON_CMD="./easytls-client-connect.sh"
-CLICON_VARS="${UTMP_DIR}/unit-test.vars"
+CLICON_VARS="${UTMP_DIR}/easytls-client-connect.vars"
 CLICON_OPTS="-v -s=${CLICON_VARS} -m"
 
 CLIDIS_CMD="./easytls-client-disconnect.sh"
