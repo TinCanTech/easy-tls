@@ -198,6 +198,9 @@ build_easytls_vars ()
 	echo "* vars rebuilt"
 }
 
+
+#######################################################
+
 print '===[  Easy-TLS Unit Tests ]==='
 
 start_time="$(date +%s)"
@@ -253,7 +256,7 @@ export ENABLE_TLSKEY_HASH=1
 EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 [ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
-if [ "$EASYTLS_FOR_WINDOWS" ]
+if [ -n "$EASYTLS_FOR_WINDOWS" ]
 then
 	export OPENVPN_CMD="./openvpn.exe"
 	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
@@ -301,21 +304,22 @@ print "--------------------"
 #print "$EASYRSA_CMD ${EASYRSA_OPTS} init-pki"
 #"$EASYRSA_CMD" ${EASYRSA_OPTS} init-pki || fail "No-CA test: init-pki"
 
-for cmd in "init no-ca" "cf cg easytls-unit-test" \
-			"sss s01" "ssc c01" "ssc c02" \
-			"bta" "ita s01 0" "-r=s01 ita c01 1" "-r=s01 ita c02 1" \
-			"sss s02" "ssc c03" "ssc c04" \
-			"btc" "itc s02" "-r=s02 itc c03" "-r=s02 itc c04" \
-			"sss s03" "ssc c05" "ssc c06" \
-			"btcv2s s03" \
-			"btcv2c s03 c05" "-k=hw btcv2c s03 c05 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-			"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-			"itcv2 s03" \
-			"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
-			"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
-			"-k=hw rmd c06 serial" "status" \
-			"bc2gc s03 family" "bc2gc s03 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-			"ic2gc c06 friends"
+for cmd in \
+	"init no-ca" "cf cg easytls-unit-test" \
+	"sss s01" "ssc c01" "ssc c02" \
+	"bta" "ita s01 0" "-r=s01 ita c01 1" "-r=s01 ita c02 1" \
+	"sss s02" "ssc c03" "ssc c04" \
+	"btc" "itc s02" "-r=s02 itc c03" "-r=s02 itc c04" \
+	"sss s03" "ssc c05" "ssc c06" \
+	"btcv2s s03" \
+	"btcv2c s03 c05" "-k=hw btcv2c s03 c05 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+	"btcv2c s03 c06" "-k=hw btcv2c s03 c06 ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+	"itcv2 s03" \
+	"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
+	"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
+	"-k=hw rmd c06 serial" "status" \
+	"bc2gc s03 family" "bc2gc s03 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
+	"ic2gc c06 friends"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	print "--------------------"
