@@ -393,7 +393,7 @@ do
 		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
 		}
 
-	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
+	[ $loops -eq 1 ] && [ $EASYTLS_REMOTE_CI ] && {
 		EASYTLS_OPTS="${EASYTLS_OPTS} -y"
 		print "
 
@@ -404,7 +404,7 @@ do
 "
 		}
 
-	[ $loops -eq 3 ] && [ $EASYTLS_REMOTE_CI ] && {
+	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
 		EASYTLS_OPTS="${EASYTLS_OPTS% -y}"
 		print "
 
@@ -426,7 +426,7 @@ do
 	"$EASYRSA_CMD" $EASYRSA_OPTS init-pki
 
 	# Build EASYTLS_VARS - Random serial NO
-	[ $loops -eq 2 ] && build_vars
+	[ $loops -eq 1 ] && build_vars
 
 	print "ls -l $EASYRSA_PKI"
 	[ $EASYTLS_SILENT ] || ls -l "$EASYRSA_PKI"
@@ -443,6 +443,9 @@ do
 		"build-client-full c09 nopass" \
 		"build-client-full c10 nopass" \
 		"build-client-full cw01 nopass" \
+		"show-ca" \
+		"show-cert s01" \
+		"show-cert c01" \
 		"--keysize=64 gen-dh" \
 		## EOL
 	do
