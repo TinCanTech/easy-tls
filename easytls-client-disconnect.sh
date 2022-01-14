@@ -16,11 +16,6 @@ copyright ()
 # This code is released under version 2 of the GNU GPL
 # See LICENSE of this project for full licensing details.
 #
-# Acknowledgement:
-# syzzer: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
-#
-# Lock client connections to specific client devices.
-#
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
@@ -644,11 +639,11 @@ while [ -n "${1}" ]; do
 				EASYTLS_VARS_FILE="${val}" ;;
 		esac
 	;;
-	-b|--base-dir)
-		EASYTLS_base_dir="${val}"
-	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="${val}"
+	;;
+	-b|--base-dir)
+		EASYTLS_base_dir="${val}"
 	;;
 	-o|--openvpn-bin-dir)
 		EASYTLS_ovpnbin_dir="${val}"

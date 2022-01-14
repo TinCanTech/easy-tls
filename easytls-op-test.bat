@@ -13,12 +13,6 @@ REM
 REM This code is released under version 2 of the GNU GPL
 REM See LICENSE of this project for full licensing details.
 REM
-REM Acknowledgement:
-REM This utility is "written in the style of" and "borrows heavily from" Easy-RSA
-REM
-REM Easy-TLS is inspired by syzzer
-REM See: https://github.com/OpenVPN/openvpn/blob/master/doc/tls-crypt-v2.txt
-REM
 REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 set
@@ -56,7 +50,7 @@ IF ERRORLEVEL 0 SET SH_EXIT=0
 REM X509 certificate revoked
 IF ERRORLEVEL 1 SET SH_EXIT=1
 
-ECHO * Verified expected errors: 54
+ECHO * Verified expected errors: 42
 
 ECHO SH_EXIT: %SH_EXIT%
 EXIT /B %SH_EXIT%

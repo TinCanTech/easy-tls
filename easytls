@@ -9141,17 +9141,17 @@ main ()
 			empty_ok=1
 			FILE_HASH_DISABLED=1
 		;;
-		-b|--base-dir)
-			EASYTLS_base_dir="${val}"
-		;;
 		-t|--tmp-dir)
 			EASYTLS_tmp_dir="${val}"
 		;;
-		-e|--ersabin-dir)
-			EASYTLS_ersabin_dir="${val}"
+		-b|--base-dir)
+			EASYTLS_base_dir="${val}"
 		;;
 		-o|--ovpnbin-dir)
 			EASYTLS_ovpnbin_dir="${val}"
+		;;
+		-e|--ersabin-dir)
+			EASYTLS_ersabin_dir="${val}"
 		;;
 		-*)
 			fatal_opt "Unknown option: ${opt}"

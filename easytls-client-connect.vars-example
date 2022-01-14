@@ -11,31 +11,30 @@
 #ENFORCE_CRYPT_V2=1
 #ENFORCE_KEY_HWADDR=1
 #PEER_IP_MATCH=1
+
+# Openvpn dynamic client options
 #EASYTLS_DYN_OPTS_FILE=/etc/openvpn/server/easytls-dyn-opts
 
-# One of these directories MUST exist
+# Set a specific temporary directory
 #EASYTLS_tmp_dir=/tmp
 #EASYTLS_tmp_dir=/Windows/Temp
 
+# Connection tracking
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
 #ENABLE_CONN_TRAC_STATS=1
 
-# Be careful ..
+# Enable tlskey-status tracking
+#EASYTLS_TLSKEY_STATUS=1
+
+# Fine tune lock time-out
+#LOCK_TIMEOUT=30
+
+# Debug tools
 #FATAL_CONN_TRAC=1
 #FATAL_CONN_TRAC_2=1
 #POOL_EXHAUST_FATAL=1
 #POOL_EXHAUST_KILL_CLIENT=1
-
-# Enable tlskey-status tracking
-#EASYTLS_TLSKEY_STATUS=1
-
-# Enable kill server mode
 #ENABLE_KILL_SERVER=1
-
-# Write environment to temporary log file
 #WRITE_ENV=1
-
-# Fine tune lock time-out
-#LOCK_TIMEOUT=30
 

@@ -3,6 +3,11 @@
 
 #EASYTLS_VERBOSE=1
 
+# Set a specific temporary directory
+#EASYTLS_tmp_dir=/tmp
+#EASYTLS_tmp_dir=/Windows/Temp
+
+# Connection tracking
 #ENABLE_CONN_TRAC=1 # Also requires easytls-client-disconnect.sh
 #VERBOSE_CONN_TRAC=1
 #ENABLE_CONN_TRAC_STATS=1
@@ -11,19 +16,11 @@
 #EASYTLS_TLSKEY_STATUS=1
 #ENABLE_STALE_LOG=1
 
-# One of these directories MUST exist
-#EASYTLS_tmp_dir=/tmp
-#EASYTLS_tmp_dir=/Windows/Temp
-
-# be careful..
-#FATAL_CONN_TRAC=1
-
-# Enable kill server mode
-#ENABLE_KILL_SERVER=1
-
-# Write environment to temporary log file
-#WRITE_ENV=1
-
 # Fine tune lock time-out
 #LOCK_TIMEOUT=30
+
+# Debug tools
+#FATAL_CONN_TRAC=1
+#ENABLE_KILL_SERVER=1
+#WRITE_ENV=1
 

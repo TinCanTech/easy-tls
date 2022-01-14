@@ -31,20 +31,20 @@
 #X509_METHOD=3
 
 # Preload CA-ID
-#PRELOAD_CA_ID='paste the CA-ID here'
+#PRELOAD_CA_ID=<paste the CA-ID here>
 
 # Enable/disable kill_client mode
 #ENABLE_KILL_CLIENT=1
 
 # Set a specific temporary directory
-#EASYTLS_tmp_dir='/tmp'               # *nix
-#EASYTLS_tmp_dir='C:/Windows/Temp'    # Win
+#EASYTLS_tmp_dir=/tmp               # *nix
+#EASYTLS_tmp_dir=C:/Windows/Temp    # Win
 
 # If easytls-cryptv2-verify.sh is run stand alone then use this
 #EASYTLS_STAND_ALONE=1
 
 # Hash algorithm
-#EASYTLS_HASH_ALGO='SHA256'
+#EASYTLS_HASH_ALGO=SHA256
 
 # Write environment to temporary log file
 #WRITE_ENV=1

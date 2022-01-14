@@ -958,17 +958,17 @@ while [ -n "${1}" ]; do
 	-p|--preload-id)
 		PRELOAD_CA_ID="${val}"
 	;;
-	-b|--base-dir)
-		EASYTLS_base_dir="${val}"
-	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="${val}"
 	;;
-	-e|--easyrsa-bin-dir)
-		EASYTLS_ersabin_dir="${val}"
+	-b|--base-dir)
+		EASYTLS_base_dir="${val}"
 	;;
 	-o|--openvpn-bin-dir)
 		EASYTLS_ovpnbin_dir="${val}"
+	;;
+	-e|--easyrsa-bin-dir)
+		EASYTLS_ersabin_dir="${val}"
 	;;
 	*)
 		warn_die "Unknown option: ${1}"
