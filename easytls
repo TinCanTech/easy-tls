@@ -9067,7 +9067,7 @@ set_var()
 # Top level function
 main ()
 {
-	EASYTLS_VERSION="2.7.0"
+	EASYTLS_VERSION="2.8.0"
 
 	# Be secure with a restrictive umask
 	[ -z "$EASYTLS_NO_UMASK" ] && umask 077

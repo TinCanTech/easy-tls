@@ -275,14 +275,14 @@ fi
 [ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
 
 # Test help
-"${EASYTLS_CMD}" --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
-"${TLSCV2V_CMD}" --help || exit_code=$?
+"${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
+"${TLSCV2V_CMD}" ${TLSCV2V_OPTS} --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} --help ($?)"
 #'"${TLSVERIFY_CMD}" --help || exit_code=$?
 #[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
-"${CLICON_CMD}" --help || exit_code=$?
+"${CLICON_CMD}" ${CLICON_OPTS} --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} --help ($?)"
-"${CLIDIS_CMD}" --help || exit_code=$?
+"${CLIDIS_CMD}" ${CLIDIS_OPTS} --help || exit_code=$?
 [ $exit_code -eq 253 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} --help ($?)"
 
 # No-CA test
@@ -1224,9 +1224,19 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	"$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3::/64 || expected_errors $?
 
 	print "------------------------------------------------------------"
-	print "$EASYTLS_CMD $EASYTLS_OPTS version"
-	"$EASYTLS_CMD" $EASYTLS_OPTS version || \
-		fail "Unit test error 71: version"
+	#print "$EASYTLS_CMD $EASYTLS_OPTS version"
+	#"$EASYTLS_CMD" $EASYTLS_OPTS version || \
+	#	fail "Unit test error 71: version"
+
+# Version
+"${EASYTLS_CMD}" -V || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} -V ($?)"
+"${TLSCV2V_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} -V ($?)"
+"${CLICON_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${CLICON_CMD} ${CLICON_OPTS} -V ($?)"
+"${CLIDIS_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} -V ($?)"
+
 
 final_end_time="$(date +%s)"
 final_run_mins="$(( (final_end_time - final_start_time) / 60 ))"

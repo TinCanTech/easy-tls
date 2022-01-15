@@ -1,6 +1,6 @@
 #!/bin/sh
 
-EASYTLS_VERSION="2.7.0"
+EASYTLS_VERSION="2.8.0"
 
 # Copyright - negotiable
 copyright ()
