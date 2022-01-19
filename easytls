@@ -8745,6 +8745,7 @@ generate_faster_hash ()
 	# Missing file are part of the test
 	generated_faster_hash="$(
 		{
+			IFS="${new_line}"
 			for f in ${inline_file_list}; do
 				"${EASYTLS_CAT}" "${f}"
 			done
@@ -8755,7 +8756,7 @@ generate_faster_hash ()
 				"${EASYTLS_CAT}" "${f}"
 			done
 		} | openssl_generate_data_hash
-	)" || die "generate_faster_hash/faster_hash"
+	)" || die "generate_faster_hash/generated_faster_hash"
 	unset inline_file_list tlskey_file_list util_file_list
 	generated_faster_hash="${generated_faster_hash%% *}"
 } # => generate_faster_hash ()
@@ -8938,7 +8939,9 @@ external_deps ()
 	EASYTLS_MD_DIR=''; unset -v EASYTLS_MD_DIR
 
 	# initialise
-	unset want_wiscii_hash
+	new_line='
+'
+	unset -v want_wiscii_hash
 	want_faster_hash=1
 } # => external_deps ()
 
