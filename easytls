@@ -8428,7 +8428,7 @@ import_key ()
 # Choose hash algorithm and verify hash
 verify_master_hash ()
 {
-	if [ -n "${use_wiscii_hash}" ]; then
+	if [ -n "${want_wiscii_hash}" ]; then
 		verify_wiscii_hash || die "verify_wiscii_hash"
 	else
 		verify_faster_hash || die "verify_faster_hash"
@@ -8438,7 +8438,7 @@ verify_master_hash ()
 # Choose hash algorithm and save hash
 save_master_hash ()
 {
-	if [ -n "${use_wiscii_hash}" ]; then
+	if [ -n "${want_wiscii_hash}" ]; then
 		save_wiscii_hash || die "save_wiscii_hash"
 	else
 		save_faster_hash || die "save_faster_hash"
@@ -8736,11 +8736,11 @@ generate_faster_hash ()
 		return 0
 	fi
 
-	want_faster_hash=1
+	#want_faster_hash=1
 	unset inline_file_list tlskey_file_list util_file_list
 	# Generate the lists above
 	generate_wiscii_hash || die "generate_faster_hash/generate_wiscii_hash"
-	unset want_faster_hash
+	#unset want_faster_hash
 
 	# Missing file are part of the test
 	generated_faster_hash="$(
@@ -8936,6 +8936,10 @@ external_deps ()
 	# Other ways to satify shellcheck
 	EASYTLS_KEY_INDEX=''; unset -v EASYTLS_KEY_INDEX
 	EASYTLS_MD_DIR=''; unset -v EASYTLS_MD_DIR
+
+	# initialise
+	unset want_wiscii_hash
+	want_faster_hash=1
 } # => external_deps ()
 
 # vars setup
