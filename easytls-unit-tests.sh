@@ -388,32 +388,44 @@ do
 			}
 	fi
 
-	[ $EASYTLS_FOR_WINDOWS ] && [ $EASYTLS_REMOTE_CI ] && {
+	if [ $loops -eq 1 ] && [ $EASYTLS_FOR_WINDOWS ] && [ $EASYTLS_REMOTE_CI ]; then
 		# disable auto-check ~60% time saving (13m to 5m)
 		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
-		}
-
-	[ $loops -eq 1 ] && [ $EASYTLS_REMOTE_CI ] && {
+		# disable file-hash ~60% time saving (13m to 5m)
 		EASYTLS_OPTS="${EASYTLS_OPTS} -y"
 		print "
 
 
-* >>>>> FILE-HASH-DISABLED MODE <<<<< *
+* >>>>> FILE-HASH-DISABLED MODE / AUTO-CHECK DISABLED <<<<< *
 
 
 "
-		}
+	fi
 
-	[ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && {
-		EASYTLS_OPTS="${EASYTLS_OPTS% -y}"
+	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ]; then
+		# disable auto-check ~60% time saving (13m to 5m)
+		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
+		# disable file-hash ~60% time saving (13m to 5m)
+		EASYTLS_OPTS="${EASYTLS_OPTS} -y"
 		print "
 
 
-* >>>>> FILE-HASH-ENABLED MODE <<<<< *
+* >>>>> FILE-HASH-DISABLED MODE / AUTO-CHECK DISABLED <<<<< *
 
 
 "
-		}
+	fi
+
+	if [ $loops -eq 3 ] && [ $EASYTLS_REMOTE_CI ]; then
+		EASYTLS_OPTS="${EASYTLS_OPTS% -n -y}"
+		print "
+
+
+* >>>>> FILE-HASH-ENABLED MODE / AUTO-CHECK ENABLED <<<<< *
+
+
+"
+	fi
 
 	# Switch to SHA1
 	[ $loops -eq 3 ] && TLSCV2V_OPTS="${TLSCV2V_OPTS} --hash=SHA1"
