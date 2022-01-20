@@ -37,6 +37,9 @@ if %PROCESSOR_ARCHITECTURE% == x86 (
 
 curl -LO https://raw.githubusercontent.com/TinCanTech/easyrsa-plus/master/easyrsa3/easyrsa
 
+cd
+dir
+
 SET PATH=%PATH%;.\
 SET HOME=%PATH%
 SET ENV=/disable-env

@@ -42,6 +42,9 @@ do
 	fi
 done
 
+pwd
+ls -l
+
 	export SHALLOW=1
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
