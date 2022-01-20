@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Version 2.8.0
 * TBD
+  Allow spaces in PATH
+    Commit 4cbdd621ee99e328fa2cd139b77742d853c03137
+      Allow spaces in PATH
 
 Version 2.7.0
 * 2022-01-14 - Commit e6153d9f6d13a2c08afb4cdcc406e50265ad35fe
