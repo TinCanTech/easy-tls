@@ -576,6 +576,7 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
+	"${EASYTLS_RM}" -f "${EASYTLS_OPENSSL_CONF}"
 	exec 6<&-
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -1857,7 +1858,7 @@ easytls_date_to_sec ()
 # Generate openssl.cnf file for self-signed certs
 easytls_openssl_file ()
 {
-	[ -f "${OPENSSL_CONF}" ] && export OPENSSL_CONF && return 0
+	[ -f "${EASYTLS_OPENSSL_CONF}" ] && export EASYTLS_OPENSSL_CONF && return 0
 	"${EASYTLS_PRINTF}" '%s\n' '# For use with Easy-TLS and OpenSSL or LibreSSL
 
 HOME					= .
@@ -1903,8 +1904,8 @@ basicConstraints 		= CA:true
 # PKIX recommendation
 subjectKeyIdentifier	= hash
 authorityKeyIdentifier	= keyid:always,issuer
-' > "${OPENSSL_CONF}" || return 1
-	export OPENSSL_CONF
+' > "${EASYTLS_OPENSSL_CONF}" || return 1
+	export EASYTLS_OPENSSL_CONF
 } # => easytls_openssl_file ()
 
 # OpenSSL hash of empty data for forbidden hash
@@ -8911,12 +8912,12 @@ external_deps ()
 	fi
 
 	# OpenSSL config
-	OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
-	# Ensure $OPENSSL_CONF is present and export $OPENSSL_CONF
+	EASYTLS_OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
+	# Ensure $EASYTLS_OPENSSL_CONF is present and export it
 	easytls_openssl_file || {
 		EASYTLS_github="https://raw.githubusercontent.com"
 		EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
-		error_msg "Missing openssl config file: ${OPENSSL_CONF}"
+		error_msg "Missing openssl config file: ${EASYTLS_OPENSSL_CONF}"
 		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
 		die "Download the file from the URL above."
 		}
