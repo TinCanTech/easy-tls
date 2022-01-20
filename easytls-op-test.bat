@@ -17,6 +17,10 @@ REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 set
 
+mkdir '0 0'
+cd '0 0'
+copy ..
+
 if %PROCESSOR_ARCHITECTURE% == x86 (
     curl -LO https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8-win32.zip
     7z e -aoa EasyRSA-3.0.8-win32.zip

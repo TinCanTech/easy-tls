@@ -258,7 +258,23 @@ EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 
 if [ -n "$EASYTLS_FOR_WINDOWS" ]
 then
-	export OPENVPN_CMD="./openvpn.exe"
+	#export OPENVPN_CMD="./openvpn.exe"
+	OPENVPN_BIN_DIR="${ProgramFiles}/Openvpn/bin"
+	if [ -d "${OPENVPN_BIN_DIR}" ]; then
+
+		OPENVPN_CMD="${OPENVPN_BIN_DIR}/openvpn.exe"
+		[ -f "${OPENVPN_CMD}" ] || \
+			print "unit-test - OPENVPN_CMD: ${OPENVPN_CMD}"
+
+		OPENSSL_CMD="${OPENVPN_BIN_DIR}/openssl.exe"
+		[ -f "${OPENSSL_CMD}" ] || \
+			print "unit-test - OPENSSL_CMD: ${OPENSSL_CMD}"
+
+		export PATH="${OPENVPN_BIN_DIR};${PATH}"
+	else
+		export OPENVPN_CMD=./openvpn
+	fi
+
 	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
 	[ -z "$EASYTLS_tmp_dir" ] && export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
 	mkdir -p "$EASYTLS_tmp_dir"
@@ -272,7 +288,7 @@ else
 		export OPENVPN_CMD=/usr/sbin/openvpn
 	fi
 fi
-[ -f "$OPENVPN_CMD" ] || fail "Cannot find: $OPENVPN_CMD"
+[ -f "$OPENVPN_CMD" ] || fail "unit-test - OPENVPN_CMD: ${OPENVPN_CMD}"
 
 # Test help
 "${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
@@ -367,7 +383,7 @@ do
 	EASYTLS_VARS="$PKI_DIR/vars"
 
 	# github Windows runner takes too long, so just test once
-	if [ $loops -eq 2 ] && [ $EASYTLS_FOR_WINDOWS ]
+	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && [ $EASYTLS_FOR_WINDOWS ]
 	then
 		print "Total verified expected errors = $sknown_1"
 		print "total_expected_errors = $total_expected_errors"
@@ -404,7 +420,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 "
 	fi
 
-	# Full hash & check
+	# Enable file-hash
 	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ]; then
 		EASYTLS_OPTS="${EASYTLS_OPTS% -y}"
 		print "
@@ -417,7 +433,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 "
 	fi
 
-	# Switch to SHA1
+	# Switch to SHA1 - Full hash & check
 	if [ $loops -eq 3 ]; then
 		TLSCV2V_OPTS="${TLSCV2V_OPTS} --hash=SHA1"
 		EASYTLS_OPTS="${EASYTLS_OPTS% -n}"

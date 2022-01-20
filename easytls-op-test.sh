@@ -19,6 +19,10 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 env
 
+mkdir '0 0'
+cd '0 0'
+cp ../* ./
+
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
@@ -43,6 +47,6 @@ done
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
 
-	sh easytls-shellcheck.sh
+	sh ./easytls-shellcheck.sh
 
-	sh easytls-unit-tests.sh
+	sh ./easytls-unit-tests.sh

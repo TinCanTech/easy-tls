@@ -141,7 +141,8 @@ cmd_help()
       Removes & re-initializes the TLS-key directory.
       * Easy-TLS requires that Easy-RSA is also initialised.
 
-        <hash_algorithm> - Specify an alternate hash algorithm. (Default SHA256)
+        <hash_algorithm> - Specify a hash algorithm.
+        Default SHA256 - Alternative SHA1
 
         no-ca - Do not use an Easy-RSA Certificate Authority [CA].
         * Option 'no-ca' allows Easy-TLS to function
@@ -8826,6 +8827,7 @@ external_deps ()
 	# Directories and files
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		# Windows
+		# echo is provided by win
 		host_drv="${PATH%%\:*}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
 		EASYTLS_ersabin_dir="${EASYTLS_ersabin_dir:-${base_dir}/easy-rsa/bin}"
@@ -8883,7 +8885,6 @@ external_deps ()
 			setup_err=1
 			}
 		[ $setup_err -eq 0 ] || {
-			echo "Errors occurred!"
 			exit 9
 			}
 		unset -v setup_err
@@ -8891,22 +8892,22 @@ external_deps ()
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
 
-		if [ "${EASYTLS_work_dir% *}" = "${EASYTLS_work_dir}" ]; then
-			: # No spaces
-		elif [ "${EASYTLS_work_dir% *}" = "${host_drv}:/Program" ]; then
-			# Only one space found: ?:/Program Files/foo
-			last_part="${EASYTLS_work_dir#* Files/}"
-			EASYTLS="${host_drv}:/Progra~1/${last_part}"
-			[ -d "${EASYTLS}" ] || die "Error translating EASYTLS: ${EASYTLS}"
-			# Set EASYRSA here because the path is verified
-			EASYRSA="${EASYTLS}"
-		else
-			# Not in recognised path or more than one space found
-			error_msg "EasyTLS will not function correctly in this directory:"
-			error_msg "* Name: ${EASYTLS_work_dir}"
-			help_note="Remove spaces from PATH using CD to select short name."
-			die "EasyTLS tools will not function correctly in this path."
-		fi
+		#if [ "${EASYTLS_work_dir% *}" = "${EASYTLS_work_dir}" ]; then
+		#	: # No spaces
+		#elif [ "${EASYTLS_work_dir% *}" = "${host_drv}:/Program" ]; then
+		#	# Only one space found: ?:/Program Files/foo
+		#	last_part="${EASYTLS_work_dir#* Files/}"
+		#	EASYTLS="${host_drv}:/Progra~1/${last_part}"
+		#	[ -d "${EASYTLS}" ] || die "Error translating EASYTLS: ${EASYTLS}"
+		#	# Set EASYRSA here because the path is verified
+		#	EASYRSA="${EASYTLS}"
+		#else
+		#	# Not in recognised path or more than one space found
+		#	error_msg "EasyTLS will not function correctly in this directory:"
+		#	error_msg "* Name: ${EASYTLS_work_dir}"
+		#	help_note="Remove spaces from PATH using CD to select short name."
+		#	die "EasyTLS tools will not function correctly in this path."
+		#fi
 	fi
 
 	# OpenSSL config
