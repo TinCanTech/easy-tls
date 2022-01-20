@@ -8782,10 +8782,11 @@ verify_faster_hash ()
 	[ -f  "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
 	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
 	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
-	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"; then
+	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
+	then
 		return 0
 	fi
-	print "gen'd:${generated_faster_hash} ===== saved:${saved_faster_hash}"
+	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
 	return 1
 } # => verify_faster_hash ()
 
@@ -9327,7 +9328,18 @@ main ()
 			return 0
 		;;
 		sfh|save-fast-hash)
-			unset -v EASYTLS_SILENT
+			unset -v EASYTLS_SILENT EASYTLS_BATCH
+			verify_faster_hash "$@" || die "verify_faster_hash"
+			print "generated_faster_hash: ${generated_faster_hash}"
+			print "saved_faster_hash    : ${saved_faster_hash}"
+			print
+			print "NOTICE: The two values above must be identical,"
+			print "        otherwise, your Master hash is corrupted."
+			confirm "* Over-write your current Master hash file ? " "yes" \
+				"Warning:
+
+  This will write {generated_faster_hash} to your current Master hash file!"
+			update_master_hash=1
 			save_faster_hash "$@" || die "save_faster_hash"
 			print "saved_faster_hash: ${generated_faster_hash}"
 			return 0
