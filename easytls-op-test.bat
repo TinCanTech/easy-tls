@@ -17,8 +17,8 @@ REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 set
 
-mkdir '0 0'
-cd '0 0'
+mkdir "0 0"
+cd "0 0"
 copy ..
 
 if %PROCESSOR_ARCHITECTURE% == x86 (
