@@ -272,7 +272,7 @@ then
 
 		export PATH="${OPENVPN_BIN_DIR};${PATH}"
 	else
-		export OPENVPN_CMD=./openvpn
+		export OPENVPN_CMD=./openvpn.exe
 	fi
 
 	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
