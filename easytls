@@ -1858,7 +1858,11 @@ easytls_date_to_sec ()
 # Generate openssl.cnf file for self-signed certs
 easytls_openssl_file ()
 {
-	[ -f "${EASYTLS_OPENSSL_CONF}" ] && export EASYTLS_OPENSSL_CONF && return 0
+	if [ -f "${EASYTLS_OPENSSL_CONF}" ]; then
+		OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
+		export EASYTLS_OPENSSL_CONF OPENSSL_CONF
+		return 0
+	fi
 	"${EASYTLS_PRINTF}" '%s\n' '# For use with Easy-TLS and OpenSSL or LibreSSL
 
 HOME					= .
