@@ -1858,11 +1858,9 @@ easytls_date_to_sec ()
 # Generate openssl.cnf file for self-signed certs
 easytls_openssl_file ()
 {
-	if [ -f "${EASYTLS_OPENSSL_CONF}" ]; then
-		OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
-		export EASYTLS_OPENSSL_CONF OPENSSL_CONF
-		return 0
-	fi
+	OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
+	export OPENSSL_CONF
+	[ -f "${EASYTLS_OPENSSL_CONF}" ] && return 0
 	"${EASYTLS_PRINTF}" '%s\n' '# For use with Easy-TLS and OpenSSL or LibreSSL
 
 HOME					= .
@@ -1909,7 +1907,6 @@ basicConstraints 		= CA:true
 subjectKeyIdentifier	= hash
 authorityKeyIdentifier	= keyid:always,issuer
 ' > "${EASYTLS_OPENSSL_CONF}" || return 1
-	export EASYTLS_OPENSSL_CONF
 } # => easytls_openssl_file ()
 
 # OpenSSL hash of empty data for forbidden hash
