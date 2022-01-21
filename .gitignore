@@ -1,8 +1,5 @@
-easypfp
 easytls-script.conf
-easytls-server.pid
 easytls-*.vars
-copy-tcpip.sh
 ia-*.*
 et-tdir*/*
 noca/*
@@ -18,4 +15,3 @@ unit-test-tmp/*
 debug/*
 test/*
 pki/*
-sc
