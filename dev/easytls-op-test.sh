@@ -19,6 +19,8 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 env
 
+cd ..
+
 mkdir '0 0'
 cd '0 0'
 cp ../* ./
