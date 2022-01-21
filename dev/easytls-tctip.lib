@@ -239,6 +239,8 @@ expand_ip6_address ()
 	# Return full_valid_hextets full_subnet_addr6
 } # => expand_ip6_address ()
 
+#=# b66633f8-3746-436a-901f-29638199b187
+
 # EXPAND IPv4
 # This tests that the subnet/mask are "equivalent"
 expand_ip4_address ()
@@ -248,8 +250,6 @@ expand_ip4_address ()
 	temp_a4andm_dec=$(( temp_ip4_addr_dec & temp_ip4_mask_dec ))
 	[ "${temp_a4andm_dec}" -eq "${temp_ip4_addr_dec}" ] && return 0
 } # => expand_ip4_address ()
-
-#=# b66633f8-3746-436a-901f-29638199b187
 
 # Validate IPv4 data
 validate_ip4_data ()
