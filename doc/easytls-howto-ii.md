@@ -8,23 +8,17 @@
   `easytls` requires access to your PKI to verify and create keys.<br>
   It is not necessary to have a separate directory for `easytls`<br>
 
-* Download [**`easytls-openssl.cnf`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-openssl.cnf)<br>
-  Required by `easytls` to build self-signed certificates in No-CA mode.<br>
-
 * Download [**`easytls-cryptv2-verify.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-cryptv2-verify.sh)<br>
   Requires access to the files created by `easytls`.<br>
-
-* Download [**`easytls-metadata.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-metadata.lib)<br>
-  Required by `easytls-cryptv2-verify.sh` and `easytls-client-connect.sh`.<br>
-
-* Download [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib)<br>
-  Required by `easytls-client-connect.sh` and `easytls-client-disconnect.sh`.<br>
 
 * Download [**`easytls-client-connect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-connect.sh)<br>
   Requires access to temporary files created by `easytls-cryptv2-verify.sh`. (Client hardware address list)<br>
 
 * Download [**`easytls-client-disconnect.sh`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-client-disconnect.sh)<br>
   Requires access to temporary files created by `easytls-client-connect.sh`. (conntrac list)<br>
+
+* Download [**`easytls-conntrac.lib`**](https://github.com/TinCanTech/easy-tls/blob/master/easytls-conntrac.lib)<br>
+  Required by `easytls-client-connect.sh` and `easytls-client-disconnect.sh`.<br>
 
 ### Getting Started
 * **Please use the help:**
