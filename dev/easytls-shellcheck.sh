@@ -78,51 +78,51 @@ export SHELLCHECK_OPTS
 log_line='========================================================================'
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls'
-"${shellcheck_bin}" easytls || \
+"${shellcheck_bin}" ./easytls || \
 	sc_easytls=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-cryptv2-verify.sh'
-"${shellcheck_bin}" easytls-cryptv2-verify.sh || \
+"${shellcheck_bin}" ./easytls-cryptv2-verify.sh || \
 	sc_easytls_cryptv2_verify=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-cryptv2-verify.vars-example'
-"${shellcheck_bin}" --shell=sh easytls-cryptv2-verify.vars-example || \
+"${shellcheck_bin}" --shell=sh ./easytls-cryptv2-verify.vars-example || \
 	sc_easytls_cryptv2_verify_vars=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-client-connect.sh'
-"${shellcheck_bin}" easytls-client-connect.sh || \
+"${shellcheck_bin}" ./easytls-client-connect.sh || \
 	sc_easytls_client_connect=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-client-connect.vars-example'
-"${shellcheck_bin}" --shell=sh easytls-client-connect.vars-example || \
+"${shellcheck_bin}" --shell=sh ./easytls-client-connect.vars-example || \
 	sc_easytls_client_connect_vars=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-client-disconnect.sh'
-"${shellcheck_bin}" easytls-client-disconnect.sh || \
+"${shellcheck_bin}" ./easytls-client-disconnect.sh || \
 	sc_easytls_client_disconnect=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-client-disconnect.vars-example'
-"${shellcheck_bin}" --shell=sh easytls-client-disconnect.vars-example || \
+"${shellcheck_bin}" --shell=sh ./easytls-client-disconnect.vars-example || \
 	sc_easytls_client_disconnect_vars=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-tctip.lib'
-"${shellcheck_bin}" easytls-tctip.lib || \
+"${shellcheck_bin}" ./dev/easytls-tctip.lib || \
 	sc_easytls_tctip=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-conntrac.lib'
-"${shellcheck_bin}" easytls-conntrac.lib || \
+"${shellcheck_bin}" ./easytls-conntrac.lib || \
 	sc_easytls_conntrac=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-metadata.lib'
-"${shellcheck_bin}" easytls-metadata.lib || \
+"${shellcheck_bin}" ./dev/easytls-metadata.lib || \
 	sc_easytls_metadata=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-unit-tests.sh'
-"${shellcheck_bin}" easytls-unit-tests.sh || \
+"${shellcheck_bin}" ./dev/easytls-unit-tests.sh || \
 	sc_easytls_unit_tests=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-shellcheck.sh'
-"${shellcheck_bin}" easytls-shellcheck.sh || \
+"${shellcheck_bin}" ./dev/easytls-shellcheck.sh || \
 	sc_easytls_shellcheck=1
 
 printf '\n%s\n' "$log_line"

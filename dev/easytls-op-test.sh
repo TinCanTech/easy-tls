@@ -19,11 +19,28 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 env
 
-cd ..
+etls_ut_file_list="easytls
+easytls-cryptv2-verify.sh
+easytls-cryptv2-verify.vars-example
+easytls-client-connect.sh
+easytls-client-connect.vars-example
+easytls-client-disconnect.sh
+easytls-client-disconnect.vars-example
+easytls-conntrac.lib
+dev/easytls-unit-tests.sh
+dev/easytls-metadata.lib
+dev/easytls-tctip.lib
+dev/easytls-shellcheck.sh"
 
-mkdir '0 0'
-cd '0 0'
-cp ../* ./
+etls_ut_dir_name='./0 0'
+
+mkdir -p "${etls_ut_dir_name}/dev"
+
+for f in ${etls_ut_file_list}; do
+	cp -v "./${f}" "${etls_ut_dir_name}/${f}"
+done
+
+cd "${etls_ut_dir_name}"
 
 CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
@@ -52,6 +69,6 @@ ls -l
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 	$EASYTLS_OPENVPN --version
 
-	sh ./easytls-shellcheck.sh
+	sh ./dev/easytls-shellcheck.sh
 
-	sh ./easytls-unit-tests.sh
+	sh ./dev/easytls-unit-tests.sh

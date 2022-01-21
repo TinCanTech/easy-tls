@@ -1,4 +1,5 @@
 @echo OFF
+
 REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 REM Easy-TLS -- A Shell-based Easy-RSA extension utility to help manage
 REM               * OpenVPN specific TLS keys
@@ -17,11 +18,33 @@ REM VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 set
 
-cd ..
-
 mkdir "0 0"
 cd "0 0"
-copy ..
+
+copy ..\easytls
+copy ..\easytls-cryptv2-verify.sh
+copy ..\easytls-cryptv2-verify.vars-example
+copy ..\easytls-client-connect.sh
+copy ..\easytls-client-connect.vars-example
+copy ..\easytls-client-disconnect.sh
+copy ..\easytls-client-disconnect.vars-example
+copy ..\easytls-conntrac.lib
+
+cd
+dir
+
+mkdir "dev"
+cd "dev"
+
+copy ..\..\dev\easytls-unit-tests.sh
+copy ..\..\dev\easytls-metadata.lib
+copy ..\..\dev\easytls-tctip.lib
+copy ..\..\dev\easytls-shellcheck.sh"
+
+cd
+dir
+
+cd ..
 
 if %PROCESSOR_ARCHITECTURE% == x86 (
     curl -LO https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.8/EasyRSA-3.0.8-win32.zip
@@ -39,9 +62,6 @@ if %PROCESSOR_ARCHITECTURE% == x86 (
 
 curl -LO https://raw.githubusercontent.com/TinCanTech/easyrsa-plus/master/easyrsa3/easyrsa
 
-cd
-dir
-
 SET PATH=%PATH%;.\
 SET HOME=%PATH%
 SET ENV=/disable-env
@@ -52,7 +72,10 @@ SET EASYTLS_tmp_dir=./easytls-unit-tests
 SET EASYTLS_ersabin_dir=.
 SET EASYTLS_ovpnbin_dir=.
 
-sh.exe easytls-unit-tests.sh
+cd
+dir
+
+sh.exe dev\easytls-unit-tests.sh
 
 REM AOK
 IF ERRORLEVEL 0 SET SH_EXIT=0

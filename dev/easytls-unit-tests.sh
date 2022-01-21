@@ -257,14 +257,17 @@ CLIDIS_CMD="./easytls-client-disconnect.sh"
 CLIDIS_VARS="${UTMP_DIR}/easytls-client-disconnect.vars"
 CLIDIS_OPTS="-v"
 
-[ -f "./easytls-metadata.lib" ] || { echo "Missing metadata.lib"; exit 9; }
-. "./easytls-metadata.lib"
+LIB_MD="./dev/easytls-metadata.lib"
+[ -f "${LIB_MD}" ] || { echo "Missing ${LIB_MD}"; exit 9; }
+. "${LIB_MD}"
 
-[ -f "./easytls-conntrac.lib" ] || { echo "Missing conntrac.lib"; exit 9; }
-. "./easytls-metadata.lib"
+LIB_CT="./easytls-conntrac.lib"
+[ -f "${LIB_CT}" ] || { echo "Missing ${LIB_CT}"; exit 9; }
+. "${LIB_CT}"
 
-[ -f "./easytls-tctip.lib" ] || { echo "Missing tctip.lib"; exit 9; }
-. "./easytls-metadata.lib"
+LIB_IP="./dev/easytls-tctip.lib"
+[ -f "${LIB_IP}" ] || { echo "Missing ${LIB_IP}"; exit 9; }
+. "${LIB_IP}"
 
 # create vars files
 clean_up
