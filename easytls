@@ -8934,7 +8934,8 @@ external_deps ()
 	# Source tctip lib
 	prog_dir="${0%/*}"
 	lib_file="${prog_dir}/easytls-tctip.lib"
-	# shellcheck source=./easytls-tctip.lib
+	[ -f "${lib_file}" ] || lib_file="${prog_dir}/dev/easytls-tctip.lib"
+	# shellcheck source=./dev/easytls-tctip.lib
 	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_tctip_lib
 	unset -v lib_file
 

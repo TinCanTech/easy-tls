@@ -437,7 +437,9 @@ update_conntrac ()
 {
 	# Source tctip lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-conntrac.lib"
-	# shellcheck source=./easytls-tctip.lib
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-conntrac.lib"
+	# shellcheck source=./easytls-conntrac.lib
 	if [ -f "${lib_file}" ]; then
 		. "${lib_file}" || die "Source failed: ${lib_file}" 77
 		unset lib_file
@@ -536,7 +538,7 @@ update_conntrac ()
 			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s '  "$(date '+%x %X')"
+				"${EASYTLS_PRINTF}" '%s '  "$("${EASYTLS_DATE}" '+%x %X')"
 				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
@@ -777,14 +779,18 @@ deps ()
 
 	# Source metadata lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
-	# shellcheck source=./easytls-metadata.lib
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
+	# shellcheck source=./dev/easytls-metadata.lib
 	if [ -f "${lib_file}" ]; then
 		. "${lib_file}" || die "source failed: ${lib_file}" 77
 	fi
 
 	# Source tctip lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-tctip.lib"
-	# shellcheck source=./easytls-tctip.lib
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-tctip.lib"
+	# shellcheck source=./dev/easytls-tctip.lib
 	if [ -f "${lib_file}" ]; then
 		. "${lib_file}" || die "source failed: ${lib_file}" 77
 	fi

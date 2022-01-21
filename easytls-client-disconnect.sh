@@ -548,7 +548,16 @@ deps ()
 	else
 		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
-	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir
+
+	# Source metadata lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
+	# shellcheck source=./dev/easytls-metadata.lib
+	if [ -f "${lib_file}" ]; then
+		. "${lib_file}" || die "source failed: ${lib_file}" 77
+	fi
+	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
 	if [ $EASYTLS_FOR_WINDOWS ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
@@ -581,13 +590,6 @@ deps ()
 
 	# Temp file age before stale
 	EASYTLS_STALE_SEC="${EASYTLS_STALE_SEC:-240}"
-
-	# Source metadata lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-metadata.lib"
-	# shellcheck source=./easytls-metadata.lib
-	[ -f "${lib_file}" ] && . "${lib_file}"
-	unset -v lib_file
 
 	# Conn track
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"

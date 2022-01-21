@@ -730,8 +730,10 @@ deps ()
 
 	# Source metadata lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
 	if [ -f "${lib_file}" ]; then
-		# shellcheck source=./easytls-metadata.lib
+		# shellcheck source=./dev/easytls-metadata.lib
 		. "${lib_file}" || die "source failed: ${lib_file}" 77
 	fi
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
