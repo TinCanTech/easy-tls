@@ -101,7 +101,12 @@ begin="#=# 9273398a-5284-4c1f-aec5-d597ceb1d085"
 end_et="#=# 7f97f537-eafd-40c3-8f31-2fee10c12ad3"
 end_cc="#=# b66633f8-3746-436a-901f-29638199b187"
 
-src_tl="./easytls-tctip.lib"
+src_tl="./dev/easytls-tctip.lib"
+if [ ! -f "${src_tl}" ]; then
+	echo "Usage: Run this from ./easytls directory"
+	echo "       ./dev/easytls-export-tctip-lib.sh"
+	exit 1
+fi
 
 src_et="./easytls"
 dst_et1="${src_et}.tmp1"
