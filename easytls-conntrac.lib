@@ -51,8 +51,8 @@ conn_trac_connect ()
 
 	if [ -f "${2}" ]; then
 		{
-			while read full_conn
-			do
+			while read full_conn; do
+
 				conn="${full_conn%++*}"
 				tksn="${full_conn%%=*}"
 
@@ -143,8 +143,8 @@ conn_trac_disconnect ()
 
 	if [ -f "${2}" ]; then
 		{
-			while read full_conn
-			do
+			while read full_conn; do
+
 				conn="${full_conn%%++*}"
 				if [ "${conn}" = "${ct_pattern}" ]; then
 					# If record_found then a record has been deleted
