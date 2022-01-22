@@ -1,0 +1,16 @@
+# Easy-TLS script configuration for OpenVPN Server
+
+# OpenVPN and EasyTLS temporary directory
+tmp-dir '/dev/shm/easytls'
+
+# If your clients have username/password then set this to level 3
+script-security 2
+
+# Easytls scripts only require -s to force loading of default vars file
+# All other settings are loaded via the vars file
+# Default vars files are '/etc/openvpn/server/${script_name}.vars'
+# To use an alternative vars file, specify the name with -s=<VARS_FILE>
+tls-crypt-v2-verify '/etc/openvpn/server/easytls-cryptv2-verify.sh -s'
+client-connect '/etc/openvpn/server/easytls-client-connect.sh -s'
+client-disconnect '/etc/openvpn/server/easytls-client-disconnect.sh -s
+
