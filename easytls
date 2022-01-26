@@ -8916,13 +8916,8 @@ external_deps ()
 	# OpenSSL config
 	EASYTLS_OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
 	# Ensure $EASYTLS_OPENSSL_CONF is present and export it
-	easytls_openssl_file || {
-		EASYTLS_github="https://raw.githubusercontent.com"
-		EASYTLS_url="TinCanTech/easy-tls/master/easytls-openssl.cnf"
-		error_msg "Missing openssl config file: ${EASYTLS_OPENSSL_CONF}"
-		help_note="URL: ${EASYTLS_github}/${EASYTLS_url}"
-		die "Download the file from the URL above."
-		}
+	easytls_openssl_file || \
+		die "Failed to create easytls-openssl.cnf (Permission)"
 
 	# Verify Openvpn and OpenSSL
 	verify_openvpn
