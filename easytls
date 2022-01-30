@@ -713,7 +713,7 @@ ${help_note}"
 # Verbose messages
 easytls_verbose ()
 {
-	[ $EASYTLS_VERBOSE ] || return 0
+	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	[ -n "${EASYTLS_SILENT}" ] && return 0
 	[ $flash_config ] && return 0
 	verbose_message="${*}"

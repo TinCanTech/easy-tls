@@ -104,13 +104,13 @@ help_text ()
 print () { "${EASYTLS_PRINTF}" '%s\n' "${1}"; }
 verbose_print ()
 {
-	[ "${EASYTLS_VERBOSE}" ] || return 0
+	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	print "${1}"
 	print ''
 }
 banner ()
 {
-	[ "${EASYTLS_VERBOSE}" ] || return 0
+	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	"${EASYTLS_PRINTF}" '\n%s\n\n' "${1}"
 }
 
@@ -926,10 +926,10 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		if [ -f "${opt}" ]; then
 			# Do not need this in the log but keep it here for reference
-			#[ $EASYTLS_VERBOSE ] && echo "Ignoring temp file: $opt"
+			#[ -n "${EASYTLS_VERBOSE}" ] && echo "Ignoring temp file: $opt"
 			ovpn_dyn_opts_file="${opt}"
 		else
-			[ "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
+			[ -n "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
 		fi
 	;;
 	esac

@@ -158,7 +158,7 @@ help_text ()
 print () { "${EASYTLS_PRINTF}" "%s\n" "${1}"; }
 verbose_print ()
 {
-	[ "${EASYTLS_VERBOSE}" ] || return 0
+	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	print "${1}"
 	print ""
 }
@@ -209,7 +209,7 @@ fail_and_exit ()
 	delete_metadata_files
 
 	# shellcheck disable=SC2154
-	if [ "${EASYTLS_VERBOSE}" ]; then
+	if [ -n "${EASYTLS_VERBOSE}" ]; then
 		print "${status_msg}"
 		print "${failure_msg}"
 		print "${1}"
