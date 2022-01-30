@@ -133,13 +133,13 @@ die ()
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
 	print "ERROR: ${1}"
-	[ "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
 	if [ $ENABLE_KILL_SERVER ]; then
 		echo 1 > "${temp_stub}-die"
 		echo 'XXXXX CC XXXXX KILL SERVER'
-		if [ "${EASYTLS_FOR_WINDOWS}" ]; then
+		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 			taskkill /F /PID ${EASYTLS_srv_pid}
@@ -169,7 +169,7 @@ fail_and_exit ()
 	# TLSKEY connect log
 	tlskey_status "!*! FAIL" || update_status "tlskey_status FAIL"
 
-	[ "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1} ${2}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -214,7 +214,7 @@ format_number ()
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
-	[ $EASYTLS_SILENT ] && return 0
+	[ -n "${EASYTLS_SILENT}" ] && return 0
 	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
@@ -646,7 +646,7 @@ tlskey_status ()
 # Retry pause
 retry_pause ()
 {
-	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
+	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		ping -n 1 127.0.0.1
 	else
 		sleep 1
@@ -736,7 +736,7 @@ init ()
 	EASYTLS_RM='rm'
 
 	# Directories and files
-	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
+	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		# Windows
 		host_drv="${PATH%%\:*}"
 		base_dir="${EASYTLS_base_dir:-${host_drv}:/Progra~1/Openvpn}"
@@ -796,7 +796,7 @@ deps ()
 	fi
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
-	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
+	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		WIN_TEMP="${host_drv}:/Windows/Temp"
 		export EASYTLS_tmp_dir="${EASYTLS_tmp_dir:-${WIN_TEMP}}"
 	else
@@ -950,7 +950,7 @@ deps
 # Write env file
 if [ $WRITE_ENV ]; then
 	env_file="${temp_stub}-client-connect.env"
-	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
+	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		set > "${env_file}"
 	else
 		env > "${env_file}"
@@ -1296,7 +1296,7 @@ if [ $absolute_fail -eq 0 ]; then
 
 	# All is well
 	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
-	[ "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n" \
+	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n" \
 		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
