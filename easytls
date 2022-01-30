@@ -612,7 +612,7 @@ ${1}"
 confirm ()
 {
 	[ $require_batch ] && return 0
-	[ $EASYTLS_BATCH ] && return 0
+	[ -n "${EASYTLS_BATCH}" ] && return 0
 	prompt="${1}"
 	value="${2}"
 	msg="${3}"
@@ -4909,10 +4909,10 @@ build_tls_crypt_v2_client ()
 
 	# Confirm metadata Hardware-Address(es)
 	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
-		[ $EASYTLS_BATCH ] || \
-			print "All Hardware-Addresses are valid length hexidecimal values."
+		[ -n "${EASYTLS_BATCH}" ] && \
+			print "* All Hardware-Addresses are valid length hexidecimal values."
 		confirm "Is the Hardware-Address field correct ? " "yes" \
-		"Hardware-Address field for metadata: ${EASYTLS_TLSCV2_HWLIST}"
+			"Hardware-Address field for metadata: ${EASYTLS_TLSCV2_HWLIST}"
 		}
 
 	metadata=""
@@ -5059,10 +5059,10 @@ build_tls_cv2_group_client ()
 
 	# Confirm metadata Hardware-Address(es)
 	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
-		[ $EASYTLS_BATCH ] || \
+		[ -n "${EASYTLS_BATCH}" ] && \
 			print "All Address filters are valid values."
 		confirm "Are the Address filters correct ? " "yes" \
-		"Address filters for metadata: ${EASYTLS_TLSCV2_HWLIST}"
+			"Address filters for metadata: ${EASYTLS_TLSCV2_HWLIST}"
 		}
 
 	group_mode=1
@@ -6966,9 +6966,10 @@ interactive_remove ()
 # Issue a remove warning
 interactive_remove_warning ()
 {
-	[ $EASYTLS_BATCH ] || \
+	[ -n "${EASYTLS_BATCH}" ] || \
 		"$EASYTLS_PRINTF" '\n%s\n%s\n%s' \
 			'  ###########' '  # WARNING #' '  ###########'
+
 	case $1 in
 	remove-tls-auth-key)
 	# TLS-Auth key
