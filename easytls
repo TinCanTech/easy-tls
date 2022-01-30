@@ -579,7 +579,7 @@ cleanup ()
 	"${EASYTLS_RM}" -f "${EASYTLS_OPENSSL_CONF}"
 	exec 6<&-
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
-	if [ $EASYTLS_FOR_WINDOWS ]
+	if [ "${EASYTLS_FOR_WINDOWS}" ]
 	then
 		# shellcheck disable=SC3040
 		set -o echo
@@ -1388,7 +1388,7 @@ and initialize a fresh TLS PKI here."
 
 	print
 	print "Recommended temporary directory setting:"
-	if [ $EASYTLS_FOR_WINDOWS ]; then
+	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 		print \
 			"    Windows - ${host_drv}:/Windows/Temp (Use '/' NOT '\')"
 	else
@@ -1764,7 +1764,7 @@ generate_valid_date_now ()
 	[ "${2}" = "epoch" ] && format="+%s"
 
 	# Generate date
-	if [ $EASYTLS_FOR_WINDOWS ]; then
+	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 		g_d="$("${EASYTLS_DATE}" ${format})" || {
 			error_msg "generate_valid_date_now - g_d"
 			unset -v g_d
@@ -1800,7 +1800,7 @@ easytls_sec_to_date ()
 
 	format="+%Y/%m/%d-%T"
 
-	if [ $EASYTLS_FOR_WINDOWS ]; then
+	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 		t_d="$("${EASYTLS_DATE}" -u -d "1970-01-01 ${1} seconds" ${format})" || {
 			error_msg "easytls_sec_to_date - generate date"
 			unset -v t_d
@@ -1830,7 +1830,7 @@ easytls_date_to_sec ()
 		error_msg "easytls_date_to_sec - output variable"
 		return 1
 		}
-	if [ $EASYTLS_FOR_WINDOWS ]; then
+	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 		t_d="$("${EASYTLS_DATE}" --date="${1}" +%s)" || {
 			error_msg "easytls_date_to_sec - generate date"
 			unset -v t_d
@@ -5132,7 +5132,7 @@ validate_ip_address ()
 # Exit with error
 invalid_address ()
 {
-	case ${1} in
+	case "${1}" in
 	1) print "easytls invalid" ;;
 	10) print "excess input" ;;
 	11) print "illegal format" ;;
@@ -7185,7 +7185,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" '%s\n\n' "script-security ${opt_script_security}"
 			"$EASYTLS_PRINTF" '%s'   'tls-crypt-v2-verify'
 			"$EASYTLS_PRINTF" ' %s'  "'"
-			[ $EASYTLS_FOR_WINDOWS ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
+			[ "${EASYTLS_FOR_WINDOWS}" ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH"
 			"$EASYTLS_PRINTF" ' %s'  "-l=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
@@ -7206,7 +7206,7 @@ interactive_scripts ()
 			#[ $opt_client_connect ] && {
 			#	"$EASYTLS_PRINTF" '%s' 'tls-verify'
 			#	"$EASYTLS_PRINTF" ' %s' "'"
-			#	[ $EASYTLS_FOR_WINDOWS ] && \
+			#	[ "${EASYTLS_FOR_WINDOWS}" ] && \
 			#		"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			#	"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH}"
 			#	"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
@@ -7221,7 +7221,7 @@ interactive_scripts ()
 			[ $opt_client_connect ] && {
 				"$EASYTLS_PRINTF" '%s' 'client-connect'
 				"$EASYTLS_PRINTF" ' %s' "'"
-				[ $EASYTLS_FOR_WINDOWS ] && \
+				[ "${EASYTLS_FOR_WINDOWS}" ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
 				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLICON_VARS}"
@@ -7233,7 +7233,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				"$EASYTLS_PRINTF" '%s' 'client-disconnect'
 				"$EASYTLS_PRINTF" ' %s' "'"
-				[ $EASYTLS_FOR_WINDOWS ] && \
+				[ "${EASYTLS_FOR_WINDOWS}" ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLIDIS_SH} -v"
 				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLIDIS_VARS}"
@@ -7745,7 +7745,7 @@ get_full_path ()
 {
 	[ -n "${1}" ] || return 1
 	part_path="${1}"
-	if [ $EASYTLS_FOR_WINDOWS ]
+	if [ "${EASYTLS_FOR_WINDOWS}" ]
 	then
 		# Windows
 		if [ "${part_path%%?:*}" = "" ]
@@ -7963,7 +7963,7 @@ interactive_tmp_dir ()
 "
 		error_msg "Recommended setting for tmp.dir:
 "
-		if [ $EASYTLS_FOR_WINDOWS ]
+		if [ "${EASYTLS_FOR_WINDOWS}" ]
 		then
 			error_msg "  Windows - ${host_drv}/Windows/Temp"
 		else
@@ -7987,7 +7987,7 @@ interactive_tmp_dir ()
 			error_msg "Server script tmp.dir is not created."
 			error_msg "Please create your chosen temporary directory"
 			error_msg "Recommended setting:"
-			if [ $EASYTLS_FOR_WINDOWS ]
+			if [ "${EASYTLS_FOR_WINDOWS}" ]
 			then
 				error_msg " Windows - ${host_drv}/Windows/Temp"
 			else
@@ -7998,7 +7998,7 @@ interactive_tmp_dir ()
 			}
 		break
 	done
-	if [ $EASYTLS_FOR_WINDOWS ]
+	if [ "${EASYTLS_FOR_WINDOWS}" ]
 	then
 		[ "${ans_tmp_dir}" = "${host_drv}/Windows/Temp" ] || {
 			opt_tmp_dir="-t=${ans_tmp_dir}"
@@ -8828,7 +8828,7 @@ external_deps ()
 	EASYTLS_SED='sed' # NOT Checked by Easy-RSA3
 
 	# Directories and files
-	if [ $EASYTLS_FOR_WINDOWS ]; then
+	if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 		# Windows
 		# echo is provided by win
 		host_drv="${PATH%%\:*}"
@@ -8922,9 +8922,6 @@ external_deps ()
 	# Verify Openvpn and OpenSSL
 	verify_openvpn
 	verify_openssl
-
-	# Get the date/time now
-	# TODO
 
 	# Source tctip lib
 	prog_dir="${0%/*}"
@@ -9171,7 +9168,8 @@ main ()
 		esac
 
 		# fatal error when no value was provided
-		if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+		if [ -z "$empty_ok" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
+		then
 			fatal_opt "Missing value to option: ${opt}"
 		fi
 		shift
@@ -9236,11 +9234,12 @@ main ()
 		return 0
 	;;
 	vhw)
-		hw_addr_hex_check "$@" || {
 		unset -v EASYTLS_SILENT
+		hw_addr_hex_check "$@" || {
 			print "Invalid HW address: ${*}"
 			exit 1
 			}
+		print "VALID: $@"
 		return 0
 	;;
 	vip)
@@ -9353,7 +9352,7 @@ main ()
 		verify_master_hash || die "verify_master_hash"
 
 		# Set "Temp-Dir of last resort", if not already set by config
-		if [ $EASYTLS_FOR_WINDOWS ]; then
+		if [ "${EASYTLS_FOR_WINDOWS}" ]; then
 			set_var EASYTLS_tmp_dir "${host_drv}:/Windows/Temp"
 			[ -d "${EASYTLS_tmp_dir}" ] || {
 				help_note="
