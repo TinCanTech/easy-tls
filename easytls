@@ -1404,7 +1404,8 @@ and initialize a fresh TLS PKI here."
 easytls_auto_check ()
 {
 	[ $status_disabled_auto_check ] && return 0
-	[ $AUTO_CHECK_DISABLED ] && easytls_verbose "auto-check disabled" && return 0
+	[ -n "${AUTO_CHECK_DISABLED}" ] && \
+		easytls_verbose "auto-check disabled" && return 0
 
 	# If inline-index does not exist then do not auto-check
 	[ -f "${EASYTLS_INLINE_INDEX}" ] || return 0
