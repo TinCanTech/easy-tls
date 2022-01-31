@@ -2202,7 +2202,7 @@ status_easyrsa_valid ()
 	for i in ${ersa_valid_serial_list}; do
 		ersa_valid_cn="$(status_valid_extract_cn)"
 		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
-		[ $silent_status ] || \
+		[ -n "${silent_status}" ] || \
 			print "${ersa_valid_cn} ${i}" | status_easyrsa_output
 	done
 } # => status_easyrsa_valid ()
@@ -2222,7 +2222,7 @@ noca_status_x509_valid ()
 			error_msg "x509_cert_serial - noca_status_x509_valid"
 			return 1
 			}
-		[ $silent_status ] || \
+		[ -n "${silent_status}" ] || \
 			print "${ersa_valid_cn} ${cert_serial}" | status_easyrsa_output
 	done
 } # => status_easyrsa_valid ()
@@ -2248,7 +2248,7 @@ noca_status_easytls_inline ()
 			}
 		etls_valid_serial="${etls_valid_serial##*X509 serial: }"
 
-		[ $silent_status ] || \
+		[ -n "${silent_status}" ] || \
 			print "${etls_valid_name} ${etls_valid_serial} ${etls_valid_subkey}" \
 				| noca_status_easytls_output
 		unset -v etls_valid_name etls_valid_subkey etls_valid_serial
@@ -2265,7 +2265,7 @@ status_easyrsa_revoked ()
 	for i in ${ersa_revoked_serial_list}; do
 		ersa_revoked_cn="$(status_revoked_extract_cn)"
 		ersa_revoked_cn_list="${ersa_revoked_cn_list} ${ersa_revoked_cn}"
-		[ $silent_status ] || print "${ersa_revoked_cn} ${i}" | \
+		[ -n "${silent_status}" ] || print "${ersa_revoked_cn} ${i}" | \
 			status_easyrsa_output
 	done
 } # => status_easyrsa_revoked ()
@@ -2277,7 +2277,7 @@ status_easytls_inline ()
 	etls_valid_name_list="$(inline_index_cn_subname_list)"
 	etls_valid_serial_list="$(inline_index_serial_number_list)"
 	etls_valid_il_hash_list="$(inline_index_ilhash_number_list)"
-	[ $silent_status ] || \
+	[ -n "${silent_status}" ] || \
 		"${EASYTLS_SED}" /^#/d "${EASYTLS_INLINE_INDEX}" | status_easytls_output
 } # => status_easytls_inline ()
 
@@ -2361,7 +2361,7 @@ status_easyrsa_renewed ()
 		else
 			# serial mismatch, cert has been renewed in EasyRSA
 			renewed_mismatch_count=$((renewed_mismatch_count+1))
-			if [ $silent_status ]; then
+			if [ -n "${silent_status}" ]; then
 				# No output
 				:
 			else
