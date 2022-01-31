@@ -8171,6 +8171,7 @@ import_key ()
 verify_master_hash ()
 {
 	if [ -n "${want_wiscii_hash}" ]; then
+		die "DISABLE wiscii hash"
 		verify_wiscii_hash || die "verify_wiscii_hash"
 	else
 		verify_faster_hash || die "verify_faster_hash"
@@ -8181,6 +8182,7 @@ verify_master_hash ()
 save_master_hash ()
 {
 	if [ -n "${want_wiscii_hash}" ]; then
+		die "DISABLE wiscii hash"
 		save_wiscii_hash || die "save_wiscii_hash"
 	else
 		save_faster_hash || die "save_faster_hash"
@@ -8230,7 +8232,7 @@ ${inline_file}"
 		fi
 
 		# Faster hash does not require individual file hashes
-		[ $want_faster_hash ] && continue
+		[ -n "${want_faster_hash}" ] && continue
 
 		# Hash inline_file
 		generate_and_validate_file_hash \
@@ -8265,7 +8267,7 @@ ${EASYTLS_INLINE_INDEX}"
 
 	# Hash inline_seed
 	inline_seed_hash=
-	if [ -z "$want_faster_hash" ] && [ -n "${inline_seed}" ]; then
+	if [ -z "${want_faster_hash}" ] && [ -n "${inline_seed}" ]; then
 		generate_and_validate_data_hash "${inline_seed}" inline_seed_hash || {
 			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "inline_seed '${inline_seed}'"
@@ -8295,7 +8297,7 @@ ${tlskey_file}"
 			fi
 
 			# Faster hash does not require individual file hashes
-			[ $want_faster_hash ] && continue
+			[ -n "${want_faster_hash}" ] && continue
 
 			generate_and_validate_file_hash \
 				"${tlskey_file}" generated_valid_hash || {
@@ -8331,7 +8333,7 @@ ${tlskey_file}"
 		fi
 
 		# Faster hash does not require individual file hashes
-		[ $want_faster_hash ] && continue
+		[ -n "${want_faster_hash}" ] && continue
 
 		# Hash tlskey_file
 		generate_and_validate_file_hash \
@@ -8358,7 +8360,7 @@ ${EASYTLS_KEY_INDEX}"
 
 	# Hash tlskey_seed
 	tlskey_seed_hash=
-	if [ ! $want_faster_hash ] && [ -n "${tlskey_seed}" ]; then
+	if [ -z "${want_faster_hash}" ] && [ -n "${tlskey_seed}" ]; then
 		generate_and_validate_data_hash "${tlskey_seed}" tlskey_seed_hash || {
 			error_msg "generate_wiscii_hash - generate_and_validate_data_hash"
 			error_msg "tlskey_seed ${tlskey_seed}"
@@ -8370,7 +8372,7 @@ ${EASYTLS_KEY_INDEX}"
 		:
 	fi
 
-	if [ ! $want_faster_hash ]; then
+	if [ -z "${want_faster_hash}" ]; then
 		# Build Master seed
 		wiscii_seed="${wiscii_seed}${tlskey_seed_hash}"
 		unset -v tlskey_seed tlskey_seed_hash
@@ -8409,7 +8411,7 @@ save_wiscii_hash ()
 {
 	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
 
-	[ $update_master_hash ] || return 0
+	[ -n "${update_master_hash}" ] || return 0
 
 	if [ -f "${EASYTLS_WISCII_HASH}" ]; then
 		bottled_wiscii="$("${EASYTLS_CAT}" "${EASYTLS_WISCII_HASH}")" || {
@@ -8507,7 +8509,7 @@ generate_faster_hash ()
 save_faster_hash ()
 {
 	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
-	[ $update_master_hash ] || return 0
+	[ -n "${update_master_hash}" ] || return 0
 	generate_faster_hash || die "save_faster_hash/generate_faster_hash"
 	validate_hash "${generated_faster_hash}" || \
 		die "save_faster_hash/validate_hash"
@@ -8626,7 +8628,7 @@ external_deps ()
 			echo "Missing: ${EASYTLS_ersabin_dir}/${EASYTLS_PRINTF}.exe"
 			setup_err=1
 			}
-		[ $setup_err -eq 0 ] || {
+		[ "${setup_err}" -eq 0 ] || {
 			exit 9
 			}
 		unset -v setup_err
