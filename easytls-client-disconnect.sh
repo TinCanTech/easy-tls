@@ -739,7 +739,7 @@ fi
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]; then
+if [ "${absolute_fail}" -eq 0 ]; then
 	# Delete all temp files
 	delete_metadata_files
 

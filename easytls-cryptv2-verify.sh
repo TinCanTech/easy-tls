@@ -1227,7 +1227,7 @@ release_lock "${easytls_lock_stub}-v2.d" || die "release_lock:v2 FAIL" 99
 update_status "v2-lock-released"
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]; then
+if [ "${absolute_fail}" -eq 0 ]; then
 	# TLSKEY connect log
 	tlskey_status ">>:    V-OK" || update_status "tlskey_status FAIL"
 

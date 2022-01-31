@@ -1287,7 +1287,7 @@ fi # ENABLE_NO_CHECK
 [ $kill_this_client ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
 
 # There is only one way out of this...
-if [ $absolute_fail -eq 0 ]; then
+if [ "${absolute_fail}" -eq 0 ]; then
 	# Delete all temp files
 	delete_metadata_files || die "CON: delete_metadata_files() ?" 155
 
