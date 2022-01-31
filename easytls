@@ -1481,7 +1481,7 @@ generate_and_validate_file_hash ()
 	target="${1}"
 
 	# hash the file
-	if [ ! $force_hash ] && [ $FILE_HASH_DISABLED ]; then
+	if [ ! $force_hash ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
 	else
@@ -1528,7 +1528,7 @@ generate_and_validate_data_hash ()
 	target="${1}"
 
 	# hash the data
-	if [ ! $force_hash ] && [ $FILE_HASH_DISABLED ]; then
+	if [ ! $force_hash ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
 	else
@@ -8459,7 +8459,7 @@ generate_wiscii_hash ()
 		}
 
 	# Fixed Hash - If file hashing is disabled
-	[ $FILE_HASH_DISABLED ] && {
+	[ -n "${FILE_HASH_DISABLED}" ] && {
 		counted_wiscii=$fixed_hash
 		return 0
 		}
@@ -8669,7 +8669,7 @@ ${EASYTLS_DISABLED_LIST}"
 # Save wiscii hash
 save_wiscii_hash ()
 {
-	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
+	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
 
 	[ $update_master_hash ] || return 0
 
@@ -8734,7 +8734,7 @@ verify_wiscii_hash ()
 generate_faster_hash ()
 {
 	# Respect no file hash mode
-	if [ $FILE_HASH_DISABLED ]; then
+	if [ -n "${FILE_HASH_DISABLED}" ]; then
 		generated_faster_hash="${fixed_hash}"
 		unset inline_file_list tlskey_file_list util_file_list
 		return 0
@@ -8768,7 +8768,7 @@ generate_faster_hash ()
 # Save faster hash
 save_faster_hash ()
 {
-	[ $FILE_HASH_DISABLED ] && flash_config=1 && easytls_config status 1
+	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
 	[ $update_master_hash ] || return 0
 	generate_faster_hash || die "save_faster_hash/generate_faster_hash"
 	validate_hash "${generated_faster_hash}" || \
