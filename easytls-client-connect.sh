@@ -215,7 +215,7 @@ format_number ()
 verbose_easytls_tctip_lib ()
 {
 	[ -n "${EASYTLS_SILENT}" ] && return 0
-	[ $EASYTLS_TCTIP_LIB_VERBOSE ] || return 0
+	[ -n "${EASYTLS_TCTIP_LIB_VERBOSE}" ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
 
@@ -225,17 +225,18 @@ validate_ip_address ()
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1
-	[ $ipv4 ] && [ $ipv6 ] && easytls_verbose "Unsupported <:Port>" && return 1
-	[ $ipv4 ] && validate_ip4_data "$@" && valid4=1
-	[ $ipv6 ] && validate_ip6_data "$@" && valid6=1
-	[ $valid4 ] && [ $valid6 ] && return 1
-	[ $valid4 ] || [ $valid6 ] || return 1
+	[ -n "${ipv4}" ] && [ -n "${ipv6}" ] && \
+		easytls_verbose "Unsupported <:Port>" && return 1
+	[ -n "${ipv4}" ] && validate_ip4_data "$@" && valid4=1
+	[ -n "${ipv6}" ] && validate_ip6_data "$@" && valid6=1
+	[ -n "${valid4}" ] && [ -n "${valid6}" ] && return 1
+	[ -n "${valid4}" ] || [ -n "${valid6}" ] || return 1
 } # => validate_ip_address ()
 
 # Exit with error
 invalid_address ()
 {
-	case ${1} in
+	case "${1}" in
 	1) print "easytls invalid" ;;
 	10) print "excess input" ;;
 	11) print "illegal format" ;;
@@ -284,9 +285,9 @@ cidrmask2dec ()
 	imsk_dec=0
 	count=32 # or 128 - If possible..
 	power=1
-	while [ ${count} -gt 0 ]; do
+	while [ "${count}" -gt 0 ]; do
 		count=$(( count - 1 ))
-		if [ ${1} -gt ${count} ]; then
+		if [ "${1}" -gt "${count}" ]; then
 			# mask
 			mask_dec=$(( mask_dec + power ))
 		else
@@ -326,7 +327,7 @@ expand_ip6_address ()
 	# expand leading colon
 	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
 		lead_colon=1
-	[ ! $lead_colon ] || temp_valid_hextets="0${temp_valid_hextets}"
+	[ -z "${lead_colon}" ] || temp_valid_hextets="0${temp_valid_hextets}"
 
 	# Count valid compressed hextets
 	count_valid_hextets=0
@@ -342,18 +343,18 @@ expand_ip6_address ()
 	# expand double colon
 	temp_valid_hextets="${in_valid_hextets}"
 	expa_valid_hextets="${in_valid_hextets}"
-	if [ ${count_valid_hextets} -lt 8 ]; then
+	if [ "${count_valid_hextets}" -lt 8 ]; then
 		hi_part="${temp_valid_hextets%::*}"
 		lo_part="${temp_valid_hextets#*::}"
 		missing_zeros=$(( 8 - count_valid_hextets ))
-		while [ ${missing_zeros} -gt 0 ]; do
+		while [ "${missing_zeros}" -gt 0 ]; do
 			hi_part="${hi_part}:0"
 			missing_zeros=$(( missing_zeros - 1 ))
 		done
 		unset -v missing_zeros
 		expa_valid_hextets="${hi_part}:${lo_part}"
 		# Re-expand leading colon
-		[ ! $lead_colon ] || expa_valid_hextets="0${expa_valid_hextets}"
+		[ -z "${lead_colon}" ] || expa_valid_hextets="0${expa_valid_hextets}"
 	fi
 	# Save the orangutan
 	unset -v lead_colon lo_part hi_part count_valid_hextets
@@ -365,7 +366,7 @@ expand_ip6_address ()
 	# Expand compressed zeros
 	while [ "${hex_count}" -gt 0 ]; do
 		hextet="${temp_valid_hextets%%:*}"
-		while [ ${#hextet} -lt 4 ]; do
+		while [ "${#hextet}" -lt 4 ]; do
 			hextet="0${hextet}"
 		done
 		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
@@ -383,7 +384,7 @@ expand_ip6_address ()
 	hex_mask=$(( in_valid_mask_len / 4 ))
 
 	temp_valid_hextets="${full_valid_hextets}"
-	while [ ${hex_mask} -gt 0 ]; do
+	while [ "${hex_mask}" -gt 0 ]; do
 		delete_mask="${temp_valid_hextets#?}"
 		verbose_easytls_tctip_lib "delete_mask: ${delete_mask}"
 		hex_char="${temp_valid_hextets%"${delete_mask}"}"
@@ -411,7 +412,7 @@ expand_ip6_address ()
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 
 		# shellcheck disable=SC2249 # (info): default *) case
-		case ${hextet} in
+		case "${hextet}" in
 			*[!0:]* ) return 20 ;;
 		esac
 	done
