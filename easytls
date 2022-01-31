@@ -1277,7 +1277,7 @@ and initialize a fresh TLS PKI here."
 		(	exec 2>/dev/null
 			set -o noclobber
 			exec 6> "${EASYTLS_TEMP_LOCK}" || return 1
-			printf "%s" "$$" >&6 || return 1
+			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || return 1
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
 		read -r <&6 EASYTLS_lock_PID
@@ -7326,7 +7326,8 @@ interactive_selfsign_CN ()
 			break
 			}
 		ia_question_text="  Press enter to continue.."
-		printf "\n%s\n\n" "  A certificate named ${common_name} already exists!"
+		"${EASYTLS_PRINTF}" "\n%s\n\n" \
+			"  A certificate named ${common_name} already exists!"
 		interactive_wait_for_answer
 	done
 } # => interactive_selfsign_CN ()
@@ -7354,7 +7355,8 @@ interactive_selfsign_peer ()
 			break
 			}
 		ia_question_text="  Press enter to continue.."
-		printf "\n%s\n\n" "  A certificate named ${common_name} does not exist!"
+		"${EASYTLS_PRINTF}" "\n%s\n\n" \
+			"  A certificate named ${common_name} does not exist!"
 		interactive_wait_for_answer
 	done
 } # => interactive_selfsign_peer ()
@@ -9200,7 +9202,7 @@ main ()
 		(	exec 2>/dev/null
 			set -o noclobber
 			exec 6> "${EASYTLS_TEMP_LOCK}" || return 1
-			printf "%s" "$$" >&6 || return 1
+			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || return 1
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
 		read -r <&6 EASYTLS_lock_PID
