@@ -991,7 +991,7 @@ warn_die
 deps
 
 # Write env file
-if [ $WRITE_ENV ]; then
+if [ -n "${WRITE_ENV}" ]; then
 	env_file="${temp_stub}-cryptv2-verify.env"
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		set > "${env_file}"
