@@ -792,7 +792,7 @@ deps ()
 	openssl_cnf="${CA_DIR}/safessl-easyrsa.cnf"
 
 	# Check X509 files
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		# Do not need CA cert
 		# Cannot do any X509 verification
 		:

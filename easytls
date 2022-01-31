@@ -1248,7 +1248,7 @@ init_tls ()
 	done
 
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
-	[ $EASYTLS_NO_CA ] || verify_pki_init
+	[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
 
 	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
@@ -1362,7 +1362,7 @@ and initialize a fresh TLS PKI here."
 	disabled_list_save_hash || die "Failed to create disabled-list Hash."
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		# Ignore
 		:
 	else
@@ -1976,7 +1976,7 @@ openssl_crt_common_name ()
 get_openssl_crt_common_name ()
 {
 	# This is ONLY use to import a certificate and importing is DISABLED
-	[ $EASYTLS_NO_CA ] || die "get_openssl_crt_common_name DISABLED"
+	[ -n "${EASYTLS_NO_CA}" ] || die "get_openssl_crt_common_name DISABLED"
 	[ -f "${1}" ] || {
 		error_msg "get_openssl_crt_common_name missing file"
 		return 1
@@ -2527,7 +2527,7 @@ cert_expire ()
 	easytls_verbose
 	name="${1}"
 
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 
 	# Begin NO CA MODE
 	if [ -n "${name}" ]; then
@@ -2600,7 +2600,7 @@ inline_expire ()
 # Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
 {
-	[ $EASYTLS_NO_CA ] && return 0
+	[ -n "${EASYTLS_NO_CA}" ] && return 0
 	update_index_action="${1}"
 
 	# Verify inline-index Hash
@@ -2715,7 +2715,7 @@ inline_index_save_hash ()
 # Check inline-file hash
 inline_file_verify_hash ()
 {
-	[ $EASYTLS_NO_CA ] && return 0
+	[ -n "${EASYTLS_NO_CA}" ] && return 0
 	# This is a check so check everything here
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
@@ -3381,7 +3381,7 @@ remove_tlskey ()
 	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
 	else
 		cert_file="${EASYRSA_PKI}/issued/${name}.crt"
@@ -3608,7 +3608,7 @@ inline_base ()
 		shift
 	done
 
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
 		key_file="${EASYTLS_PKI}/${name}.key"
 		# Always generate the fingerprint
@@ -3648,7 +3648,7 @@ inline_base ()
 			}
 	fi
 
-	if [ $inline_dh_file ] && [ ! $EASYTLS_NO_CA ]; then
+	if [ $inline_dh_file ] && [ ! -n "${EASYTLS_NO_CA}" ]; then
 		# dh file is required
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"${default_dh_file}"}"
@@ -3672,7 +3672,7 @@ inline_base ()
 		"${EASYTLS_PRINTF}" '%s\n' "# X509 serial: ${cert_serial}"
 
 		# Fingerprint
-		[ $EASYTLS_NO_CA ] && "${EASYTLS_PRINTF}" '%s\n\n' \
+		[ -n "${EASYTLS_NO_CA}" ] && "${EASYTLS_PRINTF}" '%s\n\n' \
 			"# Send this to your peer - Fingerprint: ${cert_fpr}"
 
 		# Certificate
@@ -3687,7 +3687,7 @@ inline_base ()
 			"${EASYTLS_PRINTF}" '%s\n' \
 			'# * Replace this line with your complete x509 key file *'
 		else
-			#[ $EASYTLS_NO_CA ] && "${EASYRSA_OPENSSL}" \
+			#[ -n "${EASYTLS_NO_CA}" ] && "${EASYRSA_OPENSSL}" \
 			#	ecparam -name "${EASYTLS_EC_CURVE}" -in "${key_file}" -text
 			"${EASYTLS_CAT}" "${key_file}"
 		fi
@@ -3695,14 +3695,14 @@ inline_base ()
 		"${EASYTLS_PRINTF}" '%s\n\n' "</key>"
 
 		# CA
-		[ $EASYTLS_NO_CA ] || {
+		[ -n "${EASYTLS_NO_CA}" ] || {
 			"${EASYTLS_PRINTF}" '%s\n' "<ca>"
 			"${EASYTLS_CAT}" "${ca_file}"
 			"${EASYTLS_PRINTF}" '%s\n\n' "</ca>"
 			}
 
 		# DH
-		if [ $inline_dh_file ] && [ ! $EASYTLS_NO_CA ]; then
+		if [ $inline_dh_file ] && [ -z "${EASYTLS_NO_CA}" ]; then
 			"${EASYTLS_PRINTF}" '%s\n' "<dh>"
 			"${EASYTLS_CAT}" "${EASYRSA_DH_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n\n' "</dh>"
@@ -3897,7 +3897,7 @@ inline_tls_crypt_v2 ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4006,7 +4006,7 @@ inline_tls_crypt_v2 ()
 		# Drop hardware-address
 		metadata_string="${metadata_string#* }"
 
-		if [ $EASYTLS_NO_CA ]; then
+		if [ -n "${EASYTLS_NO_CA}" ]; then
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${srv_name}.crt"
 			x509_cert_serial "${cert_file}" cert_serial || \
@@ -4038,7 +4038,7 @@ inline_tls_crypt_v2 ()
 			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n\n' \
 				"# metadata Sub-key-name: ${MD_subkey}"
 		else
-			if [ $EASYTLS_NO_CA ]; then
+			if [ -n "${EASYTLS_NO_CA}" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' \
 					"# metadata Server-serial: ${srv_serial}"
 			else
@@ -4124,7 +4124,7 @@ inline_tls_cv2_group_server ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4193,7 +4193,7 @@ inline_tls_cv2_group_server ()
 					'%s\n\n' "# metadata Sub-key-name: ${MD_subkey}"
 			fi
 		else
-			if [ $EASYTLS_NO_CA ]; then
+			if [ -n "${EASYTLS_NO_CA}" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' \
 					"# metadata Server-serial: ${srv_serial}"
 			else
@@ -4278,7 +4278,7 @@ inline_tls_cv2_group_client ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4389,7 +4389,7 @@ inline_tls_cv2_group_client ()
 		# Drop hardware-address
 		metadata_string="${metadata_string#* }"
 
-		if [ $EASYTLS_NO_CA ]; then
+		if [ -n "${EASYTLS_NO_CA}" ]; then
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${srv_name}.crt"
 			x509_cert_serial "${cert_file}" cert_serial || \
@@ -4417,7 +4417,7 @@ inline_tls_cv2_group_client ()
 			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n\n' \
 				"# metadata Sub-key-name: ${MD_subkey}"
 		else
-			if [ $EASYTLS_NO_CA ]; then
+			if [ -n "${EASYTLS_NO_CA}" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' \
 					"# metadata Server-serial: ${srv_serial}"
 			else
@@ -4479,7 +4479,7 @@ inline_tls_cv2_group_client ()
 # Share peer fingerprints
 inline_share_fingerprint ()
 {
-	[ $EASYTLS_NO_CA ] || return 0
+	[ -n "${EASYTLS_NO_CA}" ] || return 0
 	[ $# -eq 0 ] && {
 		# Only add inline tags for fingerprint
 		"${EASYTLS_PRINTF}" '%s\n' "<peer-fingerprint>"
@@ -4721,7 +4721,7 @@ build_tls_crypt_v2_server ()
 
 	srv_name="${1}"
 
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
 		tlskey_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
 	else
@@ -4777,7 +4777,7 @@ build_tls_crypt_v2_client ()
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		srv_name="${1}"
 		srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
 		ca_cert="${srv_cert}"
@@ -5849,7 +5849,7 @@ disabled_list_manager ()
 	fi
 	name="${1}"; shift
 
-	if [ $EASYTLS_NO_CA ]; then
+	if [ -n "${EASYTLS_NO_CA}" ]; then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
 	else
 		cert_file="${EASYRSA_PKI}/issued/${name}.crt"
@@ -6199,7 +6199,7 @@ interactive_build ()
 
 			# Set opt_add_dh or opt_custom_dh
 			default_dh_file="$EASYRSA_PKI/dh.pem"
-			[ $EASYTLS_NO_CA ] || {
+			[ -n "${EASYTLS_NO_CA}" ] || {
 				if [ -f "$default_dh_file" ]
 				then
 					# opt_add_dh
@@ -6413,7 +6413,7 @@ interactive_inline ()
 
 		# Set opt_add_dh
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
-		[ $EASYTLS_NO_CA ] || {
+		[ -n "${EASYTLS_NO_CA}" ] || {
 			if [ -f "${default_dh_file}" ]
 			then
 				[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
@@ -6423,7 +6423,7 @@ interactive_inline ()
 			}
 
 		# share fingerprint
-		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
+		[ -n "${EASYTLS_NO_CA}" ] && [ "${cert_type}" = 'Client' ] && \
 			interactive_selfsign_peer
 
 		# Print command
@@ -6453,7 +6453,7 @@ interactive_inline ()
 
 		# Set opt_add_dh
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
-		[ $EASYTLS_NO_CA ] || {
+		[ -n "${EASYTLS_NO_CA}" ] || {
 			if [ -f "${default_dh_file}" ]
 			then
 				[ "${cert_type}" = 'Server' ] && interactive_opt_add_dh
@@ -6463,7 +6463,7 @@ interactive_inline ()
 			}
 
 		# share fingerprint
-		[ $EASYTLS_NO_CA ] && [ "${cert_type}" = 'Client' ] && \
+		[ -n "${EASYTLS_NO_CA}" ] && [ "${cert_type}" = 'Client' ] && \
 			interactive_selfsign_peer
 
 		# Print command
@@ -6559,7 +6559,7 @@ interactive_inline ()
 		interactive_opt_add_hw
 
 		# share fingerprint
-		[ $EASYTLS_NO_CA ] && interactive_selfsign_peer
+		[ -n "${EASYTLS_NO_CA}" ] && interactive_selfsign_peer
 
 		# Print command
 		interactive_show_cmd
@@ -7409,7 +7409,7 @@ interactive_common_name ()
 		interactive_question
 		common_name="${ia_answer}"
 		cert_file="${EASYRSA_PKI}/issued/${common_name}.crt"
-		[ $EASYTLS_NO_CA ] && cert_file="${EASYTLS_PKI}/${common_name}.crt"
+		[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${common_name}.crt"
 		interactive_verify_cert && {
 			cmd_line="${cmd_line} ${common_name}"
 			break
@@ -7812,7 +7812,7 @@ interactive_ca_path ()
 		# because it is always used by easytls-verify
 		if [ -f "${ans_ca_path}/${EASYTLS_key_index}" ]
 		then
-			if [ $EASYTLS_NO_CA ]
+			if [ -n "${EASYTLS_NO_CA}" ]
 			then
 				break
 			else
@@ -8353,7 +8353,7 @@ interactive_metadata_pattern ()
 automatic_no_ca ()
 {
 	opt_no_ca='-z'
-	[ $EASYTLS_NO_CA ] || unset -v opt_no_ca
+	[ -n "${EASYTLS_NO_CA}" ] || unset -v opt_no_ca
 } # => automatic_no_ca ()
 
 
@@ -9312,7 +9312,7 @@ main ()
 			error_msg "$(cmd_help init-tls)"
 			exit 1
 			}
-		[ $EASYTLS_NO_CA ] || verify_pki_init
+		[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
 
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
@@ -9462,7 +9462,7 @@ main ()
 			flash_config=1 && easytls_config status $(( EASYTLS_STATUS + 1 ))
 		;;
 		*)
-			if [ $EASYTLS_NO_CA ]; then
+			if [ -n "${EASYTLS_NO_CA}" ]; then
 			# No-CA use these versions of commands
 				case "${cmd}" in
 				sss|self-sign-server)
