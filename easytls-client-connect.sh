@@ -264,17 +264,19 @@ ip2dec ()
 		*.*.*.* ) : ;; #OK
 		* ) return 1 ;;
 	esac
+
 	temp_ip_addr="${1}"
 	a="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
 	b="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
 	c="${temp_ip_addr%%.*}"; temp_ip_addr="${temp_ip_addr#*.}"
 	d="${temp_ip_addr%%.*}"
+
 	for i in "${a}" "${b}" "${c}" "${d}"; do
-		[ ${#i} -eq 1 ] && continue
+		[ "${#i}" -eq 1 ] && continue
 		[ -z "${i%%0*}" ] && return 1
-		{ [ 0 -gt $(( i )) ] || [ $(( i )) -gt 255 ]; } && return 1
+		{ [ 0 -gt "${i}" ] || [ "${i}" -gt 255 ]; } && return 1
 	done
-	ip4_dec=$(( (a << 24) + (b << 16) + (c << 8) + d )) || return 1
+	ip4_dec="$(( (a << 24) + (b << 16) + (c << 8) + d ))" || return 1
 	unset -v temp_ip_addr a b c d
 } # => ip2dec ()
 
@@ -286,15 +288,15 @@ cidrmask2dec ()
 	count=32 # or 128 - If possible..
 	power=1
 	while [ "${count}" -gt 0 ]; do
-		count=$(( count - 1 ))
+		count="$(( count - 1 ))"
 		if [ "${1}" -gt "${count}" ]; then
 			# mask
-			mask_dec=$(( mask_dec + power ))
+			mask_dec="$(( mask_dec + power ))"
 		else
 			# inverse
-			imsk_dec=$(( imsk_dec + power ))
+			imsk_dec="$(( imsk_dec + power ))"
 		fi
-		power=$(( power * 2 ))
+		power="$(( power * 2 ))"
 	done
 	unset -v count power
 } # => cidrmask2dec ()
@@ -332,7 +334,7 @@ expand_ip6_address ()
 	# Count valid compressed hextets
 	count_valid_hextets=0
 	while [ -n "${temp_valid_hextets}" ]; do
-		count_valid_hextets=$(( count_valid_hextets + 1 ))
+		count_valid_hextets="$(( count_valid_hextets + 1 ))"
 		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
 			temp_valid_hextets="${temp_valid_hextets}:"
 		temp_valid_hextets="${temp_valid_hextets#*:}"
@@ -346,10 +348,10 @@ expand_ip6_address ()
 	if [ "${count_valid_hextets}" -lt 8 ]; then
 		hi_part="${temp_valid_hextets%::*}"
 		lo_part="${temp_valid_hextets#*::}"
-		missing_zeros=$(( 8 - count_valid_hextets ))
+		missing_zeros="$(( 8 - count_valid_hextets ))"
 		while [ "${missing_zeros}" -gt 0 ]; do
 			hi_part="${hi_part}:0"
-			missing_zeros=$(( missing_zeros - 1 ))
+			missing_zeros="$(( missing_zeros - 1 ))"
 		done
 		unset -v missing_zeros
 		expa_valid_hextets="${hi_part}:${lo_part}"
@@ -372,16 +374,16 @@ expand_ip6_address ()
 		full_valid_hextets="${full_valid_hextets}${delim}${hextet}"
 		delim=':'
 		temp_valid_hextets="${temp_valid_hextets#*:}"
-		hex_count=$(( hex_count - 1 ))
+		hex_count="$(( hex_count - 1 ))"
 	done
 	# Save "The violence inherent in the system"
 	unset -v hex_count delim
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
 
 	# Split IP at mask_len
-	[ $(( in_valid_mask_len % 4 )) -eq 0 ] || \
+	[ "$(( in_valid_mask_len % 4 ))" -eq 0 ] || \
 		die "in_valid_mask_len % 4: ${in_valid_mask_len}"
-	hex_mask=$(( in_valid_mask_len / 4 ))
+	hex_mask="$(( in_valid_mask_len / 4 ))"
 
 	temp_valid_hextets="${full_valid_hextets}"
 	while [ "${hex_mask}" -gt 0 ]; do
@@ -393,7 +395,7 @@ expand_ip6_address ()
 		verbose_easytls_tctip_lib "temp_valid_hextets: ${temp_valid_hextets}"
 		full_subnet_addr6="${full_subnet_addr6}${hex_char}"
 		verbose_easytls_tctip_lib "full_subnet_addr6: ${full_subnet_addr6}"
-		[ "${hex_char}" = ':' ] || hex_mask=$(( hex_mask - 1 ))
+		[ "${hex_char}" = ':' ] || hex_mask="$(( hex_mask - 1 ))"
 		verbose_easytls_tctip_lib "*** hex_mask: ${hex_mask}"
 	done
 	# Save the polar ice-caps
