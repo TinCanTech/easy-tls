@@ -2018,7 +2018,7 @@ noca_status ()
 # Report duplicate CNs in EasyRSA due to certificate renewal
 status ()
 {
-	[ $auto_check ] || status_disabled_auto_check=1
+	[ -n "${auto_check}" ] || status_disabled_auto_check=1
 	subsection="$1"
 
 	# Clear lists
@@ -2032,7 +2032,7 @@ status ()
 	#easytls_revoked_serial_list="" # Not used
 	etls_valid_tlskey_list=""
 
-	[ $auto_check ] || easytls_verbose
+	[ -n "${auto_check}" ] || easytls_verbose
 	# Invoke sub-section if specified
 	if [ -n "${subsection}" ]; then
 		case "${subsection}" in
@@ -2120,7 +2120,7 @@ status ()
 		print "  No TLS keys found"
 
 	easytls_verbose "Status complete"
-	[ $auto_check ] || easytls_verbose
+	[ -n "${auto_check}" ] || easytls_verbose
 } #=> status ()
 
 # Format status output from Easy-RSA
@@ -2318,7 +2318,7 @@ status_easytls_invalid ()
 		;;
 		1)
 			revoked_mismatch_count=$((revoked_mismatch_count+1))
-			[ $auto_check ] || status_invalid_inline_list
+			[ -n "${auto_check}" ] || status_invalid_inline_list
 		;;
 		*)
 			warn "EasyRSA duplicate records detected!"
@@ -2365,7 +2365,7 @@ status_easyrsa_renewed ()
 				# No output
 				:
 			else
-				[ $auto_check ] || {
+				[ -n "${auto_check}" ] || {
 					print "  Common-Name ${name}"
 					print "    Inline-Serial ${inline_serial}"
 					print "    Cert-Serial   ${cert_serial}"
