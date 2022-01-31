@@ -611,7 +611,7 @@ ${1}"
 # returns without prompting in EASYTLS_BATCH
 confirm ()
 {
-	[ $require_batch ] && return 0
+	[ -n "${require_batch}" ] && return 0
 	[ -n "${EASYTLS_BATCH}" ] && return 0
 	prompt="${1}"
 	value="${2}"
