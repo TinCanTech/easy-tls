@@ -182,7 +182,7 @@ die ()
 	[ -n "${help_note}" ] && print "${help_note}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
-	if [ $ENABLE_KILL_SERVER ]; then
+	if [ -n "${ENABLE_KILL_SERVER}" ]; then
 		echo 1 > "${temp_stub}-die"
 		echo 'XXXXX CV2 XXXXX KILL SERVER'
 		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
@@ -240,7 +240,7 @@ fail_and_exit ()
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
 			"ENABLE_KILL_CLIENT: ${ENABLE_KILL_CLIENT:-0}" > "${EASYTLS_WLOG}"
 
-	[ $ENABLE_KILL_CLIENT ] && {
+	[ -n "${ENABLE_KILL_CLIENT}" ] && {
 		# Create kill client file
 		"${EASYTLS_PRINTF}" "%s\n" "${MD_x509_SERIAL}" > "${EASYTLS_KILL_FILE}"
 		# Create metadata file for client-connect or kill-client

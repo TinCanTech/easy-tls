@@ -136,7 +136,7 @@ die ()
 	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
-	if [ $ENABLE_KILL_SERVER ]; then
+	if [ -n "${ENABLE_KILL_SERVER}" ]; then
 		echo 1 > "${temp_stub}-die"
 		echo 'XXXXX CC XXXXX KILL SERVER'
 		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
