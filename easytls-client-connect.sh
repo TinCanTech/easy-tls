@@ -777,7 +777,7 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+		[ -n "${EASYTLS_REQUIRE_VARS}" ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 
 	# Source metadata lib
