@@ -715,7 +715,7 @@ easytls_verbose ()
 {
 	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	[ -n "${EASYTLS_SILENT}" ] && return 0
-	[ $flash_config ] && return 0
+	[ -n "${flash_config}" ] && return 0
 	verbose_message="${*}"
 	[ -z "${verbose_message}" ] && print "" && return 0
 	print "* ${verbose_message}"
@@ -869,14 +869,14 @@ easytls_config ()
 				}
 
 			# Do not allow user access to 'easytls config ca.id foo'
-			[ $save_id_authorized ] || \
+			[ -n "${save_id_authorized}" ] || \
 				die "Please use 'easytls save-id' to configure your CA-ID"
 		;;
 		hash.algorithm)
 			help_note="See help for init-tls"
 			die "To change your HASH you must create a new Easy-TLS PKI"
 		;;
-		status) [ $flash_config ] || return 0 ;;
+		status) [ -n "${flash_config}" ] || return 0 ;;
 		*)
 			die "Unknown option: ${cfg_opt}"
 		;;
@@ -1157,7 +1157,7 @@ config_version ()
 	fi
 
 	# Save me ! - Changes have been made
-	if [ $save_me ]; then
+	if [ -n "${save_me}" ]; then
 		save_wiscii_hash || return 1 # die "Error hashing config."
 	fi
 	unset -v flash_config save_me cfg_opt cfg_val
@@ -1281,7 +1281,7 @@ and initialize a fresh TLS PKI here."
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
 		read -r <&6 EASYTLS_lock_PID
-		[ $$ -eq ${EASYTLS_lock_PID} ] || \
+		[ "$$" -eq "${EASYTLS_lock_PID}" ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
 		unset update_master_hash
 	else
@@ -1403,7 +1403,7 @@ and initialize a fresh TLS PKI here."
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ $status_disabled_auto_check ] && return 0
+	[ -n "${status_disabled_auto_check}" ] && return 0
 	[ -n "${AUTO_CHECK_DISABLED}" ] && \
 		easytls_verbose "auto-check disabled" && return 0
 
@@ -1664,7 +1664,7 @@ save_file_hash ()
 	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
-	[ $valid_target ] || {
+	[ -n "${valid_target}" ] || {
 		error_msg "invalid target - save_file_hash"
 		unset -v hash_file valid_hash valid_target
 		return 1
@@ -2462,16 +2462,16 @@ verify_cert_purpose ()
 	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_c}" && is_c=1
 	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_s}" && is_s=1
 
-	if [ $is_c ] && [ $is_s ]; then
+	if [ -n "${is_c}" ] && [ -n "${is_s}" ]; then
 		error_msg "Unsupported certificate purpose"
 		error_msg "= ${p_l}"
 		unset -v p_l p_c p_s is_c is_s
 		return 1
 
-	elif [ $is_c ]; then
+	elif [ -n "${is_c}" ]; then
 		eval ${2}="Client"
 
-	elif [ $is_s ]; then
+	elif [ -n "${is_s}" ]; then
 		eval ${2}="Server"
 
 	else
@@ -2835,7 +2835,7 @@ x509_cert_serial ()
 # Check inline hash and Copy inline to stdout
 inline_show ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	inline_file="${EASYTLS_PKI}/${name}.inline"
@@ -2864,7 +2864,7 @@ inline_show ()
 # Remove .inline file
 remove_inline ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	inline_file="${EASYTLS_PKI}/${name}.inline"
@@ -2904,7 +2904,7 @@ remove_inline ()
 # Remove metadata from inline file
 remove_metadata ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	easytls_verbose
 	name="${1}"
@@ -2969,7 +2969,7 @@ remove_metadata ()
 
 	# Add client to inline-index
 	inline_index_update add || die "Failed to update inline-index"
-	[ $metadata_updated ] && notice "inline file updated"
+	[ -n "${metadata_updated}" ] && notice "inline file updated"
 	easytls_verbose
 } # => remove_metadata ()
 
@@ -3236,7 +3236,7 @@ tlskey_verify_in_use ()
 # Remove a TLS-Crypt-V2 Client key and update the tlskey-index
 remove_tlskey ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	if [ -n "${EASYTLS_NO_CA}" ]; then
@@ -3326,7 +3326,7 @@ inline_renew_key_direction ()
 # Create inline credentials file from Easy-RSA PKI
 inline_base ()
 {
-	[ $# -ge 1 ] || {
+	[ "$#" -ge 1 ] || {
 		error_msg "Required option(s): <filename_base>"
 		return 1
 		}
@@ -3372,7 +3372,7 @@ inline_base ()
 		return 1
 	fi
 
-	if [ $no_x509_key ]; then
+	if [ -n "${no_x509_key}" ]; then
 		# Key file is not required
 		:
 	else
@@ -3383,7 +3383,7 @@ inline_base ()
 			}
 	fi
 
-	if [ $inline_dh_file ] && [ ! -n "${EASYTLS_NO_CA}" ]; then
+	if [ -n "${inline_dh_file}" ] && [ ! -n "${EASYTLS_NO_CA}" ]; then
 		# dh file is required
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"${default_dh_file}"}"
@@ -3418,7 +3418,7 @@ inline_base ()
 		# Key
 		"${EASYTLS_PRINTF}" '%s\n' "<key>"
 
-		if [ $no_x509_key ]; then
+		if [ -n "${no_x509_key}" ]; then
 			"${EASYTLS_PRINTF}" '%s\n' \
 			'# * Replace this line with your complete x509 key file *'
 		else
@@ -3437,7 +3437,7 @@ inline_base ()
 			}
 
 		# DH
-		if [ $inline_dh_file ] && [ -z "${EASYTLS_NO_CA}" ]; then
+		if [ -n "${inline_dh_file}" ] && [ -z "${EASYTLS_NO_CA}" ]; then
 			"${EASYTLS_PRINTF}" '%s\n' "<dh>"
 			"${EASYTLS_CAT}" "${EASYRSA_DH_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n\n' "</dh>"
@@ -3457,7 +3457,7 @@ inline_base ()
 # Append TLS auth file to base file
 inline_tls_auth ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	shift
@@ -3542,7 +3542,7 @@ inline_tls_auth ()
 # Append TLS crypt file to base file
 inline_tls_crypt_v1 ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	shift
@@ -3614,7 +3614,7 @@ inline_tls_crypt_v1 ()
 # Append TLS crypt v2 file to base file
 inline_tls_crypt_v2 ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
 
 	name="${1}"
 	shift
@@ -3768,7 +3768,7 @@ inline_tls_crypt_v2 ()
 		"${EASYTLS_PRINTF}" "%s\n" \
 			"# metadata Easy-TLS-version ${EASYTLS_VERSION} - TLS-Crypt-v2 key"
 
-		if [ $no_metadata ]; then
+		if [ -n "${no_metadata}" ]; then
 			# If this is a defined sub-key name then add the name anyway
 			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n\n' \
 				"# metadata Sub-key-name: ${MD_subkey}"
@@ -3792,7 +3792,7 @@ inline_tls_crypt_v2 ()
 			if [ "${MD_hw}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
 			else
-				if [ $add_hardware ]; then
+				if [ -n "${add_hardware}" ]; then
 					"${EASYTLS_PRINTF}" '%s\n' "Locked ${MD_hw}"
 				else
 					"${EASYTLS_PRINTF}" '%s\n' "Closed"
@@ -3836,7 +3836,7 @@ inline_tls_cv2_group_server ()
 	print "a new server inline file."
 	return 1
 
-	[ $# -ge 2 ] || \
+	[ "$#" -ge 2 ] || \
 		die "Required option(s): <server_common_name> <server_group_key>"
 
 	name="${1}"
@@ -3921,7 +3921,7 @@ inline_tls_cv2_group_server ()
 			"# metadata Easy-TLS-version ${EASYTLS_VERSION}" \
 			"# metadata TLS-Crypt-v2 GROUP Server Key: ${group_key}"
 
-		if [ $no_metadata ]; then
+		if [ -n "${no_metadata}" ]; then
 			# If this is a defined sub-key name then add the name anyway
 			if [ "${cert_purpose}" = 'Client' ]; then
 				[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" \
@@ -3947,7 +3947,7 @@ inline_tls_cv2_group_server ()
 			if [ "${MD_hw}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
 			else
-				if [ $add_hardware ]; then
+				if [ -n "${add_hardware}" ]; then
 					"${EASYTLS_PRINTF}" '%s\n' "Locked ${MD_hw}"
 				else
 					"${EASYTLS_PRINTF}" '%s\n' "Closed"
@@ -3990,7 +3990,7 @@ inline_tls_cv2_group_server ()
 # Inline TLS-Crypt-V2 Group Client Key with X509 Certificate
 inline_tls_cv2_group_client ()
 {
-	[ $# -ge 2 ] || \
+	[ "$#" -ge 2 ] || \
 		die "Required option(s): <client_common_name> <client_group_key>"
 
 	name="${1}"
@@ -4147,7 +4147,7 @@ inline_tls_cv2_group_client ()
 			"# metadata Easy-TLS-version ${EASYTLS_VERSION}" \
 			"# metadata TLS-Crypt-v2 GROUP Client Key: ${group_key}"
 
-		if [ $no_metadata ]; then
+		if [ -n "${no_metadata}" ]; then
 			# If this is a defined sub-key name then add the name anyway
 			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n\n' \
 				"# metadata Sub-key-name: ${MD_subkey}"
@@ -4171,7 +4171,7 @@ inline_tls_cv2_group_client ()
 			if [ "${MD_hw}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
 			else
-				if [ $add_hardware ]; then
+				if [ -n "${add_hardware}" ]; then
 					"${EASYTLS_PRINTF}" '%s\n' "Locked ${MD_hw}"
 				else
 					"${EASYTLS_PRINTF}" '%s\n' "Closed"
@@ -4215,7 +4215,7 @@ inline_tls_cv2_group_client ()
 inline_share_fingerprint ()
 {
 	[ -n "${EASYTLS_NO_CA}" ] || return 0
-	[ $# -eq 0 ] && {
+	[ "$#" -eq 0 ] && {
 		# Only add inline tags for fingerprint
 		"${EASYTLS_PRINTF}" '%s\n' "<peer-fingerprint>"
 		"${EASYTLS_PRINTF}" '%s\n' \
@@ -4224,7 +4224,7 @@ inline_share_fingerprint ()
 		return 0
 		}
 
-	[ $# -ge 1 ] || die "Required option: client commonName"
+	[ "$#" -ge 1 ] || die "Required option: client commonName"
 	if [ -n "${EASYTLS_PEER_FPR}" ] && {
 		[ "${cert_purpose}" = "Client" ] || [ "${cert_type}" = "Client" ]; }
 	then
@@ -4273,9 +4273,9 @@ inline_share_fingerprint ()
 	# fingerprint pattern
 	fpr_tplt=""
 	i=1
-	while [ $i -lt 32 ]; do
+	while [ "${i}" -lt 32 ]; do
 		fpr_tplt="${fpr_tplt}..:"
-		i=$((i+1))
+		i="$(( i + 1 ))"
 	done
 	fpr_tplt="${fpr_tplt}.."
 
@@ -4320,7 +4320,7 @@ inline_share_fingerprint ()
 	"${EASYTLS_MV}" -f "${cli_inline}-temp" "${cli_inline}"
 
 	# Add client to inline-index
-	[ $do_not_index_client_inline_file ] || {
+	[ -n "${do_not_index_client_inline_file}" ] || {
 		name="${cli_name}"
 		inline_file="${cli_inline}"
 		inline_index_update add || die "Failed to update inline-index"
@@ -4376,7 +4376,7 @@ inline_share_fingerprint ()
 	"${EASYTLS_MV}" -f "${srv_inline}-temp" "${srv_inline}"
 
 	# Add node to inline-index
-	if [ $do_not_index_server_inline_file ]; then
+	if [ -n "${do_not_index_server_inline_file}" ]; then
 		: # OK
 	else
 		TLSKEY_SUBNAME='NOSUBKEY'
@@ -4445,7 +4445,7 @@ build_tls_crypt_v1 ()
 # Create TLS crypt v2 server file
 build_tls_crypt_v2_server ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <server_filename_base>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -4494,7 +4494,7 @@ build_tls_crypt_v2_server ()
 	notice "TLS crypt v2 server key created: ${tlskey_file}"
 	easytls_verbose
 
-	if [ $EASYTLS_BINLINE ]; then
+	if [ -n "${EASYTLS_BINLINE}" ]; then
 		inline_tls_crypt_v2 "${srv_name}" || warn "Failed to build Inline file!"
 	fi
 } # => build_tls_crypt_v2_server ()
@@ -4502,7 +4502,7 @@ build_tls_crypt_v2_server ()
 # Create TLS crypt v2 client file
 build_tls_crypt_v2_client ()
 {
-	[ $# -ge 2 ] || \
+	[ "$#" -ge 2 ] || \
 	die "Required option(s): <server_filename_base> <client_filename_base>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
@@ -4665,7 +4665,7 @@ build_tls_crypt_v2_client ()
 	notice "TLS crypt v2 client key created: ${tlskey_file}"
 	easytls_verbose
 
-	if [ $EASYTLS_BINLINE ]; then
+	if [ -n "${EASYTLS_BINLINE}" ]; then
 		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
 	fi
 } # => build_tls_crypt_v2_client ()
@@ -4678,7 +4678,7 @@ build_tls_cv2_group_server ()
 	print "new Client Group key(s) with."
 	return 1
 
-	[ $# -ge 1 ] || die "Required option(s): <server_group_name>"
+	[ "$#" -ge 1 ] || die "Required option(s): <server_group_name>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -4710,7 +4710,7 @@ build_tls_cv2_group_server ()
 # Build group TLS-Crypt-v2 Client
 build_tls_cv2_group_client ()
 {
-	[ $# -ge 2 ] || \
+	[ "$#" -ge 2 ] || \
 	die "Required option(s): <server_group_name> <client_group_name>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
@@ -4816,8 +4816,7 @@ build_tls_cv2_group_client ()
 	notice "TLS-Crypt-V2 GROUP Client Key created: ${tlskey_file}"
 	easytls_verbose
 
-	if [ $EASYTLS_BINLINE ]
-	then
+	if [ -n "${EASYTLS_BINLINE}" ];	then
 		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
 	fi
 } # => build_tls_cv2_group_client ()
@@ -5291,7 +5290,7 @@ b64_enc_metadata ()
 		return 1
 		}
 
-	if [ $group_mode ]; then
+	if [ -n "${group_mode}" ]; then
 		# Append Server name to CA-ID
 		ca_identity="${cv2_Srv_Serial}"
 		#srv_name="${srv_grp_name}"
@@ -5411,7 +5410,7 @@ easytls_generate_identity ()
 # Build self-signed server cert and key
 build_self_sign ()
 {
-	[ $# -ge 1 ] || die "Required option(s): <server_filename_base>"
+	[ "$#" -ge 1 ] || die "Required option(s): <server_filename_base>"
 
 	cert_type="${1}"
 	shift # Scrape off type
@@ -5459,7 +5458,7 @@ build_self_sign ()
 	esac
 
 	# Disable password
-	[ $EASYTLS_PASSWORD ] || openssl_nodes="-nodes"
+	[ -n "${EASYTLS_PASSWORD}" ] || openssl_nodes="-nodes"
 
 	# build
 	create_self_sign_cert_pair || \
@@ -5534,7 +5533,7 @@ save_id ()
 {
 	# Verify Easy-TLS and Easy-RSA have been correctly setup
 	ca_cert="${EASYRSA_PKI}/ca.crt"
-	if [ $EASYTLS_INIT ]; then
+	if [ -n "${EASYTLS_INIT}" ]; then
 		# NOT fatal
 		[ -f "${ca_cert}" ] || {
 			warn "
@@ -5575,7 +5574,7 @@ save_id ()
 # Manage easytls/disabled-list.txt - Used by easytls-cryptv2-verify.sh
 disabled_list_manager ()
 {
-	[ $# -ge 1 ] || die "Required option(s): disable|enable <NAME>"
+	[ "$#" -ge 1 ] || die "Required option(s): disable|enable <NAME>"
 
 	action="${1}"; shift
 	if [ -z "${1}" ]; then
@@ -5642,7 +5641,7 @@ disabled_list_manager ()
 	# Update disabled-list
 	case ${action} in
 	disable) # Add serial number to the disabled-list
-		if [ $is_disabled ]; then
+		if [ -n "${is_disabled}" ]; then
 			# serial is already disabled
 			:
 		else
@@ -5677,7 +5676,7 @@ disabled_list_manager ()
 		fi
 	;;
 	enable) # Remove serial number from the disabled-list
-		if [ $is_disabled ]; then
+		if [ -n "${is_disabled}" ]; then
 			"${EASYTLS_SED}" -i \
 				"/^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]/d" \
 				"${EASYTLS_DISABLED_LIST}" || {
@@ -5707,7 +5706,7 @@ disabled_list_manager ()
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || name="${name}-${TLSKEY_SUBNAME}"
 
 	# Update and/or Notify
-	if [ $disabled_list_updated ]; then
+	if [ -n "${disabled_list_updated}" ]; then
 		disabled_list_update_and_hash || {
 			error_msg "disabled_list_update_and_hash - failed"
 			return 1
@@ -5929,8 +5928,7 @@ interactive_build ()
 		done
 
 		# Invoke inline
-		if [ $build_and_inline ]
-		then
+		if [ -n "${build_and_inline}" ]; then
 			# Set opt_no_key
 			interactive_opt_no_key
 
@@ -5988,8 +5986,7 @@ interactive_build ()
 		# Set Client name
 		opt_client_name=""
 		cert_type='Client'
-		if [ $group_key ]
-		then
+		if [ -n "${group_key}" ]; then
 			ia_extra_help='* Enter a unique name for your GROUP key. (eg. family)'
 			interactive_gkey_name
 			opt_client_name="$opt_gkey_name"
@@ -6066,10 +6063,8 @@ interactive_build ()
 		done
 
 		# Invoke inline
-		if [ $build_and_inline ]
-		then
-			if [ $group_key ]
-			then
+		if [ -n "${build_and_inline}" ]; then
+			if [ -n "${group_key}" ]; then
 				ia_extra_help='* Now, enter your *Client* commonName.'
 				interactive_common_name
 				opt_client_name="$common_name"
@@ -6092,7 +6087,7 @@ interactive_build ()
 			interactive_show_cmd
 
 			# Create inline
-			 ${easytls_cmd} "$opt_client_name" "$opt_gkey_name" \
+			"${easytls_cmd}" "$opt_client_name" "$opt_gkey_name" \
 				${opt_no_key} ${opt_no_md} ${opt_add_hw} || {
 					error_msg '**Create inline-file failed'
 					return 1
@@ -6271,7 +6266,7 @@ interactive_inline ()
 		interactive_common_name
 		opt_common_name="$common_name"
 		easytls_cmd='inline_tls_crypt_v2'
-		if [ $group_key ]
+		if [ -n "${group_key}" ]
 		then
 			ia_extra_help='* Enter the unique name of your GROUP key. (eg. family)'
 			interactive_gkey_name
@@ -6336,7 +6331,7 @@ interactive_remove ()
   Select the type of file to remove:'
 	interactive_question
 
-	case $ia_answer in
+	case "${ia_answer}" in
 	1)	# Remove Client inline-file
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Client inline-file'
 		cmd_line="${cmd_line}-inline"
@@ -6404,7 +6399,7 @@ interactive_remove ()
 		done
 
 		# Invoke remove_tlskey
-		if [ $remove_inline_and_tlskey ]
+		if [ -n "${remove_inline_and_tlskey}" ]
 		then
 			# Print command
 			cmd_line="remove-tlskey $opt_name"
@@ -6541,7 +6536,7 @@ interactive_remove ()
 		done
 
 		# Invoke remove_tlskey
-		if [ $remove_inline_and_tlskey ]
+		if [ -n "${remove_inline_and_tlskey}" ]
 		then
 		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
 		[ -f "$key_file" ] || missing_file "$key_file"
@@ -6707,7 +6702,7 @@ interactive_remove_warning ()
 		"$EASYTLS_PRINTF" '\n%s\n%s\n%s' \
 			'  ###########' '  # WARNING #' '  ###########'
 
-	case $1 in
+	case "${1}" in
 	remove-tls-auth-key)
 	# TLS-Auth key
 		[ -f "$key_file" ] || missing_file "$key_file"
@@ -6817,7 +6812,7 @@ interactive_scripts ()
   Select the type of script to configure:'
 	interactive_question
 
-	case $ia_answer in
+	case "${ia_answer}" in
 	1)	# easytls-cryptv2-verify.sh
 
 		[ -f "$EASYTLS_VERIFY_V2_SH" ] || {
@@ -6859,7 +6854,7 @@ interactive_scripts ()
 		# Openvpn PID - opt_client_connect
 		interactive_client_connect
 
-		if [ $opt_client_connect ]
+		if [ -n "${opt_client_connect}" ]
 		then
 			# -t|--tmp-dir - opt_tmp_dir
 			interactive_tmp_dir
@@ -6938,24 +6933,8 @@ interactive_scripts ()
 			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
 			"$EASYTLS_PRINTF" '%s\n\n' "'"
 
-
-			# easytls-verify.sh - Required for --tls-auth or --tls-crypt clients
-			#[ $opt_client_connect ] && {
-			#	"$EASYTLS_PRINTF" '%s' 'tls-verify'
-			#	"$EASYTLS_PRINTF" ' %s' "'"
-			#	[ -n "${EASYTLS_FOR_WINDOWS}" ] && \
-			#		"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
-			#	"$EASYTLS_PRINTF" '%s' "${EASYTLS_VERIFY_V1_SH}"
-			#	"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_VERIFY_V1_VARS}"
-			#	[ "$opt_no_ca" ] && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
-			#	"$EASYTLS_PRINTF" ' %s' "-c=${opt_ca_path}"
-			#	[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
-			#	"$EASYTLS_PRINTF" '%s\n\n' "'"
-			#	}
-
-
 			# easytls-client-connect.sh
-			[ $opt_client_connect ] && {
+			[ -n "${opt_client_connect}" ] && {
 				"$EASYTLS_PRINTF" '%s' 'client-connect'
 				"$EASYTLS_PRINTF" ' %s' "'"
 				[ -n "${EASYTLS_FOR_WINDOWS}" ] && \
@@ -7017,7 +6996,7 @@ interactive_selfsign ()
   Select the type of self-sign certificate to build:'
 	interactive_question
 
-	case $ia_answer in
+	case "${ia_answer}" in
 	1)	# Self-signed server
 		cert_type='Server'
 		key_type='tls-auth'
@@ -7353,7 +7332,7 @@ interactive_opt_no_md ()
 {
 	unset -v opt_no_md
 	default='Y'
-	[ $no_metadata ] && default='N'
+	[ -n "${no_metadata}" ] && default='N'
 	ia_question_help="
 * Do you want to include the client metadata in the inline file ?
 
@@ -7389,7 +7368,7 @@ interactive_opt_add_hw ()
 	[ -n "$opt_no_md" ] && return 0
 	unset -v opt_add_hw
 	default='N'
-	[ $add_hardware ] && default='Y'
+	[ -n "${add_hardware}" ] && default='Y'
 	ia_question_help="
 * Do you want to include the hardware addresses in the client metadata ?
 
@@ -7802,7 +7781,7 @@ interactive_x509_method ()
 	done
 	easytls_verbose "Config: $opt_x509_method"
 
-	[ $opt_x509_method ] || return 0
+	[ -n "${opt_x509_method}" ] || return 0
 
 	unset -v opt_load_ca_id
 	unset -v opt_preload_id
@@ -7820,7 +7799,7 @@ interactive_x509_method ()
 	while :
 	do
 		interactive_question
-		case $ia_answer in
+		case "${ia_answer}" in
 		1)	# cache
 			opt_load_ca_id="-a"
 			break
@@ -7838,7 +7817,7 @@ interactive_x509_method ()
 		esac
 	done
 
-	if [ $opt_preload_id ]
+	if [ -n "${opt_preload_id}" ]
 	then
 		[ -f "$EASYTLS_CA_IDENTITY" ] || \
 			die "Cannot find your CA-ID file, init-tls first."
@@ -7870,8 +7849,8 @@ interactive_x509_method ()
 		opt_preload_id="-p=${opt_preload_id}"
 	fi
 
-	[ $opt_load_ca_id ] && easytls_verbose "Config: $opt_load_ca_id"
-	[ $opt_preload_id ] && easytls_verbose "Config: $opt_preload_id"
+	[ -n "${opt_load_ca_id}" ] && easytls_verbose "Config: $opt_load_ca_id"
+	[ -n "${opt_preload_id}" ] && easytls_verbose "Config: $opt_preload_id"
 } # => interactive_x509_method ()
 
 # Set use client connect srcipt
@@ -8109,7 +8088,7 @@ import_key ()
 	error_msg "'import-key' has been disabled until further notice."
 	return 1
 
-	[ $# -ge 2 ] || \
+	[ "$#" -ge 2 ] || \
 	die "Required option(s): <file-type> <file-name>"
 	key_type="$1"
 
@@ -8795,7 +8774,7 @@ vars_setup()
 # Sets $1 as the value contained in $2 and exports (may be blank)
 set_var()
 {
-	[ $# -eq 0 ] && return
+	[ "$#" -eq 0 ] && return
 	var=$1
 	shift
 	value="$*"
@@ -8944,7 +8923,7 @@ main ()
 		) || die "write lock-file"
 		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
 		read -r <&6 EASYTLS_lock_PID
-		[ $$ -eq ${EASYTLS_lock_PID} ] || \
+		[ "$$" -eq "${EASYTLS_lock_PID}" ] || \
 			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
 		unset update_master_hash
 	else
