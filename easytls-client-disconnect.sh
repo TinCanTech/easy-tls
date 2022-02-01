@@ -542,7 +542,7 @@ deps ()
 	EASYTLS_VARS_FILE="${EASYTLS_VARS_FILE:-${default_vars}}"
 	if [ -f "${EASYTLS_VARS_FILE}" ]; then
 		# .vars-example is correct for shellcheck
-		# shellcheck source=./easytls-client-disconnect.vars-example
+		# shellcheck source=./examples/easytls-client-disconnect.vars-example
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else

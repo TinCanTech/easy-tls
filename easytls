@@ -3383,7 +3383,7 @@ inline_base ()
 			}
 	fi
 
-	if [ -n "${inline_dh_file}" ] && [ ! -n "${EASYTLS_NO_CA}" ]; then
+	if [ -n "${inline_dh_file}" ] && [ -z "${EASYTLS_NO_CA}" ]; then
 		# dh file is required
 		default_dh_file="${EASYRSA_PKI}/dh.pem"
 		EASYRSA_DH_FILE="${EASYRSA_DH_FILE:-"${default_dh_file}"}"
