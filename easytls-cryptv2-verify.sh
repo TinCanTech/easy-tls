@@ -255,7 +255,7 @@ fail_and_exit ()
 # Delete all metadata files
 delete_metadata_files ()
 {
-	[ $keep_metadata ] || {
+	[ -n "${keep_metadata}" ] || {
 		"${EASYTLS_RM}" -f "${client_md_file_stack}"
 		update_status "temp-files deleted"
 		}
@@ -323,7 +323,7 @@ fn_search_index ()
 serial_status_via_crl ()
 {
 	client_cert_revoked="$(fn_search_crl)"
-	case $client_cert_revoked in
+	case "${client_cert_revoked}" in
 	0)
 		# Final check: Is this serial in index.txt and Valid
 		case "$(fn_search_index)" in
@@ -424,8 +424,8 @@ serial_status_via_pki_index ()
 	# This needs improvement
 	is_valid="$(fn_search_valid_pki_index)"
 	is_revoked="$(fn_search_revoked_pki_index)"
-	if [ $is_revoked -eq 0 ]; then
-		if [ $is_valid -eq 1 ]; then
+	if [ "${is_revoked}" -eq 0 ]; then
+		if [ "${is_valid}" -eq 1 ]; then
 			client_passed_x509_tests
 		else
 			# Cert is not known
@@ -489,7 +489,6 @@ retry_pause ()
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		ping -n 1 127.0.0.1
 	else
-		# kill -0 $PPID
 		sleep 1
 	fi
 } # => retry_pause ()
@@ -509,7 +508,7 @@ acquire_lock ()
 		break
 	done
 	set +o noclobber
-	[ $lock_acquired ] || return 1
+	[ -n "${lock_acquired}" ] || return 1
 } # => acquire_lock ()
 
 # Release lock
@@ -536,9 +535,9 @@ write_metadata_file ()
 		stack_up || die "stack_up" 160
 	fi
 
-	if [ $stale_stack ]; then
+	if [ -n "${stale_stack}" ]; then
 		update_status "stale_stack"
-		if [ $ENABLE_STALE_LOG ]; then
+		if [ -n "${ENABLE_STALE_LOG}" ]; then
 			EASYTLS_stale_log="${temp_stub}-stale.x-log"
 			"${EASYTLS_PRINTF}" '%s\n' \
 				"${local_date_ascii} - ${client_md_file_stack}" \
@@ -568,11 +567,11 @@ write_metadata_file ()
 # Stack up
 stack_up ()
 {
-	[ $stack_completed ] && die "STACK_UP CAN ONLY RUN ONCE" 161
+	[ -n "${stack_completed}" ] && die "STACK_UP CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	# No Stack UP - No stack in stand alone mode
-	[ $EASYTLS_STAND_ALONE ] && return 0
+	[ -n "${EASYTLS_STAND_ALONE}" ] && return 0
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
 	unset stale_stack
@@ -598,7 +597,7 @@ stack_up ()
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
-	[ $EASYTLS_TLSKEY_STATUS ] || return 0
+	[ -n "${EASYTLS_TLSKEY_STATUS}" ] || return 0
 	{
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
@@ -646,7 +645,7 @@ init ()
 
 	# Defaults
 	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
-		EASYTLS_srv_pid=$PPID
+		EASYTLS_srv_pid="$PPID"
 	else
 		EASYTLS_srv_pid=999
 	fi
@@ -725,7 +724,8 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ $EASYTLS_REQUIRE_VARS ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+		[ -n "${EASYTLS_REQUIRE_VARS}" ] && \
+			die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 
 	# Source metadata lib
@@ -803,7 +803,7 @@ deps ()
 			die "Missing CA certificate: ${ca_cert}" 23
 			}
 
-		if [ $use_cache_id ]; then
+		if [ -n "${use_cache_id}" ]; then
 			# This can soon be deprecated
 			[ -f "${ca_identity_file}" ] || {
 				help_note="This script requires an EasyTLS generated CA identity."
@@ -813,10 +813,10 @@ deps ()
 
 		# Check for either --cache-id or --preload-cache-id
 		# Do NOT allow both
-		[ $use_cache_id ] && [ $PRELOAD_CA_ID ] && \
+		[ -n "${use_cache_id}" ] && [ -n "${PRELOAD_CA_ID}" ] && \
 			die "Cannot use --cache-id and --preload-cache-id together." 34
 
-		if [ ! ${X509_METHOD} -eq 0 ]; then
+		if [ ! "${X509_METHOD}" -eq 0 ]; then
 			# Only check these files if using x509
 			[ -f "${crl_pem}" ] || {
 				help_note="This script requires an EasyRSA generated CRL."
@@ -978,7 +978,7 @@ while [ -n "${1}" ]; do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+	if [ ! "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
 		warn_die "Missing value to option: ${opt}"
 	fi
 	shift
@@ -1033,7 +1033,7 @@ fi
 
 # Metadata custom_group
 
-	if [ $ENABLE_MULTI_CUSTOM_G ]; then
+	if [ -n "${ENABLE_MULTI_CUSTOM_G}" ]; then
 		# This will do for the time being ..
 		if "${EASYTLS_PRINTF}" "${LOCAL_CUSTOM_G}" | \
 			"${EASYTLS_GREP}" -q "${MD_CUSTOM_G}"
@@ -1062,7 +1062,7 @@ fi
 
 # tlskey-serial checks
 
-	if [ $ENABLE_TLSKEY_HASH ]; then
+	if [ -n "${ENABLE_TLSKEY_HASH}" ]; then
 		# Verify tlskey-serial is in index
 		"${EASYTLS_GREP}" -q "${MD_TLSKEY_SERIAL}" "${tlskey_serial_index}" || {
 			failure_msg="TLS-key is not recognised"
@@ -1116,7 +1116,7 @@ fi
 
 	# Check serial number is not disabled
 	# Use --disable-list to disable this check
-	if [ $IGNORE_DISABLED_LIST ]; then
+	if [ -n "${IGNORE_DISABLED_LIST}" ]; then
 		: # Ignored
 	else
 		[ -f "${disabled_list}" ] || \
@@ -1137,13 +1137,13 @@ fi
 
 
 # Start optional X509 checks
-if [ ${X509_METHOD} -eq 0 ]; then
+if [ "${X509_METHOD}" -eq 0 ]; then
 	# No X509 required
 	update_status "metadata verified"
 else
 
 	# Verify CA cert is valid and/or set the CA identity
-	if [ $use_cache_id ]; then
+	if [ -n "${use_cache_id}" ]; then
 		local_identity="$("${EASYTLS_CAT}" "${ca_identity_file}")"
 	elif [ -n "${PRELOAD_CA_ID}" ]; then
 		local_identity="${PRELOAD_CA_ID}"
@@ -1171,7 +1171,7 @@ else
 
 
 	# Verify serial status
-	case ${X509_METHOD} in
+	case "${X509_METHOD}" in
 	1)
 		# Method 1
 		# Check metadata client certificate serial number against CRL
