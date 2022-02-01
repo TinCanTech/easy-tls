@@ -15,17 +15,10 @@ unset raw
 case "${1}" in
 	-v)
 		shift
-		[ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
-		shift $#
-		# Add to FROST_BITE
-		# SC2154 (warning): EASYTLS_RM is referenced but not assigned.
-		#FROST_BITE="-o 2154"
 	;;
 	-vv)
 		shift
 		SHELLCHECK_OPTS="${SHELLCHECK_OPTS} -o all"
-		[ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
-		shift $#
 	;;
 	-r)
 		shift $#
@@ -36,8 +29,6 @@ case "${1}" in
 	;;
 	*)
 		SHELLCHECK_OPTS="${SHELLCHECK_OPTS} -S warning"
-		[ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
-		shift $#
 	;;
 esac
 
@@ -69,6 +60,9 @@ OPTION_FROST="-e 2244,2248,2250"
 
 # Disable at will
 [ -z "${FROST_BITE}" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} ${FROST_BITE}"
+
+# Append command line, use -i not -o
+[ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
 
 # export shellcheck opts
 [ -z "${raw}" ] || unset SHELLCHECK_OPTS
