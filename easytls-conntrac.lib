@@ -34,7 +34,7 @@ conn_trac_connect ()
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	if [ $ENABLE_CONN_TRAC_STATS ]; then
+	if [ -n "${ENABLE_CONN_TRAC_STATS}" ]; then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
 			release_lock "${easytls_ct_lock_file}" 7 || return 9
@@ -43,7 +43,7 @@ conn_trac_connect ()
 
 	# Patterns to match - Anything after ++ cannot be used
 	ct_pattern="${1%++*}"
-	[ $VERBOSE_CONN_TRAC ] && \
+	[ -n "${VERBOSE_CONN_TRAC}" ] && \
 		update_status "conntrac: pattern ${ct_pattern}"
 
 	ct_tlskey="${1%%=*}"
@@ -60,14 +60,14 @@ conn_trac_connect ()
 
 				if [ "${conn}" = "${ct_pattern}" ]; then
 					# Log - only the first time - and count duplicate
-					[ $record_found ] || {
+					[ -n "${record_found}" ] || {
 						update_status "conntrac: already registered"
 						}
 					ct_tlskey_duplicate=$(( ct_tlskey_duplicate + 1 ))
 					# IP exhausted is one way to get a duplicate
 					# otherwise, openvpn hands out unique VPN IPs
 					# other ways; client time-out during connecting
-					[ $ip_pool_exhausted ] && \
+					[ -n "${ip_pool_exhausted}" ] && \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Duplicate, because ct will add the same again
 					record_found=1
@@ -94,7 +94,7 @@ conn_trac_connect ()
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
 		# This was used for #160/1434 - Re-think it soon
-		if [ $record_found ]; then
+		if [ -n "${record_found}" ]; then
 			# IP exhausted
 			:
 		else
@@ -110,11 +110,11 @@ conn_trac_connect ()
 	fi
 	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	err_exit=${err_exit:-0}
-	[ $err_exit -eq 0 ] && [ $ct_tlskey_found ] && err_exit=6
+	err_exit="${err_exit:-0}"
+	[ "${err_exit}" -eq 0 ] && [ -n "${ct_tlskey_found}" ] && err_exit=6
 	unset -v easytls_ct_lock_file easytls_temp_file conn record_found \
 		ct_ig_ipp_ex ct_tlskey_found ct_tlskey_duplicate
-	return ${err_exit}
+	return "${err_exit}"
 } # => conn_trac_connect ()
 
 # Update connection tacking - disconnect
@@ -129,7 +129,7 @@ conn_trac_disconnect ()
 
 	acquire_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	if [ $ENABLE_CONN_TRAC_STATS ]; then
+	if [ -n "${ENABLE_CONN_TRAC_STATS}" ]; then
 		conn_trac_stats || {
 			update_status "conntrac: stats fail"
 			release_lock "${easytls_ct_lock_file}" 7 || return 9
@@ -138,7 +138,7 @@ conn_trac_disconnect ()
 
 	# Pattern to match - Anything after ++ cannot be used
 	ct_pattern="${1%%++*}"
-	[ $VERBOSE_CONN_TRAC ] && \
+	[ -n "${VERBOSE_CONN_TRAC}" ] && \
 		update_status "conntrac pattern: ${ct_pattern}"
 
 	if [ -f "${2}" ]; then
@@ -149,12 +149,12 @@ conn_trac_disconnect ()
 				if [ "${conn}" = "${ct_pattern}" ]; then
 					# If record_found then a record has been deleted
 					# Print the remaining duplicates
-					[ $record_found ] && \
+					[ -n "${record_found}" ] && \
 						"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
-					[ $record_found ] && [ $ip_pool_exhausted ] && \
+					[ -n "${record_found}" ] && [ -n "${ip_pool_exhausted}" ] && \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Matched - Do not Print
-					[ $record_found ] || {
+					[ -n "${record_found}" ] || {
 						update_status "conntrac: unregistered"
 						tlskey_status "  |<   ct: unregist -"
 						}
@@ -175,7 +175,7 @@ conn_trac_disconnect ()
 
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
-		[ $record_found ] || {
+		[ -n "${record_found}" ] || {
 			update_status "conntrac: record not found"
 			err_exit=${err_exit:-2}
 			}
