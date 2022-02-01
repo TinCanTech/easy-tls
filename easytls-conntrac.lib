@@ -190,10 +190,10 @@ conn_trac_disconnect ()
 	fi
 	release_lock "${easytls_ct_lock_file}" 7 || return 9
 
-	err_exit=${err_exit:-0}
+	err_exit="${err_exit:-0}"
 	unset -v easytls_ct_lock_file easytls_temp_file conn \
 			record_found ct_ig_ipp_ex
-	return ${err_exit}
+	return "${err_exit}"
 } # => conn_trac_disconnect ()
 
 conn_trac_stats ()
