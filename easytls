@@ -1481,7 +1481,7 @@ generate_and_validate_file_hash ()
 	target="${1}"
 
 	# hash the file
-	if [ ! $force_hash ] && [ -n "${FILE_HASH_DISABLED}" ]; then
+	if [ -z "${force_hash}" ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
 	else
@@ -1528,7 +1528,7 @@ generate_and_validate_data_hash ()
 	target="${1}"
 
 	# hash the data
-	if [ ! $force_hash ] && [ -n "${FILE_HASH_DISABLED}" ]; then
+	if [ -z "${force_hash}" ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash=${fixed_hash}
 	else
