@@ -34,7 +34,7 @@ dev/easytls-shellcheck.sh"
 
 etls_ut_dir_name='./0 0'
 
-mkdir -p "${etls_ut_dir_name}/dev"
+mkdir -p "${etls_ut_dir_name}/dev" "${etls_ut_dir_name}/examples"
 
 for f in ${etls_ut_file_list}; do
 	cp -v "./${f}" "${etls_ut_dir_name}/${f}"
