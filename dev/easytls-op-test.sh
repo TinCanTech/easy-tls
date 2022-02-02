@@ -21,11 +21,11 @@ env
 
 etls_ut_file_list="easytls
 easytls-cryptv2-verify.sh
-easytls-cryptv2-verify.vars-example
+examples/easytls-cryptv2-verify.vars-example
 easytls-client-connect.sh
-easytls-client-connect.vars-example
+examples/easytls-client-connect.vars-example
 easytls-client-disconnect.sh
-easytls-client-disconnect.vars-example
+examples/easytls-client-disconnect.vars-example
 easytls-conntrac.lib
 dev/easytls-unit-tests.sh
 dev/easytls-metadata.lib
