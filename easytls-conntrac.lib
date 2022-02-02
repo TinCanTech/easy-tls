@@ -200,7 +200,7 @@ conn_trac_stats ()
 {
 	ctc=0
 	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
-	[ $(( ctc )) -lt 32768 ] || ctc=0
+	[ $(( ctc )) -lt 4294967296 ] || ctc=0
 	ctc=$(( ctc + 1 ))
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || return 1
 	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || return 1
