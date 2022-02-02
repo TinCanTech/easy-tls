@@ -42,9 +42,9 @@ done
 
 cd "${etls_ut_dir_name}"
 
-CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/easyrsa"
+CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
-CURL_TARGET="https://raw.githubusercontent.com/OpenVPN/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
+CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/Prebuilt-OpenVPN/master/src/openvpn/openvpn"
 curl -O "$CURL_TARGET" || exit 77
