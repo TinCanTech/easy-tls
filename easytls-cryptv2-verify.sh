@@ -609,7 +609,7 @@ tlskey_status ()
 #=# 35579017-b084-4d6b-94d5-76397c2d4a1f
 
 # Break metadata_string into variables
-# shellcheck disable=SC2034
+# shellcheck disable=SC2034 # foo appears unused. Verify it or export it.
 metadata_string_to_vars ()
 {
 	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
@@ -624,7 +624,7 @@ metadata_string_to_vars ()
 	unset -v md_easytls_ver
 
 	MD_IDENTITY="${2%%-*}" || return 1
-	#md_srv_name="${2##*-}" || return 1
+	MD_SRV_NAME="${2##*-}" || return 1
 	MD_x509_SERIAL="${3}" || return 1
 	MD_DATE="${4}" || return 1
 	MD_CUSTOM_G="${5}" || return 1
@@ -632,6 +632,46 @@ metadata_string_to_vars ()
 	MD_SUBKEY="${7}" || return 1
 	MD_OPT="${8}" || return 1
 	MD_FILTERS="${9}" || return 1
+} # => metadata_string_to_vars ()
+
+# Break metadata string at delimeter: New Newline, old space
+metadata_stov_safe ()
+{
+	[ -n "$1" ] || return 1
+	input="$1"
+
+	delim_save="${delimiter}"
+	case "${input}" in
+	*"${delimiter}"*) : ;;
+	*) delimiter=' '
+	esac
+
+	m1="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m2="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m3="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m4="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m5="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m6="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m7="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m8="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	m9="${input%%${delimiter}*}"
+	input="${input#*${delimiter}}"
+	# An extra space has been used, probably in the name
+	[ "${m9}" = "${input}" ] || return 1
+
+	delimiter="${delim_save}"
+
+	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
+		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
+	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input
 } # => metadata_string_to_vars ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
