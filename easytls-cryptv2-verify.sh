@@ -605,6 +605,9 @@ tlskey_status ()
 	} >> "${EASYTLS_TK_XLOG}"
 } # => tlskey_status ()
 
+# easytls-metadata.lib
+#=# 35579017-b084-4d6b-94d5-76397c2d4a1f
+
 # Break metadata_string into variables
 # shellcheck disable=SC2034
 metadata_string_to_vars ()
@@ -630,6 +633,8 @@ metadata_string_to_vars ()
 	MD_OPT="${8}" || return 1
 	MD_FILTERS="${9}" || return 1
 } # => metadata_string_to_vars ()
+
+#=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
 
 # Initialise
 init ()
@@ -729,13 +734,11 @@ deps ()
 	fi
 
 	# Source metadata lib
-	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || \
-		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
-	if [ -f "${lib_file}" ]; then
-		# shellcheck source=./dev/easytls-metadata.lib
-		. "${lib_file}" || die "source failed: ${lib_file}" 77
-	fi
+	prog_dir="${0%/*}"
+	lib_file="${prog_dir}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || lib_file="${prog_dir}/dev/easytls-metadata.lib"
+	# shellcheck source=./dev/easytls-tctip.lib
+	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_metadata_lib_ver
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
@@ -854,7 +857,7 @@ deps ()
 	local_date_ascii="${full_date##* }"
 	local_time_unix="${full_date%% *}"
 
-	# $metadata_file - Must be set by openvpn
+	# Must be set by openvpn
 	# If the script fails for metadata file then
 	# - All pre-flight checks completed
 	# - Script is ready to run
@@ -1190,7 +1193,7 @@ else
 		# Check metadata client certificate serial number against CA
 
 		# Due to OpenSSL being "what it is", it is not possible to
-		# reliably verify the 'OpenSSL ca $cmd'
+		# reliably verify the 'OpenSSL ca' command (yet..)
 
 		# Verify via CA
 		serial_status_via_ca
