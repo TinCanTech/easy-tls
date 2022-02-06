@@ -88,6 +88,7 @@ export_lib ()
 	save_IFS="${IFS}"
 	IFS=''
 
+	print "export to $src_f"
 	p_top || return $?
 	p_mid || return $?
 	p_end || return $?
@@ -250,10 +251,15 @@ tctip_lib ()
 tctip_lib || die "tctip_lib: $?"
 
 # New way
-print "metadata library"
-src_f="easytls"
 lib_f="./dev/easytls-metadata.lib"
+print "$lib_f"
 begin="#=# 35579017-b084-4d6b-94d5-76397c2d4a1f"
 end="#=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62"
 
-export_lib || die "export_lib: $lib_f"
+for src_f in easytls \
+	easytls-cryptv2-verify.sh \
+	easytls-client-connect.sh \
+
+do
+	export_lib || die "export_lib: $lib_f / $src_f"
+done
