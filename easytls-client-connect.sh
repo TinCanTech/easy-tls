@@ -681,6 +681,9 @@ release_lock ()
 	"${EASYTLS_RM}" -r "${1}"
 } # => release_lock ()
 
+# easytls-metadata.lib
+#=# 35579017-b084-4d6b-94d5-76397c2d4a1f
+
 # Break metadata_string into variables
 # shellcheck disable=SC2034
 metadata_string_to_vars ()
@@ -706,6 +709,8 @@ metadata_string_to_vars ()
 	MD_OPT="${8}" || return 1
 	MD_FILTERS="${9}" || return 1
 } # => metadata_string_to_vars ()
+
+#=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
 
 # Initialise
 init ()
