@@ -132,6 +132,7 @@ die ()
 	verbose_print "<ERROR> ${status_msg}"
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
+	[ -n "${err_msg}" ] && print "${err_msg}"
 	print "ERROR: ${1}"
 	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
@@ -757,6 +758,9 @@ init ()
 {
 	# Fail by design
 	absolute_fail=1
+	delimiter='
+'
+
 
 	# Defaults
 	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
@@ -1049,7 +1053,7 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 			fail_and_exit "failed to read client_md_file_stack" 18
 
 		# Populate client metadata variables
-		metadata_string_to_vars $metadata_string || \
+		metadata_stov_safe "$metadata_string" || \
 			die "client_metadata_string_to_vars" 151
 		[ -n "${MD_TLSKEY_SERIAL}" ] || \
 			fail_and_exit "failed to set MD_TLSKEY_SERIAL" 19
