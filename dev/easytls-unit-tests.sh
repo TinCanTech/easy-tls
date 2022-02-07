@@ -60,19 +60,19 @@ test_server_scripts ()
 {
 		print "${TLSCV2V_CMD}" "${TLSCV2V_OPTS}" "-s=${TLSCV2V_VARS}" \
 					"-c=${PKI_DIR}" ${TEST_OPTS}
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"${TLSCV2V_CMD}" ${TLSCV2V_OPTS} "-s=${TLSCV2V_VARS}" \
 					"-c=${PKI_DIR}" ${TEST_OPTS} || expected_errors $?
 
 		print "${CLICON_CMD}" "${CLICON_OPTS}" "-c=${PKI_DIR}" \
 					"-s=${CLICON_VARS}"
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"${CLICON_CMD}" ${CLICON_OPTS} "-c=${PKI_DIR}" \
 					"-s=${CLICON_VARS}" || expected_errors $?
 
 		print "${CLIDIS_CMD}" "${CLIDIS_OPTS}" \
 					"-s=${CLIDIS_VARS}"
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"${CLIDIS_CMD}" ${CLIDIS_OPTS} \
 					"-s=${CLIDIS_VARS}" || expected_errors $?
 		clean_up
@@ -241,6 +241,7 @@ export EASYTLS_UNIT_TEST=1
 
 WORK_DIR="$(pwd)"
 UTMP_DIR="${WORK_DIR}/unit-test-tmp"
+rm -rf "${UTMP_DIR}"
 
 EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
@@ -318,26 +319,32 @@ fi
 # Invoke shell
 #BIN_SH="sh"
 # With `set -e' -- Use at your own risk.
-#INVOKE_OPTS="-e"
+#INVOKE_OPTS="-c"
 
 # Test help
-"${BIN_SH}" "${INVOKE_OPTS}" "${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || \
+${BIN_SH} ${INVOKE_OPTS} "${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || \
 	fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
 
-"${BIN_SH}" "${INVOKE_OPTS}" "${TLSCV2V_CMD}" ${TLSCV2V_OPTS} "${TLSCV2V_VARS}" --help || \
-	exit_code=$?
-[ $exit_code -eq 253 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} ${TLSCV2V_VARS} --help ($?)"
+${BIN_SH} ${INVOKE_OPTS} \
+	"${TLSCV2V_CMD}" ${TLSCV2V_OPTS} "${TLSCV2V_VARS}" --help || \
+		exit_code=$?
+[ $exit_code -eq 253 ] || \
+	fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} ${TLSCV2V_VARS} --help ($exit_code)"
 
 #'"${TLSVERIFY_CMD}" --help || exit_code=$?
 #[ $exit_code -eq 253 ] || fail "${TLSVERIFY_CMD} ${TLSVERIFY_OPTS} --help ($?)"
 
-"${BIN_SH}" "${INVOKE_OPTS}" "${CLICON_CMD}" ${CLICON_OPTS} "${CLICON_VARS}" --help || \
-	exit_code=$?
-[ $exit_code -eq 253 ] || fail "${CLICON_CMD} ${CLICON_OPTS} ${CLICON_VARS} --help ($?)"
+${BIN_SH} ${INVOKE_OPTS} \
+	"${CLICON_CMD}" ${CLICON_OPTS} "${CLICON_VARS}" --help || \
+		exit_code=$?
+[ $exit_code -eq 253 ] || \
+	fail "${CLICON_CMD} ${CLICON_OPTS} ${CLICON_VARS} --help ($exit_code)"
 
-"${BIN_SH}" "${INVOKE_OPTS}" "${CLIDIS_CMD}" ${CLIDIS_OPTS} "${CLIDIS_VARS}" --help || \
-	exit_code=$?
-[ $exit_code -eq 253 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} ${CLIDIS_VARS} --help ($?)"
+${BIN_SH} ${INVOKE_OPTS} \
+	"${CLIDIS_CMD}" ${CLIDIS_OPTS} "${CLIDIS_VARS}" --help || \
+		exit_code=$?
+[ $exit_code -eq 253 ] || \
+	fail "${CLIDIS_CMD} ${CLIDIS_OPTS} ${CLIDIS_VARS} --help ($exit_code)"
 
 # No-CA test
 PKI_DIR="${WORK_DIR}/noca"
@@ -378,7 +385,7 @@ do
 	[ "${cmd}" = 99 ] && exit 99
 	print "--------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD ${EASYTLS_OPTS} ${cmd}"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || fail "No-CA test: ${cmd}"
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || fail "No-CA test: ${cmd}"
 done
 print "============================================================"
 
@@ -598,7 +605,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 		#	cat "${ETLS_DIR}/s01.inline"
 		#fi
 
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS $test_cmd || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS $test_cmd || \
 			fail "Unit test error 2: $EASYTLS_CMD $EASYTLS_OPTS $test_cmd"
 
 	done
@@ -606,13 +613,13 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	# Test for bad filter-addresses
 	print "============================================================"
 	print "==> ${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken o0:11:22:33:44:55"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken o0:11:22:33:44:55 || expected_errors $?
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken o0:11:22:33:44:55 || expected_errors $?
 	print "============================================================"
 	print "==> ${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken 1.2.3.4/24"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 1.2.3.4/24 || expected_errors $?
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 1.2.3.4/24 || expected_errors $?
 	print "============================================================"
 	print "==> ${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS bc2gc s01 broken 2000::2:1/64"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 2000::2:1/64 || expected_errors $?
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS bc2gc s01 broken 2000::2:1/64 || expected_errors $?
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
@@ -652,14 +659,14 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	# Build a node for Windblows test
 	print "============================================================"
 	print "Build a Windblows tls-crypt-v2 client key with metadata"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS \
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS \
 		--custom-group=tincantech build-tls-crypt-v2-client s01 cw01 \
 		 08-00-27-10-B8-D0 08:00:27:10:B8:D0 || \
 		fail "Unit test error 62: build-tls-crypt-v2-client s01 cw01"
 
 	print "============================================================"
 	print "Build a Windblows inline file with metadata and hw-addr"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS \
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS \
 		--custom-group=tincantech inline-tls-crypt-v2 cw01 || \
 		fail "Unit test error 62: inline-tls-crypt-v2 cw01"
 
@@ -733,7 +740,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 		print "------------------------------------------------------------"
 		print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS disable $c"
-			"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c" || \
+			${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS disable "$c" || \
 				expected_errors $?
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
@@ -805,7 +812,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 		print "------------------------------------------------------------"
 		print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD --sub-key-name=bob $EASYTLS_OPTS disable $c"
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"$EASYTLS_CMD" --sub-key-name=bob $EASYTLS_OPTS disable "$c"
 
 	# Unset errexit for all easytls-cryptv2-verify.sh
@@ -822,14 +829,14 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 	print "============================================================"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status"
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"$EASYTLS_CMD" $EASYTLS_OPTS status || \
 					fail "Unit test error 63: status"
 	print "============================================================"
 
 	print "============================================================"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
-			"${BIN_SH}" "${INVOKE_OPTS}" \
+			${BIN_SH} ${INVOKE_OPTS} \
 				"$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
 					fail "Unit test error 64: inline-index-rebuild"
 	print "============================================================"
@@ -983,13 +990,13 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	# Use error code 64 because inline-index-rebuild is disabled
 	print "============================================================"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS cf ac on"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS cf ac on || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS cf ac on || \
 			fail "Unit test error 64: cf ac on"
 	print "============================================================"
 
 	print "============================================================"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS status || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS status || \
 			fail "Unit test error 65: status"
 	print "============================================================"
 
@@ -1000,62 +1007,62 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	#rm "$WORK_DIR/et-tdir3/easytls/data/easytls-inline-index.hash.backup"
 	print "============================================================"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS inline-index-rebuild"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS inline-index-rebuild || \
 			fail "Unit test error 4: $EASYTLS_CMD $EASYTLS_OPTS $UNITTEST_SECURE inline-index-rebuild"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS cert-expire (also test auto-check)"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS cert-expire || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS cert-expire || \
 			fail "Unit test error 66: cert-expire"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS inline-expire (also test auto-check)"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS inline-expire || \
 			fail "Unit test error 67: inline-expire"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office remove-inline c10"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-inline c10 || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-inline c10 || \
 			fail "Unit test error 68: remove-inline"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS --sub-key-name=office remove-tlskey c10"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-tlskey c10 || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS --sub-key-name=office remove-tlskey c10 || \
 			fail "Unit test error 68: remove-tlskey"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help || \
 			fail "Unit test error 68: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help options"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help options || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help options || \
 			fail "Unit test error 69: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help build-tls-crypt-v2-client"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help build-tls-crypt-v2-client || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help build-tls-crypt-v2-client || \
 			fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help import-key"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help import-key || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help import-key || \
 			fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help abb"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help abb || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help abb || \
 			fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS help config"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS help config || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS help config || \
 			fail "Unit test error 70: help"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS config"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS config || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS config || \
 			fail "Unit test error 70: help"
 
 	#print "------------------------------------------------------------"
@@ -1066,32 +1073,32 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS v4ip 1.2.3.4/24"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS v4ip 1.2.3.4/24 || \
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS v4ip 1.2.3.4/24 || \
 		expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS x4ip 1.2.3.4/24"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.4/24 || \
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.4/24 || \
 		expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS x4ip 1.2.3.0/24"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.0/24 || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS x4ip 1.2.3.0/24 || \
 			expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS v6ip 2000::1:2:3:4/64"
-	"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS v6ip 2000::1:2:3:4/64 || \
+	${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS v6ip 2000::1:2:3:4/64 || \
 		expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS x6ip 2000::1:2:3:4/64"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000::1:2:3:4/64 || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000::1:2:3:4/64 || \
 			expected_errors $?
 
 	print "------------------------------------------------------------"
 	print "${BIN_SH} ${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS x6ip 2000:1:2:3::/64"
-		"${BIN_SH}" "${INVOKE_OPTS}" "$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3::/64 || \
+		${BIN_SH} ${INVOKE_OPTS} "$EASYTLS_CMD" $EASYTLS_OPTS x6ip 2000:1:2:3::/64 || \
 			expected_errors $?
 
 	print "------------------------------------------------------------"
@@ -1100,15 +1107,19 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	#	fail "Unit test error 71: version"
 
 # Version
-"${BIN_SH}" "${INVOKE_OPTS}" "${EASYTLS_CMD}" -V || fail "${EASYTLS_CMD} ${EASYTLS_OPTS} -V ($?)"
-"${BIN_SH}" "${INVOKE_OPTS}" "${TLSCV2V_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} -V ($?)"
-"${BIN_SH}" "${INVOKE_OPTS}" "${CLICON_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || fail "${CLICON_CMD} ${CLICON_OPTS} -V ($?)"
-"${BIN_SH}" "${INVOKE_OPTS}" "${CLIDIS_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} -V ($?)"
+${BIN_SH} ${INVOKE_OPTS} "${EASYTLS_CMD}" -V || \
+	fail "${EASYTLS_CMD} ${EASYTLS_OPTS} -V ($exit_code)"
 
+${BIN_SH} ${INVOKE_OPTS} "${TLSCV2V_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${TLSCV2V_CMD} ${TLSCV2V_OPTS} -V ($exit_code)"
 
+${BIN_SH} ${INVOKE_OPTS} "${CLICON_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${CLICON_CMD} ${CLICON_OPTS} -V ($exit_code)"
+
+${BIN_SH} ${INVOKE_OPTS} "${CLIDIS_CMD}" -V || exit_code=$?
+[ $exit_code -eq 9 ] || fail "${CLIDIS_CMD} ${CLIDIS_OPTS} -V ($exit_code)"
+
+# Stats
 final_end_time="$(date +%s)"
 final_run_mins="$(( (final_end_time - final_start_time) / 60 ))"
 final_run_secs="$(( (final_end_time - final_start_time) - ( final_run_mins * 60 ) ))"
