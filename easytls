@@ -8682,21 +8682,27 @@ external_deps ()
 	verify_openvpn
 	verify_openssl
 
-	# Source tctip lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-tctip.lib"
-	[ -f "${lib_file}" ] || lib_file="${prog_dir}/dev/easytls-tctip.lib"
-	# shellcheck source=./dev/easytls-tctip.lib
-	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_tctip_lib_ver
-	unset -v lib_file
-
+	EASYTLS_WORK_DIR="${EASYTLS_work_dir}"
 	# Source metadata lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || lib_file="${prog_dir}/dev/easytls-metadata.lib"
-	# shellcheck source=./dev/easytls-tctip.lib
-	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_metadata_lib_ver
-	unset -v lib_file
+	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
+	if [ -f "${lib_file}" ]; then
+		# shellcheck source=./dev/easytls-metadata.lib
+		. "${lib_file}" || die "Failed to source: ${lib_file}"
+		easytls_metadata_lib_ver
+	fi
+
+	# Source tctip lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-tctip.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-tctip.lib"
+	if [ -f "${lib_file}" ]; then
+		# shellcheck source=./dev/easytls-tctip.lib
+		. "${lib_file}" || die "Failed to source: ${lib_file}"
+		easytls_tctip_lib_ver
+	fi
+	unset -v lib_file EASYTLS_WORK_DIR
 
 	# Other ways to satify shellcheck
 	EASYTLS_KEY_INDEX=''; unset -v EASYTLS_KEY_INDEX

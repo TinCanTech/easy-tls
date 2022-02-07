@@ -550,15 +550,6 @@ deps ()
 	else
 		[ -n "${EASYTLS_REQUIRE_VARS}" ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
-
-	# Source metadata lib
-	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || \
-		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
-	# shellcheck source=./dev/easytls-metadata.lib
-	if [ -f "${lib_file}" ]; then
-		. "${lib_file}" || die "source failed: ${lib_file}" 77
-	fi
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then

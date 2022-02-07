@@ -843,26 +843,30 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ -n "${EASYTLS_REQUIRE_VARS}" ] && die "Missing file: ${EASYTLS_VARS_FILE}" 77
+		[ -n "${EASYTLS_REQUIRE_VARS}" ] && \
+			die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 
 	# Source metadata lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-metadata.lib"
-	[ -f "${lib_file}" ] || lib_file="${prog_dir}/dev/easytls-metadata.lib"
-	# shellcheck source=./dev/easytls-tctip.lib
-	[ -f "${lib_file}" ] && . "${lib_file}" && easytls_metadata_lib_ver
-	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
-
+	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
+	if [ -f "${lib_file}" ]; then
+		# shellcheck source=./dev/easytls-metadata.lib
+		. "${lib_file}" || die "Failed to source: ${lib_file}"
+		easytls_metadata_lib_ver
+	fi
 
 	# Source tctip lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-tctip.lib"
 	[ -f "${lib_file}" ] || \
 		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-tctip.lib"
-	# shellcheck source=./dev/easytls-tctip.lib
 	if [ -f "${lib_file}" ]; then
-		. "${lib_file}" || die "source failed: ${lib_file}" 77
+		# shellcheck source=./dev/easytls-tctip.lib
+		. "${lib_file}" || die "Failed to source: ${lib_file}"
+		easytls_tctip_lib_ver
 	fi
+
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
 
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
