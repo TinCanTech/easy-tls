@@ -32,9 +32,9 @@ metadata_string_to_vars ()
 {
 	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
 
-	seed="${*}" || return 1
-	MD_SEED="${seed#*-}" || return 1
-	unset -v seed
+	#seed="${*}" || return 1
+	#MD_SEED="${seed#*-}" || return 1
+	#unset -v seed
 
 	#md_padding="${md_seed%%--*}" || return 1
 	md_easytls_ver="${1#*--}" || return 1
@@ -64,9 +64,11 @@ metadata_stov_safe ()
 	[ -n "${delimiter}" ] || return 1
 	delim_save="${delimiter}"
 	case "${input}" in
-	*"${delimiter}"*) : ;;
-	*) delimiter=' '
+		*"${delimiter}"*) : ;;
+		*) delimiter=' '
 	esac
+
+	MD_SEED="${input#*-}"
 
 	m1="${input%%${delimiter}*}"
 	input="${input#*${delimiter}}"
