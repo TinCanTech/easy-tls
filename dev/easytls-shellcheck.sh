@@ -99,6 +99,10 @@ printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-client-disconnect.vars-e
 "${shellcheck_bin}" --shell=sh ./examples/easytls-client-disconnect.vars-example || \
 	sc_easytls_client_disconnect_vars=1
 
+printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-metadata.lib'
+"${shellcheck_bin}" ./dev/easytls-metadata.lib || \
+	sc_easytls_metadata=1
+
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-tctip.lib'
 "${shellcheck_bin}" ./dev/easytls-tctip.lib || \
 	sc_easytls_tctip=1
@@ -106,10 +110,6 @@ printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-tctip.lib'
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-conntrac.lib'
 "${shellcheck_bin}" ./easytls-conntrac.lib || \
 	sc_easytls_conntrac=1
-
-printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-metadata.lib'
-"${shellcheck_bin}" ./dev/easytls-metadata.lib || \
-	sc_easytls_metadata=1
 
 printf '\n%s\n%s\n' "$log_line" '*** shellcheck easytls-unit-tests.sh'
 "${shellcheck_bin}" ./dev/easytls-unit-tests.sh || \
@@ -127,9 +127,9 @@ exit_status=$(( 	sc_easytls + \
 					sc_easytls_cryptv2_verify_vars + \
 					sc_easytls_client_connect_vars + \
 					sc_easytls_client_disconnect_vars + \
+					sc_easytls_metadata + \
 					sc_easytls_tctip + \
 					sc_easytls_conntrac + \
-					sc_easytls_metadata + \
 					sc_easytls_unit_tests + \
 					sc_easytls_shellcheck \
 			 ))

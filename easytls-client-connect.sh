@@ -542,7 +542,7 @@ update_conntrac ()
 			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s '  "$("${EASYTLS_DATE}" '+%x %X')"
+				"${EASYTLS_PRINTF}" '%s ' "$("${EASYTLS_DATE}" '+%x %X')"
 				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
@@ -788,7 +788,9 @@ init ()
 	status_msg="* EasyTLS-client-connect"
 
 	# Identify Windows
+	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
+	# shellcheck disable=SC2154
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Required binaries
@@ -1119,6 +1121,7 @@ fi
 
 # Set hwaddr from Openvpn env
 # This is not a dep. different clients may not push-peer-info
+# shellcheck disable=SC2154 # IV_HWADDR
 push_hwaddr="$(format_number "${IV_HWADDR}")"
 [ -z "${push_hwaddr}" ] && push_hwaddr_missing=1 && \
 	update_status "hwaddr not pushed"

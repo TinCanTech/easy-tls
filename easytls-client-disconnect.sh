@@ -206,6 +206,7 @@ update_conntrac ()
 	# Set the username alternative first
 	# shellcheck disable=SC2154
 	conntrac_alt_rec="${conntrac_record}==${username}"
+	# shellcheck disable=SC2154
 	conntrac_alt2_rec="${conntrac_record}==${X509_0_CN}"
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}==${common_name}"
@@ -492,6 +493,7 @@ init ()
 	# Identify Windows
 	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
+	# shellcheck disable=SC2154
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Required binaries

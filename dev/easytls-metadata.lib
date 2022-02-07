@@ -1,5 +1,6 @@
 #!/bin/sh
 
+# Copyright - negotiable
 copyright ()
 {
 : << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
