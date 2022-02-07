@@ -729,24 +729,30 @@ metadata_stov_safe ()
 
 	MD_SEED="${input#*-}"
 
-	m1="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m2="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m3="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m4="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m5="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m6="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m7="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m8="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m9="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
+	# Expansions inside ${..} need to be quoted separately,
+	# otherwise they will match as a pattern.
+	# Which is the required behaviour.
+	# shellcheck disable=SC2295
+	{	# Required group for shellcheck
+		m1="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m2="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m3="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m4="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m5="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m6="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m7="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m8="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m9="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+	}
 
 	# An extra space has been used, probably in the name
 	err_msg="metadata-lib: ${m9} vs ${input}"

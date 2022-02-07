@@ -19,9 +19,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Loaded message
 easytls_metadata_lib_ver ()
 {
-	[ -n "${EASYTLS_SILENT}" ] && return 0
-	[ -n "${EASYTLS_VERBOSE}" ] || return 0
-	"${EASYTLS_PRINTF}" '%s\n' "* easytls-metadata.lib loaded"
+	"${EASYTLS_PRINTF}" '%s\n' "* easytls-metadata.lib v2.8 loaded"
 } # => easytls_tctip_lib_ver ()
 
 #=# 35579017-b084-4d6b-94d5-76397c2d4a1f
@@ -70,24 +68,30 @@ metadata_stov_safe ()
 
 	MD_SEED="${input#*-}"
 
-	m1="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m2="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m3="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m4="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m5="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m6="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m7="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m8="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
-	m9="${input%%${delimiter}*}"
-	input="${input#*${delimiter}}"
+	# Expansions inside ${..} need to be quoted separately,
+	# otherwise they will match as a pattern.
+	# Which is the required behaviour.
+	# shellcheck disable=SC2295
+	{	# Required group for shellcheck
+		m1="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m2="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m3="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m4="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m5="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m6="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m7="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m8="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m9="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+	}
 
 	# An extra space has been used, probably in the name
 	err_msg="metadata-lib: ${m9} vs ${input}"
