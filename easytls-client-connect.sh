@@ -764,7 +764,7 @@ metadata_stov_safe ()
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
 	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
-} # => metadata_string_to_vars ()
+} # => metadata_stov_safe ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
 
@@ -1069,9 +1069,10 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 		[ -n "${metadata_string}" ] || \
 			fail_and_exit "failed to read client_md_file_stack" 18
 
-		# Populate client metadata variables
+		# Convert metadata string to variables
 		metadata_stov_safe "$metadata_string" || \
 			die "client_metadata_string_to_vars" 151
+
 		[ -n "${MD_TLSKEY_SERIAL}" ] || \
 			fail_and_exit "failed to set MD_TLSKEY_SERIAL" 19
 		unset -v metadata_string

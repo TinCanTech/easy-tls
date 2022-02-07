@@ -688,7 +688,7 @@ metadata_stov_safe ()
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
 	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
-} # => metadata_string_to_vars ()
+} # => metadata_stov_safe ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
 
@@ -1070,7 +1070,7 @@ fi
 	metadata_string="$("${EASYTLS_CAT}" "${OPENVPN_METADATA_FILE}")"
 	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
-	# Populate metadata variables
+	# Convert metadata string to variables
 	metadata_stov_safe  "$metadata_string" || \
 		die "metadata_string_to_vars" 87
 

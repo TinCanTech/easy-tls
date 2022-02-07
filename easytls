@@ -3707,11 +3707,9 @@ inline_tls_crypt_v2 ()
 		metadata_string="$("${EASYTLS_CAT}" "${metadata_file}")" || \
 			die "Failed to read metadata_file: ${metadata_file}"
 
-		#metadata_string_to_vars $metadata_string || \
-		#	die "metadata_string_to_vars" 87
+		# Convert metadata string to variables
 		metadata_stov_safe  "$metadata_string" || \
 			die "metadata_stov_safe" 87
-
 
 		# Set creation Date
 		MD_longdate=""
@@ -4054,8 +4052,7 @@ inline_tls_cv2_group_client ()
 		metadata_string="$("${EASYTLS_CAT}" "${metadata_file}")" || \
 			die "Failed to read metadata_file: ${metadata_file}"
 
-		#metadata_string_to_vars  $metadata_string || \
-		#	die "metadata_string_to_vars" 87
+		# Convert metadata string to variables
 		metadata_stov_safe  "$metadata_string" || \
 			die "metadata_stov_safe" 87
 
@@ -5271,7 +5268,7 @@ metadata_stov_safe ()
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
 	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
-} # => metadata_string_to_vars ()
+} # => metadata_stov_safe ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
 
