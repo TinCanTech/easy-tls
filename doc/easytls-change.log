@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Version 2.8.0
 * TBD
+  Default metadata delimiter is now newline
+    Commit f2b8f841b92fa0b57d576373457675440c55d199
+      Space is still supported but all new keys will use newline
   Allow spaces in PATH
     Commit 4cbdd621ee99e328fa2cd139b77742d853c03137
       Allow spaces in PATH
