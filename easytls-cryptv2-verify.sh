@@ -615,9 +615,9 @@ metadata_string_to_vars ()
 {
 	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
 
-	seed="${*}" || return 1
-	MD_SEED="${seed#*-}" || return 1
-	unset -v seed
+	#seed="${*}" || return 1
+	#MD_SEED="${seed#*-}" || return 1
+	#unset -v seed
 
 	#md_padding="${md_seed%%--*}" || return 1
 	md_easytls_ver="${1#*--}" || return 1
@@ -636,16 +636,22 @@ metadata_string_to_vars ()
 } # => metadata_string_to_vars ()
 
 # Break metadata string at delimeter: New Newline, old space
+# shellcheck disable=SC2034 # foo appears unused. Verify it or export it.
 metadata_stov_safe ()
 {
 	[ -n "$1" ] || return 1
 	input="$1"
 
+	err_msg="Unspecified delimiter"
+	delimiter="${delimiter:-${newline}}"
+	[ -n "${delimiter}" ] || return 1
 	delim_save="${delimiter}"
 	case "${input}" in
-	*"${delimiter}"*) : ;;
-	*) delimiter=' '
+		*"${delimiter}"*) : ;;
+		*) delimiter=' '
 	esac
+
+	MD_SEED="${input#*-}"
 
 	m1="${input%%${delimiter}*}"
 	input="${input#*${delimiter}}"
@@ -665,14 +671,17 @@ metadata_stov_safe ()
 	input="${input#*${delimiter}}"
 	m9="${input%%${delimiter}*}"
 	input="${input#*${delimiter}}"
+
 	# An extra space has been used, probably in the name
+	err_msg="metadata-lib: ${m9} vs ${input}"
 	[ "${m9}" = "${input}" ] || return 1
 
 	delimiter="${delim_save}"
 
+	err_msg="metadata-lib: metadata_string_to_vars"
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
-	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input
+	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
 } # => metadata_string_to_vars ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
