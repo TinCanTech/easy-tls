@@ -89,7 +89,6 @@ Version 2.5
     Commit 1fb4b3d46a5907d3c18fa67f3abf4fb5f7558acc
       Allows fingerprints to be automatically inlined
 
-
 Version 2.4
 * 2021-07-21 - Commit 8160cbc42e377e6fa34b819359e718e75e2a5560
   Add self-signed certificates to inter-active `build` menu

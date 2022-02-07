@@ -20,7 +20,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Loaded message
 easytls_tctip_lib_ver ()
 {
-	"${EASYTLS_PRINTF}" '%s\n' "* easytls-tctip.lib loaded"
+	"${EASYTLS_PRINTF}" '%s\n' "* easytls-tctip.lib v2.8 loaded"
 } # => easytls_tctip_lib_ver ()
 
 #=# 9273398a-5284-4c1f-aec5-d597ceb1d085
