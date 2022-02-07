@@ -180,6 +180,7 @@ die ()
 	#delete_metadata_files
 	easytls_version
 	[ -n "${help_note}" ] && print "${help_note}"
+	[ -n "${err_msg}" ] && print "${err_msg}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
 	if [ -n "${ENABLE_KILL_SERVER}" ]; then
@@ -681,6 +682,9 @@ init ()
 {
 	# Fail by design
 	absolute_fail=1
+	delimiter='
+'
+
 
 	# metadata version
 	local_easytls='easytls'
@@ -1051,8 +1055,8 @@ fi
 	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
 
 	# Populate metadata variables
-	metadata_string_to_vars  $metadata_string || \
-		die "key_metadata_string_to_vars" 87
+	metadata_stov_safe  "$metadata_string" || \
+		die "metadata_string_to_vars" 87
 
 	# Update log message
 	update_status "CN: ${MD_NAME}"
