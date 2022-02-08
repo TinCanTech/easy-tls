@@ -183,20 +183,17 @@ disconnect_accepted ()
 # Update conntrac
 update_conntrac ()
 {
-	# Source conn-trac lib
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conntrac.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_wiki="/wiki/download-and-install"
-		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		#easytls_file="/master/easytls-conntrac.lib"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}" 159
-		}
+	# Source conntrac lib
+	lib_file="${EASYTLS_WORK_DIR}/easytls-conntrac.lib"
+	[ -f "${lib_file}" ] || \
+		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-conntrac.lib"
 	# shellcheck source=./easytls-conntrac.lib
-	. "${lib_file}"
-	unset -v lib_file
+	if [ -f "${lib_file}" ]; then
+		. "${lib_file}" || die "Source failed: ${lib_file}" 77
+		unset lib_file
+	else
+		die "Missing file: ${lib_file}" 77
+	fi
 
 	# Update connection tracking
 	conntrac_record="${UV_TLSKEY_SERIAL:-TLSAC}"
@@ -231,10 +228,10 @@ update_conntrac ()
 		conntrac_alt2_rec="${conntrac_alt2_rec}==${peer_id}"
 	fi
 
-	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}==${time_ascii}"
-	conntrac_alt_rec="${conntrac_alt_rec}==${time_ascii}"
-	conntrac_alt2_rec="${conntrac_alt2_rec}==${time_ascii}"
+	timestamp="${local_date_ascii}=${local_time_ascii}"
+	conntrac_record="${conntrac_record}==${timestamp}"
+	conntrac_alt_rec="${conntrac_alt_rec}==${timestamp}"
+	conntrac_alt2_rec="${conntrac_alt2_rec}==${timestamp}"
 
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
@@ -570,9 +567,11 @@ deps ()
 	LOCK_TIMEOUT="${LOCK_TIMEOUT:-30}"
 
 	# Need the date/time ..
-	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
-	local_date_ascii="${full_date##* }"
-	#local_date_sec="${full_date%% *}"
+	#full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
+	# shellcheck disable=SC2154
+	full_date="${time_ascii}"
+	local_date_ascii="${full_date% *}"
+	local_time_ascii="${full_date#* }"
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-disconnect.log"

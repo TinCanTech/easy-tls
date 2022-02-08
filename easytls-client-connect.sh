@@ -439,7 +439,7 @@ connection_allowed ()
 # Update conntrac
 update_conntrac ()
 {
-	# Source tctip lib
+	# Source conntrac lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-conntrac.lib"
 	[ -f "${lib_file}" ] || \
 		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-conntrac.lib"
@@ -451,24 +451,10 @@ update_conntrac ()
 		die "Missing file: ${lib_file}" 77
 	fi
 
-	prog_dir="${0%/*}"
-	lib_file="${prog_dir}/easytls-conntrac.lib"
-	[ -f "${lib_file}" ] || {
-		easytls_url="https://github.com/TinCanTech/easy-tls"
-		easytls_wiki="/wiki/download-and-install"
-		#easytls_rawurl="https://raw.githubusercontent.com/TinCanTech/easy-tls"
-		#easytls_file="/master/easytls-conntrac.lib"
-		help_note="See: ${easytls_url}${easytls_wiki}"
-		die "Missing ${lib_file}" 159
-		}
-	# shellcheck source=./easytls-conntrac.lib
-	. "${lib_file}"
-	unset -v prog_dir lib_file
-
 	# Absolute start time
 	easytls_start_d_file="${EASYTLS_CONN_TRAC}-start-d"
 	if [ ! -f "${easytls_start_d_file}" ]; then
-		# shellcheck disable=SC2154
+		# shellcheck disable=SC2154 # daemon_start_time
 		"${EASYTLS_PRINTF}" '%s' \
 			"${daemon_start_time}" > "${easytls_start_d_file}"
 	fi
@@ -506,7 +492,9 @@ update_conntrac ()
 	[ -z "${peer_id}" ] || conntrac_record="${conntrac_record}==${peer_id}"
 
 	# shellcheck disable=SC2154
-	conntrac_record="${conntrac_record}==${time_ascii}"
+	timestamp="${local_date_ascii}=${local_time_ascii}"
+
+	conntrac_record="${conntrac_record}==${timestamp}"
 	# shellcheck disable=SC2154
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 
@@ -542,7 +530,7 @@ update_conntrac ()
 			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
-				"${EASYTLS_PRINTF}" '%s ' "$("${EASYTLS_DATE}" '+%x %X')"
+				"${EASYTLS_PRINTF}" '%s ' "${timestamp}"
 				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
 				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
 				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
@@ -887,9 +875,11 @@ deps ()
 	LOCK_TIMEOUT="${LOCK_TIMEOUT:-30}"
 
 	# Need the date/time ..
-	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
-	local_date_ascii="${full_date##* }"
-	#local_date_sec="${full_date%% *}"
+	#full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')"
+	# shellcheck disable=SC2154
+	full_date="${time_ascii}"
+	local_date_ascii="${full_date% *}"
+	local_time_ascii="${full_date#* }"
 
 	# Windows log
 	EASYTLS_WLOG="${temp_stub}-client-connect.log"
