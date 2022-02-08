@@ -1294,7 +1294,7 @@ and initialize a fresh TLS PKI here."
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Create metadata dir in easytls dir
-	"${EASYTLS_MKDIR}" -p "${EASYTLS_MD_DIR}" || \
+	"${EASYTLS_MKDIR}" -p "${EASYTLS_MDATA_D}" || \
 		die "Failed to create metadata dir"
 
 	# Create config-file
@@ -2393,12 +2393,12 @@ status_easytls_tlskeys ()
 
 		# Validate - Can not open this key so these checks are minor
 		key_file="${EASYTLS_PKI}/${common_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${common_name}-tls-crypt-v2.metadata"
+		metadata_debug="${EASYTLS_MDATA_D}/${common_name}-tls-crypt-v2.metadata"
 
 		[ "${sub_key}" = 'NOSUBKEY' ] || {
 			full_name="${common_name}-${sub_key}"
 			key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-			metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+			metadata_debug="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
 			}
 
 		[ -f "${key_file}" ] || "${EASYTLS_PRINTF}" '%s\t'   "  Missing key"
@@ -3341,12 +3341,12 @@ remove_tlskey ()
 	fi
 
 	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
-	metadata_file="${EASYTLS_MD_DIR}/${name}-tls-crypt-v2.metadata"
+	metadata_file="${EASYTLS_MDATA_D}/${name}-tls-crypt-v2.metadata"
 
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		full_name="${name}-${TLSKEY_SUBNAME}"
 		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_file="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		metadata_file="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
 		}
 
 	# Check required files (No metadata_file for servers)
@@ -3758,13 +3758,13 @@ inline_tls_crypt_v2 ()
 	inline_file="${EASYTLS_PKI}/${name}.inline"
 	inline_temp="${EASYTLS_PKI}/${name}.temp"
 	inline_base="${EASYTLS_PKI}/${name}.base"
-	metadata_file="${EASYTLS_MD_DIR}/${name}-tls-crypt-v2.metadata"
+	metadata_file="${EASYTLS_MDATA_D}/${name}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
 	sub_name="${name}-${TLSKEY_SUBNAME}"
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		tlskey_file="${EASYTLS_PKI}/${sub_name}-tls-crypt-v2.key"
-		metadata_file="${EASYTLS_MD_DIR}/${sub_name}-tls-crypt-v2.metadata"
+		metadata_file="${EASYTLS_MDATA_D}/${sub_name}-tls-crypt-v2.metadata"
 		inline_file="${EASYTLS_PKI}/${sub_name}.inline"
 		}
 
@@ -3948,7 +3948,7 @@ inline_tls_cv2_group_server ()
 	inline_file="${EASYTLS_PKI}/${file_name_stub}.inline"
 	inline_temp="${EASYTLS_PKI}/${file_name_stub}.temp"
 	inline_base="${EASYTLS_PKI}/${file_name_stub}.base"
-	metadata_file="${EASYTLS_MD_DIR}/${group_key}-tls-crypt-v2.metadata"
+	metadata_file="${EASYTLS_MDATA_D}/${group_key}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
 	sub_name="${name}-${TLSKEY_SUBNAME}"
@@ -3956,7 +3956,7 @@ inline_tls_cv2_group_server ()
 		# Temporarily disable this
 		die "TLS-Crypt-V2 Client Group Keys do not support --subkey"
 		tlskey_file="${EASYTLS_PKI}/${sub_name}-tls-crypt-v2.key"
-		metadata_file="${EASYTLS_MD_DIR}/${sub_name}-tls-crypt-v2.metadata"
+		metadata_file="${EASYTLS_MDATA_D}/${sub_name}-tls-crypt-v2.metadata"
 		#inline_file="${EASYTLS_PKI}/${sub_name}-gc.inline"
 		inline_file="${EASYTLS_PKI}/${sub_name}.inline"
 		}
@@ -4102,7 +4102,7 @@ inline_tls_cv2_group_client ()
 	inline_file="${EASYTLS_PKI}/${file_name_stub}.inline"
 	inline_temp="${EASYTLS_PKI}/${file_name_stub}.temp"
 	inline_base="${EASYTLS_PKI}/${file_name_stub}.base"
-	metadata_file="${EASYTLS_MD_DIR}/${group_key}-tls-crypt-v2.metadata"
+	metadata_file="${EASYTLS_MDATA_D}/${group_key}-tls-crypt-v2.metadata"
 	fpr_file="${EASYTLS_PKI}/${name}.fpr"
 
 	sub_name="${name}-${TLSKEY_SUBNAME}"
@@ -4110,7 +4110,7 @@ inline_tls_cv2_group_client ()
 		# Temporarily disable this
 		die "TLS-Crypt-V2 Client Group Keys do not support --subkey"
 		tlskey_file="${EASYTLS_PKI}/${sub_name}-tls-crypt-v2.key"
-		metadata_file="${EASYTLS_MD_DIR}/${sub_name}-tls-crypt-v2.metadata"
+		metadata_file="${EASYTLS_MDATA_D}/${sub_name}-tls-crypt-v2.metadata"
 		inline_file="${EASYTLS_PKI}/${sub_name}-gc.inline"
 		}
 
@@ -4567,12 +4567,12 @@ build_tls_crypt_v2_client ()
 
 	in_file="${EASYTLS_PKI}/${srv_name}-tls-crypt-v2.key"
 	tlskey_file="${EASYTLS_PKI}/${cli_name}-tls-crypt-v2.key"
-	metadata_debug="${EASYTLS_MD_DIR}/${cli_name}-tls-crypt-v2.metadata"
+	metadata_debug="${EASYTLS_MDATA_D}/${cli_name}-tls-crypt-v2.metadata"
 
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		full_name="${cli_name}-${TLSKEY_SUBNAME}"
 		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		metadata_debug="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
 		}
 
 	# don't do that ..
@@ -4764,7 +4764,7 @@ build_tls_cv2_group_client ()
 	#in_file="${EASYTLS_PKI}/${srv_grp_name}-tls-crypt-v2.key"
 	in_file="${EASYTLS_PKI}/${srv_key_name}-tls-crypt-v2.key"
 	tlskey_file="${EASYTLS_PKI}/${cli_grp_name}-tls-crypt-v2.key"
-	metadata_debug="${EASYTLS_MD_DIR}/${cli_grp_name}-tls-crypt-v2.metadata"
+	metadata_debug="${EASYTLS_MDATA_D}/${cli_grp_name}-tls-crypt-v2.metadata"
 
 	# Server tlskey MUST exist
 	[ -f "${in_file}" ] || {
@@ -5718,12 +5718,12 @@ disabled_list_manager ()
 	fi
 
 	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
-	metadata_file="${EASYTLS_MD_DIR}/${name}-tls-crypt-v2.metadata"
+	metadata_file="${EASYTLS_MDATA_D}/${name}-tls-crypt-v2.metadata"
 
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		full_name="${name}-${TLSKEY_SUBNAME}"
 		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_file="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		metadata_file="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
 		}
 
 	# Check required files (No metadata_file for servers)
@@ -6469,7 +6469,7 @@ interactive_remove ()
 		opt_name="$common_name"
 		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
 		key_file="${EASYTLS_PKI}/${opt_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${opt_name}-tls-crypt-v2.metadata"
+		metadata_debug="${EASYTLS_MDATA_D}/${opt_name}-tls-crypt-v2.metadata"
 
 		# Set option --sub-key-name
 		interactive_sub_key_name
@@ -6576,7 +6576,7 @@ interactive_remove ()
 
 		# Set file names
 		key_file="${EASYTLS_PKI}/${key_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${key_name}-tls-crypt-v2.metadata"
+		metadata_debug="${EASYTLS_MDATA_D}/${key_name}-tls-crypt-v2.metadata"
 
 		# Confirm
 		interactive_remove_warning 'remove-tls-crypt-v2-client-key'
@@ -7321,7 +7321,7 @@ interactive_sub_key_name ()
 		full_name="${common_name}-${TLSKEY_SUBNAME}"
 		inline_file="${EASYTLS_PKI}/${full_name}.inline"
 		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_MD_DIR}/${full_name}-tls-crypt-v2.metadata"
+		metadata_debug="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
 		unset -v full_name
 		}
 } # => interactive_sub_key_name ()
@@ -7638,7 +7638,7 @@ interactive_ca_path ()
 
   * Default: ${default}"
 
-	EASYTLS_key_index="easytls/data/easytls-key-index.txt"
+	IA_key_index="easytls/data/easytls-key-index.txt"
 	EASYRSA_ca_cert="ca.crt"
 
 	while :
@@ -7654,7 +7654,7 @@ interactive_ca_path ()
 
 		# check for ${ia_answer}/easytls/data/easytls-key-index.txt
 		# because it is always used by easytls-verify
-		if [ -f "${ans_ca_path}/${EASYTLS_key_index}" ]
+		if [ -f "${ans_ca_path}/${IA_key_index}" ]
 		then
 			if [ -n "${EASYTLS_NO_CA}" ]
 			then
@@ -7670,7 +7670,7 @@ interactive_ca_path ()
 			# easytls-key-index.txt must exist
 			print "
     Easy-TLS Key Index does not exist:
-    * ${ans_ca_path}/${EASYTLS_key_index}"
+    * ${ans_ca_path}/${IA_key_index}"
 		fi
 
 		ia_question_text="
@@ -7680,7 +7680,7 @@ interactive_ca_path ()
 
 	# Set answer and return
 	opt_ca_path="${ans_ca_path}"
-	unset -v EASYTLS_key_index EASYRSA_ca_cert
+	unset -v IA_key_index EASYRSA_ca_cert
 } # => interactive_ca_path ()
 
 # hash algorithm
@@ -8794,10 +8794,6 @@ external_deps ()
 	fi
 	unset -v lib_file EASYTLS_WORK_DIR
 
-	# Other ways to satify shellcheck
-	EASYTLS_KEY_INDEX=''; unset -v EASYTLS_KEY_INDEX
-	EASYTLS_MD_DIR=''; unset -v EASYTLS_MD_DIR
-
 	# initialise
 	new_line='
 '
@@ -8865,7 +8861,7 @@ vars_setup()
 
 	set_var EASYTLS                 "${PWD}"
 	set_var EASYTLS_PKI             "${EASYRSA_PKI}/easytls"
-	set_var EASYTLS_MD_DIR          "${EASYTLS_PKI}/metadata"
+	set_var EASYTLS_MDATA_D          "${EASYTLS_PKI}/metadata"
 	set_var EASYTLS_DATA_DIR        "${EASYTLS_PKI}/data"
 	set_var EASYTLS_FASTER_HASH		"${EASYTLS_DATA_DIR}/easytls-faster.hash"
 	set_var EASYTLS_WISCII_HASH     "${EASYTLS_DATA_DIR}/easytls-wiscii.hash"
