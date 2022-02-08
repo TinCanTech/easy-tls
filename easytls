@@ -9155,16 +9155,12 @@ main ()
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
 		return 0
 	;;
+	rehash)
+		unset FILE_HASH_DISABLED
+		easytls_rehash "$@" || die "easytls_rehash"
+		return 0
+	;;
 	*)
-		# Rehash before everything
-		# shellcheck disable=SC2249 # (info): default *) case
-		case "${cmd}" in
-		rehash)
-			unset FILE_HASH_DISABLED
-			easytls_rehash "$@" || die "easytls_rehash"
-			return 0
-		esac
-
 		# Load config options - Does not change command line options
 		config_use || die "config_use"
 
