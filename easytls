@@ -2944,8 +2944,9 @@ remove_inline ()
 	[ -f "${inline_file}-badhash" ] && \
 		die "File exists: ${inline_file}-badhash"
 
+	# Move
 	if [ -z "${force_remove}" ]; then
-		"${EASYTLS_RM}" "${inline_file}" || \
+		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-deleteme" || \
 			die "Failed to remove: ${inline_file}"
 	else
 		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
@@ -2953,7 +2954,27 @@ remove_inline ()
 	fi
 
 	# Update the index first
-	inline_index_update del || die "Failed to update inline-index"
+	if inline_index_update del; then
+		# Remove
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_RM}" "${inline_file}-deleteme" || \
+				die "Failed to remove: ${inline_file}"
+		else
+			"${EASYTLS_RM}" "${inline_file}" || \
+				die "Failed to rename: ${inline_file}"
+		fi
+	else
+		# Undo move
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_MV}" "${inline_file}-deleteme" "${inline_file}" || \
+				die "Failed to restore: ${inline_file}"
+		else
+			"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
+				die "Failed to restore: ${inline_file}"
+		fi
+		# Always die
+		die "Failed to update inline-index"
+	fi
 
 	# Inline file and record deleted - Forget the HASH
 	# Otherwise 'inline_renew add' still has the HASH
