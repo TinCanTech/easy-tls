@@ -2947,10 +2947,10 @@ remove_inline ()
 	# Move
 	if [ -z "${force_remove}" ]; then
 		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-deleteme" || \
-			die "Failed to remove: ${inline_file}"
+			die "Failed to move: ${inline_file}"
 	else
 		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
-			die "Failed to rename: ${inline_file}"
+			die "Failed to move: ${inline_file}"
 	fi
 
 	# Update the index first
@@ -3352,6 +3352,7 @@ remove_tlskey ()
 	# Check required files (No metadata_file for servers)
 	#[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
+	[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
 
 	# Get tlskey serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
@@ -3380,14 +3381,30 @@ remove_tlskey ()
 	# Confirm remove
 	confirm  "Remove tlskey file ? " "yes" "Remove: ${tlskey_file}"
 
-	# Update the index
-	tlskey_index_update del || die "Failed to update inline-index"
+	# Move
+	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleteme" || \
+		die "Failed to move: ${tlskey_file}"
+	"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleteme" || \
+		die "Failed to move: ${metadata_file}"
 
-	"${EASYTLS_RM}" "${tlskey_file}" || die "Failed to remove: ${tlskey_file}"
-	[ -f "${metadata_file}" ] && {
-		"${EASYTLS_RM}" "${metadata_file}" || \
+	# Update index
+	if tlskey_index_update del; then
+		# Remove
+		"${EASYTLS_RM}" "${tlskey_file}-deleteme" || \
+			die "Failed to remove: ${tlskey_file}"
+		"${EASYTLS_RM}" "${metadata_file}-deleteme" || \
 			die "Failed to remove: ${metadata_file}"
-		}
+	else
+		# Undo move
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_MV}" "${tlskey_file}-deleteme" "${tlskey_file}" || \
+				die "Failed to restore: ${tlskey_file}"
+			"${EASYTLS_MV}" "${metadata_file}-deleteme" "${metadata_file}" || \
+				die "Failed to restore: ${metadata_file}"
+		fi
+		# Always die
+		die "Failed to update tlskey-index"
+	fi
 
 	notice "TLS-Crypt-V2 key removed: ${tlskey_file}"
 	easytls_verbose
