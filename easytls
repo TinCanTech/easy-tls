@@ -34,6 +34,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Set the Easy-TLS version
 easytls_version ()
 {
+	unset EASYTLS_SILENT EASYTLS_VERBOSE
 	config_use || :
 	print "Easy-TLS ${EASYTLS_VERSION}"
 	print "OpenVPN ${ovpn_ver_number}"
@@ -2610,6 +2611,10 @@ inline_index_update ()
 		return 1
 		}
 
+	if [ "${update_index_action}" = 'del' ] && [ -n "${force_remove}" ]; then
+		update_index_action='force-del'
+	fi
+
 	case "${update_index_action}" in
 	add)
 		# Inline serial
@@ -2661,6 +2666,28 @@ inline_index_update ()
 		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
 		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]"
+
+		# Find old record
+		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
+			error_msg "inline_index_update del: Failed to find: ${old_record}"
+			return 1
+			}
+
+		easytls_verbose "  DEL: ${old_record}"
+
+		# Remove old record
+		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" \
+			"${EASYTLS_INLINE_INDEX}" || {
+				error_msg "inline_index_update del: Failed write"
+				return 1
+				}
+	;;
+	force-del)
+		# Build old record without inline file HASH, with --sub-key-name
+		# because my earlier comment was over confident ;-)
+		old_record="[[:xdigit:]]*[[:blank:]]${inline_serial}"
+		old_record="${old_record}[[:blank:]]${name}"
+		old_record="${old_record}[[:blank:]]${TLSKEY_SUBNAME}"
 
 		# Find old record
 		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
@@ -2894,13 +2921,36 @@ remove_inline ()
 		return 1
 		}
 
+	unset force_remove
 	# Check .inline HASH prior to removal
-	inline_file_verify_hash || die "inline_remove Failed HASH: ${inline_file}"
+	if inline_file_verify_hash; then
+		: # OK
+	else
+		unset error_log
+		print "
+* HELP: easytls can *Force* remove this file from the index.
+        Once removed from the index, easytls will ignore this file.
+        The file will be renamed to: ${inline_file}-badhash"
+		confirm  "*Force* remove inline file: ${inline_file} ? " "yes" \
+			"WARNING: Inline file HASH failed !"
+		force_remove=1
+	fi
 
 	# Confirm remove
-	confirm  "Remove inline file ? " "yes" "Remove: ${inline_file}"
+	[ -n "${force_remove}" ] || \
+		confirm  "Remove inline file ? " "yes" "Remove: ${inline_file}"
 
-	"${EASYTLS_RM}" "${inline_file}" || die "Failed to remove: ${inline_file}"
+	# Do not over write existing
+	[ -f "${inline_file}-badhash" ] && \
+		die "File exists: ${inline_file}-badhash"
+
+	if [ -z "${force_remove}" ]; then
+		"${EASYTLS_RM}" "${inline_file}" || \
+			die "Failed to remove: ${inline_file}"
+	else
+		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
+			die "Failed to rename: ${inline_file}"
+	fi
 
 	# Update the index first
 	inline_index_update del || die "Failed to update inline-index"
@@ -2908,9 +2958,14 @@ remove_inline ()
 	# Inline file and record deleted - Forget the HASH
 	# Otherwise 'inline_renew add' still has the HASH
 	# Logically, this *cannot* be removed -- tct
+	# Improve this! please..
 	unset -v inline_hash
 
-	notice "Inline file removed: ${inline_file}"
+	if [ -z "${force_remove}" ]; then
+		notice "Inline file removed: ${inline_file}"
+	else
+		notice "Inline file renamed to: ${inline_file}-badhash"
+	fi
 	easytls_verbose
 } # => remove_inline ()
 
