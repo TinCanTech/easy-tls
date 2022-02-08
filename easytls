@@ -2959,9 +2959,6 @@ remove_inline ()
 		if [ -z "${force_remove}" ]; then
 			"${EASYTLS_RM}" "${inline_file}-deleteme" || \
 				die "Failed to remove: ${inline_file}"
-		else
-			"${EASYTLS_RM}" "${inline_file}" || \
-				die "Failed to rename: ${inline_file}"
 		fi
 	else
 		# Undo move
