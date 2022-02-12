@@ -2095,7 +2095,7 @@ status ()
 	print "Easy-TLS: Invalid inline files:"
 	revoked_mismatch_count=0
 	status_easytls_invalid
-	if [ ${revoked_mismatch_count} -gt 0 ]; then
+	if [ "${revoked_mismatch_count}" -gt 0 ]; then
 		print "  Invalid inline files are caused by revoked X509 Certificates"
 		print "  To solve this use: ./easytls remove-inline <filename-base>"
 	else
@@ -2105,7 +2105,7 @@ status ()
 	print "Easy-TLS: .inline serial number mismatches:"
 	renewed_mismatch_count=0
 	status_easyrsa_renewed
-	if [ ${renewed_mismatch_count} -gt 0 ]; then
+	if [ "${renewed_mismatch_count}" -gt 0 ]; then
 		print "  Mismatches are caused by X509 Certificates"
 		print "  which have not been completely renewed by EasyRSA"
 		print "  To solve this use: caution.."
@@ -2310,7 +2310,7 @@ status_easytls_invalid ()
 		# Variable: verified_inline_hash, now exists
 
 		mismatches="$(status_search_revoked_serial_list)"
-		case ${mismatches} in
+		case "${mismatches}" in
 		0)
 			# No mismatches found
 			:
@@ -2468,10 +2468,10 @@ verify_cert_purpose ()
 		return 1
 
 	elif [ -n "${is_c}" ]; then
-		eval ${2}="Client"
+		eval "${2}=\"Client\""
 
 	elif [ -n "${is_s}" ]; then
-		eval ${2}="Server"
+		eval "${2}=\"Server\""
 
 	else
 		error_msg "Unknown certificate purpose"
@@ -2864,7 +2864,7 @@ x509_cert_serial ()
 	temp_out="${temp_out##serial=}"
 
 	# Assign cert-serial to variable
-	eval ${2}="${temp_out}"
+	eval "${2}=\"${temp_out}\""
 
 	# Clean up
 	unset -v temp_out
@@ -3268,13 +3268,13 @@ verify_cert_serial ()
 	# https://github.com/TinCanTech/easy-tls/issues/158
 	case "${EASYRSA_RAND_SN}" in
 	yes)
-		[ ${serial_size} -lt 41 ] || {
+		[ "${serial_size}" -lt 41 ] || {
 			error_msg "verify_cert_serial - cert_serial size !<41: ${cert_serial}"
 			return 1
 			}
 	;;
 	no)
-		[ ${serial_size} -lt 41 ] || {
+		[ "${serial_size}" -lt 41 ] || {
 			error_msg "verify_cert_serial - cert_serial size !<41: ${cert_serial}"
 			return 1
 			}
@@ -3296,17 +3296,17 @@ verify_tlskey_serial ()
 			return 1
 			}
 
-	hash_size=${#tlskey_serial}
+	hash_size="${#tlskey_serial}"
 
-	case ${EASYTLS_HASH_ALGO} in
+	case "${EASYTLS_HASH_ALGO}" in
 	SHA1)
-		[ ${hash_size} -eq 40 ] || {
+		[ "${hash_size}" -eq 40 ] || {
 			error_msg "verify_tlskey_serial - hash_size: ${tlskey_serial}"
 			return 1
 			}
 	;;
 	SHA256)
-		[ ${hash_size} -eq 64 ] || {
+		[ "${hash_size}" -eq 64 ] || {
 			error_msg "verify_tlskey_serial - hash_size size: ${tlskey_serial}"
 			return 1
 			}
@@ -3640,7 +3640,7 @@ inline_tls_auth ()
 
 	# Hash inline file and add hash to index
 	# TLS-Crypt-V1 do not have a serial so use preset
-	tlskey_serial=${fixed_tls_auth_serial}
+	tlskey_serial="${fixed_tls_auth_serial}"
 	inline_index_update add || die "Failed to update inline-index"
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
@@ -3712,7 +3712,7 @@ inline_tls_crypt_v1 ()
 
 	# Hash inline file and add hash to index
 	# TLS-Crypt-V1 do not have a serial so use preset
-	tlskey_serial=${fixed_tls_cryptv1_serial}
+	tlskey_serial="${fixed_tls_cryptv1_serial}"
 	inline_index_update add || die "Failed to update inline-index"
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
@@ -3800,7 +3800,7 @@ inline_tls_crypt_v2 ()
 			die "metadata_stov_safe" 87
 
 		# Set creation Date
-		MD_longdate=""
+		MD_longdate=
 		easytls_sec_to_date "${MD_DATE}" MD_longdate || \
 			die "Failed to create metadata date"
 
@@ -4037,7 +4037,7 @@ inline_tls_cv2_group_server ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
 		# Share fingerprint template
-		inline_share_fingerprint
+		inline_share_fingerprint || die "Failed to share fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -4302,7 +4302,7 @@ inline_share_fingerprint ()
 	srv_fpr="${srv_fpr##*=}"
 
 	# fingerprint pattern
-	fpr_tplt=""
+	fpr_tplt=
 	i=1
 	while [ "${i}" -lt 32 ]; do
 		fpr_tplt="${fpr_tplt}..:"
@@ -4320,7 +4320,7 @@ inline_share_fingerprint ()
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
 		# Remove client from inline index
-		known_inline_hash=${verified_inline_hash}
+		known_inline_hash="${verified_inline_hash}"
 		inline_serial="$(inline_index_ilhash_to_serial)"
 		inline_index_update del || die "Failed to update inline-index"
 	else
@@ -4367,7 +4367,7 @@ inline_share_fingerprint ()
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
 		# Remove node from inline index
-		known_inline_hash=${verified_inline_hash}
+		known_inline_hash="${verified_inline_hash}"
 		inline_serial="$(inline_index_ilhash_to_serial)"
 		inline_index_update del || die "Failed to update inline-index"
 	else
@@ -4411,7 +4411,7 @@ inline_share_fingerprint ()
 		: # OK
 	else
 		TLSKEY_SUBNAME='NOSUBKEY'
-		MD_TLSKEY_SERIAL=${cv2_Srv_Serial}
+		MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
 		name="${srv_name}"
 		inline_file="${srv_inline}"
 		inline_index_update add || die "Failed to update inline-index"
@@ -4430,7 +4430,7 @@ build_tls_auth ()
 {
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-auth" ;;
 		2.4) build_string="--genkey --secret" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
@@ -4454,7 +4454,7 @@ build_tls_crypt_v1 ()
 {
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-crypt" ;;
 		2.4) build_string="--genkey --secret" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
@@ -4480,7 +4480,7 @@ build_tls_crypt_v2_server ()
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
@@ -4538,7 +4538,7 @@ build_tls_crypt_v2_client ()
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
@@ -4714,7 +4714,7 @@ build_tls_cv2_group_server ()
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
@@ -4747,7 +4747,7 @@ build_tls_cv2_group_client ()
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
-	case ${openvpn_version} in
+	case "${openvpn_version}" in
 		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
@@ -4777,9 +4777,7 @@ build_tls_cv2_group_client ()
 		}
 
 	# Capture HW and IP addresses
-	EASYTLS_TLSCV2_HWLIST=""
-	# Capture HW and IP addresses
-	EASYTLS_TLSCV2_HWLIST=""
+	EASYTLS_TLSCV2_HWLIST=
 	while [ -n "${1}" ]; do
 		# Needs to allow multiples. EG: eth & wifi
 		md_temp_addr="${1}"
@@ -4859,7 +4857,7 @@ hw_addr_hex_check ()
 	temp_hw_addr="$("${EASYTLS_PRINTF}" '%s' "${1}" | \
 		"${EASYTLS_SED}" -e 's/\://g' -e 's/\-//g' -e 'y/abcdef/ABCDEF/')"
 
-	[ ${#temp_hw_addr} -eq 12 ] || {
+	[ "${#temp_hw_addr}" -eq 12 ] || {
 		#easytls_verbose "Hardware Address must be 12 digits exactly!"
 		return 2
 		}
@@ -4989,8 +4987,7 @@ expand_ip6_address ()
 	temp_valid_hextets="${in_valid_hextets}"
 
 	# expand leading colon
-	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
-		lead_colon=1
+	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || lead_colon=1
 	[ -z "${lead_colon}" ] || temp_valid_hextets="0${temp_valid_hextets}"
 
 	# Count valid compressed hextets
@@ -5763,7 +5760,7 @@ disabled_list_manager ()
 	fi
 
 	# Update disabled-list
-	case ${action} in
+	case "${action}" in
 	disable) # Add serial number to the disabled-list
 		if [ -n "${is_disabled}" ]; then
 			# serial is already disabled
@@ -8303,7 +8300,7 @@ generate_wiscii_hash ()
 
 	# Fixed Hash - If file hashing is disabled
 	[ -n "${FILE_HASH_DISABLED}" ] && {
-		counted_wiscii=$fixed_hash
+		counted_wiscii="${fixed_hash}"
 		return 0
 		}
 
@@ -8486,10 +8483,11 @@ ${EASYTLS_KEY_INDEX}"
 			return 1
 			}
 		wiscii_seed="${wiscii_seed}${config_file_hash}"
-		disabled_list_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_DISABLED_HASH}")" || {
-			error_msg "read EASYTLS_DISABLED_HASH"
-			return 1
-			}
+		disabled_list_file_hash="$("${EASYTLS_CAT}" "${EASYTLS_DISABLED_HASH}")" \
+			|| {
+				error_msg "read EASYTLS_DISABLED_HASH"
+				return 1
+				}
 		wiscii_seed="${wiscii_seed}${disabled_list_file_hash}"
 
 		# master a.k.a. wiscii hash
@@ -9111,7 +9109,7 @@ main ()
 	v4ip)
 		unset -v EASYTLS_SILENT
 		validate_ip4_data "$@" || {
-			invalid_address $?
+			invalid_address "$?"
 			print "*** Invalid IP4: ${*} ***"
 			exit 1
 			}
@@ -9121,7 +9119,7 @@ main ()
 	x4ip)
 		unset -v EASYTLS_SILENT
 		expand_ip4_address "$@" || {
-			invalid_address $?
+			invalid_address "$?"
 			print "*** Invalid IP4: ${*} ***"
 			exit 1
 			}
@@ -9131,7 +9129,7 @@ main ()
 	v6ip)
 		unset -v EASYTLS_SILENT
 		validate_ip6_data "$@" || {
-			invalid_address $?
+			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
 			exit 1
 			}
@@ -9141,7 +9139,7 @@ main ()
 	x6ip)
 		unset -v EASYTLS_SILENT
 		expand_ip6_address "$@" || {
-			invalid_address $?
+			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
 			exit 1
 			}
