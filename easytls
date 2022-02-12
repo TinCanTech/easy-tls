@@ -641,22 +641,22 @@ verify_pki_init () {
 	# check that the pki dir exists
 	vars_source_check
 	[ -d "${EASYRSA_PKI}" ] || {
-				error_msg "Easy-RSA has not been initialised."
-				error_msg "Easy-TLS requires an Easy-RSA CA"
-				error_msg "Otherwise, use Easy-TLS in No-CA mode"
-				error_msg "$(cmd_help init-tls)"
-				exit 1
-				}
+			error_msg "Easy-RSA has not been initialised."
+			error_msg "Easy-TLS requires an Easy-RSA CA"
+			error_msg "Otherwise, use Easy-TLS in No-CA mode"
+			error_msg "$(cmd_help init-tls)"
+			exit 1
+			}
 
 	# verify expected dirs present:
 	for i in private reqs; do
 		[ -d "${EASYRSA_PKI}/${i}" ]  || {
-				error_msg "Easy-RSA has not been initialised."
-				error_msg "Easy-TLS requires an Easy-RSA CA"
-				error_msg "Otherwise, use Easy-TLS in No-CA mode"
-				error_msg "$(cmd_help init-tls)"
-				exit 1
-				}
+			error_msg "Easy-RSA has not been initialised."
+			error_msg "Easy-TLS requires an Easy-RSA CA"
+			error_msg "Otherwise, use Easy-TLS in No-CA mode"
+			error_msg "$(cmd_help init-tls)"
+			exit 1
+			}
 	done
 	unset -v help_note
 } # => verify_pki_init ()
@@ -729,7 +729,7 @@ easytls_config ()
 
 	case "${1}" in
 		addition)
-			cfg_opt=${2}
+			cfg_opt="${2}"
 			[ -z "${cfg_opt}" ] && {
 				error_msg "Required: option"
 				return 1
@@ -741,7 +741,7 @@ easytls_config ()
 			return 0
 		;;
 		deletion)
-			cfg_opt=${2}
+			cfg_opt="${2}"
 			[ -z "${cfg_opt}" ] && {
 				error_msg "Required: option"
 				return 1
@@ -754,48 +754,47 @@ easytls_config ()
 		;;
 		nc|no.ca)
 			cfg_opt="no.ca"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		ha|hash.algorithm)
 			cfg_opt="hash.algorithm"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		td|tmp.dir)
 			cfg_opt="tmp.dir"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		ac|auto.check)
 			cfg_opt="auto.check"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		cg|custom.group)
 			cfg_opt="custom.group"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		id|ca.id)
 			cfg_opt="ca.id"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		co|custom.openvpn)
 			cfg_opt="custom.openvpn"
-			# This may need to be quoted for spaces
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		im|inline.metadata)
 			cfg_opt="inline.metadata"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		ih|inline.hardware)
 			cfg_opt="inline.hardware"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		status)
 			cfg_opt="status"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		test.bool)
 			cfg_opt="test.bool"
-			cfg_val=${2}
+			cfg_val="${2}"
 		;;
 		'')
 			easytls_verbose
@@ -992,13 +991,13 @@ config_use ()
 				;;
 		esac
 	done < "${EASYTLS_CONFIG_FILE}"
-	[ ${config_error} ] && return "${config_error}"
+	[ -z "${config_error}" ] || return "${config_error}"
 
 	# Set default hash.algorithm
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Set fixed hash
-	case ${EASYTLS_HASH_ALGO} in
+	case "${EASYTLS_HASH_ALGO}" in
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
@@ -1181,7 +1180,7 @@ verify_openvpn ()
 	openvpn_version="${openvpn_version%% *}"
 	ovpn_ver_number="${openvpn_version}"
 	openvpn_version="${openvpn_version%_*}"
-	[ ${#openvpn_version} -gt 3 ] && openvpn_version="${openvpn_version%.*}"
+	[ "${#openvpn_version}" -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "${openvpn_version}" in
 		2.5|2.6) : ;;
 		2.4) : ;;
@@ -1194,18 +1193,17 @@ verify_openssl ()
 {
 	# extract openssl version
 	openssl_full_version="$("${EASYRSA_OPENSSL}" version)"
-	openssl_version="${openssl_full_version%% *}"
-	case "${openssl_version}" in
+	openssl_version="${openssl_full_version#* }"
+	openssl_name="${openssl_full_version%% *}"
+	case "${openssl_name}" in
 		OpenSSL) : ;;
 		*)
 			die "Missing or invalid OpenSSL: ${openssl_version}"
 		;;
 	esac
 
-	openssl_version="${openssl_full_version#OpenSSL }"
 	openssl_version="${openssl_version%% *}"
-	#openssl_version="${openssl_version%_*}"
-	[ ${#openssl_version} -gt 3 ] && openssl_version="${openssl_version%.*}"
+	[ "${#openssl_version}" -gt 3 ] && openssl_version="${openssl_version%.*}"
 	case "${openssl_version}" in
 		3.0|3.1) : ;;
 		1.1) : ;;
@@ -1312,7 +1310,7 @@ and initialize a fresh TLS PKI here."
 	} > "${EASYTLS_CONFIG_FILE}" || die "Failed to create config-file"
 
 	# Set fixed hash
-	case ${EASYTLS_HASH_ALGO} in
+	case "${EASYTLS_HASH_ALGO}" in
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
@@ -1411,7 +1409,7 @@ easytls_auto_check ()
 	# If inline-index does not exist then do not auto-check
 	[ -f "${EASYTLS_INLINE_INDEX}" ] || return 0
 	index_size="$("${EASYTLS_GREP}" -c '^.*$' "${EASYTLS_INLINE_INDEX}")"
-	[ ${index_size} -gt 50 ] && \
+	[ "${index_size}" -gt 50 ] && \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
@@ -1421,13 +1419,13 @@ easytls_auto_check ()
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
 	status invalid || die "inline_auto_check: status invalid error"
-	[ ${revoked_mismatch_count} -eq 0 ] || \
+	[ "${revoked_mismatch_count}" -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Revoked certs."
 
 	# Check serial number for renewed EasyRSA certs
 	# which do not match inline files
 	status renewed || die "inline_auto_check: status renewed error"
-	[ ${renewed_mismatch_count} -eq 0 ] || \
+	[ "${renewed_mismatch_count}" -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
@@ -1484,7 +1482,7 @@ generate_and_validate_file_hash ()
 	# hash the file
 	if [ -z "${force_hash}" ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
-		generated_hash=${fixed_hash}
+		generated_hash="${fixed_hash}"
 	else
 		[ -n "${EASYTLS_HASH_ALGO}" ] || {
 			error_msg "generate_and_validate_file_hash - EASYTLS_HASH_ALGO"
@@ -1512,7 +1510,7 @@ generate_and_validate_file_hash ()
 	fi
 
 	# Return validated generated_hash
-	eval ${2}=${generated_hash}
+	eval "${2}=\"${generated_hash}\""
 
 	# Clean up
 	unset -v target openssl_hash generated_hash
@@ -1521,7 +1519,7 @@ generate_and_validate_file_hash ()
 # Generate data hash
 generate_and_validate_data_hash ()
 {
-	[ ${#} -eq 2 ] || {
+	[ "${#}" -eq 2 ] || {
 		help_note="input: ${*}"
 		die "generate_and_validate_data_hash - invalid input"
 		}
@@ -1531,7 +1529,7 @@ generate_and_validate_data_hash ()
 	# hash the data
 	if [ -z "${force_hash}" ] && [ -n "${FILE_HASH_DISABLED}" ]; then
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
-		generated_hash=${fixed_hash}
+		generated_hash="${fixed_hash}"
 	else
 		[ -z "${EASYTLS_HASH_ALGO}" ] && {
 			error_msg "generate_and_validate_data_hash - EASYTLS_HASH_ALGO"
@@ -1561,7 +1559,7 @@ generate_and_validate_data_hash ()
 	fi
 
 	# Return validated generated_hash
-	eval ${2}=${generated_hash}
+	eval "${2}=\"${generated_hash}\""
 
 	# Clean up
 	unset -v target openssl_hash generated_hash
@@ -1570,7 +1568,7 @@ generate_and_validate_data_hash ()
 # Wrapper for base64 encoding
 generate_base64_data ()
 {
-	[ ${#} -eq 2 ] || {
+	[ "${#}" -eq 2 ] || {
 		help_note="input: ${*}"
 		die "generate_and_validate_data_hash - invalid input"
 		}
@@ -1588,7 +1586,7 @@ generate_base64_data ()
 					}
 
 	# Assign base64 to return var
-	eval ${2}="${openssl_b64}"
+	eval "${2}=\"${openssl_b64}\""
 
 	# Clean up
 	unset -v target openssl_b64
@@ -1597,16 +1595,16 @@ generate_base64_data ()
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
-	[ ${#} -eq 1 ] || {
+	[ "${#}" -eq 1 ] || {
 		error_msg "validate_hash - invalid input: ${*}"
 		return 1
 		}
 
 	test_hash="${1}"
-	test_length=${#test_hash}
+	test_length="${#test_hash}"
 
 	# Verify length
-	[ ${test_length} -eq ${fixed_length} ] || {
+	[ "${test_length}" -eq "${fixed_length}" ] || {
 		error_msg "validate_hash - test_length: ${test_length}"
 		unset -v test_hash test_length
 		return 1
@@ -1621,7 +1619,7 @@ validate_hash ()
 		}
 
 	# Test for empty input hash
-	[ ${test_hash} != ${forbidden_hash} ] || {
+	[ "${test_hash}" != "${forbidden_hash}" ] || {
 		error_msg "validate_hash - forbidden_hash"
 		unset -v test_hash test_length
 		return 1
@@ -1633,15 +1631,15 @@ validate_hash ()
 # Verify two hashes Match
 match_two_hashes ()
 {
-	[ ${#} -eq 2 ] || return 1
-	validate_hash ${1} || return 1
-	validate_hash ${2} || return 1
-	[ ${1} = ${2} ] && return 0
+	[ "${#}" -eq 2 ] || return 1
+	validate_hash "${1}" || return 1
+	validate_hash "${2}" || return 1
+	[ "${1}" = "${2}" ] && return 0
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
 	# Using file-hash-disabled mode will taint the TLS PKI
-	[ ${1} = ${fixed_hash} ] && return 0
-	[ ${2} = ${fixed_hash} ] && return 0
+	[ "${1}" = "${fixed_hash}" ] && return 0
+	[ "${2}" = "${fixed_hash}" ] && return 0
 	# Error is implicit
 	return 1
 } # => match_two_hashes ()
@@ -1649,7 +1647,7 @@ match_two_hashes ()
 # Save file hash
 save_file_hash ()
 {
-	[ ${#} -eq 2 ] || {
+	[ "${#}" -eq 2 ] || {
 		help_note="input: ${*}"
 		die "invalid input - save_file_hash"
 		}
@@ -1683,7 +1681,7 @@ save_file_hash ()
 # generate_and_match_valid_hash
 generate_and_match_valid_hash ()
 {
-	[ ${#} -eq 2 ] || {
+	[ "${#}" -eq 2 ] || {
 		help_note="input: ${*}"
 		die "invalid input - generate_and_match_valid_hash"
 		}
@@ -1721,7 +1719,7 @@ generate_and_match_valid_hash ()
 # generate and save file hash
 generate_and_save_file_hash ()
 {
-	[ ${#} -eq 2 ] || {
+	[ "${#}" -eq 2 ] || {
 		unset -v help_note
 		die "invalid input - generate_and_save_file_hash"
 		}
@@ -1783,7 +1781,7 @@ generate_valid_date_now ()
 	[ -n "${g_d}" ] || { error_msg "generate_valid_date_now - ${g_d}"; return 1; }
 
 	# Set return variable
-	eval ${1}="${g_d}"
+	eval "${1}=\"${g_d}\""
 	unset -v g_d
 } # => generate_valid_date_now ()
 
@@ -1816,7 +1814,7 @@ easytls_sec_to_date ()
 	fi
 
 	# Set return variable
-	eval ${2}="${t_d}"
+	eval "${2}=\"${t_d}\""
 	unset -v t_d
 } # => easytls_sec_to_date ()
 
@@ -1845,7 +1843,7 @@ easytls_date_to_sec ()
 			}
 	fi
 	# Set return variable
-	eval ${2}="${t_d}"
+	eval "${2}=\"${t_d}\""
 	unset -v t_d
 } # => easytls_sec_to_date ()
 
