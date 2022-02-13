@@ -143,9 +143,9 @@ die ()
 		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			taskkill /F /PID ${EASYTLS_srv_pid}
+			taskkill /F /PID "${EASYTLS_srv_pid}"
 		else
-			kill -15 ${EASYTLS_srv_pid}
+			kill -15 "${EASYTLS_srv_pid}"
 		fi
 	fi
 	exit "${2:-255}"
@@ -469,7 +469,7 @@ update_conntrac ()
 	# shellcheck disable=SC2154
 	if [ -z "${ifconfig_pool_remote_ip}" ]; then
 		# Kill the server
-		[ $POOL_EXHAUST_FATAL ] && {
+		[ -n "${POOL_EXHAUST_FATAL}" ] && {
 			ENABLE_KILL_SERVER=1
 			die "IP_POOL_EXHASTED" 101
 			}
@@ -480,7 +480,7 @@ update_conntrac ()
 		banner "********* WARNING: IP POOL EXHAUSTED *********"
 
 		# This will kill the client
-		[ $POOL_EXHAUST_KILL_CLIENT ] && {
+		[ -n "${POOL_EXHAUST_KILL_CLIENT}" ] && {
 			"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n' "disable"
 			} > "${ovpn_dyn_opts_file}"
@@ -499,7 +499,7 @@ update_conntrac ()
 	conntrac_record="${conntrac_record}++${untrusted_ip}:${untrusted_port}"
 
 	conn_trac_connect "${conntrac_record}" "${EASYTLS_CONN_TRAC}" || {
-			case $? in
+			case "$?" in
 			6)	# Duplicate TLSKEY
 			update_status "conn_trac_connect DUPLICATE_TLSKEY"
 				conntrac_dupl=1
@@ -523,19 +523,24 @@ update_conntrac ()
 			}
 
 	# Log failure
-	if [ $conntrac_dupl ] || [ $conntrac_fail ] || \
-		[ $conntrac_error ] ||[ $conntrac_unknown ]
+	if [ -n "${conntrac_dupl}" ] || [ -n "${conntrac_fail}" ] || \
+		[ -n "${conntrac_error}" ] ||[ -n "${conntrac_unknown}" ]
 	then
-		if [ $ENABLE_CONNTRAC_FAIL_LOG ]; then
+		if [ -n "${ENABLE_CONNTRAC_FAIL_LOG}" ]; then
 			{
 			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 				"${EASYTLS_PRINTF}" '%s ' "${timestamp}"
-				[ $conntrac_fail ] && "${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
-				[ $conntrac_error ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
-				[ $ip_pool_exhausted ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
-				[ $conntrac_dupl ] && "${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
-				[ $conntrac_unknown ] && "${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
+				[ -n "${conntrac_fail}" ] && \
+					"${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
+				[ -n "${conntrac_error}" ] && \
+					"${EASYTLS_PRINTF}" '%s ' "ERROR"
+				[ -n "${ip_pool_exhausted}" ] && \
+					"${EASYTLS_PRINTF}" '%s ' "IP-POOL"
+				[ -n "${conntrac_dupl}" ] && \
+					"${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
+				[ -n "${conntrac_unknown}" ] && \
+					"${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
 			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conn: conntrac file" 156
 			"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
@@ -543,26 +548,27 @@ update_conntrac ()
 		fi # ENABLE_CONNTRAC_FAIL_LOG
 
 		# Absolutely fatal
-		[ $conntrac_unknown ] && {
+		[ -n "${conntrac_unknown}" ] && {
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_UNKNOWN" 98
 			}
 
 		# # Fatal because these are usage errors
-		[ $conntrac_error ] && [ $FATAL_CONN_TRAC ] && {
+		[ -n "${conntrac_error}" ] && [ -n "${FATAL_CONN_TRAC}" ] && {
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_ERROR" 99
 			}
 
 		# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
-		[ $conntrac_fail ] && [ $FATAL_CONN_TRAC_2 ] && {
+		[ -n "${conntrac_fail}" ] && [ -n "${FATAL_CONN_TRAC_2}" ] && {
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_FAIL_2" 91
 			}
 
 		# Duplicate TLS keys
-		if [ $conntrac_dupl ]; then
-			[ ! $ENFORCE_UNIQUE_TLSKEY ] || fail_and_exit "Duplicate TLS Key"
+		if [ -n "${conntrac_dupl}" ]; then
+			[ -z "${ENFORCE_UNIQUE_TLSKEY}" ] || \
+				fail_and_exit "Duplicate TLS Key"
 			update_status "IGNORE Duplicate TLS Key"
 		fi
 	fi
@@ -572,7 +578,7 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	[ $stack_completed ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
+	[ -n "${stack_completed}" ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	#[ $ENABLE_STACK ] || return 0
@@ -619,14 +625,14 @@ stack_down ()
 		die "release_lock:stack FAIL" 99
 	update_status "stack-lock-released"
 
-	[ ! $stack_err ] || die "STACK_DOWN_FULL_ERROR" 160
+	[ -z "${stack_err}" ] || die "STACK_DOWN_FULL_ERROR" 160
 } # => stack_down ()
 
 # TLSKEY tracking .. because ..
 tlskey_status ()
 {
 	# >> may fail on easytls/github/actions/wtest - No TERM
-	[ $EASYTLS_TLSKEY_STATUS ] || return 0
+	[ -n "${EASYTLS_TLSKEY_STATUS}" ] || return 0
 	{
 		# shellcheck disable=SC2154
 		"${EASYTLS_PRINTF}" '%s %s %s %s\n' "${local_date_ascii}" \
@@ -652,15 +658,15 @@ acquire_lock ()
 	unset lock_acquired
 	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
-	while [ ${lock_attempt} -gt 0 ]; do
-		[ ${lock_attempt} -eq "${LOCK_TIMEOUT}" ] || retry_pause
-		lock_attempt=$(( lock_attempt - 1 ))
+	while [ "${lock_attempt}" -gt 0 ]; do
+		[ "${lock_attempt}" -eq "${LOCK_TIMEOUT}" ] || retry_pause
+		lock_attempt="$(( lock_attempt - 1 ))"
 		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
 		break
 	done
 	set +o noclobber
-	[ $lock_acquired ] || return 1
+	[ -n "${lock_acquired}" ] || return 1
 } # => acquire_lock ()
 
 # Release lock
@@ -764,10 +770,9 @@ init ()
 	delimiter='
 '
 
-
 	# Defaults
 	if [ -z "${EASYTLS_UNIT_TEST}" ]; then
-		EASYTLS_srv_pid=$PPID
+		EASYTLS_srv_pid="${PPID}"
 	else
 		EASYTLS_srv_pid=999
 	fi
@@ -1034,7 +1039,7 @@ client_serial="$(format_number "${tls_serial_hex_0}")"
 [ -n "${client_serial}" ] || die "Missing client_serial" 8
 
 # conntrac connect
-if [ $ENABLE_CONN_TRAC ]; then
+if [ -n "${ENABLE_CONN_TRAC}" ]; then
 	update_conntrac || die "update_conntrac FAIL" 170
 else
 	#update_status "conn-trac disabled"
@@ -1084,7 +1089,7 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 		else
 			# Client pushed UV_TLSKEY_SERIAL which does not match X509
 			# Should NOT be allowed - Client has copied another key
-			[ $IGNORE_X509_MISMATCH ] || {
+			[ -n "${IGNORE_X509_MISMATCH}" ] || {
 				failure_msg="TLS-key is being used by the wrong client certificate"
 				fail_and_exit "TLSKEY_X509_SERIAL-OVPN_X509_SERIAL-MISMATCH*1" 6
 				}
@@ -1094,7 +1099,7 @@ if [ -n "${UV_TLSKEY_SERIAL}" ]; then
 	else
 		# Client pushed an incorrect UV_TLSKEY_SERIAL
 		# Should NOT be allowed - Client has copied another UV_TLSKEY_SERIAL only
-		[ ! $ENFORCE_TLSKEY_SERIAL_MATCH ] || {
+		[ -z "${ENFORCE_TLSKEY_SERIAL_MATCH}" ] || {
 			failure_msg="PUSHED UV_TLSKEY_SERIAL ${UV_TLSKEY_SERIAL}"
 			fail_and_exit "INCORRECT UV_TLSKEY_SERIAL PUSHED"
 			}
@@ -1107,7 +1112,7 @@ else
 	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
 	no_uv_tlskey_serial=1
 	# Require crypt-v2
-	[ $ENFORCE_CRYPT_V2 ] && {
+	[ -n "${ENFORCE_CRYPT_V2}" ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
@@ -1123,9 +1128,9 @@ push_hwaddr="$(format_number "${IV_HWADDR}")"
 
 # This test being here allows to force all clients to use push-peer-info
 # May need the same for IP addresses
-if [ $push_hwaddr_missing ]; then
+if [ -n "${push_hwaddr_missing}" ]; then
 	# hwaddr is NOT pushed
-	[ $ENFORCE_PUSH_HWADDR ] && {
+	[ -n "${ENFORCE_PUSH_HWADDR}" ] && {
 		failure_msg="Client did not push required hwaddr"
 		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 		}
@@ -1134,24 +1139,24 @@ if [ $push_hwaddr_missing ]; then
 fi
 
 # ENABLE_NO_CHECK
-if [ $ENABLE_NO_CHECK ]; then
+if [ -n "${ENABLE_NO_CHECK}" ]; then
 	# disable all checks
 	update_status "Allow ALL TLS keys"
 	connection_allowed
 else
 	# Check for TLS Auth/Crypt
-	if [ $no_uv_tlskey_serial ]; then
+	if [ -n "${no_uv_tlskey_serial}" ]; then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
-		[ $ENFORCE_PUSH_HWADDR ] && [ $push_hwaddr_missing ] && {
+		[ -n "${ENFORCE_PUSH_HWADDR}" ] && [ -n "${push_hwaddr_missing}" ] && {
 			failure_msg="TLS Auth/Crypt no pushed hwaddr"
 			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 			}
-		[ $ENFORCE_CRYPT_V2 ] && {
+		[ -n "${ENFORCE_CRYPT_V2}" ] && {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
-		[ $ENFORCE_KEY_HWADDR ] && {
+		[ -n "${ENFORCE_KEY_HWADDR}" ] && {
 			failure_msg="TLS Auth/Crypt key enforce verify hwaddr"
 			fail_and_exit "TLS_CRYPT_V2 ONLY " 6
 			}
@@ -1169,7 +1174,7 @@ else
 		fi
 
 		# IP address check
-		if [ $PEER_IP_MATCH ]; then
+		if [ -n "${PEER_IP_MATCH}" ]; then
 			# First: Check metadata for IP addresses
 			# If no IP in metadata then cannot perform test, so ignore
 
@@ -1206,7 +1211,7 @@ else
 			unset delim4 delim6
 
 			# shellcheck disable=SC2154
-			if [ $found_ipv6 ] && [ -n "${trusted_ip6}" ]; then
+			if [ -n "${found_ipv6}" ] && [ -n "${trusted_ip6}" ]; then
 				unset peer_ip6_match_ok
 				# Test
 				peer_ip6_addr="${trusted_ip6}/128"
@@ -1241,18 +1246,18 @@ else
 			fi
 
 			# shellcheck disable=SC2154
-			if [ $found_ipv4 ] && [ -n "${trusted_ip}" ]; then
+			if [ -n "${found_ipv4}" ] && [ -n "${trusted_ip}" ]; then
 				# Set IP addr from Openvpn env
 				peer_ip4_addr="${trusted_ip}"
 				# Test
 				ip2dec "${peer_ip4_addr}"
-				peer_ip4_addr_dec=${ip4_dec}
+				peer_ip4_addr_dec="${ip4_dec}"
 				unset ip4_dec peer_ip4_match_ok
 				until [ -z "${key_ip4_list}" ]; do
 					key_ip_addr="${key_ip4_list% *}"
 					key_ip4_addr="${key_ip_addr%%/*}"
 					ip2dec "${key_ip4_addr}"
-					key_ip4_addr_dec=${ip4_dec}
+					key_ip4_addr_dec="${ip4_dec}"
 
 					key_ip4_bits="${key_ip_addr##*/}"
 					cidrmask2dec "${key_ip4_bits}"
@@ -1263,7 +1268,7 @@ else
 					# Binary
 					key_and4_mask_dec=$(( key_ip4_addr_dec & key_ip4_mask_dec ))
 					peer_and4_mask_dec=$(( peer_ip4_addr_dec & key_ip4_mask_dec ))
-					if [ ${key_and4_mask_dec} -eq ${peer_and4_mask_dec} ]
+					if [ "${key_and4_mask_dec}" -eq "${peer_and4_mask_dec}" ]
 					then
 						# v4 Match!
 						peer_ip_match_ok=1
@@ -1282,9 +1287,10 @@ else
 				:
 			fi
 
-			if [ $found_ipv6 ] || [ $found_ipv4 ]; then
+			if [ -n "${found_ipv6}" ] || [ -n "${found_ipv4}" ]; then
 				# matadata has an address and this test is enabled so ..
-				[ $peer_ip_match_ok ] || fail_and_exit "SOURCE_IP_MISMATCH!" 12
+				[ -n "${peer_ip_match_ok}" ] || \
+					fail_and_exit "SOURCE_IP_MISMATCH!" 12
 				update_status "IP Matched!"
 			else
 				# No IP-addr found in metadata then key not locked to IP
@@ -1297,10 +1303,10 @@ else
 
 		# Verify hwaddr
 		# hwaddr is pushed
-		if [ $key_hwaddr_missing ]; then
+		if [ -n "${key_hwaddr_missing}" ]; then
 			# key does not have a hwaddr
 			update_status "Key is not locked to hwaddr"
-			[ $ENFORCE_KEY_HWADDR ] && {
+			[ -n "${ENFORCE_KEY_HWADDR}" ] && {
 				failure_msg="Key hwaddr required but missing"
 				fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
 				}
@@ -1324,12 +1330,12 @@ else
 				fi
 			done
 
-			if [ $push_and_match ]; then
+			if [ -n "${push_and_match}" ]; then
 				update_status "hwaddr ${push_hwaddr} pushed and matched"
 				connection_allowed
 			else
 				# push does not match key hwaddr
-				if [ $IGNORE_HWADDR_MISMATCH ]; then
+				if [ -n "${IGNORE_HWADDR_MISMATCH}" ]; then
 					connection_allowed
 					update_status "IGNORE hwaddr mismatch!"
 				else
@@ -1349,7 +1355,7 @@ fi # ENABLE_NO_CHECK
 	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
 
 # Collect kill signal
-[ $kill_this_client ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
+[ -n "${kill_this_client}" ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
 
 # There is only one way out of this...
 if [ "${absolute_fail}" -eq 0 ]; then
