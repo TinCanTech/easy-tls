@@ -417,7 +417,6 @@ validate_ip6_data ()
 	fi
 	# Save the atmosphere
 	unset -v temp_ip_addr delim hextet i double_colon lead_colon
-	# shellcheck disable=SC2034
 	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
 	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
 } # => validate_ip6_data ()

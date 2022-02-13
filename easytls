@@ -2764,7 +2764,6 @@ inline_file_verify_hash ()
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
-	# shellcheck disable=SC2154
 	[ -n "${inline_hash}" ] && \
 		die "inline_file_verify_hash: Found value: inline_hash ${inline_hash}"
 
@@ -4987,7 +4986,8 @@ expand_ip6_address ()
 	temp_valid_hextets="${in_valid_hextets}"
 
 	# expand leading colon
-	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || lead_colon=1
+	[ "${temp_valid_hextets}" = "${temp_valid_hextets#:}" ] || \
+		lead_colon=1
 	[ -z "${lead_colon}" ] || temp_valid_hextets="0${temp_valid_hextets}"
 
 	# Count valid compressed hextets
@@ -5262,7 +5262,6 @@ validate_ip6_data ()
 	fi
 	# Save the atmosphere
 	unset -v temp_ip_addr delim hextet i double_colon lead_colon
-	# shellcheck disable=SC2034
 	full_valid_ip6_addr="${valid_hextets}/${valid_mask_len}"
 	# Return: valid_hextets ; valid_mask_len ; full_valid_ip6_addr
 } # => validate_ip6_data ()
@@ -9133,7 +9132,7 @@ main ()
 			print "*** Invalid IP6: ${*} ***"
 			exit 1
 			}
-		print "VALID: ${valid_hextets}/${mask_len}"
+		print "VALID: ${full_valid_ip6_addr}"
 		return 0
 	;;
 	x6ip)

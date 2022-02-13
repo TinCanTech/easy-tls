@@ -700,7 +700,6 @@ init ()
 	delimiter='
 '
 
-
 	# metadata version
 	local_easytls='easytls'
 
