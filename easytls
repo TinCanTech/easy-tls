@@ -3443,11 +3443,13 @@ inline_base ()
 	name="${1}"
 	shift
 
+	# Not used when called from a function
+	# because functions do not pass any parameters, except name
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key) no_x509_key=1 ;;
-			add-dh) inline_dh_file=1 ;;
-			*) warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-dh)	inline_dh_file=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3531,8 +3533,6 @@ inline_base ()
 			"${EASYTLS_PRINTF}" '%s\n' \
 			'# * Replace this line with your complete x509 key file *'
 		else
-			#[ -n "${EASYTLS_NO_CA}" ] && "${EASYRSA_OPENSSL}" \
-			#	ecparam -name "${EASYTLS_EC_CURVE}" -in "${key_file}" -text
 			"${EASYTLS_CAT}" "${key_file}"
 		fi
 
@@ -3571,13 +3571,13 @@ inline_tls_auth ()
 	name="${1}"
 	shift
 
-	cmd_opts=""
+	unset -v key_direction no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
 			0|1)	key_direction="${1}" ;;
-			add-dh)	cmd_opts="${cmd_opts} add-dh" ;;
-			no-key)	cmd_opts="${cmd_opts} no-key" ;;
-			*)		warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-dh)	inline_dh_file=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3608,19 +3608,21 @@ inline_tls_auth ()
 		die "TLS key file does not exist: ${tlskey_file}"
 		}
 
+	# Inline base file
+	inline_base "${name}" || die "Failed to create inline base file"
+
+	# Determine key_direction
 	case "${key_direction}" in
 		0|1)
-			# Using user specified --key-direction
-			:
-		;;
+			: ;; # User specified --key-direction
 		*)
-			# No key-direction found
-			die "key-direction is required! Server=0, client=1."
-		;;
+			# Use defaults - cert_purpose from inline_base()
+			case "${cert_purpose}" in
+				[sS]erver)	key_direction=0 ;;
+				[cC]lient)	key_direction=1 ;;
+				*)			die "key-direction is required! Server=0, client=1."
+		esac
 	esac
-
-	# Inline base file
-	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
 
 	{	"${EASYTLS_PRINTF}" "%s\n\n" "# TLS auth"
 		"${EASYTLS_PRINTF}" "%s\n\n" "key-direction ${key_direction}"
@@ -3656,12 +3658,12 @@ inline_tls_crypt_v1 ()
 	name="${1}"
 	shift
 
-	cmd_opts=""
+	unset -v no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			add-dh) cmd_opts="${cmd_opts} add-dh" ;;
-			no-key) cmd_opts="${cmd_opts} no-key" ;;
-			*) warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-dh)	inline_dh_file=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3693,7 +3695,7 @@ inline_tls_crypt_v1 ()
 		}
 
 	# Inline base file
-	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
+	inline_base "${name}" || die "Failed to create inline base file"
 
 	{	"${EASYTLS_PRINTF}" "%s\n\n" "# TLS crypt"
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt>"
@@ -3728,14 +3730,14 @@ inline_tls_crypt_v2 ()
 	name="${1}"
 	shift
 
-	cmd_opts=""
+	unset -v no_x509_key inline_dh_file add_hardware no_metadata
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			add-dh) cmd_opts="${cmd_opts} add-dh" ;;
-			no-key) cmd_opts="${cmd_opts} no-key" ;;
-			no-md) no_metadata=1 ;;
-			add-hw) add_hardware=1 ;;
-			*) warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-dh)	inline_dh_file=1 ;;
+			add-hw)	add_hardware=1 ;;
+			no-md)	no_metadata=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3829,7 +3831,7 @@ inline_tls_crypt_v2 ()
 	fi
 
 	# Inline base file
-	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
+	inline_base "${name}" || die "Failed to create inline base file"
 
 	# Append TLS-Crypt-V2 key
 	{
@@ -3918,13 +3920,12 @@ inline_tls_cv2_group_server ()
 
 	file_name_stub="${name}-${group_key}"
 
-	cmd_opts=""
+	unset -v no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			add-dh) cmd_opts="${cmd_opts} add-dh" ;;
-			no-key) cmd_opts="${cmd_opts} no-key" ;;
-			no-md) no_metadata=1 ;;
-			*) warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-dh)	inline_dh_file=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3984,7 +3985,7 @@ inline_tls_cv2_group_server ()
 	MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
 
 	# Inline base file
-	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
+	inline_base "${name}" || die "Failed to create inline base file"
 
 	# Append TLS-Crypt-V2 key
 	{
@@ -4072,13 +4073,13 @@ inline_tls_cv2_group_client ()
 
 	file_name_stub="${name}-${group_key}"
 
-	cmd_opts=""
+	unset -v no_x509_key add_hardware no_metadata
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key) cmd_opts="${cmd_opts} no-key" ;;
-			no-md) no_metadata=1 ;;
-			add-hw) add_hardware=1 ;;
-			*) warn "Ignoring unknown command option: '${1}'" ;;
+			no-key)	no_x509_key=1 ;;
+			add-hw)	add_hardware=1 ;;
+			no-md)	no_metadata=1 ;;
+			*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -4168,7 +4169,7 @@ inline_tls_cv2_group_client ()
 		fi
 
 	# Inline base file
-	inline_base "${name}" ${cmd_opts} || die "Failed to create inline base file"
+	inline_base "${name}" || die "Failed to create inline base file"
 
 	# Append TLS-Crypt-V2 key
 	{

@@ -507,6 +507,10 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	for i in "build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
+		"build-server-full s-auth nopass" \
+		"build-server-full s-crypt nopass" \
+		"build-client-full c-auth nopass" \
+		"build-client-full c-crypt nopass" \
 		"build-client-full c01 nopass" \
 		"build-client-full c02 nopass" \
 		"build-client-full c03 nopass" "revoke c03" \
@@ -575,6 +579,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 		"inline-expire" \
 		"bc2gc s01 family" "bc2gc s01 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" \
+		"ita s-auth" "itc s-crypt" "ita c-auth" "itc c-crypt" \
 		"rehash"
 		#"inline-index-rebuild" \
 		## EOL
