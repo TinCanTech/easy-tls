@@ -830,7 +830,7 @@ deps ()
 	EASYTLS_VARS_FILE="${EASYTLS_VARS_FILE:-${default_vars}}"
 	if [ -f "${EASYTLS_VARS_FILE}" ]; then
 		# .vars-example is correct for shellcheck
-		# shellcheck source=./examples/easytls-client-connect.vars-example
+		# shellcheck source=examples/easytls-client-connect.vars-example
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
@@ -843,7 +843,7 @@ deps ()
 	[ -f "${lib_file}" ] || \
 		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-metadata.lib"
 	if [ -f "${lib_file}" ]; then
-		# shellcheck source=./dev/easytls-metadata.lib
+		# shellcheck source=dev/easytls-metadata.lib
 		. "${lib_file}" || die "Failed to source: ${lib_file}"
 		easytls_metadata_lib_ver
 	fi
@@ -853,7 +853,7 @@ deps ()
 	[ -f "${lib_file}" ] || \
 		lib_file="${EASYTLS_WORK_DIR}/dev/easytls-tctip.lib"
 	if [ -f "${lib_file}" ]; then
-		# shellcheck source=./dev/easytls-tctip.lib
+		# shellcheck source=dev/easytls-tctip.lib
 		. "${lib_file}" || die "Failed to source: ${lib_file}"
 		easytls_tctip_lib_ver
 	fi

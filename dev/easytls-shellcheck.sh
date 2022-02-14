@@ -9,7 +9,7 @@ shellcheck_bin='shellcheck'
 
 #"${shellcheck_bin}" --version || { echo 'croak!' && exit 1; }
 
-SHELLCHECK_OPTS="--shell=sh -x"
+SHELLCHECK_FIXED_OPTS="--shell=sh -x"
 unset raw
 # shell-o check-o doesn't have -v
 case "${1}" in
@@ -18,17 +18,18 @@ case "${1}" in
 	;;
 	-vv)
 		shift
-		SHELLCHECK_OPTS="${SHELLCHECK_OPTS} -o all"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -o all"
 	;;
 	-r)
-		shift $#
+		shift "$#"
 		raw=1
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 	'')
-		SHELLCHECK_OPTS="${SHELLCHECK_OPTS} -S warning"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 	*)
-		SHELLCHECK_OPTS="${SHELLCHECK_OPTS} -S warning"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 esac
 
@@ -65,7 +66,7 @@ OPTION_FROST="-e 2244,2248,2250"
 [ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
 
 # export shellcheck opts
-[ -z "${raw}" ] || unset SHELLCHECK_OPTS
+[ -z "${raw}" ] || SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 export SHELLCHECK_OPTS
 #printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS}"
 
@@ -141,4 +142,4 @@ printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS}"
 # dirty trick to log_linel my CI and still record a fail
 # IMHO, shellcheck should check for this but does not ...
 #[ $exit_status -gt 0 ] && echo "Easy-TLS Shellcheck exit status: $exit_status"
-[ $exit_status -eq 0 ] || printf '%s\n\n' "***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)"
+[ "${exit_status}" -eq 0 ] || printf '%s\n\n' "***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)"
