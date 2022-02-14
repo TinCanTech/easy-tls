@@ -189,9 +189,9 @@ die ()
 		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 			"${EASYTLS_PRINTF}" "%s\n%s\n" \
 				"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
-			taskkill /F /PID ${EASYTLS_srv_pid}
+			taskkill /F /PID "${EASYTLS_srv_pid}"
 		else
-			kill -15 ${EASYTLS_srv_pid}
+			kill -15 "${EASYTLS_srv_pid}"
 		fi
 	fi
 	exit "${2:-255}"
@@ -225,8 +225,8 @@ fail_and_exit ()
 		print "* ==> TLSK serial  remote: ${MD_TLSKEY_SERIAL}"
 		print "* ==> sub-key      remote: ${MD_SUBKEY}"
 		print "* ==> date         remote: ${MD_DATE}"
-		[ ${2} -eq 2 ] && print "* ==> Client serial status: revoked"
-		[ ${2} -eq 3 ] && print "* ==> Client serial status: disabled"
+		[ "${2}" -eq 2 ] && print "* ==> Client serial status: revoked"
+		[ "${2}" -eq 3 ] && print "* ==> Client serial status: disabled"
 		[ -n "${help_note}" ] && print "${help_note}"
 	else
 		print "${status_msg}"
@@ -501,8 +501,8 @@ acquire_lock ()
 	unset lock_acquired
 	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
-	while [ ${lock_attempt} -gt 0 ]; do
-		[ ${lock_attempt} -eq "${LOCK_TIMEOUT}" ] || retry_pause
+	while [ "${lock_attempt}" -gt 0 ]; do
+		[ "${lock_attempt}" -eq "${LOCK_TIMEOUT}" ] || retry_pause
 		lock_attempt=$(( lock_attempt - 1 ))
 		"${EASYTLS_MKDIR}" "${1}" || continue
 		lock_acquired=1
@@ -1138,7 +1138,7 @@ fi
 
 		# HASH metadata sring without the tlskey-serial
 		md_hash="$("${EASYTLS_PRINTF}" '%s' "${MD_SEED}" | \
-			"${EASYTLS_OPENSSL}" ${EASYTLS_HASH_ALGO} -r)"
+			"${EASYTLS_OPENSSL}" "${EASYTLS_HASH_ALGO}" -r)"
 		md_hash="${md_hash%% *}"
 		[ "${md_hash}" = "${MD_TLSKEY_SERIAL}" ] || {
 			failure_msg="TLS-key metadata hash is incorrect"
