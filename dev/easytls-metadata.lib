@@ -20,6 +20,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # Loaded message
 easytls_metadata_lib_ver ()
 {
+	# shellcheck disable=2154
 	"${EASYTLS_PRINTF}" '%s\n' "* easytls-metadata.lib v2.8 loaded"
 } # => easytls_tctip_lib_ver ()
 

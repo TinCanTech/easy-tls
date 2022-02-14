@@ -861,7 +861,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	subtot_expected_errors=0
 
 	eval loop_${loops}_end_time="$(date +%s)"
-	# shellcheck disable=SC1072,SC1073
+	# shellcheck disable=SC1072,SC1073,1009
 	eval loop_${loops}_run_mins="$(( (loop_${loops}_end_time - loop_${loops}_start_time) / 60 ))"
 	eval loop_${loops}_run_secs="$(( (loop_${loops}_end_time - loop_${loops}_start_time) - ( loop_${loops}_run_mins * 60 ) ))"
 

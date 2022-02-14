@@ -51,6 +51,7 @@ conn_trac_connect ()
 
 	if [ -f "${2}" ]; then
 		{
+			# shellcheck disable=2162 # read without -r
 			while read full_conn; do
 
 				conn="${full_conn%++*}"
@@ -71,6 +72,7 @@ conn_trac_connect ()
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Duplicate, because ct will add the same again
 					record_found=1
+					# shellcheck disable=2154
 					"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
 				else
 					# Print the existing record
@@ -91,6 +93,7 @@ conn_trac_connect ()
 
 		} > "${easytls_temp_file}" || err_exit=1
 
+		# shellcheck disable=2154
 		"${EASYTLS_MV}" -f "${easytls_temp_file}" "${2}" || err_exit=1
 
 		# This was used for #160/1434 - Re-think it soon
@@ -143,6 +146,7 @@ conn_trac_disconnect ()
 
 	if [ -f "${2}" ]; then
 		{
+			# shellcheck disable=2162 # read without -r
 			while read full_conn; do
 
 				conn="${full_conn%%++*}"
@@ -180,6 +184,7 @@ conn_trac_disconnect ()
 			err_exit=${err_exit:-2}
 			}
 		[ -s "${2}" ] || {
+			# shellcheck disable=2154
 			"${EASYTLS_RM}" -f "${2}"
 			update_status "conntrac: CLOSED"
 			tlskey_status " >X< * ct: *CLOSED* -"
@@ -199,6 +204,7 @@ conn_trac_disconnect ()
 conn_trac_stats ()
 {
 	ctc=0
+	# shellcheck disable=2154
 	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
 	[ $(( ctc )) -lt 4294967296 ] || ctc=0
 	ctc=$(( ctc + 1 ))
