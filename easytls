@@ -644,6 +644,7 @@ verify_pki_init () {
 			error_msg "Easy-RSA has not been initialised."
 			error_msg "Easy-TLS requires an Easy-RSA CA"
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
+			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
 			}
@@ -654,6 +655,7 @@ verify_pki_init () {
 			error_msg "Easy-RSA has not been initialised."
 			error_msg "Easy-TLS requires an Easy-RSA CA"
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
+			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
 			}
@@ -8654,6 +8656,64 @@ verify_faster_hash ()
 
 ############################################################################
 #
+# EASYTLS shellcheck Section
+#
+
+# Fake function to assign variable values for SC2154
+# Todo: Replace set_var() with ="${x:-y}"
+shellcheck_ignore_2154 ()
+{
+	EASYRSA_OPENSSL=
+	EASYRSA_INDEX=
+	EASYRSA_RAND_SN=
+
+	EASYTLS_OPENVPN=
+
+	EASYTLS=
+	EASYTLS_PKI=
+	EASYTLS_MDATA_D=
+	EASYTLS_DATA_DIR=
+	EASYTLS_FASTER_HASH=
+	EASYTLS_WISCII_HASH=
+	EASYTLS_CONFIG_FILE=
+	EASYTLS_CONFIG_HASH=
+	EASYTLS_INLINE_INDEX=
+	EASYTLS_INLINE_X_HASH=
+	EASYTLS_KEY_INDEX=
+	EASYTLS_KEY_X_HASH=
+	EASYTLS_DISABLED_LIST=
+	EASYTLS_DISABLED_HASH=
+
+	EASYTLS_TEMP_LIST=
+	EASYTLS_TEMP_RECORD=
+	EASYTLS_TEMP_LOCK=
+
+	EASYTLS_CA_IDENTITY=
+	TLSKEY_SUBNAME=
+
+	EASYTLS_VERIFY_V2_SH=
+	EASYTLS_VERIFY_V2_VARS=
+	#EASYTLS_VERIFY_V2_VEXM=
+
+	EASYTLS_CLICON_SH=
+	EASYTLS_CLICON_VARS=
+	#EASYTLS_CLICON_VEXM=
+
+	EASYTLS_CLIDIS_SH=
+	EASYTLS_CLIDIS_VARS=
+	#EASYTLS_CLIDIS_VEXM=
+
+	EASYTLS_SRVSCRIPT_CFG=
+	EASYTLS_INSTRUCT_TEMP=
+	#EASYTLS_SRVSCRIPT_VEXM=
+
+	EASYTLS_SS_AGE=
+	EASYTLS_EC_CURVE=
+	EASYTLS_ECPARAM_TMP=
+}
+
+############################################################################
+#
 # EASYTLS SETUP Section
 #
 
@@ -8900,22 +8960,24 @@ vars_setup()
 
 	set_var EASYTLS_VERIFY_V2_SH    "${EASYTLS}/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_VERIFY_V2_VARS  "${EASYTLS}/easytls-cryptv2-verify.vars"
-	set_var EASYTLS_VERIFY_V2_VEXM  "${EASYTLS_VERIFY_V2_VARS}-example"
-
-	set_var EASYTLS_VERIFY_V1_SH    "${EASYTLS}/easytls-verify.sh"
-	set_var EASYTLS_VERIFY_V1_VARS  "${EASYTLS}/easytls-verify.vars"
-	set_var EASYTLS_VERIFY_V1_VEXM  "${EASYTLS_VERIFY_V1_VARS}-example"
+	#set_var EASYTLS_VERIFY_V2_VEXM \
+	#	"${EASYTLS}/examples/easytls-cryptv2-verify.vars-example"
 
 	set_var EASYTLS_CLICON_SH       "${EASYTLS}/easytls-client-connect.sh"
 	set_var EASYTLS_CLICON_VARS     "${EASYTLS}/easytls-client-connect.vars"
-	set_var EASYTLS_CLICON_VEXM     "${EASYTLS_CLICON_VARS}-example"
+	#set_var EASYTLS_CLICON_VEXM \
+	#    "${EASYTLS}/examples/easytls-client-connect.vars-example"
 
 	set_var EASYTLS_CLIDIS_SH       "${EASYTLS}/easytls-client-disconnect.sh"
 	set_var EASYTLS_CLIDIS_VARS     "${EASYTLS}/easytls-client-disconnect.vars"
-	set_var EASYTLS_CLIDIS_VEXM     "${EASYTLS_CLIDIS_VARS}-example"
+	#set_var EASYTLS_CLIDIS_VEXM \
+	#    "${EASYTLS}/examples/easytls-client-disconnect.vars-example"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "${EASYTLS}/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "${EASYTLS}/easytls-script.help"
+	#set_var EASYTLS_SRVSCRIPT_VEXM \
+	#    "${EASYTLS}/examples/easytls-script.conf-example"
+
 
 	set_var EASYTLS_SS_AGE          "3650"
 	set_var EASYTLS_EC_CURVE        "secp384r1"
@@ -9178,6 +9240,7 @@ main ()
 		verify_tls_init || {
 			error_msg "Easy-TLS has not been initialised."
 			error_msg "See help: ./easytls help init-tls"
+			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
 			}
