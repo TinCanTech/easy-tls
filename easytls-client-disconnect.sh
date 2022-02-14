@@ -382,8 +382,6 @@ stack_down ()
 	[ -n "${stack_completed}" ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	#[ $ENABLE_STACK ] || return 0
-
 	# Lock
 	acquire_lock "${easytls_lock_stub}-stack.d" || \
 		die "acquire_lock:stack FAIL" 99
@@ -398,12 +396,12 @@ stack_down ()
 		s=''
 
 		while [ -f "${client_md_file_stack}_${i}" ]; do
-			[ ${i} -eq 1 ] || s="${s}."
-			p=${i}
-			i=$(( i + 1 ))
+			[ "${i}" -eq 1 ] || s="${s}."
+			p="${i}"
+			i="$(( i + 1 ))"
 		done
 
-		if [ ${p} -eq 0 ]; then
+		if [ "${p}" -eq 0 ]; then
 			"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
 		else
 			"${EASYTLS_RM}" "${client_md_file_stack}_${p}" || stack_err=1
@@ -662,7 +660,8 @@ while [ -n "${1}" ]; do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+	if [ -z "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
+	then
 		warn_die "Missing value to option: ${opt}"
 	fi
 	shift

@@ -581,8 +581,6 @@ stack_down ()
 	[ -n "${stack_completed}" ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
-	#[ $ENABLE_STACK ] || return 0
-
 	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
 	[ -f "${client_md_file_stack}" ] || return 0
 
@@ -598,11 +596,11 @@ stack_down ()
 	# Full Stack DOWN
 	while :
 	do
-		i=$(( i + 1 ))
+		i="$(( i + 1 ))"
 		if [ -f "${client_md_file_stack}_${i}" ]; then
-			[ ${i} -eq 1 ] || s="${s}."
+			[ "${i}" -eq 1 ] || s="${s}."
 		else
-			if [ ${i} -eq 1 ]; then
+			if [ "${i}" -eq 1 ]; then
 				# There are no stacked files so delete the original
 				[ -f "${client_md_file_stack}" ] || die "***" 163
 				"${EASYTLS_RM}" "${client_md_file_stack}" || stack_err=1
@@ -610,7 +608,7 @@ stack_down ()
 				tlskey_status "  | =  stack: clear -"
 			else
 				# Delete the last file found
-				p=$(( i - 1 ))
+				p="$(( i - 1 ))"
 				[ -f "${client_md_file_stack}_${p}" ] || die "_i***" 164
 				"${EASYTLS_RM}" "${client_md_file_stack}_${p}" || stack_err=1
 				update_status "stack-down: ${p}"
@@ -1003,7 +1001,8 @@ while [ -n "${1}" ]; do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! $empty_ok ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+	if [ -z "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
+	then
 		warn_die "Missing value to option: ${opt}"
 	fi
 	shift

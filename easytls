@@ -1741,7 +1741,7 @@ generate_and_save_file_hash ()
 		}
 
 	# Save $generated_valid_hash
-	save_file_hash "${hash_file}" ${generated_valid_hash} || {
+	save_file_hash "${hash_file}" "${generated_valid_hash}" || {
 		error_msg "save_file_hash - generate_and_save_file_hash"
 		unset -v target_file hash_file generated_valid_hash
 		return 1
@@ -1806,7 +1806,7 @@ easytls_sec_to_date ()
 			return 1
 			}
 	else
-		t_d="$("${EASYTLS_DATE}" --date=@${1} ${format})" || {
+		t_d="$("${EASYTLS_DATE}" --date=@"${1}" "${format}")" || {
 			error_msg "easytls_sec_to_date - generate date: ${1} ${format}"
 			unset -v t_d
 			return 1
@@ -8762,7 +8762,7 @@ external_deps ()
 
 	# OpenSSL config
 	EASYTLS_OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
-	# Ensure $EASYTLS_OPENSSL_CONF is present and export it
+	# Ensure EASYTLS_OPENSSL_CONF is present and export it
 	easytls_openssl_file || \
 		die "Failed to create easytls-openssl.cnf (Permission)"
 
@@ -8839,7 +8839,7 @@ vars_setup()
 	fi
 
 	# If a vars file was located, source it
-	# If $EASYRSA_NO_VARS is defined (not blank) this is skipped
+	# If EASYRSA_NO_VARS is defined (not blank) this is skipped
 	if [ -z "$EASYRSA_NO_VARS" ] && [ -n "$vars" ]; then
 		# shellcheck disable=SC2034
 		EASYRSA_CALLER=1
@@ -9025,7 +9025,7 @@ main ()
 		esac
 
 		# fatal error when no value was provided
-		if [ -z "$empty_ok" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
+		if [ -z "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
 		then
 			fatal_opt "Missing value to option: ${opt}"
 		fi

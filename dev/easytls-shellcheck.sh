@@ -41,11 +41,11 @@ esac
 # eg. "${EASYTLS_AWK}" '{print $2}'
 # seen as a likely error but this information is not needed
 #
-# SC2086 (info):
+# SC2086 (info): Removed
 #   Double quote to prevent globbing and word splitting.
 # eg '[ $log_line ] ] || bar' (the extra ']' is not seen if log_line is not quoted)
 # Double quote everything or get hoisted! I will fix this..
-PERMA_FROST="-e 2016,2086"
+PERMA_FROST="-e 2016"
 [ -z "${PERMA_FROST}" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} ${PERMA_FROST}"
 
 # Others:

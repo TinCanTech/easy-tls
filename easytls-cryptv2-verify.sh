@@ -1044,7 +1044,8 @@ while [ -n "${1}" ]; do
 	esac
 
 	# fatal error when no value was provided
-	if [ ! "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }; then
+	if [ -z "${empty_ok}" ] && { [ "${val}" = "${1}" ] || [ -z "${val}" ]; }
+	then
 		warn_die "Missing value to option: ${opt}"
 	fi
 	shift
