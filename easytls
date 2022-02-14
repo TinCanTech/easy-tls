@@ -1912,13 +1912,13 @@ authorityKeyIdentifier	= keyid:always,issuer
 openssl_generate_empty_hash ()
 {
 	"${EASYTLS_PRINTF}" '%s' "" | \
-		"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r || return 1
+		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_empty_hash ()
 
 # OpenSSL hash file
 openssl_generate_file_hash ()
 {
-	"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r "${1}" || return 1
+	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "${1}" || return 1
 } # => openssl_generate_file_hash ()
 
 # Base64 encode data
@@ -1936,7 +1936,7 @@ openssl_cert_expire_date ()
 # OpenSSL hash data
 openssl_generate_data_hash ()
 {
-		"${EASYRSA_OPENSSL}" dgst -${EASYTLS_HASH_ALGO} -r || return 1
+		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_data_hash ()
 
 # OpenSSL certificate purpose
@@ -5633,7 +5633,7 @@ create_self_sign_cert_pair ()
 		> "${EASYTLS_ECPARAM_TMP}"
 	# If ecparams fail then so does req
 	"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-		${openssl_nodes} -sha256 -days=${EASYTLS_SS_AGE} -text -utf8 \
+		${openssl_nodes} -sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
 		-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 		${openssl_eku}=${EASYTLS_EKU} || return 1
 
