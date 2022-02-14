@@ -4431,8 +4431,8 @@ build_tls_auth ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-auth" ;;
-		2.4) build_string="--genkey --secret" ;;
+		2.5|2.6) build_string="tls-auth" ;;
+		2.4) build_string="--secret" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4441,7 +4441,7 @@ build_tls_auth ()
 	[ -f "${tlskey_file}" ] && \
 		die "TLS auth key already exists: ${tlskey_file}"
 
-	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
 		die "Failed to create TLS auth key: ${tlskey_file}"
 
 	notice "TLS auth key created: ${tlskey_file}"
@@ -4455,8 +4455,8 @@ build_tls_crypt_v1 ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-crypt" ;;
-		2.4) build_string="--genkey --secret" ;;
+		2.5|2.6) build_string="tls-crypt" ;;
+		2.4) build_string="--secret" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4465,7 +4465,7 @@ build_tls_crypt_v1 ()
 	[ -f "${tlskey_file}" ] && \
 		die "TLS crypt v1 key already exists: ${tlskey_file}"
 
-	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
 		die "Failed to create TLS crypt v1 key: ${tlskey_file}"
 
 	notice "TLS crypt v1 key created: ${tlskey_file}"
@@ -4481,7 +4481,7 @@ build_tls_crypt_v2_server ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+		2.5|2.6) build_string="tls-crypt-v2-server" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4514,7 +4514,7 @@ build_tls_crypt_v2_server ()
 	x509_cert_serial "${srv_cert}" cert_serial || \
 		die "build_tls_crypt_v2_server - cert_serial"
 
-	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
 
 	# Save incomplete server record to key-index
@@ -4539,7 +4539,7 @@ build_tls_crypt_v2_client ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		2.5|2.6) build_string="tls-crypt-v2-client" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4687,8 +4687,8 @@ build_tls_crypt_v2_client ()
 
 	# Build key
 	"${EASYTLS_OPENVPN}" --tls-crypt-v2 "${in_file}" \
-		${build_string} "${tlskey_file}" "${b64_metadata}" || \
-		die "Failed to create tls-crypt-v2-client key: ${tlskey_file}"
+		--genkey "${build_string}" "${tlskey_file}" "${b64_metadata}" || \
+			die "Failed to create tls-crypt-v2-client key: ${tlskey_file}"
 
 	# Save serial number to key-index
 	#tlskey_serial=${tlskey_serial}
@@ -4715,7 +4715,7 @@ build_tls_cv2_group_server ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-server" ;;
+		2.5|2.6) build_string="tls-crypt-v2-server" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4726,7 +4726,7 @@ build_tls_cv2_group_server ()
 	[ -f "${tlskey_file}" ] && \
 		die "Group Server key already exists: ${tlskey_file}"
 
-	"${EASYTLS_OPENVPN}" ${build_string} "${tlskey_file}" || \
+	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
 
 	# Save incomplete server record to key-index
@@ -4748,7 +4748,7 @@ build_tls_cv2_group_client ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="--genkey tls-crypt-v2-client" ;;
+		2.5|2.6) build_string="tls-crypt-v2-client" ;;
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
@@ -4837,8 +4837,8 @@ build_tls_cv2_group_client ()
 
 	# Build key
 	"${EASYTLS_OPENVPN}" --tls-crypt-v2 "${in_file}" \
-		${build_string} "${tlskey_file}" "${b64_metadata}" || \
-		die "Failed to create tls-crypt-v2-client key: ${tlskey_file}"
+		--genkey "${build_string}" "${tlskey_file}" "${b64_metadata}" || \
+			die "Failed to create tls-crypt-v2-client key: ${tlskey_file}"
 
 	# Save serial number to key-index
 	tlskey_index_update add || die "Failed to update tlskey-index"
