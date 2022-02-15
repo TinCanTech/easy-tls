@@ -14,21 +14,29 @@ unset raw
 # shell-o check-o doesn't have -v
 case "${1}" in
 	-v)
-		shift
+		shift "$#"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 	-vv)
-		shift
+		shift "$#"
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -o all"
 	;;
+	-vvv)
+		shift "$#"
+		SHELLCHECK_OPTS="-x -o all"
+	;;
+	
 	-r)
 		shift "$#"
 		raw=1
-		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
+		#SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 	'')
+		shift "$#"
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 	*)
+		shift "$#"
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 esac
@@ -60,15 +68,16 @@ OPTION_FROST="-e 2244,2248,2250"
 [ -z "${OPTION_FROST}" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} ${OPTION_FROST}"
 
 # Disable at will
-[ -z "${FROST_BITE}" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} ${FROST_BITE}"
+#[ -z "${FROST_BITE}" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} ${FROST_BITE}"
 
 # Append command line, use -i not -o
 [ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
 
-# export shellcheck opts
-[ -z "${raw}" ] || SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
+# Mode: shellcheck 'raw'
+[ -z "${raw}" ] || unset SHELLCHECK_OPTS
+
+# Final export
 export SHELLCHECK_OPTS
-#printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS}"
 
 log_line='========================================================================'
 
@@ -137,8 +146,10 @@ exit_status=$(( 	sc_easytls + \
 
 ./easytls version || { echo 'croak!' && exit 1; }
 "${shellcheck_bin}" --version || { echo 'croak!' && exit 1; }
-printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS}"
+printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS:-===[ No Options ]===}"
 
+[ -n "${raw}" ] && [ "${exit_status}" -ne 0 ] &&  \
+	printf "* raw mode * Expect weird stuff and ERRORS, see below:\n"
 # dirty trick to log_linel my CI and still record a fail
 # IMHO, shellcheck should check for this but does not ...
 #[ $exit_status -gt 0 ] && echo "Easy-TLS Shellcheck exit status: $exit_status"
