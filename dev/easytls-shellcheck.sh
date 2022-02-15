@@ -25,7 +25,6 @@ case "${1}" in
 		shift "$#"
 		SHELLCHECK_OPTS="-x -o all"
 	;;
-	
 	-r)
 		shift "$#"
 		raw=1
@@ -36,8 +35,8 @@ case "${1}" in
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 	*)
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} $@"
 		shift "$#"
-		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 esac
 
@@ -144,13 +143,21 @@ exit_status=$(( 	sc_easytls + \
 					sc_easytls_shellcheck \
 			 ))
 
+# easytls version
 ./easytls version || { echo 'croak!' && exit 1; }
-"${shellcheck_bin}" --version || { echo 'croak!' && exit 1; }
-printf '\n%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS:-===[ No Options ]===}"
 
-[ -n "${raw}" ] && [ "${exit_status}" -ne 0 ] &&  \
-	printf "* raw mode * Expect weird stuff and ERRORS, see below:\n"
-# dirty trick to log_linel my CI and still record a fail
-# IMHO, shellcheck should check for this but does not ...
-#[ $exit_status -gt 0 ] && echo "Easy-TLS Shellcheck exit status: $exit_status"
-[ "${exit_status}" -eq 0 ] || printf '%s\n\n' "***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)"
+# exit status
+[ "${exit_status}" -eq 0 ] || printf \
+	"***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)\n\n"
+
+# options
+printf "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS:-===[ No Options ]===}\n\n"
+
+# version
+unset SHELLCHECK_OPTS # or get more errors
+"${shellcheck_bin}" --version || { echo 'vroak!' && exit 1; }
+
+# raw
+if [ -n "${raw}" ] && [ "${exit_status}" -ne 0 ]; then
+	printf "\n* raw mode * Expect weird stuff and ERRORS\n\n"
+fi
