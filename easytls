@@ -102,7 +102,9 @@ Use the 'help' command above to get full usage details.
          |
   s      | status [ cmd-opts ]
   rk     | remove-tlskey <client_filename_base>
+  rgk    | remove-group-tlskey <client_filename_base> <Group-Name>
   ri     | remove-inline <filename_base>
+  rgi    | remove-group-inline <Client-Name> <Group-Name>
   rm     | remove-metadata <filename_base> pattern
   is     | inline-show <filename_base>
          | inline-index-rebuild
@@ -261,6 +263,9 @@ cmd_help()
   remove-inline <filename_base>
       Delete <filename_base>.inline and update the inline-index
       When an Easy-RSA certificate is revoked then the inline file is invalid" ;;
+		rgi|rgil|remove-group-inline) text="
+  remove-group-inline <Client-Name> <Group-Name>
+      Delete <Client-Name>-<Group-Name>.inline and update the inline-index" ;;
 		rm|rmd|remove-metadata) text="
   remove-metadata <filename_base> pattern
       Remove inline-file metadata matching 'pattern' from <filename_base>.inline
@@ -462,6 +467,7 @@ Easy-TLS abbreviations:
   inline-tls-crypt-v2-group-client - ic2gc | itc2gc | itcv2gc
 
   remove-inline                    - ri | ril
+  remove-group-inline              - rgi | rgil
   remove-metadata                  - rm | rmd
   inline-show                      - is
   inline-index-rebuild             - No abbreviation
@@ -2989,6 +2995,93 @@ remove_inline ()
 	easytls_verbose
 } # => remove_inline ()
 
+# Remove GROUP .inline file
+remove_group_inline ()
+{
+	[ "$#" -ge 2 ] || die "Required option(s): <Client-Name> <Group-Name>"
+
+	name="${1}"
+	group="${2}"
+	inline_file="${EASYTLS_PKI}/${name}-${group}.inline"
+
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
+		}
+
+	[ -f "${inline_file}" ] || missing_file "${inline_file}"
+
+	# Inline serial
+	x509_cert_serial "${inline_file}" inline_serial || {
+		error_msg "x509_cert_serial - remove_group_inline"
+		return 1
+		}
+
+	unset force_remove
+	# Check .inline HASH prior to removal
+	if inline_file_verify_hash; then
+		: # OK
+	else
+		unset error_log
+		print "
+* HELP: easytls can *Force* remove this file from the index.
+        Once removed from the index, easytls will ignore this file.
+        The file will be renamed to: ${inline_file}-badhash"
+		confirm  "*Force* remove inline file: ${inline_file} ? " "yes" \
+			"WARNING: Inline file HASH failed !"
+		force_remove=1
+	fi
+
+	# Confirm remove
+	[ -n "${force_remove}" ] || \
+		confirm  "Remove inline file ? " "yes" "Remove: ${inline_file}"
+
+	# Do not over write existing
+	[ -f "${inline_file}-badhash" ] && \
+		die "File exists: ${inline_file}-badhash"
+
+	# Move
+	if [ -z "${force_remove}" ]; then
+		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-deleteme" || \
+			die "Failed to move: ${inline_file}"
+	else
+		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
+			die "Failed to move: ${inline_file}"
+	fi
+
+	# Update the index first
+	if inline_index_update del; then
+		# Remove
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_RM}" "${inline_file}-deleteme" || \
+				die "Failed to remove: ${inline_file}"
+		fi
+	else
+		# Undo move
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_MV}" "${inline_file}-deleteme" "${inline_file}" || \
+				die "Failed to restore: ${inline_file}"
+		else
+			"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
+				die "Failed to restore: ${inline_file}"
+		fi
+		# Always die
+		die "Failed to update inline-index"
+	fi
+
+	# Inline file and record deleted - Forget the HASH
+	# Otherwise 'inline_renew add' still has the HASH
+	# Logically, this *cannot* be removed -- tct
+	# Improve this! please..
+	unset -v inline_hash
+
+	if [ -z "${force_remove}" ]; then
+		notice "Inline file removed: ${inline_file}"
+	else
+		notice "Inline file renamed to: ${inline_file}-badhash"
+	fi
+	easytls_verbose
+} # => remove_inline ()
+
 # Remove metadata from inline file
 remove_metadata ()
 {
@@ -3325,12 +3418,20 @@ verify_tlskey_serial ()
 } # => verify_tlskey_serial ()
 
 # # Verify that this key is no longer in use
-tlskey_verify_in_use ()
+verify_tlskey_in_use ()
 {
 	x509_patt=".*[[:blank:]]${cert_serial}[[:blank:]]"
 	tlsk_patt=".*[[:blank:]]${tlskey_serial}"
 	"${EASYTLS_GREP}" -q "^${x509_patt}${tlsk_patt}\$" "${EASYTLS_INLINE_INDEX}"
-} # => tlskey_verify_in_use ()
+} # => verify_tlskey_in_use ()
+
+# # Verify that this group key is no longer in use
+verify_group_tlskey_in_use ()
+{
+	x509_patt=".*-${name}[[:blank:]]"
+	tlsk_patt=".*[[:blank:]]${tlskey_serial}"
+	"${EASYTLS_GREP}" "^${x509_patt}${tlsk_patt}\$" "${EASYTLS_INLINE_INDEX}"
+} # => verify_tlskey_in_use ()
 
 # Remove a TLS-Crypt-V2 Client key and update the tlskey-index
 remove_tlskey ()
@@ -3382,8 +3483,8 @@ remove_tlskey ()
 		die "remove_tlskey - verify_cert_serial"
 
 	# Check this tlskey is not in use by an .inline file
-	tlskey_verify_in_use && {
-		help_note="Remove the inline file which uses this key."
+	verify_tlskey_in_use && {
+		help_note="Remove the inline file which uses this key. See 'status inline'"
 		die "This key is still in use: ${tlskey_file}"
 		}
 
@@ -3450,7 +3551,7 @@ remove_group_tlskey ()
 
 	# Verify this tlskey-serial
 	validate_hash "${tlskey_serial}" || {
-		error_msg "remove_tlskey - tlskey_serial failed: ${tlskey_serial}"
+		error_msg "remove_tlskey - validate_hash failed: ${tlskey_serial}"
 		unset -v tlskey_serial
 		return 1
 		}
@@ -3464,8 +3565,8 @@ remove_group_tlskey ()
 		die "remove_tlskey - verify_cert_serial"
 
 	# Check this tlskey is not in use by an .inline file
-	tlskey_verify_in_use && {
-		help_note="Remove the inline file which uses this key."
+	verify_group_tlskey_in_use && {
+		help_note="Remove the inline files which use this key. See 'status inline'"
 		die "This key is still in use: ${tlskey_file}"
 		}
 
@@ -9540,6 +9641,9 @@ main ()
 		;;
 		ri|ril|remove-inline)
 			remove_inline "$@" || die "remove_inline"
+		;;
+		rgi|rgil|remove-group-inline)
+			remove_group_inline "$@" || die "remove_group_inline"
 		;;
 		rt|rk|rtk|remove-tlskey)
 			remove_tlskey "$@" || die "remove_tlskey"
