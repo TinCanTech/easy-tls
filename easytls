@@ -193,6 +193,9 @@ cmd_help()
 		rt|rtk|remove-tlskey) text="
   remove-tlskey <client_filename_base>
       Remove a TLS-Crypt-V2 Client key and update the tlskey-index." ;;
+		rgt|rgk|rgtk|remove-group-tlskey) text="
+  remove-group-tlskey <Group-Key-Name>
+      Remove a TLS-Crypt-V2 GROUP Client key and update the tlskey-index." ;;
 		sid|save-id) text="
   save-id [ no options ]
       Save the CA-Identity to easytls/easytls-ca-identity.txt
@@ -3175,6 +3178,7 @@ tlskey_index_update ()
 		}
 
 	easytls_verbose "tlskey-index Update complete!"
+	update_master_hash=1
 } # => tlskey_index_update ()
 
 # Verify current tlskey-index hash
@@ -3350,7 +3354,94 @@ remove_tlskey ()
 		}
 
 	# Check required files (No metadata_file for servers)
-	#[ -f "${cert_file}" ] || missing_file "${cert_file}"
+	[ -f "${cert_file}" ] || missing_file "${cert_file}"
+	cert_purpose=
+	verify_cert_purpose "${cert_file}" cert_purpose || \
+		die "remove_tlskey - verify_cert_purpose"
+	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
+	[ "${cert_purpose}" = 'Server' ] || {
+		[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
+		}
+
+	# Get tlskey serial number from tlskey-index
+	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
+
+	# Verify this tlskey-serial
+	validate_hash "${tlskey_serial}" || {
+		error_msg "remove_tlskey - tlskey_serial failed: ${tlskey_serial}"
+		unset -v tlskey_serial
+		return 1
+		}
+
+	# Get x509 serial number from tlskey-index
+	cert_serial="$(tlskey_index_fname_2_x509ser)" || \
+		die "remove_tlskey - cert_serial"
+
+	# Verify this cert-serial
+	verify_cert_serial "${cert_serial}" || \
+		die "remove_tlskey - verify_cert_serial"
+
+	# Check this tlskey is not in use by an .inline file
+	tlskey_verify_in_use && {
+		help_note="Remove the inline file which uses this key."
+		die "This key is still in use: ${tlskey_file}"
+		}
+
+	# Confirm remove
+	confirm  "Remove tlskey file ? " "yes" "Remove: ${tlskey_file}"
+
+	# Move
+	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleted" || \
+		die "Failed to move: ${tlskey_file}"
+	[ "${cert_purpose}" = 'Server' ] || {
+		"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleted" || \
+			die "Failed to move: ${metadata_file}"
+		}
+
+	# Update index
+	if tlskey_index_update del; then
+		# Remove
+		"${EASYTLS_RM}" "${tlskey_file}-deleted" || \
+			die "Failed to remove: ${tlskey_file}"
+		[ "${cert_purpose}" = 'Server' ] || {
+			"${EASYTLS_RM}" "${metadata_file}-deleted" || \
+				die "Failed to remove: ${metadata_file}"
+			}
+	else
+		# Undo move
+		if [ -z "${force_remove}" ]; then
+			"${EASYTLS_MV}" "${tlskey_file}-deleted" "${tlskey_file}" || \
+				die "Failed to restore: ${tlskey_file}"
+			[ "${cert_purpose}" = 'Server' ] || {
+				"${EASYTLS_MV}" "${metadata_file}-deleted" "${metadata_file}" || \
+					die "Failed to restore: ${metadata_file}"
+				}
+		fi
+		# Always die
+		die "Failed to update tlskey-index"
+	fi
+
+	notice "TLS-Crypt-V2 key removed: ${tlskey_file}"
+	easytls_verbose
+} # => tlskey_remove ()
+
+# Remove a TLS-Crypt-V2 Client key and update the tlskey-index
+remove_group_tlskey ()
+{
+	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
+
+	name="${1}"
+
+	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
+	metadata_file="${EASYTLS_MDATA_D}/${name}-tls-crypt-v2.metadata"
+
+	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
+		full_name="${name}-${TLSKEY_SUBNAME}"
+		tlskey_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_file="${EASYTLS_MDATA_D}/${full_name}-tls-crypt-v2.metadata"
+		}
+
+	# Check required files
 	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
 	[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
 
@@ -3382,25 +3473,31 @@ remove_tlskey ()
 	confirm  "Remove tlskey file ? " "yes" "Remove: ${tlskey_file}"
 
 	# Move
-	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleteme" || \
+	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleted" || \
 		die "Failed to move: ${tlskey_file}"
-	"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleteme" || \
-		die "Failed to move: ${metadata_file}"
+	[ "${cert_purpose}" = 'Server' ] || {
+		"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleted" || \
+			die "Failed to move: ${metadata_file}"
+		}
 
 	# Update index
 	if tlskey_index_update del; then
 		# Remove
-		"${EASYTLS_RM}" "${tlskey_file}-deleteme" || \
+		"${EASYTLS_RM}" "${tlskey_file}-deleted" || \
 			die "Failed to remove: ${tlskey_file}"
-		"${EASYTLS_RM}" "${metadata_file}-deleteme" || \
-			die "Failed to remove: ${metadata_file}"
+		[ "${cert_purpose}" = 'Server' ] || {
+			"${EASYTLS_RM}" "${metadata_file}-deleted" || \
+				die "Failed to remove: ${metadata_file}"
+			}
 	else
 		# Undo move
 		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_MV}" "${tlskey_file}-deleteme" "${tlskey_file}" || \
+			"${EASYTLS_MV}" "${tlskey_file}-deleted" "${tlskey_file}" || \
 				die "Failed to restore: ${tlskey_file}"
-			"${EASYTLS_MV}" "${metadata_file}-deleteme" "${metadata_file}" || \
-				die "Failed to restore: ${metadata_file}"
+			[ "${cert_purpose}" = 'Server' ] || {
+				"${EASYTLS_MV}" "${metadata_file}-deleted" "${metadata_file}" || \
+					die "Failed to restore: ${metadata_file}"
+				}
 		fi
 		# Always die
 		die "Failed to update tlskey-index"
@@ -3650,6 +3747,7 @@ inline_tls_auth ()
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
 	notice "Inline TLS auth file created: ${inline_file}"
+	update_master_hash=1
 	easytls_verbose
 } # => inline_tls_auth ()
 
@@ -3722,6 +3820,7 @@ inline_tls_crypt_v1 ()
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
 	notice "Inline TLS crypt file created: ${inline_file}"
+	update_master_hash=1
 	easytls_verbose
 } # => inline_tls_crypt_v1 ()
 
@@ -5966,6 +6065,14 @@ interactive_wait_for_answer ()
 	read -r user_input
 } # => wait_for_answer ()
 
+# Wait for answer
+interactive_try_again ()
+{
+	"$EASYTLS_PRINTF" '%s ' "* Error: $1 - Press Enter to continue.."
+	read -r user_input
+	unset -v user_input
+} # => wait_for_answer ()
+
 # Show the command to run
 interactive_show_cmd ()
 {
@@ -6463,11 +6570,12 @@ interactive_remove ()
 	ia_question_text='
   [1] TLS-Crypt-V2 Client inline-file
   [2] TLS-Crypt-V2 Client key
-  [3] TLS-Crypt-V2 Server inline-file
-  [4] TLS-Crypt-V2 Server key
-  [5] TLS-Crypt-V1 key
-  [6] TLS-Auth key
-  [7] Client Inline TLS-Crypt-V2 metadata
+  [3] TLS-Crypt-V2 GROUP Client key
+  [4] TLS-Crypt-V2 Server inline-file
+  [5] TLS-Crypt-V2 Server key
+  [6] TLS-Crypt-V1 key
+  [7] TLS-Auth key
+  [8] Client Inline TLS-Crypt-V2 metadata
 
   Select the type of file to remove:'
 	interactive_question
@@ -6614,7 +6722,53 @@ interactive_remove ()
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Client key removed: $key_file"
 	;;
-	3)	# Remove Server inline-file
+	3)	# Remove GROUP client key
+		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-V2 GROUP Client key'
+		cmd_line="${cmd_line}-tlskey"
+
+		# Set Client name
+		opt_name=""
+		cert_type='Client'
+		interactive_common_name
+		opt_name="$common_name"
+
+		# Set option --sub-key-name
+		interactive_sub_key_name
+
+		# Append --sub-key-name if specifies
+		if [ "$TLSKEY_SUBNAME" = 'NOSUBKEY' ]
+		then
+			key_name="${opt_name}"
+		else
+			key_name="${opt_name}-$TLSKEY_SUBNAME"
+		fi
+
+		# Set file names
+		key_file="${EASYTLS_PKI}/${key_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_MDATA_D}/${key_name}-tls-crypt-v2.metadata"
+
+		# Confirm
+		interactive_remove_warning 'remove-tls-crypt-v2-group-client-key'
+
+		# Print command
+		interactive_show_cmd
+
+		# Enable internal require_batch
+		require_batch=1
+
+		# Remove key
+		remove_group_tlskey "$opt_name" || {
+			error_msg '**Remove GROUP TLS-key failed'
+			return 1
+			}
+
+		# Disable internal require_batch
+		unset -v require_batch
+
+		"$EASYTLS_PRINTF" '\n%s\n' \
+			"  * TLS-Crypt-V2 GROUP Client key removed: $key_file"
+	;;
+	4)	# Remove Server inline-file
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Server inline-file'
 		cmd_line="${cmd_line}-inline"
 
@@ -6712,7 +6866,7 @@ interactive_remove ()
 			easytls_verbose
 		fi
 	;;
-	4)	# Remove Server key
+	5)	# Remove Server key
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-V2 Server key'
 		cmd_line="${cmd_line}-tlskey"
 
@@ -6746,7 +6900,7 @@ interactive_remove ()
 		"$EASYTLS_PRINTF" '\n%s\n' \
 			"  * TLS-Crypt-V2 Server key removed: $key_file"
 	;;
-	5)	# tls-crypt key
+	6)	# tls-crypt key
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt key'
 		cmd_line="${cmd_line}-tlskey"
 
@@ -6772,7 +6926,7 @@ interactive_remove ()
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Crypt key removed: $key_file"
 	;;
-	6)	# tls-auth key
+	7)	# tls-auth key
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Auth key'
 		cmd_line="${cmd_line}-tlskey"
 
@@ -6798,7 +6952,7 @@ interactive_remove ()
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Auth key removed: $key_file"
 	;;
-	7)	# inline metadata
+	8)	# inline metadata
 		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Client inline-metadata'
 		cmd_line="${cmd_line}-metadata"
 
@@ -6884,6 +7038,17 @@ interactive_remove_warning ()
 		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
 			'yes' "
 * If you remove a TLS-Crypt-V2 Client key then you can easily
+  build a new one from the same TLS-Crypt-V2 Server key.
+
+  Key file:
+  * $key_file"
+	;;
+	remove-tls-crypt-v2-group-client-key)
+		# TLS-Crypt-V2 Client key
+		[ -f "$key_file" ] || missing_file "$key_file"
+		confirm 'Are you sure you want to delete this key (CANNOT be undone): ' \
+			'yes' "
+* If you remove a TLS-Crypt-V2 GROUP Client key then you can easily
   build a new one from the same TLS-Crypt-V2 Server key.
 
   Key file:
@@ -7281,7 +7446,7 @@ interactive_gkey_name ()
 {
 	unset -v opt_gkey_name
 	ia_question_help='
-* This field requires a unique name for this TLS-Crypt-V2 GROUP key.'
+* This field requires a UNIQUE name for this TLS-Crypt-V2 GROUP key.'
 	ia_question_text="
   Enter the unique name for your GROUP key:"
 
@@ -7289,9 +7454,13 @@ interactive_gkey_name ()
 	do
 		interactive_question
 		opt_gkey_name="${ia_answer}"
+		[ -n "${opt_gkey_name}" ] || {
+			interactive_try_again "This field CANNOT be empty"
+			continue
+			}
 		gkey_file="${EASYTLS_PKI}/${opt_gkey_name}.key"
 		[ -f "${gkey_file}" ] || break
-		print "This key file already exists: ${gkey_file}"
+		print "* This key file already exists: ${gkey_file}"
 	done
 } # => interactive_gkey_name ()
 
@@ -8548,7 +8717,7 @@ save_wiscii_hash ()
 	# TLS not initialised
 	[ "${counted_wiscii}" = '00' ] && return 0
 	# No files changed
-	[ "${counted_wiscii}" = "$bottled_wiscii" ] && {
+	[ "${counted_wiscii}" = "${bottled_wiscii}" ] && {
 		easytls_verbose "save_master_hash Unchanged"
 		return 0
 		}
@@ -9374,6 +9543,9 @@ main ()
 		;;
 		rt|rk|rtk|remove-tlskey)
 			remove_tlskey "$@" || die "remove_tlskey"
+		;;
+		rgt|rgk|rgtk|remove-group-tlskey)
+			remove_group_tlskey "$@" || die "remove_group_tlskey"
 		;;
 		rm|rmd|remove-metadata)
 			remove_metadata "$@" || die "remove_metadata"
