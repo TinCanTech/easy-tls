@@ -408,7 +408,7 @@ sknown_2=42
 subtot_3=0
 sknown_3=42
 subtot_expected_errors=0
-sknown_expected_errors=78
+sknown_expected_errors=62
 known_expected_errors=$(( sknown_1 + sknown_2 + sknown_3 + sknown_expected_errors ))
 
 QUIT_LOOP=${QUIT_LOOP:-0}
@@ -579,6 +579,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 		"inline-expire" \
 		"bc2gc s01 family" "bc2gc s01 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" \
+		"rgil c01 family" "rgk family" \
 		"ita s-auth" "itc s-crypt" "ita c-auth" "itc c-crypt" \
 		"rehash"
 		#"inline-index-rebuild" \
@@ -896,7 +897,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 	# Test tls-crypt-v2-verify.sh
 	export metadata_file="$DBUG_DIR/test-tls-crypt-v2.metadata"
-	for c in "c01" "c05" "c06" "c07-nomd" "c09"
+	for c in "c01" "c05" "c06" "c09"
 	do
 		rm "${metadata_file}"
 		print "============================================================"
