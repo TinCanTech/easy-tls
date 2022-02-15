@@ -35,7 +35,7 @@ case "${1}" in
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 	*)
-		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} $@"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} $*"
 		shift "$#"
 	;;
 esac
