@@ -26,9 +26,8 @@ case "${1}" in
 		SHELLCHECK_OPTS="-x -o all"
 	;;
 	-r)
-		shift "$#"
+		shift
 		raw=1
-		#SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 	'')
 		shift "$#"
@@ -73,7 +72,7 @@ OPTION_FROST="-e 2244,2248,2250"
 [ -z "$*" ] || SHELLCHECK_OPTS="${SHELLCHECK_OPTS} $*"
 
 # Mode: shellcheck 'raw'
-[ -z "${raw}" ] || unset SHELLCHECK_OPTS
+[ -z "${raw}" ] || SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} $*"
 
 # Final export
 export SHELLCHECK_OPTS
@@ -147,11 +146,11 @@ exit_status=$(( 	sc_easytls + \
 ./easytls version || { echo 'croak!' && exit 1; }
 
 # exit status
-[ "${exit_status}" -eq 0 ] || printf \
-	"***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)\n\n"
+[ "${exit_status}" -eq 0 ] || printf ' %s\n\n' \
+	"***ERROR*** Easy-TLS Shellcheck exit status: $exit_status (of 12)"
 
 # options
-printf "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS:-===[ No Options ]===}\n\n"
+printf '%s\n\n' "SHELLCHECK_OPTS: ${SHELLCHECK_OPTS:-===[ No Options ]===}"
 
 # version
 unset SHELLCHECK_OPTS # or get more errors
