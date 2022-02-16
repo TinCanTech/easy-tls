@@ -14,15 +14,15 @@ unset raw
 # shell-o check-o doesn't have -v
 case "${1}" in
 	-v)
-		shift "$#"
+		shift
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 	-vv)
-		shift "$#"
+		shift
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -o all"
 	;;
 	-vvv)
-		shift "$#"
+		shift
 		SHELLCHECK_OPTS="-x -o all"
 	;;
 	-r)
@@ -30,12 +30,10 @@ case "${1}" in
 		raw=1
 	;;
 	'')
-		shift "$#"
 		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} -S warning"
 	;;
 	*)
-		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS} $*"
-		shift "$#"
+		SHELLCHECK_OPTS="${SHELLCHECK_FIXED_OPTS}"
 	;;
 esac
 
