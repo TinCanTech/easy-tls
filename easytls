@@ -8763,7 +8763,7 @@ ${EASYTLS_DISABLED_LIST}"
 } # => generate_master_list ()
 
 # Master hash
-generate_faster_hash ()
+generate_master_hash ()
 {
 	# Respect no file hash mode
 	if [ -n "${FILE_HASH_DISABLED}" ]; then
@@ -8775,7 +8775,7 @@ generate_faster_hash ()
 	#want_faster_hash=1
 	unset inline_file_list tlskey_file_list util_file_list
 	# Generate the lists above
-	generate_master_list || die "generate_faster_hash/generate_master_list"
+	generate_master_list || die "generate_master_hash/generate_master_list"
 	#unset want_faster_hash
 
 	# Missing file are part of the test
@@ -8796,17 +8796,17 @@ generate_faster_hash ()
 					die "generated_faster_hash - util_file_list"
 			done
 		} | openssl_generate_data_hash
-	)" || die "generate_faster_hash/generated_faster_hash"
+	)" || die "generate_master_hash/generated_faster_hash"
 	unset inline_file_list tlskey_file_list util_file_list
 	generated_faster_hash="${generated_faster_hash%% *}"
-} # => generate_faster_hash ()
+} # => generate_master_hash ()
 
 # Save Master hash
 save_master_hash ()
 {
 	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
 	[ -n "${update_master_hash}" ] || return 0
-	generate_faster_hash || die "save_faster_hash/generate_faster_hash"
+	generate_master_hash || die "save_faster_hash/generate_master_hash"
 	validate_hash "${generated_faster_hash}" || \
 		die "save_faster_hash/validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
@@ -8818,7 +8818,7 @@ verify_master_hash ()
 {
 	[ -f  "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
 	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
-	generate_faster_hash || die "verify_faster_hash/generate_faster_hash"
+	generate_master_hash || die "verify_faster_hash/generate_master_hash"
 	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
 	then
 		return 0
@@ -9424,7 +9424,7 @@ main ()
 		case "${cmd}" in
 		gfh|generate-fast-hash)
 			unset -v EASYTLS_SILENT
-			generate_faster_hash "$@" || die "generate_faster_hash"
+			generate_master_hash "$@" || die "generate_master_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			return 0
 		;;
