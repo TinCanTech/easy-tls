@@ -524,7 +524,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 		"show-ca" \
 		"show-cert s01" \
 		"show-cert c01" \
-		"--keysize=64 gen-dh" \
+		"--keysize=512 gen-dh" \
 		## EOL
 	do
 		print "============================================================"
