@@ -8769,7 +8769,7 @@ generate_master_hash ()
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash/generate_master_list"
 
-	# Missing file are part of the test
+	# Generate a single hash of all the files
 	generated_faster_hash="$(
 		{
 			IFS="${new_line}"
@@ -8780,7 +8780,6 @@ generate_master_hash ()
 			for f in ${tlskey_file_list}; do
 				"${EASYTLS_CAT}" "${f}" || \
 					die "generated_faster_hash - tlskey_file_list"
-
 			done
 			for f in ${util_file_list}; do
 				"${EASYTLS_CAT}" "${f}" || \
@@ -8788,6 +8787,7 @@ generate_master_hash ()
 			done
 		} | openssl_generate_data_hash
 	)" || die "generate_master_hash/generated_faster_hash"
+
 	unset inline_file_list tlskey_file_list util_file_list
 	generated_faster_hash="${generated_faster_hash%% *}"
 } # => generate_master_hash ()
