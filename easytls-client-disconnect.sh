@@ -54,7 +54,7 @@ help_text ()
   9   - Disallow connection, unexpected failure. (BUG)
 
   18  - BUG Disallow connection, failed to read client_md_file_stack
-  19  - BUG Disallow connection, failed to parse metadata strig
+  19  - BUG Disallow connection, failed to parse metadata string
 
   21  - USER ERROR Disallow connection, options error.
 
