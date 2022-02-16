@@ -1964,35 +1964,26 @@ openssl_generate_fingerprint ()
 # Get OpenSSL serial number output
 openssl_cert_serial ()
 {
-	[ -f "${1}" ] && "${EASYRSA_OPENSSL}" \
-		x509 -in "${1}" -noout -serial || return 1
+	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -serial || return 1
 } # => openssl_cert_serial ()
 
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_common_name ()
 {
-	# This is ONLY use to import a certificate and importing is DISABLED
-	die "openssl_crt_common_name DISABLED"
-	#temp_name="$(get_openssl_crt_common_name "${crt_file}")" || {
-	#	error_msg ""
-	#	return 1
-	#	}
-	#temp_name="${temp_name##*, CN = }"
-	#temp_name="${temp_name%%, emailAddress = *}"
-	#"${EASYTLS_PRINTF}" "%s" "${temp_name}"
-} # => openssl_crt_common_name ()
+	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject -nameopt utf8 \
+		-nameopt sep_multiline -nameopt space_eq -nameopt lname | \
+			"${EASYTLS_GREP}" '^[[:blank:]]*commonName' \
+				|| return 1
+} # => get_openssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject
 get_openssl_crt_common_name ()
 {
-	# This is ONLY use to import a certificate and importing is DISABLED
-	[ -n "${EASYTLS_NO_CA}" ] || die "get_openssl_crt_common_name DISABLED"
-	[ -f "${1}" ] || {
-		error_msg "get_openssl_crt_common_name missing file"
-		return 1
-		}
-	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject || return 1
-} # => get_openssl_crt_common_name ()
+	temp_name="$(openssl_crt_common_name "${1}")" || return 1
+	temp_name="${temp_name#*commonName = }"
+	"${EASYTLS_PRINTF}" '%s' "${temp_name}"
+	unset -v temp_name
+} # => openssl_crt_common_name ()
 
 
 
@@ -2000,27 +1991,6 @@ get_openssl_crt_common_name ()
 #
 # EASYTLS STATUS Section
 #
-
-# Simple status for No CA mode
-noca_status ()
-{
-	print "Easy-RSA: Valid X509 certificates:"
-	noca_status_x509_valid || {
-		error_msg "noca_status_x509_valid - noca_status"
-		return 1
-		}
-	print "Easy-TLS: Known inline files:"
-	noca_status_easytls_inline || {
-		error_msg "noca_status_easytls_inline - noca_status"
-		return 1
-		}
-	print "Easy-TLS: Known TLS keys:"
-	status_easytls_tlskeys || {
-		error_msg "status_easytls_tlskeys - noca_status"
-		return 1
-		}
-} # => noca_status ()
-
 
 # Show Easy-TLS inlines and Easy-RSA certificates
 # Report invalid inline files due to certificate revokation
@@ -2216,16 +2186,39 @@ status_easyrsa_valid ()
 	done
 } # => status_easyrsa_valid ()
 
+# Simple status for No CA mode
+noca_status ()
+{
+	print "Easy-RSA: Valid X509 certificates:"
+	noca_status_x509_valid || {
+		error_msg "noca_status_x509_valid - noca_status"
+		return 1
+		}
+	print "Easy-TLS: Known inline files:"
+	noca_status_easytls_inline || {
+		error_msg "noca_status_easytls_inline - noca_status"
+		return 1
+		}
+	print "Easy-TLS: Known TLS keys:"
+	status_easytls_tlskeys || {
+		error_msg "status_easytls_tlskeys - noca_status"
+		return 1
+		}
+} # => noca_status ()
+
 # Print Valid certs from Easy-RSA
 noca_status_x509_valid ()
 {
 	for i in "${EASYTLS_PKI}"/*.crt; do
+
 		ersa_valid_cn="$(get_openssl_crt_common_name "${i}")" || {
 			error_msg "ersa_valid_cn - noca_status_x509_valid"
 			return 1
 			}
+
 		ersa_valid_cn="${ersa_valid_cn##*=CN = }"
 		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
+
 		cert_serial=""
 		x509_cert_serial "${i}" cert_serial || {
 			error_msg "x509_cert_serial - noca_status_x509_valid"
@@ -9125,7 +9118,6 @@ vars_setup()
 	#set_var EASYTLS_SRVSCRIPT_VEXM \
 	#    "${EASYTLS}/examples/easytls-script.conf-example"
 
-
 	set_var EASYTLS_SS_AGE          "3650"
 	set_var EASYTLS_EC_CURVE        "secp384r1"
 	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_DATA_DIR}/ecp.tmp"
@@ -9538,9 +9530,6 @@ main ()
 		;;
 		e|enable)
 			disabled_list_manager "enable" "$@" || die "disabled_list_manager"
-		;;
-		rehash)
-			flash_config=1 && easytls_config status $(( EASYTLS_STATUS + 1 ))
 		;;
 		*)
 			if [ -n "${EASYTLS_NO_CA}" ]; then
