@@ -32,7 +32,10 @@ help_text ()
   help|-h|--help         This help text.
   -V|--version
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
-
+  -s|--source-vars=<FILENAME>
+                         Force Easy-TLS to source a vars file.
+                         The default vars file is sourced if no FILENAME is given.
+  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
                                   Windows C:/Windows/Temp/easytls
@@ -622,9 +625,6 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
-	-w|--work-dir)
-		EASYTLS_WORK_DIR="${val}"
-	;;
 	-s|--source-vars)
 		empty_ok=1
 		EASYTLS_REQUIRE_VARS=1
@@ -634,6 +634,9 @@ while [ -n "${1}" ]; do
 			*)
 				EASYTLS_VARS_FILE="${val}" ;;
 		esac
+	;;
+	-w|--work-dir)
+		EASYTLS_WORK_DIR="${val}"
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="${val}"

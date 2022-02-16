@@ -32,7 +32,9 @@ help_text ()
   help|-h|--help         This help text.
   -V|--version
   -v|--verbose           Be a lot more verbose at run time (Not Windows).
-  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
+  -s|--source-vars=<FILENAME>
+                         Force Easy-TLS to source a vars file.
+                         The default vars file is sourced if no FILENAME is given.
   -a|--allow-no-check    If the key has a hardware-address configured
                          and the client did NOT use --push-peer-info
                          then allow the connection.  Otherwise, keys with a
@@ -43,9 +45,10 @@ help_text ()
                          Ignore tlskey-hwaddr vs openvpn-hwaddr mismatch.
   -p|--push-required     Require all clients to use --push-peer-info.
   -c|--crypt-v2-required Require all clients to use a TLS-Crypt-V2 key.
-  -k|--key-required      Require all client keys to have a hardware-address.
-  -s|--source-ip-match   Match client source IP to Key metadata.
+  -k|--key-hw-required   Require all client keys to have a hardware-address.
+  -i|--client-ip-match   Match client source IP to Key metadata.
   -d|--dyn-opts=<FILE>   Path and name of Openvpn client dynamic options file.
+  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
                                   Windows C:/Windows/Temp/easytls
@@ -930,10 +933,15 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		EASYTLS_VERBOSE=1
 	;;
-	-d|--dyn-opts)
-		EASYTLS_DYN_OPTS_FILE="${val}"
-		[ -f "${EASYTLS_DYN_OPTS_FILE}" ] || \
-			warn_die "Easy-TLS dynamic opts file missing"
+	-s|--source-vars)
+		empty_ok=1
+		EASYTLS_REQUIRE_VARS=1
+		case "${val}" in
+			-s|--source-vars)
+				unset EASYTLS_VARS_FILE ;;
+			*)
+				EASYTLS_VARS_FILE="${val}" ;;
+		esac
 	;;
 	-a|--allow-no-check)
 		empty_ok=1
@@ -963,18 +971,13 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		PEER_IP_MATCH=1
 	;;
+	-d|--dyn-opts)
+		EASYTLS_DYN_OPTS_FILE="${val}"
+		[ -f "${EASYTLS_DYN_OPTS_FILE}" ] || \
+			warn_die "Easy-TLS dynamic opts file missing"
+	;;
 	-w|--work-dir)
 		EASYTLS_WORK_DIR="${val}"
-	;;
-	-s|--source-vars)
-		empty_ok=1
-		EASYTLS_REQUIRE_VARS=1
-		case "${val}" in
-			-s|--source-vars)
-				unset EASYTLS_VARS_FILE ;;
-			*)
-				EASYTLS_VARS_FILE="${val}" ;;
-		esac
 	;;
 	-t|--tmp-dir)
 		EASYTLS_tmp_dir="${val}"

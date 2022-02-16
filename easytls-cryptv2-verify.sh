@@ -50,7 +50,6 @@ help_text ()
   -z|--no-ca             Run in No CA mode. Still requires --ca=<DIR>
   -g|--custom-group=<GROUP>
                          Verify the client metadata against a custom group.
-  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
   -s|--source-vars=<FILENAME>
                          Force Easy-TLS to source a vars file.
                          The default vars file is sourced if no FILENAME is given.
@@ -72,6 +71,7 @@ help_text ()
   -a|--cache-id          Use the saved CA-Identity from EasyTLS.
   -p|--preload-id=<CA-ID>
                          Preload the CA-Identity when calling the script.
+  -w|--work-dir=<DIR>    Path to Easy-TLS scripts and vars for this server.
   -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                          Default: *nix /tmp/easytls
                                   Windows C:/Windows/Temp/easytls
