@@ -8683,12 +8683,7 @@ verify_master_hash ()
 # Choose hash algorithm and save hash
 save_master_hash ()
 {
-	if [ -n "${want_wiscii_hash}" ]; then
-		die "DISABLE wiscii hash"
-		save_wiscii_hash || die "save_wiscii_hash"
-	else
 		save_faster_hash || die "save_faster_hash"
-	fi
 } # => save_master_hash ()
 
 # riscii wiscii hash
@@ -8709,6 +8704,9 @@ generate_wiscii_hash ()
 	# Clear accumulators
 	unset -v inline_seed tlskey_seed wiscii_seed counted_wiscii
 
+	# Add inline index file
+	inline_file_list="${EASYTLS_INLINE_INDEX}"
+
 	# Hash all inline-files
 	# shellcheck disable=SC2034
 	while read -r \
@@ -8726,42 +8724,10 @@ generate_wiscii_hash ()
 		# inline_file MUST exist
 		[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
-		if [ -n "${inline_file_list}" ]; then
-			inline_file_list="${inline_file_list}
+		inline_file_list="${inline_file_list}
 ${inline_file}"
-		else
-			inline_file_list="${inline_file}"
-		fi
-
-		# Faster hash does not require individual file hashes
-		[ -n "${want_faster_hash}" ] && continue
-
-		# Hash inline_file
-		generate_and_validate_file_hash \
-			"${inline_file}" generated_valid_hash || {
-			error_msg "generate_wiscii_hash - generate_and_validate_file_hash"
-			error_msg "inline_file ${inline_file}"
-			return 1
-			}
-
-		# Deep check
-		match_two_hashes "${generated_valid_hash}" "${saved_inline_hash}" || {
-			error_msg "generated_valid_hash: ${generated_valid_hash}"
-			error_msg "saved_inline_hash:    ${saved_inline_hash}"
-			die "generate_wiscii_hash: match_two_hashes"
-			}
-
-		# Append hash to seed
-		inline_seed="${inline_seed}${generated_valid_hash}"
 
 	done < "${EASYTLS_INLINE_INDEX}"
-
-	if [ -n "${inline_file_list}" ]; then
-		inline_file_list="${inline_file_list}
-${EASYTLS_INLINE_INDEX}"
-	else
-		inline_file_list="${EASYTLS_INLINE_INDEX}"
-	fi
 
 	# Clean up
 	unset -v inline_file generated_valid_hash \
@@ -8953,7 +8919,7 @@ save_faster_hash ()
 	validate_hash "${generated_faster_hash}" || \
 		die "save_faster_hash/validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
-		die "save_faster_hash"
+		die "save_faster_hash/save_file_hash"
 } # => save_faster_hash ()
 
 # Verify faster hash
@@ -9585,8 +9551,8 @@ main ()
 
   This will write {generated_faster_hash} to your current Master hash file!"
 			update_master_hash=1
-			save_faster_hash "$@" || die "save_faster_hash"
-			print "saved_faster_hash: ${generated_faster_hash}"
+			save_master_hash "$@" || die "save_master_hash"
+			print "save_master_hash: ${generated_faster_hash}"
 			return 0
 		;;
 		vfh|verify-fast-hash)
