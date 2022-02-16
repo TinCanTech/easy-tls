@@ -587,8 +587,7 @@ ${1}"
 cleanup ()
 {
 	"${EASYTLS_RM}" -f "${EASYTLS_OPENSSL_CONF}"
-	exec 6<&-
-	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LOCK}"
+	"${EASYTLS_RM}" -r "${EASYTLS_TEMP_LOCK}"
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
 		# shellcheck disable=SC3040
 		set -o echo
@@ -8983,23 +8982,6 @@ external_deps ()
 
 		export PATH="${EASYTLS_ersabin_dir};${EASYTLS_ovpnbin_dir};${PATH}"
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
-
-		#if [ "${EASYTLS_work_dir% *}" = "${EASYTLS_work_dir}" ]; then
-		#	: # No spaces
-		#elif [ "${EASYTLS_work_dir% *}" = "${host_drv}:/Program" ]; then
-		#	# Only one space found: ?:/Program Files/foo
-		#	last_part="${EASYTLS_work_dir#* Files/}"
-		#	EASYTLS="${host_drv}:/Progra~1/${last_part}"
-		#	[ -d "${EASYTLS}" ] || die "Error translating EASYTLS: ${EASYTLS}"
-		#	# Set EASYRSA here because the path is verified
-		#	EASYRSA="${EASYTLS}"
-		#else
-		#	# Not in recognised path or more than one space found
-		#	error_msg "EasyTLS will not function correctly in this directory:"
-		#	error_msg "* Name: ${EASYTLS_work_dir}"
-		#	help_note="Remove spaces from PATH using CD to select short name."
-		#	die "EasyTLS tools will not function correctly in this path."
-		#fi
 	fi
 
 	# OpenSSL config
@@ -9118,7 +9100,7 @@ vars_setup()
 
 	set_var EASYTLS_TEMP_LIST       "${EASYTLS_DATA_DIR}/easytls-temp.list"
 	set_var EASYTLS_TEMP_RECORD     "${EASYTLS_DATA_DIR}/easytls-temp.record"
-	set_var EASYTLS_TEMP_LOCK       "${EASYTLS_DATA_DIR}/easytls-temp.lock"
+	set_var EASYTLS_TEMP_LOCK       "${EASYTLS_DATA_DIR}/easytls-temp.lock.d"
 
 	set_var EASYTLS_CA_IDENTITY     "${EASYTLS_DATA_DIR}/easytls-ca-identity.txt"
 	set_var TLSKEY_SUBNAME          "NOSUBKEY"
@@ -9296,16 +9278,12 @@ main ()
 
 	# Create lock-file - Does not require a time-out
 	if [ -d "${EASYTLS_DATA_DIR}" ]; then
-		(	exec 2>/dev/null
-			set -o noclobber
-			exec 6> "${EASYTLS_TEMP_LOCK}" || return 1
-			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || return 1
-		) || die "write lock-file"
-		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
-		read -r <&6 EASYTLS_lock_PID
-		[ "$$" -eq "${EASYTLS_lock_PID}" ] || \
-			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
-		unset update_master_hash
+		# data dir exists, create lock file directory
+		if "${EASYTLS_MKDIR}" "${EASYTLS_TEMP_LOCK}"; then
+			:
+		else
+			die "acquire lock-file"
+		fi
 	else
 		# Easy-TLS is not initialised
 		:
@@ -9421,7 +9399,7 @@ main ()
 		;;
 		sfh|save-fast-hash)
 			unset -v EASYTLS_SILENT EASYTLS_BATCH
-			verify_faster_hash "$@" || die "verify_faster_hash"
+			verify_master_hash "$@" || die "verify_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			print "saved_faster_hash    : ${saved_faster_hash}"
 			print
@@ -9438,7 +9416,7 @@ main ()
 		;;
 		vfh|verify-fast-hash)
 			unset -v EASYTLS_SILENT
-			verify_faster_hash "$@" || die "verify_faster_hash"
+			verify_master_hash "$@" || die "verify_faster_hash"
 			print "generated_faster_hash: ${generated_faster_hash}"
 			print "saved_faster_hash    : ${saved_faster_hash}"
 			return 0
