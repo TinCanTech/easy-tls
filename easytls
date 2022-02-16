@@ -1166,10 +1166,7 @@ config_version ()
 		update_master_hash=1
 	fi
 
-	# Save me! - If changes have been made
-	save_master_hash || return 1
-
-	unset -v flash_config save_me cfg_opt cfg_val
+	unset -v flash_config cfg_opt cfg_val
 } # => config_version ()
 
 # Verify Openvpn is available
@@ -1378,7 +1375,6 @@ and initialize a fresh TLS PKI here."
 		save_id || "${EASYTLS_PRINTF}" '%s\n\n' "      Failed to Save CA-ID."
 		unset -v EASYTLS_INIT
 	fi
-
 	# Save master hash
 	update_master_hash=1
 	save_master_hash || die "save_master_hash"
@@ -8793,13 +8789,12 @@ generate_master_hash ()
 # Save Master hash
 save_master_hash ()
 {
-	[ -n "${FILE_HASH_DISABLED}" ] && flash_config=1 && easytls_config status 1
 	[ -n "${update_master_hash}" ] || return 0
 	generate_master_hash || die "save_faster_hash/generate_master_hash"
 	validate_hash "${generated_faster_hash}" || \
-		die "save_faster_hash/validate_hash"
+		die "save_master_hash/validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
-		die "save_faster_hash/save_file_hash"
+		die "save_master_hash/save_file_hash"
 	easytls_verbose "save_master_hash OK"
 	unset -v update_master_hash
 } # => save_master_hash ()
@@ -9442,6 +9437,12 @@ main ()
  * Example: ./easytls config temp.dir /tmp"
 				die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
 				}
+		fi
+
+		# Record if FILE_HASH_DISABLED
+		if [ -n "${FILE_HASH_DISABLED}" ]; then
+			flash_config=1
+			easytls_config status 1
 		fi
 
 		# Commands which can run with or without a PKI
