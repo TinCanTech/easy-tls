@@ -8673,17 +8673,11 @@ import_key ()
 # Use newline to delimit names to ignore spaces when read
 generate_master_list ()
 {
-	# If TLS has not been initialised then bail-out, use '00' to indicate this
-	[ -f "${EASYTLS_CONFIG_FILE}" ] || {
-		counted_wiscii='00'
-		return 0
-		}
+	# If TLS has not been initialised then bail-out
+	[ -f "${EASYTLS_CONFIG_FILE}" ] || return 0
 
-	# Fixed Hash - If file hashing is disabled
-	[ -n "${FILE_HASH_DISABLED}" ] && {
-		counted_wiscii="${fixed_hash}"
-		return 0
-		}
+	# file hashing is disabled
+	[ -z "${FILE_HASH_DISABLED}" ] || return 0
 
 	# Initialise inline-list to the inline index file
 	inline_file_list="${EASYTLS_INLINE_INDEX}"
@@ -8712,7 +8706,6 @@ ${inline_file}"
 
 	done < "${EASYTLS_INLINE_INDEX}"
 
-	# Clean up
 	unset -v inline_file  \
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
@@ -8724,10 +8717,9 @@ ${inline_file}"
 	for tlskey_file in \
 		"${EASYTLS_PKI}/tls-auth.key" "${EASYTLS_PKI}/tls-crypt.key"
 	do
-	# If the file exists then add it to the tlskey-list, delimit with newline
+		# If the file exists, add it to the tlskey-list, delimit with newline
 		[ -f "${tlskey_file}" ] && tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
-
 	done
 
 	# tls-crypt-v2
@@ -8768,15 +8760,14 @@ generate_master_hash ()
 	# Respect no file hash mode
 	if [ -n "${FILE_HASH_DISABLED}" ]; then
 		generated_faster_hash="${fixed_hash}"
-		unset inline_file_list tlskey_file_list util_file_list
 		return 0
 	fi
 
-	#want_faster_hash=1
+	# Initialise the list variables
 	unset inline_file_list tlskey_file_list util_file_list
+
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash/generate_master_list"
-	#unset want_faster_hash
 
 	# Missing file are part of the test
 	generated_faster_hash="$(
