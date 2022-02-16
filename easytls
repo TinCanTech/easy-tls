@@ -383,8 +383,6 @@ General options:
 -v|--verbose        Verbose output.
 -s|--silent         Silence all message output except prompts.
 -p|--pki-dir=<DIR>  Declare the EasyRSA PKI directory.
--i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
-              (Fix: This only accepts default options for inline-tls-crypt-v2)
 --vars='FILE'       Define a specific 'vars' file to use for Easy-RSA config.
 --dh='FILE'         Define an alternate Diffie-Hellman parameters file.
 
@@ -422,6 +420,9 @@ General options:
       of the server certificate to share fingerprints of each node.
       The fingerprint of the server will be added to the client inline file
       and the fingerprint of the client will be added to the server inline file.
+
+-i|--inline         When building a TLS Crypt V2 key, also build the Inline file.
+              (Fix: This only accepts default options for inline-tls-crypt-v2)
 
 -t|--tmp-dir=<DIR>     Temp directory where server-scripts write data.
                        Default: *nix /tmp/easytls
@@ -470,12 +471,11 @@ Easy-TLS abbreviations:
   remove-group-inline              - rgi | rgil
   remove-metadata                  - rm | rmd
   inline-show                      - is
-  inline-index-rebuild             - No abbreviation
   inline-expire                    - ix
   cert-expire                      - cx
   disable                          - d
   enable                           - e
-  disabled-list-rehash             - No abbreviation
+  rehash                           - No abbreviation
 
   self-sign-server                 - sss
   self-sign-client                 - ssc
@@ -1067,6 +1067,7 @@ config_save_hash ()
 			return 1
 			}
 	easytls_verbose "config-file hash save OK"
+	update_master_hash=1
 } # => config_save_hash ()
 
 # Add a new option to config
@@ -1141,35 +1142,33 @@ config_deletion ()
 config_version ()
 {
 	flash_config=1
-	unset -v save_me
 	# Add status
 	if "${EASYTLS_GREP}" -q "status = " "${EASYTLS_CONFIG_FILE}"; then
 		:
 	else
-		save_me=1
 		cfg_opt="status"
 		cfg_val=2
 		config_addition
 		config_update
 		config_save_hash || return 1
 		EASYTLS_STATUS=2
+		update_master_hash=1
 	fi
 
 	# Add tmp.dir
 	if "${EASYTLS_GREP}" -q "tmp.dir = " "${EASYTLS_CONFIG_FILE}"; then
 		:
 	else
-		save_me=1
 		cfg_opt="tmp.dir"
 		cfg_val=""
 		config_addition
 		config_save_hash || return 1
+		update_master_hash=1
 	fi
 
-	# Save me ! - Changes have been made
-	if [ -n "${save_me}" ]; then
-		save_master_hash || return 1 # die "Error hashing config."
-	fi
+	# Save me! - If changes have been made
+	save_master_hash || return 1
+
 	unset -v flash_config save_me cfg_opt cfg_val
 } # => config_version ()
 
@@ -1381,6 +1380,7 @@ and initialize a fresh TLS PKI here."
 	fi
 
 	# Save master hash
+	update_master_hash=1
 	save_master_hash || die "save_master_hash"
 
 	notice "init-tls complete; you may now create TLS keys and .inline files.
@@ -1470,6 +1470,7 @@ easytls_rehash ()
 	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
 	inline_index_save_hash || die "inline_index_save_hash - easytls_rehash"
 	tlskey_index_save_hash || die "tlskey_index_save_hash - easytls_rehash"
+	update_master_hash=1
 	save_master_hash || die "save_master_hash - easytls_rehash"
 } # => easytls_rehash ()
 
@@ -5775,7 +5776,7 @@ build_self_sign ()
 	esac
 
 	# Disable password
-	if [ -z "${EASYTLS_PASSWORD}" ]; then
+	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
 		case "${openssl_version}" in
 		3)	openssl_nopass="-noenc" ;;
 		1)	openssl_nopass="-nodes" ;;
@@ -5833,7 +5834,7 @@ create_self_sign_cert_pair ()
 	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_EC_CURVE}" \
 		> "${EASYTLS_ECPARAM_TMP}"
 	# Separate commands for utterly stupid -nodes/-noenc not set error
-	if [ -z "${EASYTLS_PASSWORD}" ]; then
+	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
 		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
 			"${openssl_nopass}" -sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
 			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
@@ -6113,8 +6114,8 @@ disabled_list_save_hash ()
 			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
-	update_master_hash=1
 	easytls_verbose "Disabled-list hash save OK"
+	update_master_hash=1
 } # => disabled_list_save_hash ()
 
 
@@ -6235,6 +6236,7 @@ interactive_build ()
 			}
 
 		# save me! - Changes have been made
+		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
 
 		# Request inline
@@ -6370,6 +6372,7 @@ interactive_build ()
 		unset -v require_batch
 
 		# save me! - Changes have been made
+		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
 
 		# Request inline
@@ -6711,6 +6714,7 @@ interactive_remove ()
 			"  * TLS-Crypt-V2 Client inline removed: $key_file"
 
 		# save me! - Changes have been made
+		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
 
 		# Request remove_tlskey
@@ -6857,6 +6861,7 @@ interactive_remove ()
 			"  * TLS-Crypt-V2 Client inline removed: $key_file"
 
 		# save me! - Changes have been made
+		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
 
 		# Request remove_tlskey
@@ -6995,6 +7000,7 @@ interactive_remove ()
 		unset -v require_batch
 
 		# save me! - Changes have been made
+		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
 
 		# Request remove_tlskey
@@ -7606,7 +7612,7 @@ interactive_selfsign_PW ()
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
 			Y|y|Yes|yes|YES)
-				EASYTLS_PASSWORD=1
+				EASYTLS_SS_PASSWORD=1
 				break
 			;;
 			N|n|No|no|NO)
@@ -8794,7 +8800,9 @@ save_master_hash ()
 		die "save_faster_hash/validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
 		die "save_faster_hash/save_file_hash"
-} # => save_faster_hash ()
+	easytls_verbose "save_master_hash OK"
+	unset -v update_master_hash
+} # => save_master_hash ()
 
 # Verify Master hash
 verify_master_hash ()
@@ -8804,11 +8812,12 @@ verify_master_hash ()
 	generate_master_hash || die "verify_faster_hash/generate_master_hash"
 	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
 	then
+		easytls_verbose "verify_master_hash OK"
 		return 0
 	fi
 	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
 	return 1
-} # => verify_faster_hash ()
+} # => verify_master_hash ()
 
 
 
@@ -9203,7 +9212,7 @@ main ()
 		;;
 		-w|--ss-pass)
 			empty_ok=1
-			export EASYTLS_PASSWORD=1
+			export EASYTLS_SS_PASSWORD=1
 		;;
 		-c|--ss-curve)
 			export EASYTLS_EC_CURVE="${val}"
@@ -9582,7 +9591,7 @@ main ()
 	# EasyTLS auto-check
 	easytls_auto_check || die "easytls_auto_check fail"
 
-	# save me!
+	# save me, only if update_master_hash=1
 	save_master_hash || die "save_master_hash"
 } # => main ()
 
