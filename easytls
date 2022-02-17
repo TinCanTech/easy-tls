@@ -1420,6 +1420,21 @@ and initialize a fresh TLS PKI here."
 	print
 } # => init_tls ()
 
+# Rehash file hashes
+easytls_rehash ()
+{
+	EASYTLS_HASH_ALGO="${1:-SHA256}"
+	fixed_length="${2:-64}"
+	forbidden_hash="$(openssl_generate_empty_hash)"
+	forbidden_hash="${forbidden_hash%% *}"
+	config_save_hash || die "config_save_hash - easytls_rehash"
+	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
+	inline_index_save_hash || die "inline_index_save_hash - easytls_rehash"
+	tlskey_index_save_hash || die "tlskey_index_save_hash - easytls_rehash"
+	update_master_hash=1
+	save_master_hash || die "save_master_hash - easytls_rehash"
+} # => easytls_rehash ()
+
 # Auto-check for invalid inline files
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
@@ -1470,21 +1485,6 @@ easytls_auto_check ()
 
 	unset -v auto_check
 } # => easytls_auto_check ()
-
-# Rehash file hashes
-easytls_rehash ()
-{
-	EASYTLS_HASH_ALGO="${1:-SHA256}"
-	fixed_length="${2:-64}"
-	forbidden_hash="$(openssl_generate_empty_hash)"
-	forbidden_hash="${forbidden_hash%% *}"
-	config_save_hash || die "config_save_hash - easytls_rehash"
-	disabled_list_save_hash || die "disabled_list_save_hash - easytls_rehash"
-	inline_index_save_hash || die "inline_index_save_hash - easytls_rehash"
-	tlskey_index_save_hash || die "tlskey_index_save_hash - easytls_rehash"
-	update_master_hash=1
-	save_master_hash || die "save_master_hash - easytls_rehash"
-} # => easytls_rehash ()
 
 # Generate file hash - Return $generated_valid_hash
 generate_and_validate_file_hash ()
