@@ -1420,6 +1420,110 @@ and initialize a fresh TLS PKI here."
 	print
 } # => init_tls ()
 
+# Create Easy-TLS data files
+easytls_create_layout ()
+{
+	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
+	# Set fixed hash
+	case "${EASYTLS_HASH_ALGO}" in
+	SHA1)
+	fixed_hash=1111111111111111111111111111111111111111
+	fixed_length=40
+	;;
+	SHA256)
+	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
+	fixed_length=64
+	;;
+	*)
+		die "Unknown algorithm: ${EASYTLS_HASH_ALGO}"
+	;;
+	esac
+	forbidden_hash="$(openssl_generate_empty_hash)"
+	forbidden_hash="${forbidden_hash%% *}"
+
+	# Get date
+	head_date=
+	generate_valid_date_now head_date || die "Failed to set date"
+
+	# Create easytls dir in EasyRSA-PKI dir
+	if [ ! -d "${EASYTLS_PKI}" ]; then
+		"${EASYTLS_MKDIR}" -p "${EASYTLS_PKI}" || return 1
+	fi
+
+	# Create data dir in easytls dir
+	if [ ! -d "${EASYTLS_DATA_DIR}" ]; then
+		"${EASYTLS_MKDIR}" -p "${EASYTLS_DATA_DIR}" || return 1
+	fi
+
+	# Create metadata dir in easytls dir
+	if [ ! -d "${EASYTLS_MDATA_DIR}" ]; then
+		"${EASYTLS_MKDIR}" -p "${EASYTLS_MDATA_DIR}" || return 1
+	fi
+
+	# Create config file
+	if [ ! -f "${EASYTLS_CONFIG_FILE}" ]; then
+	{
+		"${EASYTLS_PRINTF}" '%s\n' "no.ca = ${EASYTLS_NO_CA}"
+		"${EASYTLS_PRINTF}" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
+		"${EASYTLS_PRINTF}" '%s\n' "tmp.dir = "
+		"${EASYTLS_PRINTF}" '%s\n' "ca.id = "
+		"${EASYTLS_PRINTF}" '%s\n' "custom.group = "
+		"${EASYTLS_PRINTF}" '%s\n' "auto.check = on"
+		"${EASYTLS_PRINTF}" '%s\n' "inline.metadata = on"
+		"${EASYTLS_PRINTF}" '%s\n' "inline.hardware = off"
+		"${EASYTLS_PRINTF}" '%s\n' "custom.openvpn = "
+		"${EASYTLS_PRINTF}" '%s\n' "status = 0"
+	} > "${EASYTLS_CONFIG_FILE}" || return 1
+	fi
+	# Save HASH file
+	config_save_hash || return 1
+
+	# Create inline-index
+	if [ ! -f "${EASYTLS_INLINE_INDEX}" ]; then
+		head_text="# EasyTLS inline-index - Created: ${head_date}"
+		field_names="inline-hash|inline-serial|CN|sub-key|tlskey-serial"
+		head_text="${head_text} - ${field_names}"
+		"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > \
+			"${EASYTLS_INLINE_INDEX}" || return 1
+	fi
+	# Save HASH file
+	inline_index_save_hash || return 1
+
+	# Create tlskey-index
+	if [ ! -f "${EASYTLS_KEY_INDEX}" ]; then
+		head_text="# EasyTLS tlskey-index - Created: ${head_date}"
+		field_names="tlskey-serial|cert-serial|CN|sub-key"
+		head_text="${head_text} - ${field_names}"
+		"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > \
+			"${EASYTLS_KEY_INDEX}" || return 1
+	fi
+	# Save HASH file
+	tlskey_index_save_hash || return 1
+
+	# Create disabled-list
+	if [ ! -f "${EASYTLS_DISABLED_LIST}" ]; then
+		head_text="# EastTLS disabled-list - Created: ${head_date}"
+		"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > \
+			"${EASYTLS_DISABLED_LIST}" || return 1
+	fi
+	# Save HASH file
+	disabled_list_save_hash || return 1
+
+	# Auto-save the current EasyRSA CA-ID if available, warn if not
+	if [ -n "${EASYTLS_NO_CA}" ]; then
+		# Ignore
+		:
+	else
+		EASYTLS_INIT=1
+		save_id || "${EASYTLS_PRINTF}" '%s\n\n' "      Failed to Save CA-ID."
+		unset -v EASYTLS_INIT
+	fi
+
+	# Save HASH file
+	update_master_hash=1
+	save_master_hash || return 1
+} # => easytls_create_layout ()
+
 # Rehash file hashes
 easytls_rehash ()
 {
