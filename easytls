@@ -8832,6 +8832,7 @@ generate_master_hash ()
 save_master_hash ()
 {
 	[ -n "${update_master_hash}" ] || return 0
+	[ "${block_master_hash}" ] && die "Master hash must only run once"
 	generate_master_hash || die "save_faster_hash/generate_master_hash"
 	validate_hash "${generated_faster_hash}" || \
 		die "save_master_hash/validate_hash"
@@ -8839,6 +8840,7 @@ save_master_hash ()
 		die "save_master_hash/save_file_hash"
 	easytls_verbose "save_master_hash OK"
 	unset -v update_master_hash
+	block_master_hash=1
 } # => save_master_hash ()
 
 # Verify Master hash
