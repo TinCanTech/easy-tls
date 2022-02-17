@@ -9399,11 +9399,6 @@ main ()
 		easytls_verb_io off
 		return 0
 	;;
-	rehash)
-		unset FILE_HASH_DISABLED
-		easytls_rehash "$@" || die "easytls_rehash"
-		return 0
-	;;
 	*)
 		# Create lock-file - Does not require a time-out
 		if [ -d "${EASYTLS_DATA_DIR}" ]; then
@@ -9431,6 +9426,20 @@ main ()
 			}
 		[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
 
+		# Rehash all file hashes
+		# shellcheck disable=SC2249 # (info): default *) case
+		case "${cmd}" in
+		rehash)
+			# If hashes have unsynced
+			unset FILE_HASH_DISABLED
+			easytls_rehash "$@" || die "easytls_rehash"
+			AUTO_CHECK_DISABLED=1
+			easytls_verb_io off
+			break
+		;;
+		esac
+
+		# Master hash tests
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
 		gfh|generate-fast-hash)
