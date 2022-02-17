@@ -546,7 +546,7 @@ Easy-TLS configurable options (Abbreviation|full option):
 # Wrapper around 'printf' - clobber 'print' since it's not POSIX anyway
 print ()
 {
-	[ -n "${EASYTLS_SILENT}" ] && return 0
+	[ -z "${EASYTLS_SILENT}" ] || return 0
 	"${EASYTLS_PRINTF}" "%s\n" "${*}"
 } # => print ()
 
@@ -554,9 +554,9 @@ print ()
 # present even with EASYTLS_BATCH as these are fatal problems
 die ()
 {
-	easytls_version
 	print "Error: ${1}" 1>&2
 	[ -z "${help_note}" ] || print "Note: ${help_note}"
+	easytls_version
 	exit "${2:-1}"
 } # => die ()
 
@@ -614,7 +614,7 @@ cleanup ()
 # non-fatal warning output
 warn ()
 {
-	[ -n "${EASYTLS_SILENT}" ] && return 0
+	[ -z "${EASYTLS_SILENT}" ] || return 0
 		print "
 WARNING:
   ${1}
@@ -624,7 +624,7 @@ WARNING:
 # informational notices to stdout
 notice ()
 {
-	[ -n "${EASYTLS_SILENT}" ] && return 0
+	[ -z "${EASYTLS_SILENT}" ] || return 0
 		print "
 ${1}"
 } # => notice ()
@@ -633,8 +633,8 @@ ${1}"
 # returns without prompting in EASYTLS_BATCH
 confirm ()
 {
-	[ -n "${require_batch}" ] && return 0
-	[ -n "${EASYTLS_BATCH}" ] && return 0
+	[ -z "${require_batch}" ] || return 0
+	[ -z "${EASYTLS_BATCH}" ] || return 0
 	prompt="${1}"
 	value="${2}"
 	msg="${3}"
@@ -9416,6 +9416,7 @@ main ()
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
 		return 0
 	;;
+	# Do init before locking and update Master hash on exit
 	init|init-tls)
 		init_tls "$@" || die "init_tls"
 		AUTO_CHECK_DISABLED=1
