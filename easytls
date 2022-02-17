@@ -1461,6 +1461,26 @@ easytls_rehash ()
 	save_master_hash || return 1
 } # => easytls_rehash ()
 
+# Create missing files for old Easy-TLS
+easytls_upgrade ()
+{
+	if verify_tls_init 1>/dev/null; then
+		print "
+Easy-TLS upgrade is not required, no change."
+	else
+		easytls_create_layout || return 1
+		print "
+Easy-TLS has been successfully upgraded.
+
+Note:
+* The upgrade CANNOT build new indexes from your inline files or TLS-Keys.
+* The upgrade CANNOT extract metadata from your TLS-keys.
+* To build your indexes and metadata files, you MUST create new TLS-Keys
+  and inline files."
+	fi
+	easytls_verb_io off
+} # => easytls_upgrade ()
+
 # Auto-check for invalid inline files
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
