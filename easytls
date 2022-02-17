@@ -9290,6 +9290,8 @@ main ()
 	cmd="${cmd:-${1}}"
 	[ -n "${1}" ] && shift # scrape off command
 
+	# Wrap in 'while' in order to 'break' from 'case'
+	while :; do
 	case "${cmd}" in
 	# case 1
 
@@ -9588,6 +9590,8 @@ main ()
 		esac # case 2
 	;;
 	esac # case 1
+	break
+	done # 'while' wrapper
 
 	# EasyTLS auto-check
 	easytls_auto_check || die "easytls_auto_check fail"
