@@ -1293,56 +1293,12 @@ WARNING!!!
 You are about to remove the EASYTLS_PKI at: ${EASYTLS_PKI}
 and initialize a fresh TLS PKI here."
 		# now remove it:
-		exec 6<&-
 		"${EASYTLS_RM}" -rf "${EASYTLS_PKI}" || \
 			die "Removal of TLS dir failed. Check/correct errors above"
 	fi
 
-	# Create easytls dir in EasyRSA-PKI dir
-	"${EASYTLS_MKDIR}" -p "${EASYTLS_PKI}" || \
-		die "Failed to create easytls dir"
-
-	# Create data dir in easytls dir
-	"${EASYTLS_MKDIR}" -p "${EASYTLS_DATA_DIR}" || \
-		die "Failed to create data dir"
-
-	# Create lock-file
-	if [ -d "${EASYTLS_DATA_DIR}" ]; then
-		(	exec 2>/dev/null
-			set -o noclobber
-			exec 6> "${EASYTLS_TEMP_LOCK}" || return 1
-			"${EASYTLS_PRINTF}" "%s" "$$" >&6 || return 1
-		) || die "write lock-file"
-		exec 6< "${EASYTLS_TEMP_LOCK}" || die "read lock-file"
-		read -r <&6 EASYTLS_lock_PID
-		[ "$$" -eq "${EASYTLS_lock_PID}" ] || \
-			die "PID mismatch: $$ ${EASYTLS_lock_PID}"
-		unset update_master_hash
-	else
-		# Easy-TLS is not initialised
-		:
-	fi
-
 	# Explicitly set EASYTLS_HASH_ALGO here
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
-
-	# Create metadata dir in easytls dir
-	"${EASYTLS_MKDIR}" -p "${EASYTLS_MDATA_D}" || \
-		die "Failed to create metadata dir"
-
-	# Create config-file
-	{
-		"${EASYTLS_PRINTF}" '%s\n' "no.ca = ${EASYTLS_NO_CA}"
-		"${EASYTLS_PRINTF}" '%s\n' "hash.algorithm = ${EASYTLS_HASH_ALGO}"
-		"${EASYTLS_PRINTF}" '%s\n' "tmp.dir = "
-		"${EASYTLS_PRINTF}" '%s\n' "ca.id = "
-		"${EASYTLS_PRINTF}" '%s\n' "custom.group = "
-		"${EASYTLS_PRINTF}" '%s\n' "auto.check = on"
-		"${EASYTLS_PRINTF}" '%s\n' "inline.metadata = on"
-		"${EASYTLS_PRINTF}" '%s\n' "inline.hardware = off"
-		"${EASYTLS_PRINTF}" '%s\n' "custom.openvpn = "
-		"${EASYTLS_PRINTF}" '%s\n' "status = 0"
-	} > "${EASYTLS_CONFIG_FILE}" || die "Failed to create config-file"
 
 	# Set fixed hash
 	case "${EASYTLS_HASH_ALGO}" in
@@ -1362,52 +1318,10 @@ and initialize a fresh TLS PKI here."
 	forbidden_hash="$(openssl_generate_empty_hash)"
 	forbidden_hash="${forbidden_hash%% *}"
 
-	# Save config-file hash
-	config_save_hash || die "Failed to hash config-file"
+	# Create Easy-TLS structure
+	easytls_create_layout || die "init_tls - easytls_create_layout"
 
-	# Get date
-	head_date=
-	generate_valid_date_now head_date || die "Failed to set date"
-
-	# Create inline-index
-	head_text="# EasyTLS inline-index - Created: ${head_date}"
-	head_text="${head_text} - inline-hash|inline-serial|CN|sub-key|tlskey-serial"
-	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_INLINE_INDEX}" || \
-		die "Failed to create inline-index"
-
-	# Save inline-index hash
-	inline_index_save_hash || die "Failed to hash inline-index"
-
-	# Create tlskey-index
-	head_text="# EasyTLS tlskey-index - Created: ${head_date}"
-	head_text="${head_text} - tlskey-serial|cert-serial|CN|sub-key"
-	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_KEY_INDEX}" || \
-		die "Failed to create tlskey-index"
-
-	# Save tlskey-index hash
-	tlskey_index_save_hash || die "Failed to create tlskey-index Hash."
-
-	# Create disabled-list
-	head_text="# EastTLS disabled-list - Created: ${head_date}"
-	"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > "${EASYTLS_DISABLED_LIST}" || \
-		die "Failed to create disabled-list"
-
-	# Save disabled-list hash
-	disabled_list_save_hash || die "Failed to create disabled-list Hash."
-
-	# Auto-save the current EasyRSA CA-ID if available, warn if not
-	if [ -n "${EASYTLS_NO_CA}" ]; then
-		# Ignore
-		:
-	else
-		EASYTLS_INIT=1
-		save_id || "${EASYTLS_PRINTF}" '%s\n\n' "      Failed to Save CA-ID."
-		unset -v EASYTLS_INIT
-	fi
-	# Save master hash
-	update_master_hash=1
-	save_master_hash || die "save_master_hash"
-
+	# User notices
 	notice "init-tls complete; you may now create TLS keys and .inline files.
   Your newly created TLS dir is:
 
@@ -1430,7 +1344,6 @@ and initialize a fresh TLS PKI here."
 		print \
 			"    systemd - /tmp (Use systemd unit file openvpn-server@.service)"
 	fi
-	print
 } # => init_tls ()
 
 # Create Easy-TLS data files
