@@ -732,6 +732,22 @@ easytls_verbose ()
 	print "* ${verbose_message}"
 } # => easytls_verbose ()
 
+# Verbose messages ON/OFF
+easytls_verb_io ()
+{
+	case "${1}" in
+	on|On|ON)
+		EASYTLS_VERBOSE="${current_verb}"
+		unset -v current_verb
+	;;
+	off|Off|OFF)
+		current_verb="${EASYTLS_VERBOSE}"
+		unset -v EASYTLS_VERBOSE
+	;;
+	*) return 1
+	esac
+} # => easytls_verb_io ()
+
 # Configurable options
 easytls_config ()
 {
@@ -9305,10 +9321,6 @@ main ()
 		easytls_version || die "easytls_version"
 		return 0
 	;;
-	init|init-tls)
-		init_tls "$@" || die "init_tls"
-		return 0
-	;;
 	vhw)
 		unset -v EASYTLS_SILENT
 		hw_addr_hex_check "$@" || {
@@ -9366,6 +9378,12 @@ main ()
 			}
 		print "* full_valid_hextets: ${full_valid_hextets}"
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
+		return 0
+	;;
+	init|init-tls)
+		init_tls "$@" || die "init_tls"
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 		return 0
 	;;
 	rehash)
