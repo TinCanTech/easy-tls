@@ -9416,6 +9416,19 @@ main ()
 		# Load config options - Does not change command line options
 		config_use || die "config_use"
 
+		# Easy-TLS Upgrade
+		# shellcheck disable=SC2249 # (info): default *) case
+		case "${cmd}" in
+		upgrade)
+			# Special case for Old to New Easy-TLS
+			# Otherwise verify_tls_init() will fail
+			unset FILE_HASH_DISABLED
+			easytls_upgrade "$@" || die "easytls_upgrade"
+			AUTO_CHECK_DISABLED=1
+			easytls_verb_io off
+			break
+		esac
+
 		# Must have init TLS now - and PKI when not No-CA mode
 		verify_tls_init || {
 			error_msg "Easy-TLS has not been initialised."
