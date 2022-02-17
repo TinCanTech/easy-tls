@@ -9288,19 +9288,6 @@ main ()
 	trap "exit 6" 6
 	trap "exit 14" 15
 
-	# Create lock-file - Does not require a time-out
-	if [ -d "${EASYTLS_DATA_DIR}" ]; then
-		# data dir exists, create lock file directory
-		if "${EASYTLS_MKDIR}" "${EASYTLS_TEMP_LOCK}"; then
-			:
-		else
-			die "acquire lock-file"
-		fi
-	else
-		# Easy-TLS is not initialised
-		:
-	fi
-
 	# determine how we were called, then hand off to the function responsible
 	# Notice, 'help' and 'version' are set above, so do not over-write
 	cmd="${cmd:-${1}}"
@@ -9392,6 +9379,19 @@ main ()
 		return 0
 	;;
 	*)
+		# Create lock-file - Does not require a time-out
+		if [ -d "${EASYTLS_DATA_DIR}" ]; then
+			# data dir exists, create lock file directory
+			if "${EASYTLS_MKDIR}" "${EASYTLS_TEMP_LOCK}"; then
+				easytls_verbose "Lock acquired"
+			else
+				die "acquire lock-file"
+			fi
+		else
+			# Easy-TLS is not initialised
+			:
+		fi
+
 		# Load config options - Does not change command line options
 		config_use || die "config_use"
 
