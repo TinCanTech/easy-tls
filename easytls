@@ -8788,8 +8788,7 @@ generate_master_list ()
 	[ -z "${FILE_HASH_DISABLED}" ] || return 0
 
 	# Initialise inline-list to the inline index file
-	inline_file_list="${EASYTLS_INLINE_INDEX}
-${EASYTLS_INLINE_X_HASH}"
+	inline_file_list="${EASYTLS_INLINE_INDEX}"
 
 	# Hash all inline-files
 	# shellcheck disable=SC2034 # Appear unused
@@ -8819,8 +8818,7 @@ ${inline_file}"
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Initialise tlskey-list to the tlskey index file
-	tlskey_file_list="${EASYTLS_KEY_INDEX}
-${EASYTLS_KEY_X_HASH}"
+	tlskey_file_list="${EASYTLS_KEY_INDEX}"
 
 	# Hash all tlskey_file
 	# tls-auth / tls-crypt
@@ -8858,9 +8856,11 @@ ${tlskey_file}"
 	unset -v tlskey_file \
 		generated_valid_hash tlskey_serial cert_serial_UNUSED CN sub_key
 
-	# Add config-file and disabled-list to the UTIL list
+	# Add config-file and disabled-list and hash files to the UTIL list
 	util_file_list="${EASYTLS_CONFIG_FILE}
 ${EASYTLS_CONFIG_HASH}
+${EASYTLS_INLINE_X_HASH}
+${EASYTLS_KEY_X_HASH}
 ${EASYTLS_DISABLED_LIST}
 ${EASYTLS_DISABLED_HASH}"
 } # => generate_master_list ()
@@ -8883,50 +8883,40 @@ generate_master_hash ()
 	# Generate a single hash of all the files
 	generated_faster_hash="$(
 		{
+			set --
 			unset file_list
 			old_IFS="$IFS"
 			IFS="${new_line}"
 
+			# List inline files
 			for f in ${inline_file_list}; do
-				if [ -n "${file_list}" ]; then
-					file_list="${file_list} ${f}"
-				else
-					file_list="${f}"
-				fi
 
-				#"${EASYTLS_CAT}" "${f}" || \
-				#	die "generated_faster_hash - inline_file_list"
+				set -- "$@" "${f}"
+
 			done
 
+			# List tlskey files
 			for f in ${tlskey_file_list}; do
-				if [ -n "${file_list}" ]; then
-					file_list="${file_list} ${f}"
-				else
-					file_list="${f}"
-				fi
 
-				#"${EASYTLS_CAT}" "${f}" || \
-				#	die "generated_faster_hash - tlskey_file_list"
+				set -- "$@" "${f}"
+
 			done
 
+			# List utility files
 			for f in ${util_file_list}; do
-				if [ -n "${file_list}" ]; then
-					file_list="${file_list} ${f}"
-				else
-					file_list="${f}"
-				fi
 
-				#"${EASYTLS_CAT}" "${f}" || \
-				#	die "generated_faster_hash - util_file_list"
+				set -- "$@" "${f}"
+
 			done
+
+			# Restore standard IFS
 			IFS="${old_IFS}"
 
-			# cat the list
+			# cat the list - Comment out to test
 			# This save 20s of 3m25s on local testing
-			# TODO: Find a better way
-			# shellcheck disable=2086 # (info): Double quote
-			"${EASYTLS_CAT}" ${file_list} || \
+			"${EASYTLS_CAT}" "$@" || \
 				die "generate_master_hash - # cat the list"
+			set --
 
 		} | openssl_generate_data_hash
 
