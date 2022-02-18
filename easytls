@@ -1065,7 +1065,7 @@ config_use ()
 	fixed_tls_auth_serial=7A01
 	fixed_tls_cryptv1_serial=7C01
 
-	EASYTLS_VERSION="${EASYTLS_VERSION}.${EASYTLS_STATUS}"
+	EASYTLS_VERSION="${EASYTLS_VERSION}.(${EASYTLS_STATUS})"
 
 	# maintenance
 	config_version || {
@@ -1074,27 +1074,35 @@ config_use ()
 		}
 
 	# Verify the Config hash
-	config_verify_hash || {
+	if config_verify_hash; then
+		# config_use MUST reset this counter
+		unset config_verify_hash_block
+	else
 		error_msg "config_verify_hash fail"
 		return 1
-		}
+	fi
 	easytls_verbose "config_use OK"
 } # => config_use ()
 
 # verify config file hash
 config_verify_hash ()
 {
+	[ -z "${config_verify_hash_block}" ] || \
+		die "config verify hash must only run once"
 	generate_and_match_valid_hash \
 		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_verify_hash - generate_and_match_valid_hash"
 			return 1
 			}
 	easytls_verbose "config_verify_hash OK"
+	config_verify_hash_block=1
 } # => config_save_hash ()
 
 # Hash config-file
 config_save_hash ()
 {
+	[ -z "${config_save_hash_block}" ] || \
+		die "config save hash must only run once"
 	generate_and_save_file_hash \
 		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_save_hash - generate_and_save_file_hash"
@@ -1102,6 +1110,7 @@ config_save_hash ()
 			}
 	easytls_verbose "config-file hash save OK"
 	update_master_hash=1
+	config_save_hash_block=1
 } # => config_save_hash ()
 
 # Add a new option to config
@@ -1408,6 +1417,9 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	config_save_hash || return 1
+	# Unset hash blocks because following operations make updates
+	# EG: save_id()
+	unset config_save_hash_block
 
 	# Create inline-index
 	if [ ! -f "${EASYTLS_INLINE_INDEX}" ]; then
@@ -1419,6 +1431,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	inline_index_save_hash || return 1
+	#unset inline_index_save_hash_block
 
 	# Create tlskey-index
 	if [ ! -f "${EASYTLS_KEY_INDEX}" ]; then
@@ -1430,6 +1443,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	tlskey_index_save_hash || return 1
+	#unset tlskey_index_save_hash_block
 
 	# Create disabled-list
 	if [ ! -f "${EASYTLS_DISABLED_LIST}" ]; then
@@ -1439,6 +1453,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	disabled_list_save_hash || return 1
+	#unset disabled_list_save_hash_block
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	if [ -n "${EASYTLS_NO_CA}" ]; then
@@ -5976,7 +5991,7 @@ save_id ()
 	# Add CA-ID to config
 	save_id_authorized=1
 	easytls_config id "${ca_identity}"
-	unset -v save_id_authorized
+	unset -v save_id_authorized config_save_hash_block
 
 	# Create CA-ID file - Legacy
 	"${EASYTLS_PRINTF}" "%s" "${ca_identity}" > "${EASYTLS_CA_IDENTITY}" || \
