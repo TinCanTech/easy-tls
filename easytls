@@ -1517,22 +1517,37 @@ easytls_auto_check ()
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
 
 	# Check inline-index hash
-	inline_index_verify_hash || {
-		error_msg "inline_index_verify_hash - easytls_auto_check"
-		error_msg "* Auto-check: Hash failed for Inline index"
-		}
+	if [ -z "${inline_index_verify_hash_block}" ]; then
+		inline_index_verify_hash || {
+			error_msg "inline_index_verify_hash - easytls_auto_check"
+			error_msg "* Auto-check: Hash failed for Inline index"
+			}
+	else
+		# index has been successfully verified
+		:
+	fi
 
 	# Verify tlskey-index hash
-	tlskey_index_verify_hash || {
-		error_msg "tlskey_index_verify_hash - easytls_auto_check"
-		error_msg "* Auto-check: Hash failed for TLS key index"
-		}
+	if [ -z "${tlskey_index_verify_hash_block}" ]; then
+		tlskey_index_verify_hash || {
+			error_msg "tlskey_index_verify_hash - easytls_auto_check"
+			error_msg "* Auto-check: Hash failed for TLS key index"
+			}
+	else
+		# index has been successfully verified
+		:
+	fi
 
 	# Check disabled-list hash
-	disabled_list_verify_hash || {
-		error_msg "disabled_list_verify_hash - easytls_auto_check"
-		error_msg "* Auto-check: Hash failed for Disabled list"
-		}
+	if [ -z "${disabled_list_verify_hash_block}" ]; then
+		disabled_list_verify_hash || {
+			error_msg "disabled_list_verify_hash - easytls_auto_check"
+			error_msg "* Auto-check: Hash failed for Disabled list"
+			}
+	else
+		# index has been successfully verified
+		:
+	fi
 
 	unset -v auto_check
 } # => easytls_auto_check ()
@@ -2788,12 +2803,15 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
+	[ -z "${inline_index_verify_hash_block}" ] || \
+		die "inline index verify hash must only run once"
 	generate_and_match_valid_hash \
 		"${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_X_HASH}" || {
 			error_msg "generate_and_match_valid_hash - inline_index_verify_hash"
 			return 1
 			}
 	easytls_verbose "Inline-index hash check OK"
+	inline_index_verify_hash_block=1
 } # => inline_index_verify_hash ()
 
 # Save new inline-index hash
@@ -3178,7 +3196,7 @@ remove_metadata ()
 	inline_serial="$(inline_index_ilhash_to_serial)"
 	inline_index_update del || die "Failed to update inline-index"
 	# Reset inline_index_save_hash_block, to add this inline back to the index
-	unset -v inline_index_save_hash_block
+	unset -v inline_index_save_hash_block inline_index_verify_hash_block
 
 	# Edit metadata
 	if [ -n "${1}" ]; then
