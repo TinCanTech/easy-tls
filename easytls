@@ -9159,6 +9159,10 @@ external_deps ()
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
 	fi
 
+	# For Windows
+	verify_openvpn
+	verify_openssl
+
 	# "Work_dir" needs improvement
 	EASYTLS_WORK_DIR="${EASYTLS_work_dir}"
 	# Source metadata lib
