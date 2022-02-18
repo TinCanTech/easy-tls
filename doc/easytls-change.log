@@ -3,6 +3,9 @@ https://github.com/TinCanTech/easy-tls
 
 Version 2.8.0
 * TBD
+  Fully integrate upgrade and rehash facilities
+    Commit 5b024b10099d7ab6cfe0c336be722b2e1fa4e49a
+      Upgrade older versions and rehash on request
   Allow deleting an inline file which fails the HASH
     Commit a1a5212b1780e4161894bae6cdc82a59b2cab576
       Manually edited inline files are likely, this is easy to use
