@@ -37,8 +37,6 @@ easytls_version ()
 	unset EASYTLS_SILENT EASYTLS_VERBOSE
 	config_use || :
 	print "Easy-TLS ${EASYTLS_VERSION}"
-	print "OpenVPN ${ovpn_ver_number}"
-	print "${openssl_full_version}"
 } # => easytls_version ()
 
 
@@ -559,9 +557,16 @@ print ()
 # present even with EASYTLS_BATCH as these are fatal problems
 die ()
 {
+	print
+	error_msg
 	print "Error: ${1}" 1>&2
-	[ -z "${help_note}" ] || print "Note: ${help_note}"
+	print
+	[ -n "${help_note}" ] && print "Note: ${help_note}" && print
 	easytls_version
+	verify_openvpn
+	print "OpenVPN ${ovpn_ver_number}"
+	verify_openssl
+	print "${openssl_full_version}"
 	exit "${2:-1}"
 } # => die ()
 
@@ -574,10 +579,7 @@ ${1}"
 	else
 		if [ -n "${error_log}" ];then
 			print "${error_log}"
-			easytls_verbose
-			return 1
-		else
-			return 0
+			print
 		fi
 	fi
 } # => error_msg ()
@@ -612,7 +614,6 @@ cleanup ()
 	else
 		[ -t 1 ] && stty echo
 	fi
-	error_msg || exit 1
 	[ -n "${EASYTLS_SILENT}" ] || echo "" # just to get a clean line
 } # => cleanup ()
 
@@ -743,11 +744,12 @@ ${help_note}"
 easytls_verbose ()
 {
 	[ -n "${EASYTLS_VERBOSE}" ] || return 0
-	[ -n "${EASYTLS_SILENT}" ] && return 0
-	[ -n "${flash_config}" ] && return 0
+	[ -z "${EASYTLS_SILENT}" ] || return 0
+	[ -z "${flash_config}" ] || return 0
 	verbose_message="${*}"
-	[ -z "${verbose_message}" ] && print "" && return 0
-	print "* ${verbose_message}"
+	#[ -z "${verbose_message}" ] && print "" && return 0
+	#print "* ${verbose_message}"
+	print "${verbose_message:+"* ${verbose_message}"}"
 } # => easytls_verbose ()
 
 # Verbose messages ON/OFF
@@ -1065,7 +1067,7 @@ config_use ()
 	fixed_tls_auth_serial=7A01
 	fixed_tls_cryptv1_serial=7C01
 
-	EASYTLS_VERSION="${EASYTLS_VERSION}.(${EASYTLS_STATUS})"
+	EASYTLS_VERSION="${EASYTLS_VERSION}(${EASYTLS_STATUS})"
 
 	# maintenance
 	config_version || {
@@ -1479,6 +1481,8 @@ easytls_rehash ()
 	disabled_list_save_hash || return 1
 	update_master_hash=1
 	save_master_hash || return 1
+	print "
+Rehash completed successfully."
 } # => easytls_rehash ()
 
 # Create missing files for old Easy-TLS
@@ -1530,6 +1534,9 @@ easytls_auto_check ()
 	status renewed || die "inline_auto_check: status renewed error"
 	[ "${renewed_mismatch_count}" -eq 0 ] || \
 		warn "EasyTLS: Invalid .inline files found: Renewed certs."
+
+	# Update status
+	status_update
 
 	# Check inline-index hash
 	#if [ -z "${inline_index_verify_hash_block}" ]; then
@@ -1762,7 +1769,6 @@ save_file_hash ()
 	# Must be a valid target fle
 	unset -v valid_target
 	[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ] && valid_target=1
-	[ "${hash_file}" = "${EASYTLS_WISCII_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
 	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
@@ -1961,10 +1967,18 @@ easytls_date_to_sec ()
 # Generate openssl.cnf file for self-signed certs
 easytls_openssl_file ()
 {
-	OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
-	export OPENSSL_CONF
-	[ -f "${EASYTLS_OPENSSL_CONF}" ] && return 0
-	"${EASYTLS_PRINTF}" '%s\n' '# For use with Easy-TLS and OpenSSL or LibreSSL
+	# OpenSSL config file
+	case "${1}" in
+	destroy)
+		unset OPENSSL_CONF
+		"${EASYTLS_RM}" -f "${EASYTLS_OPENSSL_CONF}"
+	;;
+	create)
+		EASYTLS_OPENSSL_CONF="${EASYTLS_DATA_DIR}/easytls-openssl.cnf"
+		OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
+		export OPENSSL_CONF
+		"${EASYTLS_PRINTF}" '%s\n' \
+'# For use with Easy-TLS and OpenSSL or LibreSSL
 
 HOME					= .
 
@@ -2010,6 +2024,9 @@ basicConstraints 		= CA:true
 subjectKeyIdentifier	= hash
 authorityKeyIdentifier	= keyid:always,issuer
 ' > "${EASYTLS_OPENSSL_CONF}" || return 1
+	;;
+	*)	die "easytls_openssl_file unknown option: $1"
+	esac
 } # => easytls_openssl_file ()
 
 # OpenSSL hash of empty data for forbidden hash
@@ -2525,6 +2542,15 @@ status_disabled_list ()
 	"${EASYTLS_CAT}" "${EASYTLS_DISABLED_LIST}"
 } # => status_disabled_list ()
 
+# Record status changes
+status_update ()
+{
+	if [ -n "${FILE_HASH_DISABLED}" ]; then
+	flash_config=1
+		easytls_config status 1
+	fi
+} # => status_update ()
+
 
 
 ############################################################################
@@ -2932,13 +2958,13 @@ inline_crt_common_name ()
 	#unset -v icn
 } # => inline_crt_common_name ()
 
-# Get common_name from inline file
+# Get tlskey-serial from inline-file
 inline_tlskey_serial ()
 {
 	script="{if(\$2 ~ /^UV_TLSKEY_SERIAL\$/) print \$3}"
 	"${EASYTLS_AWK}" "${script}" "${inline_file}"
 	unset -v script
-} # => inline_crt_common_name ()
+} # => inline_tlskey_serial ()
 
 # Format OpenSSL serial number output
 x509_cert_serial ()
@@ -5041,7 +5067,7 @@ build_tls_cv2_group_server ()
 build_tls_cv2_group_client ()
 {
 	[ "$#" -ge 2 ] || \
-	die "Required option(s): <server_group_name> <client_group_name>"
+		die "Required option(s): <server_group_name> <client_group_name>"
 
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
@@ -5832,15 +5858,13 @@ easytls_generate_identity ()
 # Build self-signed server cert and key
 build_self_sign ()
 {
-	[ "$#" -ge 1 ] || die "Required option(s): <server_filename_base>"
+	[ "$#" -ge 2 ] || die "Required option(s): <Name>"
 
 	cert_type="${1}"
 	shift # Scrape off type
 
 	cert_name="${1}"
 	shift # Scrape off name
-
-	verify_openssl || die "build_self_sign -> verify_openssl"
 
 	cert_file="${EASYTLS_PKI}/${cert_name}.crt"
 	key_file="${EASYTLS_PKI}/${cert_name}.key"
@@ -5878,6 +5902,9 @@ build_self_sign ()
 		die "Unknown certificate type: ${cert_type}"
 	;;
 	esac
+
+	# Verify Major version of openssl
+	verify_openssl || die "build_self_sign -> verify_openssl"
 
 	# Disable password
 	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
@@ -5933,6 +5960,10 @@ build_self_sign ()
 # Create an EC key/cert pair
 create_self_sign_cert_pair ()
 {
+	# Setup easytls-openssl.cnf and env-var OPENSSL_CNF
+	easytls_openssl_file create || \
+		die "Failed to create easytls-openssl.cnf (Permission)"
+
 	# If ecparams fail then so does req
 	easytls_verbose
 	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_EC_CURVE}" \
@@ -5940,7 +5971,8 @@ create_self_sign_cert_pair ()
 	# Separate commands for utterly stupid -nodes/-noenc not set error
 	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
 		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-			"${openssl_nopass}" -sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
+			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
+			"${openssl_nopass}" \
 			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
 	else
@@ -5950,6 +5982,9 @@ create_self_sign_cert_pair ()
 			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
 	fi
 
+	# Remove easytls-openssl.cnf and env-var OPENSSL_CNF
+	easytls_openssl_file destroy || \
+		die "Failed to create easytls-openssl.cnf (Permission)"
 	update_master_hash=1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
 } # => create_self_sign_cert_pair ()
@@ -5989,15 +6024,18 @@ save_id ()
 	generate_ca_identity
 
 	# Add CA-ID to config
+	easytls_verb_io off
 	save_id_authorized=1
 	easytls_config id "${ca_identity}"
 	unset -v save_id_authorized config_save_hash_block
+	easytls_verb_io on
 
 	# Create CA-ID file - Legacy
 	"${EASYTLS_PRINTF}" "%s" "${ca_identity}" > "${EASYTLS_CA_IDENTITY}" || \
 		die "Failed to create CA Identify file: ${EASYTLS_CA_IDENTITY}"
 
 	notice "Saved CA Identity: ${EASYTLS_CA_IDENTITY}"
+	easytls_verbose
 } # => save_id ()
 
 
@@ -8982,7 +9020,6 @@ shellcheck_ignore_2154 ()
 	EASYTLS_META_DATA_D=
 	EASYTLS_DATA_DIR=
 	EASYTLS_FASTER_HASH=
-	EASYTLS_WISCII_HASH=
 	EASYTLS_CONFIG_FILE=
 	EASYTLS_CONFIG_HASH=
 	EASYTLS_INLINE_INDEX=
@@ -9040,11 +9077,6 @@ external_deps ()
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
 	# Set the external binary names
-	# use Easy RSA
-	set_var EASYRSA_OPENSSL "openssl"
-	# Use Easy TLS
-	set_var EASYTLS_OPENVPN "openvpn"
-
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
 	EASYTLS_CP='cp' # Checked by Easy-RSA3
@@ -9127,16 +9159,7 @@ external_deps ()
 		EASYTLS_SH_EXE="${EASYTLS_ersabin_dir}/sh.exe"
 	fi
 
-	# OpenSSL config
-	EASYTLS_OPENSSL_CONF="${EASYTLS_work_dir}/easytls-openssl.cnf"
-	# Ensure EASYTLS_OPENSSL_CONF is present and export it
-	easytls_openssl_file || \
-		die "Failed to create easytls-openssl.cnf (Permission)"
-
-	# Verify Openvpn and OpenSSL
-	verify_openvpn
-	verify_openssl
-
+	# "Work_dir" needs improvement
 	EASYTLS_WORK_DIR="${EASYTLS_work_dir}"
 	# Source metadata lib
 	lib_file="${EASYTLS_WORK_DIR}/easytls-metadata.lib"
@@ -9223,13 +9246,18 @@ vars_setup()
 	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
 	set_var EASYRSA_RAND_SN         "yes"
 
+	# use Easy RSA
+	set_var EASYRSA_OPENSSL         "openssl"
+
+	# Use Easy TLS
+	set_var EASYTLS_OPENVPN         "openvpn"
+
 	set_var EASYTLS                 "${PWD}"
 	set_var EASYTLS_PKI             "${EASYRSA_PKI}/easytls"
 	# Find a better name
-	set_var EASYTLS_META_DATA_D          "${EASYTLS_PKI}/metadata"
+	set_var EASYTLS_META_DATA_D     "${EASYTLS_PKI}/metadata"
 	set_var EASYTLS_DATA_DIR        "${EASYTLS_PKI}/data"
-	set_var EASYTLS_FASTER_HASH		"${EASYTLS_DATA_DIR}/easytls-faster.hash"
-	set_var EASYTLS_WISCII_HASH     "${EASYTLS_DATA_DIR}/easytls-wiscii.hash"
+	set_var EASYTLS_FASTER_HASH     "${EASYTLS_DATA_DIR}/easytls-faster.hash"
 	set_var EASYTLS_CONFIG_FILE     "${EASYTLS_DATA_DIR}/easytls-config.txt"
 	set_var EASYTLS_CONFIG_HASH     "${EASYTLS_DATA_DIR}/easytls-config.hash"
 	set_var EASYTLS_INLINE_INDEX    "${EASYTLS_DATA_DIR}/easytls-inline-index.txt"
@@ -9432,12 +9460,14 @@ main ()
 	''|help|-h|--help|--usage)
 		unset -v EASYTLS_SILENT
 		cmd_help "${1}" || die "cmd_help"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	ver|version)
 		unset -v EASYTLS_SILENT
 		easytls_version || die "easytls_version"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	vhw)
 		unset -v EASYTLS_SILENT
@@ -9446,7 +9476,8 @@ main ()
 			exit 1
 			}
 		print "VALID: ${*}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	vip)
 		unset -v EASYTLS_SILENT
@@ -9455,7 +9486,8 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	v4ip)
 		unset -v EASYTLS_SILENT
@@ -9465,7 +9497,8 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	x4ip)
 		unset -v EASYTLS_SILENT
@@ -9475,7 +9508,8 @@ main ()
 			exit 1
 			}
 		print "VALID: ${valid_octets}/${mask_len}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	v6ip)
 		unset -v EASYTLS_SILENT
@@ -9485,7 +9519,8 @@ main ()
 			exit 1
 			}
 		print "VALID: ${full_valid_ip6_addr}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	x6ip)
 		unset -v EASYTLS_SILENT
@@ -9496,14 +9531,14 @@ main ()
 			}
 		print "* full_valid_hextets: ${full_valid_hextets}"
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
-		return 0
+		AUTO_CHECK_DISABLED=1
+		easytls_verb_io off
 	;;
 	# Do init before locking and update Master hash on exit
 	init|init-tls)
 		init_tls "$@" || die "init_tls"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
-		return 0
 	;;
 	*)
 		# Create lock-file - Does not require a time-out
@@ -9611,12 +9646,6 @@ main ()
  * Example: ./easytls config temp.dir /tmp"
 				die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
 				}
-		fi
-
-		# Record if FILE_HASH_DISABLED
-		if [ -n "${FILE_HASH_DISABLED}" ]; then
-			flash_config=1
-			easytls_config status 1
 		fi
 
 		# Commands which can run with or without a PKI
