@@ -8883,20 +8883,53 @@ generate_master_hash ()
 	# Generate a single hash of all the files
 	generated_faster_hash="$(
 		{
+			unset file_list
+			old_IFS="$IFS"
 			IFS="${new_line}"
+
 			for f in ${inline_file_list}; do
-				"${EASYTLS_CAT}" "${f}" || \
-					die "generated_faster_hash - inline_file_list"
+				if [ -n "${file_list}" ]; then
+					file_list="${file_list} ${f}"
+				else
+					file_list="${f}"
+				fi
+
+				#"${EASYTLS_CAT}" "${f}" || \
+				#	die "generated_faster_hash - inline_file_list"
 			done
+
 			for f in ${tlskey_file_list}; do
-				"${EASYTLS_CAT}" "${f}" || \
-					die "generated_faster_hash - tlskey_file_list"
+				if [ -n "${file_list}" ]; then
+					file_list="${file_list} ${f}"
+				else
+					file_list="${f}"
+				fi
+
+				#"${EASYTLS_CAT}" "${f}" || \
+				#	die "generated_faster_hash - tlskey_file_list"
 			done
+
 			for f in ${util_file_list}; do
-				"${EASYTLS_CAT}" "${f}" || \
-					die "generated_faster_hash - util_file_list"
+				if [ -n "${file_list}" ]; then
+					file_list="${file_list} ${f}"
+				else
+					file_list="${f}"
+				fi
+
+				#"${EASYTLS_CAT}" "${f}" || \
+				#	die "generated_faster_hash - util_file_list"
 			done
+			IFS="${old_IFS}"
+
+			# cat the list
+			# This save 20s of 3m25s on local testing
+			# TODO: Find a better way
+			# shellcheck disable=2086 # (info): Double quote
+			"${EASYTLS_CAT}" ${file_list} || \
+				die "generate_master_hash - # cat the list"
+
 		} | openssl_generate_data_hash
+
 	)" || die "generate_master_hash/generated_faster_hash"
 
 	unset inline_file_list tlskey_file_list util_file_list
