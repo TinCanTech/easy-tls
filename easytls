@@ -1974,6 +1974,7 @@ easytls_openssl_file ()
 		"${EASYTLS_RM}" -f "${EASYTLS_OPENSSL_CONF}"
 	;;
 	create)
+		print "${openssl_full_version}"
 		EASYTLS_OPENSSL_CONF="${EASYTLS_DATA_DIR}/easytls-openssl.cnf"
 		OPENSSL_CONF="${EASYTLS_OPENSSL_CONF}"
 		export OPENSSL_CONF
