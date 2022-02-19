@@ -25,6 +25,7 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 fail ()
 {
 	echo "$@"
+	[ "${EASYTLS_FOR_WINDOWS}" ] && cd ..
 	exit 1
 }
 
@@ -284,22 +285,25 @@ EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 
 if [ -n "$EASYTLS_FOR_WINDOWS" ]
 then
-	#export OPENVPN_CMD="./openvpn.exe"
-	OPENVPN_BIN_DIR="${ProgramFiles}/Openvpn/bin"
-	if [ -d "${OPENVPN_BIN_DIR}" ]; then
+	export EASYTLS_OPENVPN="openvpn"
+	export OPENVPN_CMD="./openvpn.exe"
 
-		OPENVPN_CMD="${OPENVPN_BIN_DIR}/openvpn.exe"
-		[ -f "${OPENVPN_CMD}" ] || \
-			print "unit-test - OPENVPN_CMD: ${OPENVPN_CMD}"
+	export EASYRSA_OPENSSL="openssl"
+	export OPENSSL_CMD="./openssl.exe"
 
-		OPENSSL_CMD="${OPENVPN_BIN_DIR}/openssl.exe"
-		[ -f "${OPENSSL_CMD}" ] || \
-			print "unit-test - OPENSSL_CMD: ${OPENSSL_CMD}"
+	#OPENVPN_BIN_DIR="${ProgramFiles}/Openvpn/bin"
+	#if [ -d "${OPENVPN_BIN_DIR}" ]; then
+	#	OPENVPN_CMD="${OPENVPN_BIN_DIR}/openvpn.exe"
+	#	[ -f "${OPENVPN_CMD}" ] || \
+	#		print "unit-test - OPENVPN_CMD: ${OPENVPN_CMD}"
+	#	OPENSSL_CMD="${OPENVPN_BIN_DIR}/openssl.exe"
+	#	[ -f "${OPENSSL_CMD}" ] || \
+	#		print "unit-test - OPENSSL_CMD: ${OPENSSL_CMD}"
+	#else
+	#	export OPENVPN_CMD=./openvpn.exe
+	#fi
 
-		export PATH="${OPENVPN_BIN_DIR};${PATH}"
-	else
-		export OPENVPN_CMD=./openvpn.exe
-	fi
+	export PATH="./;${PATH}"
 
 	WIN_TEMP="$(printf "%s\n" "${TEMP}" | sed -e 's,\\,/,g')"
 	[ -z "$EASYTLS_tmp_dir" ] && export EASYTLS_tmp_dir="${WIN_TEMP}/easytls-unit-tests"
@@ -309,12 +313,13 @@ else
 	mkdir -p "$EASYTLS_tmp_dir"
 	if [ -f ./openvpn ]
 	then
+		export EASYTLS_OPENVPN=./openvpn
 		export OPENVPN_CMD=./openvpn
 	else
-		export OPENVPN_CMD=/usr/sbin/openvpn
+		export EASYTLS_OPENVPN=openvpn
+		export OPENVPN_CMD=openvpn
 	fi
 fi
-[ -f "$OPENVPN_CMD" ] || fail "unit-test - OPENVPN_CMD: ${OPENVPN_CMD}"
 
 # Invoke shell
 #BIN_SH="sh"
@@ -322,6 +327,7 @@ fi
 #INVOKE_OPTS="-c"
 
 # Test help
+print "TEST: ${BIN_SH} ${INVOKE_OPTS} ${EASYTLS_CMD} ${EASYTLS_OPTS} --help"
 ${BIN_SH} ${INVOKE_OPTS} "${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || \
 	fail "${EASYTLS_CMD} ${EASYTLS_OPTS} --help ($?)"
 

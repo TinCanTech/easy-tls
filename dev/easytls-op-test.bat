@@ -77,7 +77,6 @@ dir
 
 sh.exe dev\easytls-unit-tests.sh
 
-REM AOK
 IF ERRORLEVEL 0 SET SH_EXIT=0
 REM X509 certificate revoked
 IF ERRORLEVEL 1 SET SH_EXIT=1
