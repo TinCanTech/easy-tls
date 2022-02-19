@@ -17,6 +17,24 @@ copyright ()
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
+dl_ossl3 ()
+{
+	file="apps/openssl"
+	source="TinCanTech/pre-built-openssl-3/master"
+	host="https://raw.githubusercontent.com"
+
+	printf '%s\n\n' "* curl -SO ${host}/${source}/${file}"
+	curl -SO "${host}/${source}/${file}" || \
+		die "Failed to download $file, error: $?"
+
+	OSSL_V3_LIBB="${PWD}/openssl"
+
+	printf '%s\n\n' "* chmod +x openssl"
+	chmod +x openssl
+
+	"${OSSL_V3_LIBB}" version || die "openssl version: ${OSSL_V3_LIBB}"
+}
+
 env
 
 etls_ut_file_list="easytls
@@ -42,6 +60,8 @@ done
 
 cd "${etls_ut_dir_name}"
 
+dl_ossl3
+
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
@@ -65,8 +85,13 @@ pwd
 ls -l
 
 	export SHALLOW=1
+
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
+
+	export EASYRSA_OPENSSL="./openssl"
+	printf "%s\n" "EASYRSA_OPENSSL=$EASYRSA_OPENSSL"
+
 	$EASYTLS_OPENVPN --version
 
 	sh ./dev/easytls-shellcheck.sh
