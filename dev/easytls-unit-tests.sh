@@ -432,6 +432,8 @@ do
 	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
 	EASYTLS_VARS="$PKI_DIR/vars"
+	EASYTLS_OPTS="--batch -v"
+	EASYTLS_OPTS="${EASYTLS_OPTS} -p=et-tdir${loops}"
 
 	# github Windows runner takes too long, so just test once
 	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && [ $EASYTLS_FOR_WINDOWS ]
@@ -471,9 +473,9 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 "
 	fi
 
-	# Enable file-hash
+	# Enable file-hash - auto-check is VERY expensive
 	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ]; then
-		EASYTLS_OPTS="${EASYTLS_OPTS% -y}"
+		EASYTLS_OPTS="${EASYTLS_OPTS} -n"
 		print "
 
 
