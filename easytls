@@ -2572,42 +2572,30 @@ verify_cert_purpose ()
 		}
 
 	[ -n "${2}" ] || {
-		error_msg "verify_cert_purpose - input variable"
+		error_msg "verify_cert_purpose - purpose requested p_r"
 		return 1
 		}
+	# purpose requested
+	p_r="${2}"
 
+	# Get certificate purpose list
 	p_l="$(openssl_cert_purpose "${1}")" || {
 		error_msg "openssl_cert_purpose - verify_cert_purpose"
 		error_msg "= ${p_l}"
-		unset -v p_l p_c p_s is_c is_s
 		return 1
 		}
 
-	p_c='SSL client : Yes'
-	p_s='SSL server : Yes'
-	unset -v is_c is_s
-	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_c}" && is_c=1
-	"${EASYTLS_PRINTF}" "%s" "${p_l}" | "${EASYTLS_GREP}" -q "${p_s}" && is_s=1
-
-	if [ -n "${is_c}" ] && [ -n "${is_s}" ]; then
-		error_msg "Unsupported certificate purpose"
-		error_msg "= ${p_l}"
-		unset -v p_l p_c p_s is_c is_s
-		return 1
-
-	elif [ -n "${is_c}" ]; then
-		eval "${2}=\"Client\""
-
-	elif [ -n "${is_s}" ]; then
-		eval "${2}=\"Server\""
-
-	else
-		error_msg "Unknown certificate purpose"
-		error_msg "= ${p_l}"
-		unset -v p_l p_c p_s is_c is_s
-		return 1
-	fi
-	unset -v p_l p_c p_s is_c is_s
+	# Search for requested purpose
+	OFS="$IFS"; IFS="$new_line"
+	for i in ${p_l}
+	do
+		if [ "${i}" = "${p_r}" ]; then
+			IFS="$OFS"
+			return 0
+		fi
+	done
+	IFS="$OFS"
+	return 1
 } # => verify_cert_purpose ()
 
 # Cut to only certificate enddate
@@ -3582,13 +3570,22 @@ remove_tlskey ()
 
 	# Check required files (No metadata_file for servers)
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
-	cert_purpose=
-	verify_cert_purpose "${cert_file}" cert_purpose || \
-		die "remove_tlskey - verify_cert_purpose"
 	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
-	[ "${cert_purpose}" = 'Server' ] || {
+
+
+	# Cert purpose
+	if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
+		cert_purpose='server'
+	elif verify_cert_purpose "${cert_file}" 'SSL client : Yes'; then
+		cert_purpose='client'
+	else
+		error_msg "remove_tlskey - verify_cert_purpose failed"
+		return 1
+	fi
+
+	if [ "${cert_purpose}" = 'client' ]; then
 		[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
-		}
+	fi
 
 	# Get tlskey serial number from tlskey-index
 	tlskey_serial="$(tlskey_index_fname_2_tlskser)"
@@ -3620,7 +3617,7 @@ remove_tlskey ()
 	# Move
 	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleted" || \
 		die "Failed to move: ${tlskey_file}"
-	[ "${cert_purpose}" = 'Server' ] || {
+	[ "${cert_purpose}" = 'server' ] || {
 		"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleted" || \
 			die "Failed to move: ${metadata_file}"
 		}
@@ -3630,7 +3627,7 @@ remove_tlskey ()
 		# Remove
 		"${EASYTLS_RM}" "${tlskey_file}-deleted" || \
 			die "Failed to remove: ${tlskey_file}"
-		[ "${cert_purpose}" = 'Server' ] || {
+		[ "${cert_purpose}" = 'server' ] || {
 			"${EASYTLS_RM}" "${metadata_file}-deleted" || \
 				die "Failed to remove: ${metadata_file}"
 			}
@@ -3639,7 +3636,7 @@ remove_tlskey ()
 		if [ -z "${force_remove}" ]; then
 			"${EASYTLS_MV}" "${tlskey_file}-deleted" "${tlskey_file}" || \
 				die "Failed to restore: ${tlskey_file}"
-			[ "${cert_purpose}" = 'Server' ] || {
+			[ "${cert_purpose}" = 'server' ] || {
 				"${EASYTLS_MV}" "${metadata_file}-deleted" "${metadata_file}" || \
 					die "Failed to restore: ${metadata_file}"
 				}
@@ -3702,7 +3699,7 @@ remove_group_tlskey ()
 	# Move
 	"${EASYTLS_MV}" "${tlskey_file}" "${tlskey_file}-deleted" || \
 		die "Failed to move: ${tlskey_file}"
-	[ "${cert_purpose}" = 'Server' ] || {
+	[ "${cert_purpose}" = 'server' ] || {
 		"${EASYTLS_MV}" "${metadata_file}" "${metadata_file}-deleted" || \
 			die "Failed to move: ${metadata_file}"
 		}
@@ -3712,7 +3709,7 @@ remove_group_tlskey ()
 		# Remove
 		"${EASYTLS_RM}" "${tlskey_file}-deleted" || \
 			die "Failed to remove: ${tlskey_file}"
-		[ "${cert_purpose}" = 'Server' ] || {
+		[ "${cert_purpose}" = 'server' ] || {
 			"${EASYTLS_RM}" "${metadata_file}-deleted" || \
 				die "Failed to remove: ${metadata_file}"
 			}
@@ -3721,7 +3718,7 @@ remove_group_tlskey ()
 		if [ -z "${force_remove}" ]; then
 			"${EASYTLS_MV}" "${tlskey_file}-deleted" "${tlskey_file}" || \
 				die "Failed to restore: ${tlskey_file}"
-			[ "${cert_purpose}" = 'Server' ] || {
+			[ "${cert_purpose}" = 'server' ] || {
 				"${EASYTLS_MV}" "${metadata_file}-deleted" "${metadata_file}" || \
 					die "Failed to restore: ${metadata_file}"
 				}
@@ -3800,11 +3797,14 @@ inline_base ()
 		cert_fpr="${cert_fpr##*=}"
 
 		# Cert purpose
-		cert_purpose=
-		verify_cert_purpose "${cert_file}" cert_purpose || {
-			error_msg "verify_cert_purpose failed"
+		if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
+			cert_purpose='server'
+		elif verify_cert_purpose "${cert_file}" 'SSL client : Yes'; then
+			cert_purpose='client'
+		else
+			error_msg "inline_base - verify_cert_purpose failed"
 			return 1
-			}
+		fi
 	else
 		error_msg "Certificate file missing or revoked: ${cert_file}"
 		return 1
@@ -3878,7 +3878,7 @@ inline_base ()
 			"${EASYTLS_CAT}" "${EASYRSA_DH_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n\n' "</dh>"
 		else
-			[ "${cert_purpose}" = "Client" ] || \
+			[ "${cert_purpose}" = "client" ] || \
 				"${EASYTLS_PRINTF}" '%s\n\n' "dh none"
 		fi
 
@@ -4076,10 +4076,14 @@ inline_tls_crypt_v2 ()
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
-	verify_cert_purpose "${cert_file}" cert_purpose || {
-		error_msg "verify_cert_purpose failed"
+	if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
+		cert_purpose='server'
+	elif verify_cert_purpose "${cert_file}" 'SSL client : Yes'; then
+		cert_purpose='client'
+	else
+		error_msg "inline_tls_crypt_v2 - verify_cert_purpose failed"
 		return 1
-		}
+	fi
 
 	# Set file names
 	tlskey_file="${EASYTLS_PKI}/${name}-tls-crypt-v2.key"
@@ -4117,7 +4121,7 @@ inline_tls_crypt_v2 ()
 		die "TLS key file does not exist: ${tlskey_file}"
 		}
 
-	if [ "${cert_purpose}" = 'Client' ]; then
+	if [ "${cert_purpose}" = 'client' ]; then
 		# Must be a client
 		[ -f "${metadata_file}" ] || missing_file "${metadata_file}"
 
@@ -4200,7 +4204,7 @@ inline_tls_crypt_v2 ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'Client' ] && {
+		[ "${cert_purpose}" = 'client' ] && {
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 			}
@@ -4264,11 +4268,11 @@ inline_tls_cv2_group_server ()
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
-	verify_cert_purpose "${cert_file}" cert_purpose || {
-		error_msg "verify_cert_purpose failed"
-		return 1
-		}
-	[ "${cert_purpose}" = 'Server' ] || die "Require Server Certificate"
+	if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
+		cert_purpose='server'
+	else
+		die "Require server certificate."
+	fi
 
 	# Set file names
 	tlskey_file="${EASYTLS_PKI}/${group_key}-tls-crypt-v2.key"
@@ -4324,7 +4328,7 @@ inline_tls_cv2_group_server ()
 
 		if [ -n "${no_metadata}" ]; then
 			# If this is a defined sub-key name then add the name anyway
-			if [ "${cert_purpose}" = 'Client' ]; then
+			if [ "${cert_purpose}" = 'client' ]; then
 				[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" \
 					'%s\n\n' "# metadata Sub-key-name: ${MD_subkey}"
 			fi
@@ -4357,7 +4361,7 @@ inline_tls_cv2_group_server ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'Client' ] && {
+		[ "${cert_purpose}" = 'client' ] && {
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 			}
@@ -4418,11 +4422,11 @@ inline_tls_cv2_group_client ()
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
-	verify_cert_purpose "${cert_file}" cert_purpose || {
-		error_msg "verify_cert_purpose failed"
-		return 1
-		}
-	[ "${cert_purpose}" = 'Client' ] || die "Require Client Certificate"
+	if verify_cert_purpose "${cert_file}" 'SSL client : Yes'; then
+		cert_purpose='client'
+	else
+		die "Require client certificate."
+	fi
 
 	# Set file names
 	tlskey_file="${EASYTLS_PKI}/${group_key}-tls-crypt-v2.key"
@@ -4539,7 +4543,7 @@ inline_tls_cv2_group_client ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'Client' ] && {
+		[ "${cert_purpose}" = 'client' ] && {
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 			}
@@ -4586,7 +4590,7 @@ inline_share_fingerprint ()
 
 	[ "$#" -ge 1 ] || die "Required option: client commonName"
 	if [ -n "${EASYTLS_PEER_FPR}" ] && {
-		[ "${cert_purpose}" = "Client" ] || [ "${cert_type}" = "Client" ]; }
+		[ "${cert_purpose}" = "client" ] || [ "${cert_type}" = "Client" ]; }
 	then
 		# share fingerprints of server and client
 		:
@@ -4830,12 +4834,11 @@ build_tls_crypt_v2_server ()
 		}
 
 	# Cert purpose
-	verify_cert_purpose "${srv_cert}" cert_purpose || {
-		error_msg "verify_cert_purpose failed"
-		return 1
-		}
-	[ "${cert_purpose}" = 'Server' ] || \
-		die "Certificate must be a Server: ${srv_cert}"
+	if verify_cert_purpose "${srv_cert}" 'SSL server : Yes'; then
+		cert_purpose='server'
+	else
+		die "Require server certificate."
+	fi
 
 	[ -f "${tlskey_file}" ] && die "Server file already exists: ${tlskey_file}"
 
@@ -4913,13 +4916,11 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Cert purpose
-	srv_cert_purpose=
-	verify_cert_purpose "${srv_cert}" srv_cert_purpose || {
-		error_msg "verify_cert_purpose failed"
-		return 1
-		}
-	[ "${srv_cert_purpose}" = 'Server' ] || \
-		die "Certificate must be a Server: ${srv_cert}"
+	if verify_cert_purpose "${srv_cert}" 'SSL server : Yes'; then
+		srv_cert_purpose='server'
+	else
+		die "Require server certificate."
+	fi
 
 	# Client cert
 	[ -f "${cli_cert}" ] || {
@@ -4928,13 +4929,11 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Cert purpose
-	cli_cert_purpose=
-	verify_cert_purpose "${cli_cert}" cli_cert_purpose || {
-		error_msg "verify_cert_purpose failed"
-		return 1
-		}
-	[ "${cli_cert_purpose}" = 'Client' ] || \
-		die "Certificate must be a Client: ${cli_cert}"
+	if verify_cert_purpose "${cli_cert}" 'SSL client : Yes'; then
+		cert_purpose='client'
+	else
+		die "Require client certificate."
+	fi
 
 	# Server tlskey MUST exist
 	[ -f "${in_file}" ] || {
@@ -5081,8 +5080,6 @@ build_tls_cv2_group_client ()
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
-	#srv_grp_name="${1}-grp-srv"; shift
-	#cli_grp_name="${1}-grp-cli"; shift
 	srv_key_name="${1}"
 	shift
 	cli_grp_name="${1}"
