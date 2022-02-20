@@ -563,10 +563,6 @@ die ()
 	print
 	[ -n "${help_note}" ] && print "Note: ${help_note}" && print
 	easytls_version
-	verify_openvpn
-	print "OpenVPN ${ovpn_ver_number}"
-	verify_openssl
-	print "${openssl_full_version}"
 	exit "${2:-1}"
 } # => die ()
 
@@ -593,10 +589,18 @@ missing_file ()
 # Fatal errors prior to deps
 fatal_opt ()
 {
-	[ -z "${1}" ] && [ -n "${fatal_msg}" ] && die "${fatal_msg}"
-	[ -z "${1}" ] || fatal_msg="${fatal_msg}
+	if [ -z "${1}" ]; then
+		# If fatal_msg is not set then ok
+		[ -z "${fatal_msg}" ] && return 0
+	else
+		# Add the message to fatal_msg and ok
+		fatal_msg="${fatal_msg}
 ${1}"
-}
+		return 0
+	fi
+	# fatal_msg is set
+	 die "${fatal_msg}"
+} # => fatal_opt ()
 
 # remove temp files and do terminal cleanups
 cleanup ()
