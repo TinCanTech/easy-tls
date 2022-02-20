@@ -24,18 +24,18 @@ VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 
 fail ()
 {
-	echo "$@"
+	print "$@"
 	[ "${EASYTLS_FOR_WINDOWS}" ] && cd ..
 	exit 1
 }
 
 expected_errors ()
 {
-	[ $1 -eq 99 ] && exit 99
-	subtot_expected_errors=$((subtot_expected_errors + 1))
-	echo "** subtot_expected_errors $subtot_expected_errors"
-	total_expected_errors=$((total_expected_errors + 1))
-	[ $SHALLOW ] && return 0
+	[ "$1" -eq 99 ] && exit 99
+	subtot_expected_errors="$((subtot_expected_errors + 1))"
+	print "** subtot_expected_errors $subtot_expected_errors"
+	total_expected_errors="$((total_expected_errors + 1))"
+	[ -n "$SHALLOW" ] && return 0
 	printf '%s ' "PRESS ENTER TO CONTINUE"
 	read input
 }
@@ -97,7 +97,7 @@ clean_up ()
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
-print() { [ $EASYTLS_SILENT ] || printf "%s\n" "$*"; }
+print() { [ -n "$EASYTLS_SILENT" ] || printf "%s\n" "$*"; }
 
 build_easyrsa ()
 {
@@ -223,7 +223,7 @@ build_easytls_vars ()
 			# EOL
 
 	} > "${CLIDIS_VARS}"
-	echo "* vars rebuilt"
+	print "* vars rebuilt"
 }
 
 #######################################################
@@ -267,15 +267,15 @@ CLIDIS_VARS="${UTMP_DIR}/easytls-client-disconnect.vars"
 CLIDIS_OPTS="-v"
 
 LIB_MD="./dev/easytls-metadata.lib"
-[ -f "${LIB_MD}" ] || { echo "Missing ${LIB_MD}"; exit 9; }
+[ -f "${LIB_MD}" ] || { print "Missing ${LIB_MD}"; exit 9; }
 . "${LIB_MD}"
 
 LIB_CT="./easytls-conntrac.lib"
-[ -f "${LIB_CT}" ] || { echo "Missing ${LIB_CT}"; exit 9; }
+[ -f "${LIB_CT}" ] || { print "Missing ${LIB_CT}"; exit 9; }
 . "${LIB_CT}"
 
 LIB_IP="./dev/easytls-tctip.lib"
-[ -f "${LIB_IP}" ] || { echo "Missing ${LIB_IP}"; exit 9; }
+[ -f "${LIB_IP}" ] || { print "Missing ${LIB_IP}"; exit 9; }
 . "${LIB_IP}"
 
 # create vars files
@@ -338,17 +338,20 @@ ${INVOKE_OPTS} "${EASYTLS_CMD}" ${EASYTLS_OPTS} --help || \
 ${INVOKE_OPTS} "${TLSCV2V_CMD}" ${TLSCV2V_OPTS} "${TLSCV2V_VARS}" --help || \
 		exit_code=$?
 	[ $exit_code -eq 253 ] || \
-		fail "${INVOKE_OPTS} ${TLSCV2V_CMD} ${TLSCV2V_OPTS} ${TLSCV2V_VARS} --help ($exit_code)"
+		fail "${INVOKE_OPTS} ${TLSCV2V_CMD} ${TLSCV2V_OPTS} ${TLSCV2V_VARS} --help
+	 ($exit_code)"
 
 ${INVOKE_OPTS} "${CLICON_CMD}" ${CLICON_OPTS} "${CLICON_VARS}" --help || \
 		exit_code=$?
 	[ $exit_code -eq 253 ] || \
-		fail "${INVOKE_OPTS} ${CLICON_CMD} ${CLICON_OPTS} ${CLICON_VARS} --help ($exit_code)"
+		fail "${INVOKE_OPTS} ${CLICON_CMD} ${CLICON_OPTS} ${CLICON_VARS} --help
+	 ($exit_code)"
 
 ${INVOKE_OPTS} "${CLIDIS_CMD}" ${CLIDIS_OPTS} "${CLIDIS_VARS}" --help || \
 		exit_code=$?
 	[ $exit_code -eq 253 ] || \
-		fail "${INVOKE_OPTS} ${CLIDIS_CMD} ${CLIDIS_OPTS} ${CLIDIS_VARS} --help ($exit_code)"
+		fail "${INVOKE_OPTS} ${CLIDIS_CMD} ${CLIDIS_OPTS} ${CLIDIS_VARS} --help
+	 ($exit_code)"
 
 # No-CA test
 PKI_DIR="${WORK_DIR}/noca"
@@ -362,7 +365,7 @@ ip6addr="12fc:1918::10:01:101:0/112"
 print "============================================================"
 print "No-CA mode:"
 print "ls -l"
-[ $EASYTLS_SILENT ] || ls -l
+[ -n "$EASYTLS_SILENT" ] || ls -l
 
 print "--------------------"
 [ -d "${EASYRSA_PKI}" ] && rm -rf "${EASYRSA_PKI}"
@@ -397,7 +400,7 @@ do
 done
 print "============================================================"
 
-[ $NOCA_ONLY ] && exit 0
+[ -n "$NOCA_ONLY" ] && exit 0
 noca_end_time="$(date +%s)"
 noca_run_mins="$(( (noca_end_time - start_time) / 60 ))"
 noca_run_secs="$(( (noca_end_time - start_time) - ( noca_run_mins * 60 ) ))"
@@ -610,7 +613,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 		# EasyOut
 		#[ "$test_cmd" = "Planned break" ] && [ $loops -eq 2 ] && fail "Planned break"
-		#[ "$test_cmd" = "Planned break" ] && echo "Planned break" && continue
+		#[ "$test_cmd" = "Planned break" ] && print "Planned break" && continue
 
 		#if [ "$test_cmd" = "remove-inline s01" ]
 		#then
@@ -975,7 +978,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		TEST_OPTS="-g=tincantech --via-index --cache-id --preload-id=${plcid}"
 		test_server_scripts
 
-		echo
+		print
 	done
 
 	# Re-enable file-hashing and auto-check
@@ -1121,30 +1124,30 @@ print "============================================================"
 print "Clean up"
 clean_up
 
-echo "============================================================"
-echo "subtot_1 $subtot_1 (Expected $sknown_1 Verified)"
-echo "subtot_2 $subtot_2 (Expected $sknown_2 Verified)"
-echo "subtot_3 $subtot_3 (Expected $sknown_3 Verified)"
-echo "Last part cross-polinated: $subtot_expected_errors (Expected $sknown_expected_errors Verified)"
+print "============================================================"
+print "subtot_1 $subtot_1 (Expected $sknown_1 Verified)"
+print "subtot_2 $subtot_2 (Expected $sknown_2 Verified)"
+print "subtot_3 $subtot_3 (Expected $sknown_3 Verified)"
+print "Last part cross-polinated: $subtot_expected_errors (Expected $sknown_expected_errors Verified)"
 
-echo "total_expected_errors=$total_expected_errors (Expected $known_expected_errors Verified)"
-echo "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
-echo "============================================================"
+print "total_expected_errors=$total_expected_errors (Expected $known_expected_errors Verified)"
+print "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
+print "============================================================"
 
-echo "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
-echo "loop1 Duration: $loop_1_run_mins minutes $loop_1_run_secs seconds"
-echo "loop2 Duration: $loop_2_run_mins minutes $loop_2_run_secs seconds"
-echo "loop3 Duration: $loop_3_run_mins minutes $loop_3_run_secs seconds"
-echo "Final Duration: $final_run_mins minutes $final_run_secs seconds"
+print "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
+print "loop1 Duration: $loop_1_run_mins minutes $loop_1_run_secs seconds"
+print "loop2 Duration: $loop_2_run_mins minutes $loop_2_run_secs seconds"
+print "loop3 Duration: $loop_3_run_mins minutes $loop_3_run_secs seconds"
+print "Final Duration: $final_run_mins minutes $final_run_secs seconds"
 
 end_time="$(date +%s)"
 run_mins="$(( (end_time - start_time) / 60 ))"
 run_secs="$(( (end_time - start_time) - ( run_mins * 60 ) ))"
-echo "Total Duration: $run_mins minutes $run_secs seconds"
+print "Total Duration: $run_mins minutes $run_secs seconds"
 
-echo
+print
 [ "$total_expected_errors" -eq "$known_expected_errors" ] || {
-	echo "Expected ERROR count incorrect!"
+	print "Expected ERROR count incorrect!"
 	exit 9
 	}
 exit 0
