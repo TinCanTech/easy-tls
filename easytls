@@ -1233,7 +1233,6 @@ verify_openvpn ()
 
 	openvpn_version="${openvpn_full_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
-	ovpn_ver_number="${openvpn_version}"
 	openvpn_version="${openvpn_version%_*}"
 	[ "${#openvpn_version}" -gt 3 ] && openvpn_version="${openvpn_version%.*}"
 	case "${openvpn_version}" in
@@ -4922,7 +4921,7 @@ build_tls_crypt_v2_client ()
 
 	# Cert purpose
 	if verify_cert_purpose "${srv_cert}" 'SSL server : Yes'; then
-		srv_cert_purpose='server'
+		: # Not used: srv_cert_purpose='server'
 	else
 		die "Require server certificate."
 	fi
