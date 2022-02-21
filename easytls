@@ -1677,7 +1677,7 @@ generate_and_validate_data_hash ()
 # Wrapper for base64 encoding
 generate_base64_data ()
 {
-	[ "${#}" -eq 2 ] || {
+	[ "${#}" -eq 1 ] || {
 		help_note="input: ${*}"
 		die "generate_base64_data - invalid input"
 		}
@@ -1685,20 +1685,16 @@ generate_base64_data ()
 	target="${1}"
 
 	# hash the data
-	openssl_b64="$(
+	generated_base64="$(
 			"${EASYTLS_PRINTF}" "%s" "${target}" | openssl_base64_data
 			)" || {
 					error_msg "generate_base64_data"
-					error_msg "= ${openssl_b64}"
+					error_msg "= ${generated_base64}"
 					unset -v target openssl_b64
 					return 1
 					}
-
-	# Assign base64 to return var
-	eval "${2}=\"${openssl_b64}\""
-
 	# Clean up
-	unset -v target openssl_b64
+	unset -v target
 } # => generate_base64_data ()
 
 # Verify valid hash - Only return success or fail
@@ -1952,7 +1948,7 @@ easytls_date_to_sec ()
 	# Set return variable
 	eval "${2}=\"${t_d}\""
 	unset -v t_d
-} # => easytls_sec_to_date ()
+} # => easytls_date_to_sec ()
 
 
 
@@ -5831,10 +5827,12 @@ b64_enc_metadata ()
 
 	easytls_verbose "metadata: ${metadata}"
 	# Base64 encode metadata
-	generate_base64_data "${metadata}" b64_metadata || {
+	generate_base64_data "${metadata}" || {
 		error_msg "b64_enc_metadata - generate_base64_data"
 		return 1
 		}
+
+	b64_metadata="${generated_base64}"
 } # => b64_enc_metadata ()
 
 # Generate CA Identity from CA fingerprint
