@@ -2324,11 +2324,14 @@ noca_status_x509_valid ()
 		ersa_valid_cn="${ersa_valid_cn##*=CN = }"
 		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
 
-		cert_serial=""
-		x509_cert_serial "${i}" cert_serial || {
-			error_msg "x509_cert_serial - noca_status_x509_valid"
+		x509_cert_serial "${i}" || {
+			error_msg "noca_status_x509_valid - x509_cert_serial"
 			return 1
 			}
+
+		# Use extracted_cert_serial
+		cert_serial="${extracted_cert_serial}"
+
 		[ -n "${silent_status}" ] || \
 			print "${ersa_valid_cn} ${cert_serial}" | status_easyrsa_output
 	done
@@ -2450,17 +2453,23 @@ status_easyrsa_renewed ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
-	x509_cert_serial "${inline_file}" inline_serial || {
-		error_msg "inline_index_update - x509_cert_serial"
+	x509_cert_serial "${inline_file}" || {
+		error_msg "status_easyrsa_renewed - x509_cert_serial - ${inline_file}"
 		return 1
 		}
+
+	# Use extracted_cert_serial
+	inline_serial="${extracted_cert_serial}"
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
 	if [ -f "${cert_file}" ]; then
 
 		# Certificate serial
-		x509_cert_serial "${cert_file}" cert_serial || \
-			die "status_easyrsa_renewed ${cert_serial}"
+		x509_cert_serial "${cert_file}" || \
+			die "status_easyrsa_renewed - x509_cert_serial - ${cert_file}"
+
+		# Use extracted_cert_serial
+		cert_serial="${extracted_cert_serial}"
 
 		if [ "${inline_serial}" = "${cert_serial}" ]; then
 			# serial match, inline is upto Date
@@ -2718,10 +2727,13 @@ inline_index_update ()
 	case "${update_index_action}" in
 	add)
 		# Inline serial
-		x509_cert_serial "${inline_file}" inline_serial || {
+		x509_cert_serial "${inline_file}" || {
 			error_msg "inline_index_update - x509_cert_serial"
 			return 1
 			}
+
+		# Use extracted_cert_serial
+		inline_serial="${extracted_cert_serial}"
 
 		# Create new inline file HASH
 		force_hash=1
@@ -2955,23 +2967,12 @@ x509_cert_serial ()
 		return 1
 		}
 
-	[ -n "${2}" ] || {
-		error_msg "x509_cert_serial - input variable"
+	extracted_cert_serial="$(openssl_cert_serial "${1}")" || {
+		error_msg "x509_cert_serial - extracted_cert_serial"
 		return 1
 		}
 
-	temp_out="$(openssl_cert_serial "${1}")" || {
-		error_msg "x509_cert_serial - temp_out"
-		unset -v temp_out
-		return 1
-		}
-	temp_out="${temp_out##serial=}"
-
-	# Assign cert-serial to variable
-	eval "${2}=\"${temp_out}\""
-
-	# Clean up
-	unset -v temp_out
+	extracted_cert_serial="${extracted_cert_serial##serial=}"
 } # => x509_cert_serial ()
 
 # Check inline hash and Copy inline to stdout
@@ -2989,10 +2990,13 @@ inline_show ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
-	x509_cert_serial "${inline_file}" inline_serial || {
-		error_msg "inline_index_update - x509_cert_serial"
+	x509_cert_serial "${inline_file}" || {
+		error_msg "inline_show - x509_cert_serial"
 		return 1
 		}
+
+	# Use extracted_cert_serial
+	inline_serial="${extracted_cert_serial}"
 
 	# Check inline hash
 	inline_file_verify_hash || die "Failed HASH: ${inline_file}"
@@ -3018,10 +3022,13 @@ remove_inline ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
-	x509_cert_serial "${inline_file}" inline_serial || {
-		error_msg "x509_cert_serial - remove_inline"
+	x509_cert_serial "${inline_file}" || {
+		error_msg "remove_inline - x509_cert_serial"
 		return 1
 		}
+
+	# Use extracted_cert_serial
+	inline_serial="${extracted_cert_serial}"
 
 	unset force_remove
 	# Check .inline HASH prior to removal
@@ -3105,10 +3112,13 @@ remove_group_inline ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# Inline serial
-	x509_cert_serial "${inline_file}" inline_serial || {
-		error_msg "x509_cert_serial - remove_group_inline"
+	x509_cert_serial "${inline_file}" || {
+		error_msg "remove_group_inline - x509_cert_serial"
 		return 1
 		}
+
+	# Use extracted_cert_serial
+	inline_serial="${extracted_cert_serial}"
 
 	unset force_remove
 	# Check .inline HASH prior to removal
@@ -3825,8 +3835,11 @@ inline_base ()
 	fi
 
 	# get the serial number of the certificate from OpenSSL
-	x509_cert_serial "${cert_file}" cert_serial || \
-		die "inline_base - ${cert_serial}"
+	x509_cert_serial "${cert_file}" || \
+		die "inline_base - x509_cert_serial"
+
+	# Use extracted_cert_serial
+	cert_serial="${extracted_cert_serial}"
 
 	# Build .base file
 	{
@@ -4139,15 +4152,20 @@ inline_tls_crypt_v2 ()
 		if [ -n "${EASYTLS_NO_CA}" ]; then
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${MD_SRV_NAME}.crt"
-			x509_cert_serial "${cert_file}" cert_serial || \
-				die "inline_tls_crypt_v2 - cert_serial"
-			srv_serial="${cert_serial}"
+			x509_cert_serial "${cert_file}" || \
+				die "inline_tls_crypt_v2 - x509_cert_serial - ${cert_file}"
+
+			# Use extracted_cert_serial
+			srv_serial="${extracted_cert_serial}"
 		else
 			# Get the CA serial number
 			ca_cert="${EASYRSA_PKI}/ca.crt"
 			ca_serial=
-			x509_cert_serial "${ca_cert}" ca_serial || \
-				die "inline_tls_crypt_v2 - ca_serial"
+			x509_cert_serial "${ca_cert}" || \
+				die "inline_tls_crypt_v2 - x509_cert_serial - ${ca_cert}"
+
+			# Use extracted_cert_serial
+			ca_serial="${extracted_cert_serial}"
 		fi
 	else
 		# Must be a server
@@ -4482,15 +4500,20 @@ inline_tls_cv2_group_client ()
 		if [ -n "${EASYTLS_NO_CA}" ]; then
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${MD_SRV_NAME}.crt"
-			x509_cert_serial "${cert_file}" cert_serial || \
-				die "inline_tls_crypt_v2 - cert_serial"
-			srv_serial="${cert_serial}"
+			x509_cert_serial "${cert_file}" || \
+				die "inline_tls_cv2_group_client - x509_cert_serial - ${cert_file}"
+
+			# Use extracted_cert_serial
+			srv_serial="${extracted_cert_serial}"
 		else
 			# Get the CA serial number
 			ca_cert="${EASYRSA_PKI}/ca.crt"
 			ca_serial=
-			x509_cert_serial "${ca_cert}" ca_serial || \
-				die "inline_tls_crypt_v2 - ca_serial"
+			x509_cert_serial "${ca_cert}" || \
+				die "inline_tls_cv2_group_client - x509_cert_serial - ${ca_cert}"
+
+			# Use extracted_cert_serial
+			ca_serial="${extracted_cert_serial}"
 		fi
 
 	# Inline base file
@@ -4843,8 +4866,11 @@ build_tls_crypt_v2_server ()
 	[ -f "${tlskey_file}" ] && die "Server file already exists: ${tlskey_file}"
 
 	# get the serial number of the certificate from OpenSSL
-	x509_cert_serial "${srv_cert}" cert_serial || \
-		die "build_tls_crypt_v2_server - cert_serial"
+	x509_cert_serial "${srv_cert}" || \
+		die "build_tls_crypt_v2_server - x509_cert_serial - ${srv_cert}"
+
+	# Use extracted_cert_serial
+	cert_serial="${extracted_cert_serial}"
 
 	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
@@ -5772,10 +5798,13 @@ b64_enc_metadata ()
 		ca_identity="${ca_identity}-${srv_name}"
 
 		# get the serial number of the certificate from OpenSSL
-		x509_cert_serial "${cli_cert}" cert_serial || {
-			error_msg "b64_enc_metadata - cert_serial"
+		x509_cert_serial "${cli_cert}" || {
+			error_msg "b64_enc_metadata - x509_cert_serial - ${cli_cert}"
 			return 1
 			}
+
+		# Use extracted_cert_serial
+		cert_serial="${extracted_cert_serial}"
 
 		# Build metadata
 		metadata="${metadata_version}${delimiter}${ca_identity}"
