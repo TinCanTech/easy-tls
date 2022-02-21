@@ -1387,8 +1387,11 @@ easytls_create_layout ()
 	forbidden_hash="${forbidden_hash%% *}"
 
 	# Get date
-	head_date=
-	generate_valid_date_now head_date || die "Failed to set date"
+	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')" || \
+		die "Failed to get date"
+	local_date_ascii="${full_date##* }"
+	local_time_unix="${full_date%% *}"
+	head_date="${local_date_ascii}"
 
 	# Create easytls dir in EasyRSA-PKI dir
 	if [ ! -d "${EASYTLS_PKI}" ]; then
@@ -1852,103 +1855,6 @@ generate_and_save_file_hash ()
 
 	unset -v target_file hash_file generated_valid_hash
 } # => generate_and_save_file_hash ()
-
-# Generate a valid date at now
-generate_valid_date_now ()
-{
-	[ -n "${1}" ] || {
-		error_msg "generate_valid_date_now - output variable"
-		return 1
-		}
-
-	# Format
-	format="+%Y/%m/%d-%T"
-	[ "${2}" = "epoch" ] && format="+%s"
-
-	# Generate date
-	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
-		g_d="$("${EASYTLS_DATE}" ${format})" || {
-			error_msg "generate_valid_date_now - g_d"
-			unset -v g_d
-			return 1
-			}
-	else
-		g_d="$("${EASYTLS_DATE}" ${format})" || {
-			error_msg "generate_valid_date_now - g_d"
-			unset -v g_d
-			return 1
-			}
-	fi
-
-	# Minimal validate
-	[ -n "${g_d}" ] || { error_msg "generate_valid_date_now - ${g_d}"; return 1; }
-
-	# Set return variable
-	eval "${1}=\"${g_d}\""
-	unset -v g_d
-} # => generate_valid_date_now ()
-
-# Generate and validate a date from epoc seconds
-easytls_sec_to_date ()
-{
-	[ -n "${1}" ] || {
-		error_msg "easytls_sec_to_date - input date"
-		return 1
-		}
-	[ -n "${2}" ] || {
-		error_msg "easytls_sec_to_date - output variable"
-		return 1
-		}
-
-	format="+%Y/%m/%d-%T"
-
-	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
-		t_d="$("${EASYTLS_DATE}" -u -d "1970-01-01 ${1} seconds" ${format})" || {
-			error_msg "easytls_sec_to_date - generate date"
-			unset -v t_d
-			return 1
-			}
-	else
-		t_d="$("${EASYTLS_DATE}" --date=@"${1}" "${format}")" || {
-			error_msg "easytls_sec_to_date - generate date: ${1} ${format}"
-			unset -v t_d
-			return 1
-			}
-	fi
-
-	# Set return variable
-	eval "${2}=\"${t_d}\""
-	unset -v t_d
-} # => easytls_sec_to_date ()
-
-# Generate and validate epoc seconds from a full date
-easytls_date_to_sec ()
-{
-	[ -n "${1}" ] || {
-		error_msg "easytls_date_to_sec - input date"
-		return 1
-		}
-	[ -n "${2}" ] || {
-		error_msg "easytls_date_to_sec - output variable"
-		return 1
-		}
-	if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
-		t_d="$("${EASYTLS_DATE}" --date="${1}" +%s)" || {
-			error_msg "easytls_date_to_sec - generate date"
-			unset -v t_d
-			return 1
-			}
-	else
-		t_d="$("${EASYTLS_DATE}" --date="${1}" +%s)" || {
-			error_msg "easytls_date_to_sec - generate date"
-			unset -v t_d
-			return 1
-			}
-	fi
-	# Set return variable
-	eval "${2}=\"${t_d}\""
-	unset -v t_d
-} # => easytls_date_to_sec ()
 
 
 
@@ -4139,9 +4045,7 @@ inline_tls_crypt_v2 ()
 			die "metadata_stov_safe" 87
 
 		# Set creation Date
-		MD_longdate=
-		easytls_sec_to_date "${MD_DATE}" MD_longdate || \
-			die "Failed to create metadata date"
+		MD_longdate="${local_date_ascii}"
 
 		# Verify Custom-Group
 		[ "${TLSKEY_CUSTOM_GRP}" = "${MD_CUSTOM_G}" ] || {
@@ -4488,8 +4392,7 @@ inline_tls_cv2_group_client ()
 			die "metadata_stov_safe" 87
 
 		# Set creation Date
-		easytls_sec_to_date "${MD_DATE}" MD_longdate || \
-			die "Failed to create metadata date"
+		MD_longdate="${local_date_ascii}"
 
 		# Verify Custom-Group
 		[ "${TLSKEY_CUSTOM_GRP}" = "${MD_CUSTOM_G}" ] || {
@@ -5758,11 +5661,7 @@ b64_enc_metadata ()
 	metadata_version="easytls-${EASYTLS_VERSION}"
 
 	# Set creation Date
-	key_date=""
-	generate_valid_date_now key_date epoch || {
-		error_msg "b64_enc_metadata - key_date"
-		return 1
-		}
+	key_date="${local_time_unix}"
 
 	if [ -n "${group_mode}" ]; then
 		# Append Server name to CA-ID
@@ -6230,11 +6129,11 @@ disabled_list_manager ()
 disabled_list_update_and_hash ()
 {
 	# Update time-stamp
-	update_date=
-	generate_valid_date_now update_date || {
-		error_msg "disabled_list_update_and_hash - generate_valid_date_now"
-		return 1
-		}
+	update_date="${local_date_ascii}"
+	#generate_valid_date_now update_date || {
+	#	error_msg "disabled_list_update_and_hash - generate_valid_date_now"
+	#	return 1
+	#	}
 
 	update_text="# Updated: ${update_date} -- ${action}: ${name}"
 	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
@@ -9680,6 +9579,12 @@ main ()
 				die "Missing Temp-Dir: ${EASYTLS_tmp_dir}"
 				}
 		fi
+
+		# Generate valid date/time now and only once
+		full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')" || \
+			die "Failed to get date"
+		local_date_ascii="${full_date##* }"
+		local_time_unix="${full_date%% *}"
 
 		# Commands which can run with or without a PKI
 		case "${cmd}" in
