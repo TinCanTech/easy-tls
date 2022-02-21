@@ -1587,11 +1587,6 @@ generate_and_validate_file_hash ()
 		return 1
 		}
 
-	[ -n "${2}" ] || {
-		error_msg "generate_and_validate_file_hash - input variable"
-		return 1
-		}
-
 	target="${1}"
 
 	# hash the file
@@ -1625,7 +1620,7 @@ generate_and_validate_file_hash ()
 	fi
 
 	# Return validated generated_hash
-	eval "${2}=\"${generated_hash}\""
+	generated_valid_hash="${generated_hash}"
 
 	# Clean up
 	unset -v target openssl_hash generated_hash
@@ -1634,7 +1629,7 @@ generate_and_validate_file_hash ()
 # Generate data hash
 generate_and_validate_data_hash ()
 {
-	[ "${#}" -eq 2 ] || {
+	[ "${#}" -eq 1 ] || {
 		help_note="input: ${*}"
 		die "generate_and_validate_data_hash - invalid input"
 		}
@@ -1674,7 +1669,7 @@ generate_and_validate_data_hash ()
 	fi
 
 	# Return validated generated_hash
-	eval "${2}=\"${generated_hash}\""
+	generated_valid_hash="${generated_hash}"
 
 	# Clean up
 	unset -v target openssl_hash generated_hash
@@ -1685,7 +1680,7 @@ generate_base64_data ()
 {
 	[ "${#}" -eq 2 ] || {
 		help_note="input: ${*}"
-		die "generate_and_validate_data_hash - invalid input"
+		die "generate_base64_data - invalid input"
 		}
 
 	target="${1}"
@@ -1810,8 +1805,7 @@ generate_and_match_valid_hash ()
 		}
 
 	# Generate $generated_valid_hash
-	generated_valid_hash=
-	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
+	generate_and_validate_file_hash "${target_file}" || {
 		error_msg "generate_and_validate_file_hash - generate_and_match_valid_hash"
 		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
@@ -1848,7 +1842,7 @@ generate_and_save_file_hash ()
 		}
 
 	# Generate $generated_valid_hash
-	generate_and_validate_file_hash "${target_file}" generated_valid_hash || {
+	generate_and_validate_file_hash "${target_file}" || {
 		error_msg "generate_and_save_file_hash - generate_and_validate_file_hash"
 		unset -v target_file hash_file generated_valid_hash
 		return 1
@@ -2586,15 +2580,15 @@ verify_cert_purpose ()
 		}
 
 	# Search for requested purpose
-	OFS="$IFS"; IFS="$new_line"
-	for i in ${p_l}
+	while IFS="$new_line" read -r i
 	do
 		if [ "${i}" = "${p_r}" ]; then
-			IFS="$OFS"
 			return 0
 		fi
-	done
-	IFS="$OFS"
+	done << PURPOSE_LIST
+${p_l}
+PURPOSE_LIST
+
 	return 1
 } # => verify_cert_purpose ()
 
@@ -2736,15 +2730,14 @@ inline_index_update ()
 
 		# Create new inline file HASH
 		force_hash=1
-		generate_and_validate_file_hash \
-			"${inline_file}" generated_valid_hash || {
+		generate_and_validate_file_hash "${inline_file}" || {
 				error_msg "inline_index_update - generate_and_validate_file_hash"
 				return 1
 				}
-		unset -v force_hash
 
 		# Set new inline file HASH
 		current_inline_hash="${generated_valid_hash}"
+		unset -v force_hash generated_valid_hash
 
 		# Create new record
 		new_record="${current_inline_hash} ${inline_serial} ${name}"
@@ -2892,13 +2885,13 @@ inline_file_verify_hash ()
 
 	# generate current file HASH
 	force_hash=1
-	generate_and_validate_file_hash "${inline_file}" generated_valid_hash || {
+	generate_and_validate_file_hash "${inline_file}" || {
 		die "inline_index_update add - generate_and_validate_file_hash"
 		}
 
 	# Use the hash
 	inline_file_hash="${generated_valid_hash}"
-	unset -v force_hash
+	unset -v force_hash generated_valid_hash
 
 	# Search Inline Index for Inline File Hash
 	# Do not need to search for --sub-key-name
@@ -3214,13 +3207,15 @@ remove_metadata ()
 
 	# Actual inline-file hash
 	force_hash=1
-	verified_inline_hash=""
-	generate_and_validate_file_hash "${inline_file}" verified_inline_hash || {
+	generate_and_validate_file_hash "${inline_file}" || {
 		error_msg "generate_and_validate_file_hash - remove_metadata"
 		error_msg "${inline_file}"
 		return 1
 		}
-	unset -v force_hash
+
+	# Use the hash
+	verified_inline_hash="${generated_valid_hash}"
+	unset -v force_hash generated_valid_hash
 
 	# Remove client from inline index
 	known_inline_hash="${verified_inline_hash}"
@@ -3424,12 +3419,15 @@ tls_crypt_v2_serial_number ()
 
 	# Generate and validate tlskey_serial from metadata string
 	force_hash=1
-	generate_and_validate_data_hash "${metadata}" tlskey_serial || {
+	generate_and_validate_data_hash "${metadata}" || {
 		error_msg "tls_crypt_v2_serial_number - tlskey_serial"
 		unset -v tlskey_serial
 		return 1
 		}
-	unset -v force_hash
+
+	# Use the hash
+	tlskey_serial="${generated_valid_hash}"
+	unset -v force_hash generated_valid_hash
 
 	# Check for duplicate
 	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
@@ -3571,7 +3569,6 @@ remove_tlskey ()
 	# Check required files (No metadata_file for servers)
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 	[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
-
 
 	# Cert purpose
 	if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
@@ -4644,11 +4641,15 @@ inline_share_fingerprint ()
 	fpr_tplt="${fpr_tplt}.."
 
 	# Actual inline-file hash
-	generate_and_validate_file_hash "${cli_inline}" verified_inline_hash || {
+	generate_and_validate_file_hash "${cli_inline}" || {
 		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${cli_inline}"
 		return 1
 		}
+
+	# Use the hash
+	verified_inline_hash="${generated_valid_hash}"
+	unset -v force_hash generated_valid_hash
 
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
@@ -4691,11 +4692,15 @@ inline_share_fingerprint ()
 		}
 
 	# Remove node from inline-index
-	generate_and_validate_file_hash "${srv_inline}" verified_inline_hash || {
+	generate_and_validate_file_hash "${srv_inline}" || {
 		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${srv_inline}"
 		return 1
 		}
+
+	# Use the hash
+	verified_inline_hash="${generated_valid_hash}"
+	unset -v force_hash generated_valid_hash
 
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
