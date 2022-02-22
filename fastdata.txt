@@ -1,0 +1,13 @@
+# EasyTLS inline-index - Created: 2022/02/22-21:26:59 - inline-hash|inline-serial|CN|sub-key|tlskey-serial
+# EasyTLS tlskey-index - Created: 2022/02/22-21:26:59 - tlskey-serial|cert-serial|CN|sub-key
+no.ca = 1
+hash.algorithm = SHA256
+tmp.dir = 
+ca.id = 
+custom.group = 
+auto.check = on
+inline.metadata = on
+inline.hardware = off
+custom.openvpn = 
+status = 0
+# EastTLS disabled-list - Created: 2022/02/22-21:26:59

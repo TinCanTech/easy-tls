@@ -2181,6 +2181,8 @@ noca_status_x509_valid ()
 {
 	for i in "${EASYTLS_PKI}"/*.crt; do
 
+		[ -f "${i}" ] || continue
+
 		ersa_valid_cn="$(get_openssl_crt_common_name "${i}")" || {
 			error_msg "ersa_valid_cn - noca_status_x509_valid"
 			return 1
@@ -2206,6 +2208,9 @@ noca_status_x509_valid ()
 noca_status_easytls_inline ()
 {
 	for i in "${EASYTLS_PKI}"/*.inline; do
+
+		[ -f "${i}" ] || continue
+
 		etls_valid_name="$("${EASYTLS_GREP}" '^. Common name: ' "${i}")" || {
 			error_msg "etls_valid_name - noca_status_easytls_inline"
 			return 1
