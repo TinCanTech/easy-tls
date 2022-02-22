@@ -1286,7 +1286,7 @@ verify_tls_init ()
 		easytls_verbose "verify_tls_init OK"
 		:
 	else
-		easytls_verbose "verify_tls_init fail"
+		error_msg "verify_tls_init fail"
 		easytls_verbose
 		return 1
 	fi
@@ -8846,7 +8846,7 @@ generate_master_hash ()
 	unset inline_file_list tlskey_file_list util_file_list
 
 	# Generate the lists above
-	generate_master_list || die "generate_master_hash/generate_master_list"
+	generate_master_list || die "generate_master_hash - generate_master_list"
 
 	# Generate a single hash of all the files
 	generated_faster_hash="$(
@@ -9486,6 +9486,7 @@ main ()
 
 		# Load config options - Does not change command line options
 		config_use || die "config_use"
+		[ -z "${EASYTLS_NO_CA}" ] || easytls_verbose "No-CA mode"
 
 		# Easy-TLS Upgrade
 		# shellcheck disable=SC2249 # (info): default *) case
@@ -9734,7 +9735,7 @@ main ()
 	easytls_auto_check || die "easytls_auto_check fail"
 
 	# save me, only if update_master_hash=1
-	save_master_hash || die "save_master_hash"
+	save_master_hash || die "main - save_master_hash"
 } # => main ()
 
 main "$@" || die "main $*"
