@@ -3268,7 +3268,7 @@ tlskey_index_save_hash ()
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
-	unset request_fixed_hash=1
+	unset request_fixed_hash
 	easytls_verbose "tlskey-index hash save OK"
 	update_master_hash=1
 	tlskey_index_save_hash_block=1
