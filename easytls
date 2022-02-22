@@ -2578,7 +2578,6 @@ inline_expire ()
 # Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
 {
-	[ -n "${EASYTLS_NO_CA}" ] && return 0
 	update_index_action="${1}"
 
 	# Verify inline-index Hash
@@ -2731,7 +2730,6 @@ inline_index_save_hash ()
 # Check inline-file hash
 inline_file_verify_hash ()
 {
-	[ -n "${EASYTLS_NO_CA}" ] && return 0
 	# This is a check so check everything here
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
@@ -4455,7 +4453,10 @@ inline_tls_cv2_group_client ()
 # Share peer fingerprints
 inline_share_fingerprint ()
 {
+	# Only supported by No-CA mode
 	[ -n "${EASYTLS_NO_CA}" ] || return 0
+
+	# When first creating this inline add FP <tags> and return
 	[ "$#" -eq 0 ] && {
 		# Only add inline tags for fingerprint
 		"${EASYTLS_PRINTF}" '%s\n' "<peer-fingerprint>"
@@ -4465,7 +4466,10 @@ inline_share_fingerprint ()
 		return 0
 		}
 
+	# If called by a user then require option name
 	[ "$#" -ge 1 ] || die "Required option: client commonName"
+
+	# Only supported for client - This needs improvement
 	if [ -n "${EASYTLS_PEER_FPR}" ] && {
 		[ "${cert_purpose}" = "client" ] || [ "${cert_type}" = "Client" ]; }
 	then
@@ -4482,36 +4486,47 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${cli_cert}"
 	cli_inline="${EASYTLS_PKI}/${cli_name}.inline"
 	cli_fp_list="${EASYTLS_DATA_DIR}/${cli_name}.pfp-list"
+
 	# Set TLSKEY_SUBNAME names
 	sub_name="${name}-${TLSKEY_SUBNAME}"
 	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
 		cli_inline="${EASYTLS_PKI}/${sub_name}.inline"
 		cli_fp_list="${EASYTLS_PKI}/${sub_name}.pfp-list"
 		}
+
+	# File must exist
 	[ -f "${cli_inline}" ] || \
 		missing_file "inline_share_fingerprint - ${cli_inline}"
+
+	# generate client FP
 	cli_fpr="$(openssl_generate_fingerprint "${cli_cert}")" || {
 		error_msg "cli_fpr - inline_share_fingerprint"
 		return 1
 		}
+	# discard description
 	cli_fpr="${cli_fpr##*=}"
 
-	# Server setup
+	# Server files
 	srv_name="${EASYTLS_PEER_FPR}"
 	srv_cert="${EASYTLS_PKI}/${srv_name}.crt"
+	srv_inline="${EASYTLS_PKI}/${srv_name}.inline"
+	srv_fp_list="${EASYTLS_DATA_DIR}/${srv_name}.pfp-list"
+
+	# server cert and inline must exist
 	[ -f "${srv_cert}" ] || \
 		missing_file "inline_share_fingerprint - ${srv_cert}"
-	srv_inline="${EASYTLS_PKI}/${srv_name}.inline"
 	[ -f "${srv_inline}" ] || \
 		missing_file "inline_share_fingerprint - ${srv_inline}"
-	srv_fp_list="${EASYTLS_DATA_DIR}/${srv_name}.pfp-list"
+
+	# generate server FP
 	srv_fpr="$(openssl_generate_fingerprint "${srv_cert}")" || {
 		error_msg "srv_fpr - inline_share_fingerprint"
 		return 1
 		}
+	# discard description
 	srv_fpr="${srv_fpr##*=}"
 
-	# fingerprint pattern
+	# fingerprint pattern for regex match
 	fpr_tplt=
 	i=1
 	while [ "${i}" -lt 32 ]; do
@@ -4531,13 +4546,18 @@ inline_share_fingerprint ()
 	verified_inline_hash="${generated_valid_hash}"
 	unset -v force_hash generated_valid_hash
 
+	# check there is an inline record for this CLIENT
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
 		# Remove client from inline index
 		known_inline_hash="${verified_inline_hash}"
 		inline_serial="$(inline_index_ilhash_to_serial)"
+
+		# Must unset the usage block
+		unset inline_index_save_hash_block
 		inline_index_update del || die "Failed to update inline-index"
 	else
+		die "Why is inline hash missing from index ?"
 		# No-CA mode
 		do_not_index_client_inline_file=1
 	fi
@@ -4545,7 +4565,7 @@ inline_share_fingerprint ()
 	# Give server name and FP to client
 	{	print "# Peer-Server ${srv_name}"
 		print "${srv_fpr}"
-	} > "${cli_fp_list}-temp"
+	} > "${cli_fp_list}-temp" || die "inline_share_fingerprint - Peer-Server"
 	"${EASYTLS_MV}" -f "${cli_fp_list}-temp" "${cli_fp_list}"
 
 	# Delete existing
@@ -4554,22 +4574,28 @@ inline_share_fingerprint ()
 		-e "\\\^#[[:blank:]]Peer-Server.*\$\\d" \
 		-e "\\\^.* Replace this line with your peer's fingerprint .*\$\\d" \
 		-e "\\\^${fpr_tplt}\$\\d" \
-		-e "\\\^</peer-fingerprint>\$\\d" "${cli_inline}"
+		-e "\\\^</peer-fingerprint>\$\\d" "${cli_inline}" || \
+			die "inline_share_fingerprint - Delete existing from CLIENT"
 
-	# Append new
+	# Append new server
 	{	"${EASYTLS_CAT}" "${cli_inline}"
 		print "<peer-fingerprint>"
 		"${EASYTLS_CAT}" "${cli_fp_list}"
 		print "</peer-fingerprint>"
-	} > "${cli_inline}-temp"
+	} > "${cli_inline}-temp" || die "inline_share_fingerprint - Append new server"
 	"${EASYTLS_MV}" -f "${cli_inline}-temp" "${cli_inline}"
 
 	# Add client to inline-index
-	[ -n "${do_not_index_client_inline_file}" ] || {
+	if [ -n "${do_not_index_client_inline_file}" ]; then
+		: # Do not index client inline file
+	else
 		name="${cli_name}"
 		inline_file="${cli_inline}"
+
+		# Must unset the usage block
+		unset inline_index_save_hash_block
 		inline_index_update add || die "Failed to update inline-index"
-		}
+	fi
 
 	# Remove node from inline-index
 	generate_and_validate_file_hash "${srv_inline}" || {
@@ -4582,13 +4608,18 @@ inline_share_fingerprint ()
 	verified_inline_hash="${generated_valid_hash}"
 	unset -v force_hash generated_valid_hash
 
+	# check there is an inline record for this SERVER
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
 	then
 		# Remove node from inline index
 		known_inline_hash="${verified_inline_hash}"
 		inline_serial="$(inline_index_ilhash_to_serial)"
+
+		# Must unset the usage block
+		unset inline_index_save_hash_block
 		inline_index_update del || die "Failed to update inline-index"
 	else
+		die "Why is inline hash missing from index ?"
 		# No-CA mode
 		do_not_index_server_inline_file=1
 	fi
@@ -4603,7 +4634,7 @@ inline_share_fingerprint ()
 		{	[ -f "${srv_fp_list}" ] && "${EASYTLS_CAT}" "${srv_fp_list}"
 			print "# Peer-Client ${cli_name}"
 			print "${cli_fpr}"
-		} > "${srv_fp_list}-temp"
+		} > "${srv_fp_list}-temp" || die "inline_share_fingerprint - Add client"
 		"${EASYTLS_MV}" -f "${srv_fp_list}-temp" "${srv_fp_list}"
 	fi
 
@@ -4614,14 +4645,15 @@ inline_share_fingerprint ()
 		-e "\\\^#[[:blank:]]Peer-Client.*\$\\d" \
 		-e "\\\^.* Replace this line with your peer's fingerprint .*\$\\d" \
 		-e "\\\^${fpr_tplt}\$\\d" \
-		-e "\\\^</peer-fingerprint>\$\\d" "${srv_inline}"
+		-e "\\\^</peer-fingerprint>\$\\d" "${srv_inline}" || \
+			die "inline_share_fingerprint - Delete existing from SERVER"
 
-	# Append new
+	# Append new client
 	{	"${EASYTLS_CAT}" "${srv_inline}"
 		print "<peer-fingerprint>"
 		"${EASYTLS_CAT}" "${srv_fp_list}"
 		print "</peer-fingerprint>"
-	} > "${srv_inline}-temp"
+	} > "${srv_inline}-temp" || die "inline_share_fingerprint - Append new client"
 	"${EASYTLS_MV}" -f "${srv_inline}-temp" "${srv_inline}"
 
 	# Add node to inline-index
@@ -4632,6 +4664,9 @@ inline_share_fingerprint ()
 		MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
 		name="${srv_name}"
 		inline_file="${srv_inline}"
+
+		# Must unset the usage block
+		unset inline_index_save_hash_block
 		inline_index_update add || die "Failed to update inline-index"
 	fi
 } # => inline_share_fingerprint ()
