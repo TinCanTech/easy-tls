@@ -1117,7 +1117,7 @@ config_save_hash ()
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-	uset request_fixed_hash
+	unset request_fixed_hash
 	easytls_verbose "config-file hash save OK"
 	update_master_hash=1
 	config_save_hash_block=1
