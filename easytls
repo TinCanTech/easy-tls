@@ -1095,11 +1095,13 @@ config_verify_hash ()
 {
 	[ -z "${config_verify_hash_block}" ] || \
 		die "config verify hash must only run once"
+	request_fixed_hash=1
 	generate_and_match_valid_hash \
 		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_verify_hash - generate_and_match_valid_hash"
 			return 1
 			}
+	unset request_fixed_hash
 	easytls_verbose "config_verify_hash OK"
 	config_verify_hash_block=1
 } # => config_save_hash ()
@@ -1109,11 +1111,13 @@ config_save_hash ()
 {
 	[ -z "${config_save_hash_block}" ] || \
 		die "config save hash must only run once"
+	request_fixed_hash=1
 	generate_and_save_file_hash \
 		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
+	uset request_fixed_hash
 	easytls_verbose "config-file hash save OK"
 	update_master_hash=1
 	config_save_hash_block=1
@@ -1888,8 +1892,19 @@ openssl_generate_empty_hash ()
 # OpenSSL hash file
 openssl_generate_file_hash ()
 {
+	#[ -n "${request_fixed_hash}" ] && \
+	#	"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "${1}" || return 1
 } # => openssl_generate_file_hash ()
+
+# OpenSSL hash data
+openssl_generate_data_hash ()
+{
+	#[ -n "${request_fixed_hash}" ] && \
+	#	"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
+
+		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
+} # => openssl_generate_data_hash ()
 
 # Base64 encode data
 openssl_base64_data ()
@@ -1902,12 +1917,6 @@ openssl_cert_expire_date ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -enddate || return 1
 } # => openssl_cert_expire_date ()
-
-# OpenSSL hash data
-openssl_generate_data_hash ()
-{
-		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
-} # => openssl_generate_data_hash ()
 
 # OpenSSL certificate purpose
 openssl_cert_purpose ()
@@ -2691,11 +2700,13 @@ inline_index_verify_hash ()
 {
 	[ -z "${inline_index_verify_hash_block}" ] || \
 		die "inline index verify hash must only run once"
+	request_fixed_hash=1
 	generate_and_match_valid_hash \
 		"${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_X_HASH}" || {
 			error_msg "generate_and_match_valid_hash - inline_index_verify_hash"
 			return 1
 			}
+	unset request_fixed_hash
 	easytls_verbose "Inline-index hash check OK"
 	inline_index_verify_hash_block=1
 } # => inline_index_verify_hash ()
@@ -2705,13 +2716,15 @@ inline_index_save_hash ()
 {
 	[ -z "${inline_index_save_hash_block}" ] || \
 		die "inline index save hash must only run once"
+	request_fixed_hash=1
 	generate_and_save_file_hash \
 		"${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_X_HASH}" || {
 			error_msg "generate_and_save_file_hash - inline_index_save_hash"
 			return 1
 			}
-	update_master_hash=1
+	unset request_fixed_hash
 	easytls_verbose "Inline-index hash save OK"
+	update_master_hash=1
 	inline_index_save_hash_block=1
 } # => inline_index_save_hash ()
 
@@ -3234,11 +3247,13 @@ tlskey_index_verify_hash ()
 {
 	[ -z "${tlskey_index_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
+	request_fixed_hash=1
 	generate_and_match_valid_hash \
 		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
 			error_msg "generate_and_match_valid_hash - tlskey_index_verify_hash"
 			return 1
 			}
+	unset request_fixed_hash
 	easytls_verbose "tlskey-index hash check OK"
 	tlskey_index_verify_hash_block=1
 } # => tlskey_index_verify_hash ()
@@ -3248,13 +3263,15 @@ tlskey_index_save_hash ()
 {
 	[ -z "${tlskey_index_save_hash_block}" ] || \
 		die "tlskey index save hash must only run once"
+	request_fixed_hash=1
 	generate_and_save_file_hash \
 		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
-	update_master_hash=1
+	unset request_fixed_hash=1
 	easytls_verbose "tlskey-index hash save OK"
+	update_master_hash=1
 	tlskey_index_save_hash_block=1
 } # => tlskey_index_save_hash ()
 
@@ -6112,11 +6129,13 @@ disabled_list_verify_hash ()
 {
 	[ -z "${disabled_list_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
+	request_fixed_hash=1
 	generate_and_match_valid_hash \
 		"${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_HASH}" || {
 			error_msg "disabled_list_verify_hash - fail"
 			return 1
 			}
+	unset request_fixed_hash
 	easytls_verbose "Disabled-list hash check OK"
 	disabled_list_verify_hash_block=1
 } # => disabled_list_verify_hash ()
@@ -6126,11 +6145,13 @@ disabled_list_save_hash ()
 {
 	[ -z "${disabled_list_save_hash_block}" ] || \
 		die "disabled list save hash must only run once"
+	request_fixed_hash=1
 	generate_and_save_file_hash \
 		"${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_HASH}" || {
 			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
+	unset request_fixed_hash
 	easytls_verbose "Disabled-list hash save OK"
 	update_master_hash=1
 	disabled_list_save_hash_block=1
@@ -8777,6 +8798,8 @@ generate_master_hash ()
 		generated_faster_hash="${fixed_hash}"
 		return 0
 	fi
+
+	unset request_fixed_hash
 
 	# Initialise the list variables
 	unset inline_file_list tlskey_file_list util_file_list
