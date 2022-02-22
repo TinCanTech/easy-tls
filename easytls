@@ -8853,7 +8853,7 @@ save_master_hash ()
 # Verify Master hash
 verify_master_hash ()
 {
-	[ -f  "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
+	[ -f "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
 	#[ "${master_verify_hash_block}" ] && \
 	#	die "Master verify hash must only run once"
 	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
