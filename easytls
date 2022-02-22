@@ -8766,11 +8766,7 @@ ${tlskey_file}"
 
 	# Add config-file and disabled-list and hash files to the UTIL list
 	util_file_list="${EASYTLS_CONFIG_FILE}
-${EASYTLS_CONFIG_HASH}
-${EASYTLS_INLINE_X_HASH}
-${EASYTLS_KEY_X_HASH}
-${EASYTLS_DISABLED_LIST}
-${EASYTLS_DISABLED_HASH}"
+${EASYTLS_DISABLED_LIST}"
 } # => generate_master_list ()
 
 # Master hash
