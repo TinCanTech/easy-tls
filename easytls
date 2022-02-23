@@ -960,6 +960,7 @@ config_update ()
 	easytls_verbose
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
 	easytls_verbose
+	update_master_hash=1
 } # => config_update ()
 
 # Use config
@@ -1080,13 +1081,13 @@ config_use ()
 		}
 
 	# Verify the Config hash
-	if config_verify_hash; then
-		# config_use MUST reset this counter
-		unset config_verify_hash_block
-	else
-		error_msg "config_verify_hash fail"
-		return 1
-	fi
+	#if config_verify_hash; then
+	#	# config_use MUST reset this counter
+	#	unset config_verify_hash_block
+	#else
+	#	error_msg "config_verify_hash fail"
+	#	return 1
+	#fi
 	easytls_verbose "config_use OK"
 } # => config_use ()
 
@@ -2587,7 +2588,10 @@ inline_index_update ()
 	update_index_action="${1}"
 
 	# Verify inline-index Hash
-	#inline_index_verify_hash || { error_msg "inline-index is corrupt"; return 1; }
+	#inline_index_verify_hash || {
+	#	error_msg "inline-index is corrupt"
+	#	return 1
+	#	}
 
 	if [ "${update_index_action}" = 'del' ] && [ -n "${force_remove}" ]; then
 		update_index_action='force-del'
@@ -2691,10 +2695,10 @@ inline_index_update ()
 	esac
 
 	# Keep a hash of the inline-index
-	inline_index_save_hash || {
-		error_msg "Failed to update inline-index hash"
-		return 1
-		}
+	#inline_index_save_hash || {
+	#	error_msg "Failed to update inline-index hash"
+	#	return 1
+	#	}
 
 	easytls_verbose "Inline Index Update complete!"
 	update_master_hash=1
@@ -3163,9 +3167,14 @@ tlskey_index_update ()
 {
 	update_index_action="${1}"
 
-	# Verify tlskey_serial and tlskey-index Hash
+	# Verify tlskey_serial
 	[ -n "${tlskey_serial}" ] || return 1
-	#tlskey_index_verify_hash || { error_msg "tlskey-index is corrupt"; return 1; }
+
+	# Verify tlskey-index Hash
+	#tlskey_index_verify_hash || {
+	#	error_msg "tlskey-index is corrupt"
+	#	return 1
+	#	}
 
 	# Update
 	case "${update_index_action}" in
@@ -3237,10 +3246,10 @@ tlskey_index_update ()
 	esac
 
 	# Keep a hash of the tlskey-index
-	tlskey_index_save_hash || {
-		error_msg "Failed to update tlskey-index hash"
-		return 1
-		}
+	#tlskey_index_save_hash || {
+	#	error_msg "Failed to update tlskey-index hash"
+	#	return 1
+	#	}
 
 	easytls_verbose "tlskey-index Update complete!"
 	update_master_hash=1
@@ -6113,11 +6122,19 @@ disabled_list_manager ()
 
 	# Update and/or Notify
 	if [ -n "${disabled_list_updated}" ]; then
-		disabled_list_update_and_hash || {
+		disabled_list_update || {
 			error_msg "disabled_list_update_and_hash - failed"
 			return 1
 			}
+
+		# Save new disabled-list Hash
+		#disabled_list_save_hash || {
+		#	error_msg "Failed to save disabled-list Hash"
+		#	return 1
+		#	}
+
 		notice "Updated disabled-list: ${name} ${action}d"
+		update_master_hash=1
 	else
 		notice "No change: ${name} is already ${action}d"
 	fi
@@ -6126,7 +6143,7 @@ disabled_list_manager ()
 
 # Update disabled-list footer and hash
 # TODO: is footer necessary ?
-disabled_list_update_and_hash ()
+disabled_list_update ()
 {
 	# Update time-stamp
 	update_date="${local_date_ascii}"
@@ -6157,13 +6174,7 @@ disabled_list_update_and_hash ()
 
 	# Remove temp files
 	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
-
-	# Save new disabled-list Hash
-	disabled_list_save_hash || {
-		error_msg "Failed to save disabled-list Hash"
-		return 1
-		}
-} # => disabled_list_update_and_hash ()
+} # => disabled_list_update ()
 
 # Verify current disable-list hash
 disabled_list_verify_hash ()
@@ -8918,6 +8929,7 @@ verify_master_hash ()
 	#	die "Master verify hash must only run once"
 	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
 	generate_master_hash || die "verify_faster_hash/generate_master_hash"
+	#validate_hash "${generated_faster_hash}"
 	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
 	then
 		easytls_verbose "verify_master_hash OK"
@@ -8925,6 +8937,7 @@ verify_master_hash ()
 		return 0
 	fi
 	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
+	print "TIP: Use './easytls rehash' to correct this hash."
 	return 1
 } # => verify_master_hash ()
 
