@@ -1988,25 +1988,25 @@ easytls_ssl_cert_serial ()
 } # => easytls_ssl_cert_serial ()
 
 # SSL -subject output and grep for commonName
-openssl_crt_common_name ()
+ssl_crt_common_name ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject -nameopt utf8 \
 		-nameopt sep_multiline -nameopt space_eq -nameopt lname | \
 			"${EASYTLS_GREP}" '^[[:blank:]]*commonName' || return 1
-} # => openssl_crt_common_name ()
+} # => ssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject
-easytls_openssl_crt_common_name ()
+easytls_ssl_crt_common_name ()
 {
 	unlock_ssl=1
-	ssl_out="$(openssl_crt_common_name "${1}")" || {
-		error_msg "easytls_openssl_crt_common_name - ssl_out"
+	ssl_out="$(ssl_crt_common_name "${1}")" || {
+		error_msg "easytls_ssl_crt_common_name - ssl_out"
 		return 1
 		}
 	certificate_commonName="${ssl_out#*commonName = }"
 	unset -v unlock_ssl ssl_out
-} # => easytls_openssl_crt_common_name ()
+} # => easytls_ssl_crt_common_name ()
 
 
 
@@ -2236,8 +2236,8 @@ noca_status_x509_valid ()
 
 		[ -f "${i}" ] || continue
 
-		easytls_openssl_crt_common_name "${i}" || {
-			error_msg "ersa_valid_cn - noca_status_x509_valid"
+		easytls_ssl_crt_common_name "${i}" || {
+			error_msg "noca_status_x509_valid - easytls_ssl_crt_common_name"
 			return 1
 			}
 		ersa_valid_cn="${certificate_commonName}"
@@ -8791,7 +8791,7 @@ import_key ()
 
 		cert_file="$EASYRSA_PKI/$requested_cert_CN.crt"
 		[ -f "$cert_file" ] || die "Cannot find file: $cert_file"
-		actual_cert_CN="$(openssl_crt_common_name)"
+		actual_cert_CN="$(easytls_ssl_crt_common_name)"
 
 		if [ "$requested_cert_CN" = "$actual_cert_CN" ]
 		then
