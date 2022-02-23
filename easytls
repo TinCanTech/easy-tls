@@ -1944,10 +1944,23 @@ openssl_cert_expire_date ()
 } # => openssl_cert_expire_date ()
 
 # SSL -purpose output
-openssl_cert_purpose ()
+ssl_cert_purpose ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -purpose || return 1
 } # => openssl_cert_purpose ()
+
+# Extract the fingerprint from SSL -fingerprint
+easytls_ssl_cert_purpose ()
+{
+	unlock_ssl=1
+	ssl_out="$(ssl_cert_purpose "${1}")" || {
+		error_msg "easytls_ssl_cert_purpose - ssl_out"
+		return 1
+		}
+	certificate_purpose_list="${ssl_out#*=}"
+	unset -v unlock_ssl ssl_out
+} # => easytls_ssl_generate_fingerprint ()
 
 # SSL -fingerprint output
 ssl_generate_fingerprint ()
@@ -2502,11 +2515,13 @@ verify_cert_purpose ()
 	p_r="${2}"
 
 	# Get certificate purpose list
-	p_l="$(openssl_cert_purpose "${1}")" || {
-		error_msg "openssl_cert_purpose - verify_cert_purpose"
-		error_msg "= ${p_l}"
+	easytls_ssl_cert_purpose "${1}" || {
+		error_msg "verify_cert_purpose - easytls_ssl_cert_purpose"
 		return 1
 		}
+	# Use purpose list
+	p_l="${certificate_purpose_list}"
+	unset certificate_purpose_list
 
 	# Search for requested purpose
 	while IFS="$new_line" read -r i
