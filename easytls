@@ -1892,7 +1892,7 @@ authorityKeyIdentifier	= keyid:always,issuer
 	esac
 } # => easytls_openssl_file ()
 
-# OpenSSL hash of empty data for forbidden hash
+# SSL hash of empty data for forbidden hash
 openssl_generate_empty_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1913,7 +1913,7 @@ easytls_openssl_generate_empty_hash ()
 	unset -v unlock_ssl openssl_out
 } # => easytls_openssl_generate_empty_hash ()
 
-# OpenSSL hash file
+# SSL file via command hash output
 openssl_generate_file_hash ()
 {
 	[ -n "${request_fixed_hash}" ] && \
@@ -1922,7 +1922,7 @@ openssl_generate_file_hash ()
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "${1}" || return 1
 } # => openssl_generate_file_hash ()
 
-# OpenSSL hash data
+# SSL data in via pipe hash output
 openssl_generate_data_hash ()
 {
 	[ -n "${request_fixed_hash}" ] && \
@@ -1931,31 +1931,59 @@ openssl_generate_data_hash ()
 		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_data_hash ()
 
-# Base64 encode data
-openssl_base64_data ()
+# SSL Base64 encode output
+ssl_encode_base64_data ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" enc -e -a -A || return 1
-} # => openssl_base64_data ()
+} # => ssl_encode_base64_data ()
 
-# OpenSSL cert expire date
+# easytls wrapper for ssl Base64 encode data
+easytls_ssl_encode_base64_data ()
+{
+	unlock_ssl=1
+	ssl_out="$(
+		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_encode_base64_data
+		)" || {
+			error_msg "easytls_openssl_base64_data - ssl_out"
+			return 1
+			}
+	generated_base64="${ssl_out}"
+	unset -v unlock_ssl ssl_out
+} # => easytls_ssl_encode_base64_data ()
+
+# SSL -enddate output
 openssl_cert_expire_date ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -enddate || return 1
 } # => openssl_cert_expire_date ()
 
-# OpenSSL certificate purpose
+# SSL -purpose output
 openssl_cert_purpose ()
 {
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -purpose || return 1
 } # => openssl_cert_purpose ()
 
-# Fingerprint
+# SSL -fingerprint output
 openssl_generate_fingerprint ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -sha256 -fingerprint || return 1
 } # => openssl_generate_fingerprint ()
 
-# Get OpenSSL serial number output
+# Extract the fingerprint from SSL -fingerprint
+easytls_openssl_generate_fingerprint ()
+{
+	unlock_ssl=1
+	ssl_out="$(openssl_generate_fingerprint "${1}")" || {
+		error_msg "easytls_openssl_generate_fingerprint - ssl_out"
+		return 1
+		}
+	certificate_fingerPrint="${ssl_out#*=}"
+	unset -v unlock_ssl ssl_out
+} # => easytls_openssl_generate_fingerprint ()
+
+# SSL -serial output
 openssl_cert_serial ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1966,16 +1994,15 @@ openssl_cert_serial ()
 easytls_openssl_cert_serial ()
 {
 	unlock_ssl=1
-	openssl_out="$(openssl_cert_serial "${1}")" || {
+	ssl_out="$(openssl_cert_serial "${1}")" || {
 		error_msg "easytls_openssl_cert_serial - openssl_out"
 		return 1
 		}
-	openssl_out="${openssl_out#*serial=}"
-	certificate_serialNumber="${openssl_out}"
-	unset -v unlock_ssl openssl_out
+	certificate_serialNumber="${ssl_out#*=}"
+	unset -v unlock_ssl ssl_out
 } # => easytls_openssl_cert_serial ()
 
-# Extract the CommonName from OpenSSL -subject
+# SSL -subject output and grep for commonName
 openssl_crt_common_name ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1988,13 +2015,12 @@ openssl_crt_common_name ()
 easytls_openssl_crt_common_name ()
 {
 	unlock_ssl=1
-	openssl_out="$(openssl_crt_common_name "${1}")" || {
+	ssl_out="$(openssl_crt_common_name "${1}")" || {
 		error_msg "easytls_openssl_crt_common_name - openssl_out"
 		return 1
 		}
-	openssl_out="${openssl_out#*commonName = }"
-	certificate_commonName="${openssl_out}"
-	unset -v unlock_ssl openssl_out
+	certificate_commonName="${ssl_out#*commonName = }"
+	unset -v unlock_ssl ssl_out
 } # => easytls_openssl_crt_common_name ()
 
 
@@ -3714,11 +3740,12 @@ inline_base ()
 
 	if [ -f "${cert_file}" ]; then
 		# Cert fingerprint
-		cert_fpr="$(openssl_generate_fingerprint "${cert_file}")" || {
-			error_msg "openssl_generate_fingerprint failed"
+		easytls_openssl_generate_fingerprint "${cert_file}" || {
+			error_msg "inline_base - easytls_openssl_generate_fingerprint"
 			return 1
 			}
-		cert_fpr="${cert_fpr##*=}"
+		cert_fpr="${certificate_fingerPrint}"
+		unset certificate_fingerPrint
 
 		# Cert purpose
 		if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
@@ -3898,6 +3925,7 @@ inline_tls_auth ()
 	tlskey_serial="${fixed_tls_auth_serial}"
 	inline_index_update add || die "Failed to update inline-index"
 
+	# share this client FP with server defined by -r=<serv-name> option
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
 	notice "Inline TLS auth file created: ${inline_file}"
@@ -4558,12 +4586,13 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${cli_inline}"
 
 	# generate client FP
-	cli_fpr="$(openssl_generate_fingerprint "${cli_cert}")" || {
-		error_msg "cli_fpr - inline_share_fingerprint"
+	easytls_openssl_generate_fingerprint "${cli_cert}" || {
+		error_msg "inline_share_fingerprint - generate client FP"
 		return 1
 		}
-	# discard description
-	cli_fpr="${cli_fpr##*=}"
+	# Use certificate_fingerPrint
+	cli_fpr="${certificate_fingerPrint}"
+	unset certificate_fingerPrint
 
 	# Server files
 	srv_name="${EASYTLS_PEER_FPR}"
@@ -4578,12 +4607,13 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${srv_inline}"
 
 	# generate server FP
-	srv_fpr="$(openssl_generate_fingerprint "${srv_cert}")" || {
-		error_msg "srv_fpr - inline_share_fingerprint"
+	easytls_openssl_generate_fingerprint "${srv_cert}" || {
+		error_msg "inline_share_fingerprint - generate server FP"
 		return 1
 		}
-	# discard description
-	srv_fpr="${srv_fpr##*=}"
+	# Use certificate_fingerPrint
+	srv_fpr="${certificate_fingerPrint}"
+	unset certificate_fingerPrint
 
 	# fingerprint pattern for regex match
 	fpr_tplt=
@@ -4594,16 +4624,15 @@ inline_share_fingerprint ()
 	done
 	fpr_tplt="${fpr_tplt}.."
 
-	# Actual inline-file hash
+	# client inline-file hash
 	generate_and_validate_file_hash "${cli_inline}" || {
-		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
+		error_msg "inline_share_fingerprint - generate_and_validate_file_hash"
 		error_msg "${cli_inline}"
 		return 1
 		}
-
 	# Use the hash
 	verified_inline_hash="${generated_valid_hash}"
-	unset -v force_hash generated_valid_hash
+	unset -v generated_valid_hash
 
 	# check there is an inline record for this CLIENT
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
@@ -4656,16 +4685,15 @@ inline_share_fingerprint ()
 		inline_index_update add || die "Failed to update inline-index"
 	fi
 
-	# Remove node from inline-index
+	# server inline-file hash
 	generate_and_validate_file_hash "${srv_inline}" || {
 		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${srv_inline}"
 		return 1
 		}
-
 	# Use the hash
 	verified_inline_hash="${generated_valid_hash}"
-	unset -v force_hash generated_valid_hash
+	unset -v generated_valid_hash
 
 	# check there is an inline record for this SERVER
 	if "${EASYTLS_GREP}" -q "${verified_inline_hash}" "${EASYTLS_INLINE_INDEX}"
@@ -5806,34 +5834,40 @@ b64_enc_metadata ()
 		return 1
 		}
 
-	easytls_verbose "metadata: ${metadata}"
+	# List metadata
+	easytls_verbose "metadata:
+${metadata}"
+
 	# Base64 encode metadata
-	generate_base64_data "${metadata}" || {
+	easytls_ssl_encode_base64_data "${metadata}" || {
 		error_msg "b64_enc_metadata - generate_base64_data"
 		return 1
 		}
-
+	# Use generated b64 metadata
 	b64_metadata="${generated_base64}"
+	unset generated_base64
 } # => b64_enc_metadata ()
 
 # Generate CA Identity from CA fingerprint
 generate_ca_identity ()
 {
 	# CA fingerprint
-	ca_fingerprint="$(openssl_generate_fingerprint "${ca_cert}")" || {
-		error_msg "generate_ca_identity ca_fingerprint"
+	easytls_openssl_generate_fingerprint "${ca_cert}" || {
+		error_msg "generate_ca_identity - ca_fingerprint"
 		return 1
 		}
+	ca_fingerprint="${certificate_fingerPrint}"
 
 	# CA Identity
-	ca_identity="$(easytls_generate_identity "${ca_fingerprint}")" || {
-		error_msg "generate_ca_identity ca_identity"
+	ca_identity="$(easytls_generate_ca_identity "${ca_fingerprint}")" || {
+		error_msg "generate_ca_identity - ca_identity"
 		return 1
 		}
+	unset certificate_fingerPrint ca_fingerprint
 } # => generate_ca_identity ()
 
 # Collect CA Identity
-easytls_generate_identity ()
+easytls_generate_ca_identity ()
 {
 	# needs pipefail ?
 	"${EASYTLS_PRINTF}" '%s' "${1}" | \
@@ -5904,9 +5938,19 @@ build_self_sign ()
 	create_self_sign_cert_pair || \
 		die "Failed to create self-signed ${cert_type} cert/key for ${cert_name}"
 
-	# Fingerprint file - Always over-write any current file
-	create_fingerprint "${cert_file}" "${fpr_file}" || \
-		die "Failed to create fingerprint for ${cert_name}"
+	# Generate FP
+	easytls_openssl_generate_fingerprint "${cert_file}" || {
+		error_msg "build_self_sign - easytls_openssl_generate_fingerprint"
+		return 1
+		}
+	cert_fpr="${certificate_fingerPrint}"
+	unset certificate_fingerPrint
+
+	# Write FP file - Always over-write any current file
+	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" >  "${fpr_file}" || {
+		error_msg "build_self_sign - Write FP file"
+		return 1
+		}
 
 	# Create base-inline-file - Clients cannot generate TLS-keys
 	# Do not add this inline-file to inline-index
@@ -5973,16 +6017,6 @@ create_self_sign_cert_pair ()
 	update_master_hash=1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
 } # => create_self_sign_cert_pair ()
-
-# Create fingerprint file for self-signed cert
-create_fingerprint ()
-{
-	cert_fpr="$(openssl_generate_fingerprint "${1}")" || return 1
-	cert_fpr="${cert_fpr##*=}"
-	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" > "${2}" || return 1
-	# cert_fpr gets used after return
-	#unset cert_fpr
-} # => create_fingerprint ()
 
 # Save the ID
 save_id ()
