@@ -1969,23 +1969,23 @@ easytls_ssl_generate_fingerprint ()
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -serial output
-openssl_cert_serial ()
+ssl_cert_serial ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -serial || return 1
-} # => openssl_cert_serial ()
+} # => ssl_cert_serial ()
 
 # Extract the serialNumber from OpenSSL -serial
-easytls_openssl_cert_serial ()
+easytls_ssl_cert_serial ()
 {
 	unlock_ssl=1
-	ssl_out="$(openssl_cert_serial "${1}")" || {
-		error_msg "easytls_openssl_cert_serial - ssl_out"
+	ssl_out="$(ssl_cert_serial "${1}")" || {
+		error_msg "easytls_ssl_cert_serial - ssl_out"
 		return 1
 		}
 	certificate_serialNumber="${ssl_out#*=}"
 	unset -v unlock_ssl ssl_out
-} # => easytls_openssl_cert_serial ()
+} # => easytls_ssl_cert_serial ()
 
 # SSL -subject output and grep for commonName
 openssl_crt_common_name ()
@@ -2897,7 +2897,7 @@ x509_cert_serial ()
 		return 1
 		}
 
-	easytls_openssl_cert_serial "${1}" || {
+	easytls_ssl_cert_serial "${1}" || {
 		error_msg "x509_cert_serial - extracted_cert_serial"
 		return 1
 		}
