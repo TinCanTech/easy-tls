@@ -1648,29 +1648,6 @@ generate_and_validate_data_hash ()
 	unset -v target openssl_hash generated_hash
 } # => generate_and_validate_data_hash ()
 
-# Wrapper for base64 encoding
-generate_base64_data ()
-{
-	[ "${#}" -eq 1 ] || {
-		help_note="input: ${*}"
-		die "generate_base64_data - invalid input"
-		}
-
-	target="${1}"
-
-	# hash the data
-	generated_base64="$(
-			"${EASYTLS_PRINTF}" "%s" "${target}" | openssl_base64_data
-			)" || {
-					error_msg "generate_base64_data"
-					error_msg "= ${generated_base64}"
-					unset -v target openssl_b64
-					return 1
-					}
-	# Clean up
-	unset -v target
-} # => generate_base64_data ()
-
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
