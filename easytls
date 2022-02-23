@@ -1938,19 +1938,32 @@ easytls_ssl_encode_base64_data ()
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL -enddate output
-openssl_cert_expire_date ()
+ssl_cert_expire_date ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -enddate || return 1
 } # => openssl_cert_expire_date ()
 
-# SSL -purpose output
+# Extract expire date from SSL -enddate
+easytls_ssl_cert_expire_date ()
+{
+	unlock_ssl=1
+	ssl_out="$(ssl_cert_expire_date "${1}")" || {
+		error_msg "easytls_ssl_cert_expire_date - ssl_out"
+		return 1
+		}
+	certificate_expire_date="${ssl_out#*=}"
+	unset -v unlock_ssl ssl_out
+} # => easytls_ssl_generate_fingerprint ()
+
+# SSL -purpose output (List of purposes Yes/No)
 ssl_cert_purpose ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -purpose || return 1
 } # => openssl_cert_purpose ()
 
-# Extract the fingerprint from SSL -fingerprint
+# Return the purpose-list from SSL -purpose
 easytls_ssl_cert_purpose ()
 {
 	unlock_ssl=1
@@ -1958,7 +1971,7 @@ easytls_ssl_cert_purpose ()
 		error_msg "easytls_ssl_cert_purpose - ssl_out"
 		return 1
 		}
-	certificate_purpose_list="${ssl_out#*=}"
+	certificate_purpose_list="${ssl_out}"
 	unset -v unlock_ssl ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
@@ -2539,41 +2552,15 @@ PURPOSE_LIST
 # Cut to only certificate enddate
 cert_expire_date ()
 {
+	#die "cert_expire_date"
 	[ -f "${1}" ] || missing_file "${1}"
-	cert_expire="$(openssl_cert_expire_date "${1}")" || {
-		error_msg "cert_expire_date - ${cert_expire}"
+	easytls_ssl_cert_expire_date "${1}" || {
+		error_msg "cert_expire_date - easytls_ssl_cert_expire_date"
 		return 1
 		}
-	cert_expire="${cert_expire##*=}"
+	cert_expire="${certificate_expire_date}"
+	unset certificate_expire_date
 } # => crt_expire_date ()
-
-# Extract enddate from .inline certificate
-inline_expire_date ()
-{
-	inline_expire="$("${EASYTLS_GREP}" '^[[:blank:]]*Not After : ' \
-		"${inline_file}")"
-	inline_expire="${inline_expire##*: }"
-} # => inline_expire_date ()
-
-# Get a list of serial_numbers from inline-index
-inline_index_serial_number_list ()
-{
-	"${EASYTLS_AWK}" '{if ($1 ~ /[^#]/) print $2 " "}' "${EASYTLS_INLINE_INDEX}"
-} # => inline_index_serial_number_list ()
-
-# Get a list of inline hashes from inline-index
-inline_index_ilhash_number_list ()
-{
-	"${EASYTLS_AWK}" '{if ($1 ~ /[^#]/) print $1 " "}' "${EASYTLS_INLINE_INDEX}"
-} # => inline_index_ilhash_number_list ()
-
-# Get a list of Common_name + Sub-key name from inline-index
-inline_index_cn_subname_list ()
-{
-	"${EASYTLS_AWK}" '{if($1 ~ /[^#]/)
-		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
-		 }' "${EASYTLS_INLINE_INDEX}"
-} # => inline_index_cn_subname_list ()
 
 # Get x509 certificate expiry Date
 cert_expire ()
@@ -2626,6 +2613,34 @@ cert_expire ()
 	fi
 	easytls_verbose
 } # => cert_expire ()
+
+# Extract enddate from .inline certificate
+inline_expire_date ()
+{
+	inline_expire="$("${EASYTLS_GREP}" '^[[:blank:]]*Not After : ' \
+		"${inline_file}")"
+	inline_expire="${inline_expire##*: }"
+} # => inline_expire_date ()
+
+# Get a list of serial_numbers from inline-index
+inline_index_serial_number_list ()
+{
+	"${EASYTLS_AWK}" '{if ($1 ~ /[^#]/) print $2 " "}' "${EASYTLS_INLINE_INDEX}"
+} # => inline_index_serial_number_list ()
+
+# Get a list of inline hashes from inline-index
+inline_index_ilhash_number_list ()
+{
+	"${EASYTLS_AWK}" '{if ($1 ~ /[^#]/) print $1 " "}' "${EASYTLS_INLINE_INDEX}"
+} # => inline_index_ilhash_number_list ()
+
+# Get a list of Common_name + Sub-key name from inline-index
+inline_index_cn_subname_list ()
+{
+	"${EASYTLS_AWK}" '{if($1 ~ /[^#]/)
+		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
+		 }' "${EASYTLS_INLINE_INDEX}"
+} # => inline_index_cn_subname_list ()
 
 # Get inline certificate expiry Date
 inline_expire ()
