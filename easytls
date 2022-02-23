@@ -576,6 +576,8 @@ ${1}"
 		if [ -n "${error_log}" ];then
 			print "${error_log}"
 			print
+		else
+			print "missing error_log"
 		fi
 	fi
 } # => error_msg ()
@@ -1322,7 +1324,10 @@ and initialize a fresh TLS PKI here."
 	fi
 
 	# Create Easy-TLS structure
-	easytls_create_layout || die "init_tls - easytls_create_layout"
+	easytls_create_layout || {
+		error_msg "init_tls - easytls_create_layout"
+		return 1
+		}
 
 	# User notices
 	notice "init-tls complete; you may now create TLS keys and .inline files.
@@ -1370,8 +1375,12 @@ easytls_create_layout ()
 	;;
 	esac
 
-	forbidden_hash="$(openssl_generate_empty_hash)"
-	forbidden_hash="${forbidden_hash%% *}"
+	easytls_openssl_generate_empty_hash || {
+		error_msg "easytls_create_layout - easytls_openssl_generate_empty_hash"
+		return 1
+		}
+	forbidden_hash="${emptyHash}"
+	unset emptyHash
 
 	# Get date
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')" || \
@@ -1886,9 +1895,23 @@ authorityKeyIdentifier	= keyid:always,issuer
 # OpenSSL hash of empty data for forbidden hash
 openssl_generate_empty_hash ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYTLS_PRINTF}" '%s' "" | \
 		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_empty_hash ()
+
+# Extract the serialNumber from OpenSSL -serial
+easytls_openssl_generate_empty_hash ()
+{
+	unlock_ssl=1
+	openssl_out="$(openssl_generate_empty_hash)" || {
+		error_msg "easytls_openssl_generate_empty_hash - openssl_out"
+		return 1
+		}
+	#openssl_out="${openssl_out}"
+	emptyHash="${openssl_out}"
+	unset -v unlock_ssl openssl_out
+} # => easytls_openssl_generate_empty_hash ()
 
 # OpenSSL hash file
 openssl_generate_file_hash ()
@@ -1943,10 +1966,13 @@ openssl_cert_serial ()
 easytls_openssl_cert_serial ()
 {
 	unlock_ssl=1
-	openssl_serial="$(openssl_cert_serial "${1}")" || return 1
-	openssl_serial="${openssl_serial#*serial=}"
-	certificate_serialNumber="${openssl_serial}"
-	unset -v unlock_ssl openssl_serial
+	openssl_out="$(openssl_cert_serial "${1}")" || {
+		error_msg "easytls_openssl_cert_serial - openssl_out"
+		return 1
+		}
+	openssl_out="${openssl_out#*serial=}"
+	certificate_serialNumber="${openssl_out}"
+	unset -v unlock_ssl openssl_out
 } # => easytls_openssl_cert_serial ()
 
 # Extract the CommonName from OpenSSL -subject
@@ -1955,18 +1981,20 @@ openssl_crt_common_name ()
 	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject -nameopt utf8 \
 		-nameopt sep_multiline -nameopt space_eq -nameopt lname | \
-			"${EASYTLS_GREP}" '^[[:blank:]]*commonName' \
-				|| return 1
+			"${EASYTLS_GREP}" '^[[:blank:]]*commonName' || return 1
 } # => openssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject
 easytls_openssl_crt_common_name ()
 {
 	unlock_ssl=1
-	openssl_cn="$(openssl_crt_common_name "${1}")" || return 1
-	openssl_cn="${openssl_cn#*commonName = }"
-	certificate_commonName="${openssl_cn}"
-	unset -v unlock_ssl openssl_cn
+	openssl_out="$(openssl_crt_common_name "${1}")" || {
+		error_msg "easytls_openssl_crt_common_name - openssl_out"
+		return 1
+		}
+	openssl_out="${openssl_out#*commonName = }"
+	certificate_commonName="${openssl_out}"
+	unset -v unlock_ssl openssl_out
 } # => easytls_openssl_crt_common_name ()
 
 
