@@ -1950,23 +1950,23 @@ openssl_cert_purpose ()
 } # => openssl_cert_purpose ()
 
 # SSL -fingerprint output
-openssl_generate_fingerprint ()
+ssl_generate_fingerprint ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -sha256 -fingerprint || return 1
-} # => openssl_generate_fingerprint ()
+} # => ssl_generate_fingerprint ()
 
 # Extract the fingerprint from SSL -fingerprint
-easytls_openssl_generate_fingerprint ()
+easytls_ssl_generate_fingerprint ()
 {
 	unlock_ssl=1
-	ssl_out="$(openssl_generate_fingerprint "${1}")" || {
-		error_msg "easytls_openssl_generate_fingerprint - ssl_out"
+	ssl_out="$(ssl_generate_fingerprint "${1}")" || {
+		error_msg "easytls_ssl_generate_fingerprint - ssl_out"
 		return 1
 		}
 	certificate_fingerPrint="${ssl_out#*=}"
 	unset -v unlock_ssl ssl_out
-} # => easytls_openssl_generate_fingerprint ()
+} # => easytls_ssl_generate_fingerprint ()
 
 # SSL -serial output
 openssl_cert_serial ()
@@ -3725,8 +3725,8 @@ inline_base ()
 
 	if [ -f "${cert_file}" ]; then
 		# Cert fingerprint
-		easytls_openssl_generate_fingerprint "${cert_file}" || {
-			error_msg "inline_base - easytls_openssl_generate_fingerprint"
+		easytls_ssl_generate_fingerprint "${cert_file}" || {
+			error_msg "inline_base - easytls_ssl_generate_fingerprint"
 			return 1
 			}
 		cert_fpr="${certificate_fingerPrint}"
@@ -4571,7 +4571,7 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${cli_inline}"
 
 	# generate client FP
-	easytls_openssl_generate_fingerprint "${cli_cert}" || {
+	easytls_ssl_generate_fingerprint "${cli_cert}" || {
 		error_msg "inline_share_fingerprint - generate client FP"
 		return 1
 		}
@@ -4592,7 +4592,7 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${srv_inline}"
 
 	# generate server FP
-	easytls_openssl_generate_fingerprint "${srv_cert}" || {
+	easytls_ssl_generate_fingerprint "${srv_cert}" || {
 		error_msg "inline_share_fingerprint - generate server FP"
 		return 1
 		}
@@ -5837,7 +5837,7 @@ ${metadata}"
 generate_ca_identity ()
 {
 	# CA fingerprint
-	easytls_openssl_generate_fingerprint "${ca_cert}" || {
+	easytls_ssl_generate_fingerprint "${ca_cert}" || {
 		error_msg "generate_ca_identity - ca_fingerprint"
 		return 1
 		}
@@ -5924,8 +5924,8 @@ build_self_sign ()
 		die "Failed to create self-signed ${cert_type} cert/key for ${cert_name}"
 
 	# Generate FP
-	easytls_openssl_generate_fingerprint "${cert_file}" || {
-		error_msg "build_self_sign - easytls_openssl_generate_fingerprint"
+	easytls_ssl_generate_fingerprint "${cert_file}" || {
+		error_msg "build_self_sign - easytls_ssl_generate_fingerprint"
 		return 1
 		}
 	cert_fpr="${certificate_fingerPrint}"
