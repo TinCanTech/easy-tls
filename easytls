@@ -1827,7 +1827,7 @@ generate_and_save_file_hash ()
 #
 
 # Generate openssl.cnf file for self-signed certs
-easytls_openssl_file ()
+easytls_ssl_file ()
 {
 	# OpenSSL config file
 	case "${1}" in
@@ -1888,9 +1888,9 @@ subjectKeyIdentifier	= hash
 authorityKeyIdentifier	= keyid:always,issuer
 ' > "${EASYTLS_OPENSSL_CONF}" || return 1
 	;;
-	*)	die "easytls_openssl_file unknown option: $1"
+	*)	die "easytls_ssl_file unknown option: $1"
 	esac
-} # => easytls_openssl_file ()
+} # => easytls_ssl_file ()
 
 # SSL hash of empty data for forbidden hash
 openssl_generate_empty_hash ()
@@ -5990,7 +5990,7 @@ build_self_sign ()
 create_self_sign_cert_pair ()
 {
 	# Setup easytls-openssl.cnf and env-var OPENSSL_CNF
-	easytls_openssl_file create || \
+	easytls_ssl_file create || \
 		die "Failed to create easytls-openssl.cnf (Permission)"
 
 	# If ecparams fail then so does req
@@ -6012,7 +6012,7 @@ create_self_sign_cert_pair ()
 	fi
 
 	# Remove easytls-openssl.cnf and env-var OPENSSL_CNF
-	easytls_openssl_file destroy || \
+	easytls_ssl_file destroy || \
 		die "Failed to destroy easytls-openssl.cnf (Permission)"
 	update_master_hash=1
 	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
