@@ -1941,6 +1941,7 @@ openssl_cert_serial ()
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_common_name ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -subject -nameopt utf8 \
 		-nameopt sep_multiline -nameopt space_eq -nameopt lname | \
 			"${EASYTLS_GREP}" '^[[:blank:]]*commonName' \
@@ -1948,13 +1949,14 @@ openssl_crt_common_name ()
 } # => openssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject
-get_openssl_crt_common_name ()
+easytls_openssl_crt_common_name ()
 {
+	unlock_ssl=1
 	temp_name="$(openssl_crt_common_name "${1}")" || return 1
 	temp_name="${temp_name#*commonName = }"
 	"${EASYTLS_PRINTF}" '%s' "${temp_name}"
-	unset -v temp_name
-} # => get_openssl_crt_common_name ()
+	unset -v temp_name unlock_ssl
+} # => easytls_openssl_crt_common_name ()
 
 
 
@@ -2184,7 +2186,7 @@ noca_status_x509_valid ()
 
 		[ -f "${i}" ] || continue
 
-		ersa_valid_cn="$(get_openssl_crt_common_name "${i}")" || {
+		ersa_valid_cn="$(easytls_openssl_crt_common_name "${i}")" || {
 			error_msg "ersa_valid_cn - noca_status_x509_valid"
 			return 1
 			}
