@@ -1935,8 +1935,19 @@ openssl_generate_fingerprint ()
 # Get OpenSSL serial number output
 openssl_cert_serial ()
 {
+	[ -n "${unlock_ssl}" ] || return 1
 	"${EASYRSA_OPENSSL}" x509 -in "${1}" -noout -serial || return 1
 } # => openssl_cert_serial ()
+
+# Extract the serialNumber from OpenSSL -serial
+easytls_openssl_cert_serial ()
+{
+	unlock_ssl=1
+	openssl_serial="$(openssl_cert_serial "${1}")" || return 1
+	openssl_serial="${openssl_serial#*serial=}"
+	certificate_serialNumber="${openssl_serial}"
+	unset -v unlock_ssl openssl_serial
+} # => easytls_openssl_cert_serial ()
 
 # Extract the CommonName from OpenSSL -subject
 openssl_crt_common_name ()
@@ -1955,7 +1966,7 @@ easytls_openssl_crt_common_name ()
 	openssl_cn="$(openssl_crt_common_name "${1}")" || return 1
 	openssl_cn="${openssl_cn#*commonName = }"
 	certificate_commonName="${openssl_cn}"
-	unset -v openssl_cn unlock_ssl
+	unset -v unlock_ssl openssl_cn
 } # => easytls_openssl_crt_common_name ()
 
 
@@ -2847,12 +2858,13 @@ x509_cert_serial ()
 		return 1
 		}
 
-	extracted_cert_serial="$(openssl_cert_serial "${1}")" || {
+	easytls_openssl_cert_serial "${1}" || {
 		error_msg "x509_cert_serial - extracted_cert_serial"
 		return 1
 		}
+	extracted_cert_serial="${certificate_serialNumber}"
 
-	extracted_cert_serial="${extracted_cert_serial##serial=}"
+	#extracted_cert_serial="${extracted_cert_serial##serial=}"
 } # => x509_cert_serial ()
 
 # Check inline hash and Copy inline to stdout
