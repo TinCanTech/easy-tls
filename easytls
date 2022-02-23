@@ -1892,6 +1892,7 @@ easytls_ssl_generate_empty_hash ()
 	unlock_ssl=1
 	ssl_out="$(ssl_generate_empty_hash)" || {
 		error_msg "easytls_ssl_generate_empty_hash - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	empty_hash="${ssl_out}"
@@ -1931,6 +1932,7 @@ easytls_ssl_encode_base64_data ()
 		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_encode_base64_data
 		)" || {
 			error_msg "easytls_ssl_encode_base64_data - ssl_out"
+			unset -v unlock_ssl
 			return 1
 			}
 	generated_base64="${ssl_out}"
@@ -1950,6 +1952,7 @@ easytls_ssl_cert_expire_date ()
 	unlock_ssl=1
 	ssl_out="$(ssl_cert_expire_date "${1}")" || {
 		error_msg "easytls_ssl_cert_expire_date - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	certificate_expire_date="${ssl_out#*=}"
@@ -1969,6 +1972,7 @@ easytls_ssl_cert_purpose ()
 	unlock_ssl=1
 	ssl_out="$(ssl_cert_purpose "${1}")" || {
 		error_msg "easytls_ssl_cert_purpose - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	certificate_purpose_list="${ssl_out}"
@@ -1988,6 +1992,7 @@ easytls_ssl_generate_fingerprint ()
 	unlock_ssl=1
 	ssl_out="$(ssl_generate_fingerprint "${1}")" || {
 		error_msg "easytls_ssl_generate_fingerprint - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	certificate_fingerPrint="${ssl_out#*=}"
@@ -2007,6 +2012,7 @@ easytls_ssl_cert_serial ()
 	unlock_ssl=1
 	ssl_out="$(ssl_cert_serial "${1}")" || {
 		error_msg "easytls_ssl_cert_serial - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	certificate_serialNumber="${ssl_out#*=}"
@@ -2028,6 +2034,7 @@ easytls_ssl_crt_common_name ()
 	unlock_ssl=1
 	ssl_out="$(ssl_crt_common_name "${1}")" || {
 		error_msg "easytls_ssl_crt_common_name - ssl_out"
+		unset -v unlock_ssl
 		return 1
 		}
 	certificate_commonName="${ssl_out#*commonName = }"
