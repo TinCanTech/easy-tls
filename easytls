@@ -1623,19 +1623,17 @@ generate_and_validate_data_hash ()
 			}
 
 		# Generate hash
-		openssl_hash="$(
-			"${EASYTLS_PRINTF}" "%s" "${target}" | openssl_generate_data_hash
-			)" || {
-					error_msg "generate_and_validate_data_hash"
-					error_msg "= ${openssl_hash}"
-					unset -v target openssl_hash generated_hash
-					return 1
-					}
+		easytls_ssl_generate_data_hash "${target}" || {
+			error_msg "generate_and_validate_data_hash -"
+			error_msg "- easytls_ssl_generate_data_hash"
+			unset -v target generated_data_hash
+			return 1
+			}
+		# Use hash
+		generated_hash="${generated_data_hash}"
+		unset generated_data_hash
 
-		# Only need hash
-		generated_hash="${openssl_hash%% *}"
-
-		# Verify generated hash
+		# Verify generated_hash
 		validate_hash "${generated_hash}" || {
 			error_msg "generate_and_validate_data_hash - validate_hash"
 			unset -v target openssl_hash generated_hash
@@ -1924,14 +1922,44 @@ easytls_ssl_generate_file_hash ()
 	unset -v unlock_ssl ssl_out
 } # => easytls_ssl_encode_base64_data ()
 
+
+# TEMPORARY FUNCTION for generate_master_hash()
 # SSL data in via pipe hash output
 openssl_generate_data_hash ()
 {
+	#[ -n "${unlock_ssl}" ] || return 1
 	[ -n "${request_fixed_hash}" ] && \
 		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
 
 		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_data_hash ()
+# TEMPORARY FUNCTION for generate_master_hash()
+
+
+# SSL data in via pipe hash output
+ssl_generate_data_hash ()
+{
+	[ -n "${unlock_ssl}" ] || return 1
+	[ -n "${request_fixed_hash}" ] && \
+		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
+
+		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
+} # => ssl_generate_data_hash ()
+
+# easytls wrapper for ssl data hash
+easytls_ssl_generate_data_hash ()
+{
+	unlock_ssl=1
+	ssl_out="$(
+		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
+		)" || {
+			error_msg "easytls_ssl_generate_data_hash - ssl_out"
+			unset -v unlock_ssl
+			return 1
+			}
+	generated_data_hash="${ssl_out% *}"
+	unset -v unlock_ssl ssl_out
+} # => easytls_ssl_generate_data_hash ()
 
 # SSL Base64 encode output
 ssl_encode_base64_data ()
@@ -8982,6 +9010,7 @@ generate_master_hash ()
 			unset file_list
 			old_IFS="$IFS"
 			IFS="${new_line}"
+			unlock_ssl=1
 
 			# List inline files
 			for f in ${inline_file_list}; do
@@ -9015,7 +9044,7 @@ generate_master_hash ()
 
 		} | openssl_generate_data_hash
 
-	)" || die "generate_master_hash/generated_faster_hash"
+	)" || die "generate_master_hash - generated_faster_hash"
 
 	unset inline_file_list tlskey_file_list util_file_list
 	generated_faster_hash="${generated_faster_hash%% *}"
