@@ -1732,6 +1732,13 @@ save_file_hash ()
 	unset -v hash_file valid_hash valid_target
 } # => save_file_hash ()
 
+# Read hash from file (without cat) and clear EOF error
+read_hash_file ()
+{
+	[ -f "${1}" ] || return 1
+	read -r <"${1}" saved_file_hash || :
+} # => read_hash_file ()
+
 # generate_and_match_valid_hash
 generate_and_match_valid_hash ()
 {
@@ -1743,6 +1750,7 @@ generate_and_match_valid_hash ()
 	target_file="${1}" # File to be hashed
 	hash_file="${2}" # File to read the hash from
 
+	# Input error
 	[ "${target_file}" = "${hash_file}" ] && {
 		error_msg "invalid files - generate_and_match_valid_hash"
 		unset -v target_file hash_file generated_valid_hash saved_file_hash
@@ -1756,8 +1764,12 @@ generate_and_match_valid_hash ()
 		return 1
 		}
 
-	# Load saved hash - If this fails then match_two_hashes will fail
-	read -r < "${hash_file}" saved_file_hash
+	# Read hash from file
+	read_hash_file "${hash_file}" || {
+		error_msg "generate_and_match_valid_hash - read_hash_file"
+		unset -v target_file hash_file generated_valid_hash saved_file_hash
+		return 1
+		}
 
 	# Validate and match $generated_valid_hash
 	match_two_hashes "${generated_valid_hash}" "${saved_file_hash}" || {
@@ -1894,9 +1906,31 @@ easytls_ssl_generate_empty_hash ()
 		unset -v unlock_ssl
 		return 1
 		}
-	empty_hash="${ssl_out}"
+	empty_hash="${ssl_out% *}"
 	unset -v unlock_ssl ssl_out
 } # => easytls_ssl_generate_empty_hash ()
+
+# Hash all files from master file-list
+ssl_generate_new_master_files_hash ()
+{
+	[ -n "${master_hash_only}" ] || return 1
+
+	[ -n "${request_fixed_hash}" ] && \
+		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
+
+	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" || return 1
+} # => openssl_generate_data_hash ()
+
+# SSL data in via pipe hash output
+ssl_generate_old_master_data_hash ()
+{
+	[ -n "${master_hash_only}" ] || return 1
+
+	[ -n "${request_fixed_hash}" ] && \
+		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
+
+	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
+} # => openssl_generate_data_hash ()
 
 # SSL file via command hash output
 ssl_generate_file_hash ()
@@ -1921,20 +1955,6 @@ easytls_ssl_generate_file_hash ()
 	unset -v unlock_ssl ssl_out
 } # => easytls_ssl_encode_base64_data ()
 
-
-# TEMPORARY FUNCTION for generate_master_hash()
-# SSL data in via pipe hash output
-openssl_generate_data_hash ()
-{
-	#[ -n "${unlock_ssl}" ] || return 1
-	[ -n "${request_fixed_hash}" ] && \
-		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
-
-		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
-} # => openssl_generate_data_hash ()
-# TEMPORARY FUNCTION for generate_master_hash()
-
-
 # SSL data in via pipe hash output
 ssl_generate_data_hash ()
 {
@@ -1942,7 +1962,7 @@ ssl_generate_data_hash ()
 	[ -n "${request_fixed_hash}" ] && \
 		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
 
-		"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
+	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => ssl_generate_data_hash ()
 
 # easytls wrapper for ssl data hash
@@ -8994,6 +9014,7 @@ generate_master_hash ()
 		return 0
 	fi
 
+	# Make sure to get a hash
 	unset request_fixed_hash
 
 	# Initialise the list variables
@@ -9002,52 +9023,78 @@ generate_master_hash ()
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash - generate_master_list"
 
-	# Generate a single hash of all the files
+	# Use ssl unlock
+	master_hash_only=1
+
+	# This does not appear to be any faster than cat.
+	# Hashing a hash .. I don't think it matters here.
+	# Choose hash
+	new_faster_hash || die "new_faster_hash"
+	#old_faster_hash || die "old_faster_hash"
+
+	unset inline_file_list tlskey_file_list util_file_list master_hash_only
+	generated_faster_hash="${generated_faster_hash%% *}"
+} # => generate_master_hash ()
+
+# new_faster_hash way
+new_faster_hash ()
+{
+	# Generate a single hash of all the files via ssl
+	old_IFS="$IFS"
+	IFS="${new_line}"
+	set --
+
+	# List inline files
+	for f in ${inline_file_list}; do set -- "$@" "${f}"; done
+
+	# List tlskey files
+	for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
+
+	# List utility files
+	for f in ${util_file_list}; do set -- "$@" "${f}"; done
+
+	# hash each file in the @ list to a single hash-list
+	# hash the list-hash and return a single hash
+	hash_list_hash="$(
+		ssl_generate_new_master_files_hash "$@" | \
+			ssl_generate_old_master_data_hash
+		)" || \
+			die "new_faster_hash - # hash the list"
+
+	# Use hash
+	generated_faster_hash="${hash_list_hash}"
+
+	set --
+	IFS="${old_IFS}"
+	unset old_IFS hash_list_hash
+} # => new_faster_hash ()
+
+# old_faster_hash way
+old_faster_hash ()
+{
+	# Generate a single hash of all the files via cat
 	generated_faster_hash="$(
 		{
 			set --
-			unset file_list
-			old_IFS="$IFS"
 			IFS="${new_line}"
-			unlock_ssl=1
 
 			# List inline files
-			for f in ${inline_file_list}; do
-
-				set -- "$@" "${f}"
-
-			done
+			for f in ${inline_file_list}; do set -- "$@" "${f}"; done
 
 			# List tlskey files
-			for f in ${tlskey_file_list}; do
-
-				set -- "$@" "${f}"
-
-			done
+			for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
 
 			# List utility files
-			for f in ${util_file_list}; do
+			for f in ${util_file_list}; do set -- "$@" "${f}"; done
 
-				set -- "$@" "${f}"
-
-			done
-
-			# Restore standard IFS
-			IFS="${old_IFS}"
-
-			# cat the list - Comment out to test
-			# This save 20s of 3m25s on local testing
+			# cat the list
 			"${EASYTLS_CAT}" "$@" || \
 				die "generate_master_hash - # cat the list"
-			set --
 
-		} | openssl_generate_data_hash
+		} | ssl_generate_old_master_data_hash
 
 	)" || die "generate_master_hash - generated_faster_hash"
-
-	unset inline_file_list tlskey_file_list util_file_list
-	generated_faster_hash="${generated_faster_hash%% *}"
-} # => generate_master_hash ()
+} # => old_faster_hash ()
 
 # Save Master hash
 save_master_hash ()
@@ -9068,18 +9115,25 @@ save_master_hash ()
 # Verify Master hash
 verify_master_hash ()
 {
-	[ -f "${EASYTLS_FASTER_HASH}" ] || missing_file "EASYTLS_FASTER_HASH"
-	#[ "${master_verify_hash_block}" ] && \
-	#	die "Master verify hash must only run once"
-	saved_faster_hash="$("${EASYTLS_CAT}" "${EASYTLS_FASTER_HASH}")"
-	generate_master_hash || die "verify_faster_hash/generate_master_hash"
-	#validate_hash "${generated_faster_hash}"
+	[ "${master_verify_hash_block}" ] && \
+		die "Master verify hash must only run once"
+	read_hash_file "${EASYTLS_FASTER_HASH}" || {
+		error_msg "verify_master_hash - read_hash_file"
+		unset -v target_file hash_file generated_valid_hash saved_file_hash
+		return 1
+		}
+	# Use hash
+	saved_faster_hash="${saved_file_hash}"
+
+	generate_master_hash || die "verify_master_hash - generate_master_hash"
 	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
 	then
 		easytls_verbose "verify_master_hash OK"
-		#master_verify_hash_block=1
+		master_verify_hash_block=1
 		return 0
 	fi
+	print "EASYTLS_PKI: ${EASYTLS_PKI}"
+	print "EASYTLS_FASTER_HASH: ${EASYTLS_FASTER_HASH}"
 	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
 	print "TIP: Use './easytls rehash' to correct this hash."
 	return 1
