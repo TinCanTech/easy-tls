@@ -420,6 +420,7 @@ sknown_3=42
 subtot_expected_errors=0
 sknown_expected_errors=62
 known_expected_errors=$(( sknown_1 + sknown_2 + sknown_3 + sknown_expected_errors ))
+special_errors=0
 
 QUIT_LOOP=${QUIT_LOOP:-0}
 
@@ -933,8 +934,10 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 
 		print "------------------------------------------------------------"
 		print "${INVOKE_OPTS} $EASYTLS_CMD" --batch disable "$c"
-		${INVOKE_OPTS} "$EASYTLS_CMD" --batch disable "$c" || \
-			fail "${INVOKE_OPTS} $EASYTLS_CMD --batch disable $c"
+		${INVOKE_OPTS} "$EASYTLS_CMD" --batch disable "$c" || {
+			expected_errors "${INVOKE_OPTS} $EASYTLS_CMD --batch disable $c"
+			special_errors="$(( special_errors + 1 ))"
+			}
 
 		print "------------------------------------------------------------"
 		cp "${real_metadata_file}" "${metadata_file}"
@@ -1120,6 +1123,9 @@ final_end_time="$(date +%s)"
 final_run_mins="$(( (final_end_time - final_start_time) / 60 ))"
 final_run_secs="$(( (final_end_time - final_start_time) - ( final_run_mins * 60 ) ))"
 
+subtot_expected_errors="$(( subtot_expected_errors - special_errors ))"
+total_expected_errors="$(( total_expected_errors - special_errors ))"
+
 print "============================================================"
 print "Clean up"
 clean_up
@@ -1130,7 +1136,8 @@ print "subtot_2 $subtot_2 (Expected $sknown_2 Verified)"
 print "subtot_3 $subtot_3 (Expected $sknown_3 Verified)"
 print "Last part cross-polinated: $subtot_expected_errors (Expected $sknown_expected_errors Verified)"
 
-print "total_expected_errors=$total_expected_errors (Expected $known_expected_errors Verified)"
+print "total_expected_errors: $total_expected_errors (Expected $known_expected_errors Verified)"
+print "special_errors: $special_errors"
 print "Completed successfully: $(date +%Y/%m/%d--%H:%M:%S)"
 print "============================================================"
 
