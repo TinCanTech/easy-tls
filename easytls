@@ -1286,7 +1286,7 @@ verify_tls_init ()
 		[ -f "${EASYTLS_CONFIG_HASH}" ] && \
 		[ -f "${EASYTLS_INLINE_INDEX}" ] && \
 		[ -f "${EASYTLS_INLINE_X_HASH}" ] && \
-		[ -f "${EASYTLS_KEY_INDEX}" ] && \
+		[ -f "${EASYTLS_TLSKEY_INDEX}" ] && \
 		[ -f "${EASYTLS_KEY_X_HASH}" ] && \
 		[ -f "${EASYTLS_DISABLED_LIST}" ] && \
 		[ -f "${EASYTLS_DISABLED_HASH}" ]
@@ -1445,12 +1445,12 @@ easytls_create_layout ()
 	#unset inline_index_save_hash_block
 
 	# Create tlskey-index
-	if [ ! -f "${EASYTLS_KEY_INDEX}" ]; then
+	if [ ! -f "${EASYTLS_TLSKEY_INDEX}" ]; then
 		head_text="# EasyTLS tlskey-index - Created: ${head_date}"
 		field_names="tlskey-serial|cert-serial|CN|sub-key"
 		head_text="${head_text} - ${field_names}"
 		"${EASYTLS_PRINTF}" '%s\n' "${head_text}" > \
-			"${EASYTLS_KEY_INDEX}" || return 1
+			"${EASYTLS_TLSKEY_INDEX}" || return 1
 	fi
 	# Save HASH file
 	tlskey_index_save_hash || return 1
@@ -2557,7 +2557,7 @@ status_easytls_tlskeys ()
 
 		# List
 		etls_valid_tlskey_list="${etls_valid_tlskey_list} ${tlskey_serial}"
-	done < "${EASYTLS_KEY_INDEX}"
+	done < "${EASYTLS_TLSKEY_INDEX}"
 } # => status_easytls_tlskeys ()
 
 # List disabled client keys
@@ -3338,7 +3338,7 @@ tlskey_index_update ()
 		new_record="${tlskey_serial} ${cert_serial} ${cli_name} ${TLSKEY_SUBNAME}"
 
 		# Verify new record does not exist
-		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_KEY_INDEX}" && {
+		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}" && {
 			error_msg "tlskey_index_update - add: Cannot add duplicate record"
 			return 1
 			}
@@ -3352,14 +3352,14 @@ tlskey_index_update ()
 			}
 
 		# Append temp record to TLS key index
-		"${EASYTLS_CP}" "${EASYTLS_KEY_INDEX}" "${EASYTLS_TEMP_LIST}"
+		"${EASYTLS_CP}" "${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_TEMP_LIST}"
 		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-			"${EASYTLS_KEY_INDEX}"
+			"${EASYTLS_TLSKEY_INDEX}"
 
 		# Verify new record does exist
-		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_KEY_INDEX}" || {
+		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}" || {
 			# Restore original TLS key index
-			"${EASYTLS_CP}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_KEY_INDEX}"
+			"${EASYTLS_CP}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TLSKEY_INDEX}"
 			error_msg "tlskey_index_update - add: failed to add record"
 			return 1
 			}
@@ -3375,7 +3375,7 @@ tlskey_index_update ()
 		old_record="${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]].*"
 
 		# Find old record
-		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_KEY_INDEX}" || {
+		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}" || {
 			error_msg "tlskey_index_update - del: Failed to find old record"
 			return 1
 			}
@@ -3383,13 +3383,13 @@ tlskey_index_update ()
 		easytls_verbose "  DEL: ${old_record}"
 
 		# Remove old record
-		"${EASYTLS_SED}" -i -e "/^${old_record}\$/d" "${EASYTLS_KEY_INDEX}" || {
+		"${EASYTLS_SED}" -i -e "/^${old_record}\$/d" "${EASYTLS_TLSKEY_INDEX}" || {
 			error_msg "tlskey_index_update - del: Failed write"
 			return 1
 			}
 
 		# Verify old record does not exist
-		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_KEY_INDEX}" && {
+		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}" && {
 			error_msg "tlskey_index_update - del: Failed to delete old record"
 			return 1
 			}
@@ -3417,7 +3417,7 @@ tlskey_index_verify_hash ()
 		die "tlskey index verify hash must only run once"
 	request_fixed_hash=1
 	generate_and_match_valid_hash \
-		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
+		"${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
 			error_msg "generate_and_match_valid_hash - tlskey_index_verify_hash"
 			return 1
 			}
@@ -3433,7 +3433,7 @@ tlskey_index_save_hash ()
 		die "tlskey index save hash must only run once"
 	request_fixed_hash=1
 	generate_and_save_file_hash \
-		"${EASYTLS_KEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
+		"${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_KEY_X_HASH}" || {
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
@@ -3468,7 +3468,7 @@ tls_crypt_v2_serial_number ()
 
 	# Check for duplicate
 	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
-		"${EASYTLS_KEY_INDEX}" && {
+		"${EASYTLS_TLSKEY_INDEX}" && {
 			error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
 			unset -v tlskey_serial
 			return 1
@@ -3482,7 +3482,7 @@ tls_crypt_v2_serial_number ()
 tlskey_index_fname_2_tlskser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$1}"
-	"${EASYTLS_AWK}" "${script}" "${EASYTLS_KEY_INDEX}"
+	"${EASYTLS_AWK}" "${script}" "${EASYTLS_TLSKEY_INDEX}"
 	unset -v script
 } # => tlskey_index_fname_2_tlskser ()
 
@@ -3490,7 +3490,7 @@ tlskey_index_fname_2_tlskser ()
 tlskey_index_fname_2_x509ser ()
 {
 	script="{if(\$3 \$4 ~ /^${name}${TLSKEY_SUBNAME}\$/) print \$2}"
-	"${EASYTLS_AWK}" "${script}" "${EASYTLS_KEY_INDEX}"
+	"${EASYTLS_AWK}" "${script}" "${EASYTLS_TLSKEY_INDEX}"
 	unset -v script
 } # => tlskey_index_fname_2_x509ser ()
 
@@ -8962,7 +8962,7 @@ ${inline_file}"
 		saved_inline_hash inline_serial_UNUSED CN sub_key tlskey_serial_UNUSED
 
 	# Initialise tlskey-list to the tlskey index file
-	tlskey_file_list="${EASYTLS_KEY_INDEX}"
+	tlskey_file_list="${EASYTLS_TLSKEY_INDEX}"
 
 	# Hash all tlskey_file
 	# tls-auth / tls-crypt
@@ -8995,7 +8995,7 @@ ${tlskey_file}"
 		tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
 
-	done < "${EASYTLS_KEY_INDEX}"
+	done < "${EASYTLS_TLSKEY_INDEX}"
 
 	unset -v tlskey_file \
 		generated_valid_hash tlskey_serial cert_serial_UNUSED CN sub_key
@@ -9170,7 +9170,7 @@ shellcheck_ignore_2154 ()
 	EASYTLS_CONFIG_HASH=
 	EASYTLS_INLINE_INDEX=
 	EASYTLS_INLINE_X_HASH=
-	EASYTLS_KEY_INDEX=
+	EASYTLS_TLSKEY_INDEX=
 	EASYTLS_KEY_X_HASH=
 	EASYTLS_DISABLED_LIST=
 	EASYTLS_DISABLED_HASH=
@@ -9386,66 +9386,65 @@ vars_setup()
 
 	# Set defaults, preferring existing env-vars if present
 	set_var
-	set_var EASYRSA                 "$prog_dir"
-	set_var EASYRSA_PKI             "${EASYRSA}/pki"
-	set_var EASYRSA_TEMP_DIR        "$EASYRSA_PKI"
-	set_var EASYRSA_INDEX           "$EASYRSA_PKI/index.txt"
-	set_var EASYRSA_RAND_SN         "yes"
+	set_var EASYRSA					"$prog_dir"
+	set_var EASYRSA_PKI				"${EASYRSA}/pki"
+	set_var EASYRSA_TEMP_DIR		"$EASYRSA_PKI"
+	set_var EASYRSA_INDEX			"$EASYRSA_PKI/index.txt"
+	set_var EASYRSA_RAND_SN			"yes"
 
 	# use Easy RSA
-	set_var EASYRSA_OPENSSL         "openssl"
+	set_var EASYRSA_OPENSSL			"openssl"
 
 	# Use Easy TLS
-	set_var EASYTLS_OPENVPN         "openvpn"
+	set_var EASYTLS_OPENVPN			"openvpn"
 
-	set_var EASYTLS                 "${PWD}"
-	set_var EASYTLS_PKI             "${EASYRSA_PKI}/easytls"
-	# Find a better name
-	set_var EASYTLS_META_DATA_D     "${EASYTLS_PKI}/metadata"
-	set_var EASYTLS_DATA_DIR        "${EASYTLS_PKI}/data"
-	set_var EASYTLS_FASTER_HASH     "${EASYTLS_DATA_DIR}/easytls-faster.hash"
-	set_var EASYTLS_CONFIG_FILE     "${EASYTLS_DATA_DIR}/easytls-config.txt"
-	set_var EASYTLS_CONFIG_HASH     "${EASYTLS_DATA_DIR}/easytls-config.hash"
-	set_var EASYTLS_INLINE_INDEX    "${EASYTLS_DATA_DIR}/easytls-inline-index.txt"
+	set_var EASYTLS					"${PWD}"
+	set_var EASYTLS_PKI				"${EASYRSA_PKI}/easytls"
+	set_var EASYTLS_META_DATA_D		"${EASYTLS_PKI}/metadata"
+	set_var EASYTLS_DATA_DIR		"${EASYTLS_PKI}/data"
+	set_var EASYTLS_FASTER_HASH		"${EASYTLS_DATA_DIR}/easytls-faster.hash"
+	set_var EASYTLS_CONFIG_FILE		"${EASYTLS_DATA_DIR}/easytls-config.txt"
+	set_var EASYTLS_CONFIG_HASH		"${EASYTLS_DATA_DIR}/easytls-config.hash"
+	set_var EASYTLS_INLINE_INDEX	"${EASYTLS_DATA_DIR}/easytls-inline-index.txt"
 	set_var EASYTLS_INLINE_X_HASH \
-	  "${EASYTLS_DATA_DIR}/easytls-inline-index.hash"
-	set_var EASYTLS_KEY_INDEX       "${EASYTLS_DATA_DIR}/easytls-key-index.txt"
-	set_var EASYTLS_KEY_X_HASH      "${EASYTLS_DATA_DIR}/easytls-key-index.hash"
+		"${EASYTLS_DATA_DIR}/easytls-inline-index.hash"
+	set_var EASYTLS_TLSKEY_INDEX	"${EASYTLS_DATA_DIR}/easytls-key-index.txt"
+	set_var EASYTLS_KEY_X_HASH		"${EASYTLS_DATA_DIR}/easytls-key-index.hash"
 	set_var EASYTLS_DISABLED_LIST \
-	  "${EASYTLS_DATA_DIR}/easytls-disabled-list.txt"
+		"${EASYTLS_DATA_DIR}/easytls-disabled-list.txt"
 	set_var EASYTLS_DISABLED_HASH \
-	  "${EASYTLS_DATA_DIR}/easytls-disabled-list.hash"
+		"${EASYTLS_DATA_DIR}/easytls-disabled-list.hash"
 
-	set_var EASYTLS_TEMP_LIST       "${EASYTLS_DATA_DIR}/easytls-temp.list"
-	set_var EASYTLS_TEMP_RECORD     "${EASYTLS_DATA_DIR}/easytls-temp.record"
-	set_var EASYTLS_TEMP_LOCK       "${EASYTLS_DATA_DIR}/easytls-temp.lock.d"
+	set_var EASYTLS_TEMP_LIST		"${EASYTLS_DATA_DIR}/easytls-temp.list"
+	set_var EASYTLS_TEMP_RECORD		"${EASYTLS_DATA_DIR}/easytls-temp.record"
+	set_var EASYTLS_TEMP_LOCK		"${EASYTLS_DATA_DIR}/easytls-temp.lock.d"
 
-	set_var EASYTLS_CA_IDENTITY     "${EASYTLS_DATA_DIR}/easytls-ca-identity.txt"
-	set_var TLSKEY_SUBNAME          "NOSUBKEY"
+	set_var EASYTLS_CA_IDENTITY		"${EASYTLS_DATA_DIR}/easytls-ca-identity.txt"
+	set_var TLSKEY_SUBNAME			"NOSUBKEY"
 
-	set_var EASYTLS_VERIFY_V2_SH    "${EASYTLS}/easytls-cryptv2-verify.sh"
-	set_var EASYTLS_VERIFY_V2_VARS  "${EASYTLS}/easytls-cryptv2-verify.vars"
+	set_var EASYTLS_VERIFY_V2_SH	"${EASYTLS}/easytls-cryptv2-verify.sh"
+	set_var EASYTLS_VERIFY_V2_VARS	"${EASYTLS}/easytls-cryptv2-verify.vars"
 	#set_var EASYTLS_VERIFY_V2_VEXM \
 	#	"${EASYTLS}/examples/easytls-cryptv2-verify.vars-example"
 
-	set_var EASYTLS_CLICON_SH       "${EASYTLS}/easytls-client-connect.sh"
-	set_var EASYTLS_CLICON_VARS     "${EASYTLS}/easytls-client-connect.vars"
+	set_var EASYTLS_CLICON_SH		"${EASYTLS}/easytls-client-connect.sh"
+	set_var EASYTLS_CLICON_VARS		"${EASYTLS}/easytls-client-connect.vars"
 	#set_var EASYTLS_CLICON_VEXM \
-	#    "${EASYTLS}/examples/easytls-client-connect.vars-example"
+	#	"${EASYTLS}/examples/easytls-client-connect.vars-example"
 
-	set_var EASYTLS_CLIDIS_SH       "${EASYTLS}/easytls-client-disconnect.sh"
-	set_var EASYTLS_CLIDIS_VARS     "${EASYTLS}/easytls-client-disconnect.vars"
+	set_var EASYTLS_CLIDIS_SH		"${EASYTLS}/easytls-client-disconnect.sh"
+	set_var EASYTLS_CLIDIS_VARS		"${EASYTLS}/easytls-client-disconnect.vars"
 	#set_var EASYTLS_CLIDIS_VEXM \
-	#    "${EASYTLS}/examples/easytls-client-disconnect.vars-example"
+	#	"${EASYTLS}/examples/easytls-client-disconnect.vars-example"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "${EASYTLS}/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "${EASYTLS}/easytls-script.help"
 	#set_var EASYTLS_SRVSCRIPT_VEXM \
-	#    "${EASYTLS}/examples/easytls-script.conf-example"
+	#	"${EASYTLS}/examples/easytls-script.conf-example"
 
-	set_var EASYTLS_SS_AGE          "3650"
-	set_var EASYTLS_EC_CURVE        "secp384r1"
-	set_var EASYTLS_ECPARAM_TMP     "${EASYTLS_DATA_DIR}/ecp.tmp"
+	set_var EASYTLS_SS_AGE			"3650"
+	set_var EASYTLS_EC_CURVE		"secp384r1"
+	set_var EASYTLS_ECPARAM_TMP		"${EASYTLS_DATA_DIR}/ecp.tmp"
 } # vars_setup()
 
 # variable assignment by indirection when undefined; merely exports
