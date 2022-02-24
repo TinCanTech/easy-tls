@@ -935,7 +935,7 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 		print "------------------------------------------------------------"
 		print "${INVOKE_OPTS} $EASYTLS_CMD" --batch disable "$c"
 		${INVOKE_OPTS} "$EASYTLS_CMD" --batch disable "$c" || {
-			expected_errors "${INVOKE_OPTS} $EASYTLS_CMD --batch disable $c"
+			expected_errors $?
 			special_errors="$(( special_errors + 1 ))"
 			}
 
