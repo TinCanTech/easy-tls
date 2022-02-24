@@ -3,9 +3,8 @@
 EASYTLS_VERSION="2.8.0"
 
 # Copyright - negotiable
-copyright ()
-{
-: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+#
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # easytls-client-connect.sh -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
@@ -16,8 +15,8 @@ copyright ()
 # This code is released under version 2 of the GNU GPL
 # See LICENSE of this project for full licensing details.
 #
-VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
-}
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+#
 
 # Help
 help_text ()

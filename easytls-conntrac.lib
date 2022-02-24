@@ -3,9 +3,8 @@
 # Experimental - Use at your own risk
 
 # Copyright - negotiable
-copyright ()
-{
-: << VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+#
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 # easytls-conntrac.lib -- Do simple magic
 #
 # Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
@@ -18,8 +17,8 @@ copyright ()
 #
 # Connection tracking.
 #
-VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
-}
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+#
 
 # Connection tacking - Connect
 conn_trac_connect ()
