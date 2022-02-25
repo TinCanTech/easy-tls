@@ -88,7 +88,7 @@ clean_up ()
 {
 	# remove tmp dir
 	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir}" != "/" ] && \
-		rm -rf "${EASYTLS_tmp_dir}"
+		rm -rf "${EASYTLS_tmp_dir}"/*
 	# make tmp dir
 	mkdir -p "${WORK_DIR}/unit-test-tmp" || \
 		fail "Cannot create: ${WORK_DIR}/unit-test-tmp"
