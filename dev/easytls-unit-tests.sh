@@ -88,7 +88,7 @@ clean_up ()
 {
 	# remove tmp dir
 	[ -n "${EASYTLS_tmp_dir}" ] && [ "${EASYTLS_tmp_dir}" != "/" ] && \
-		rm -rf "${EASYTLS_tmp_dir}"/*
+		rm -rf "${EASYTLS_tmp_dir}"
 	# make tmp dir
 	mkdir -p "${WORK_DIR}/unit-test-tmp" || \
 		fail "Cannot create: ${WORK_DIR}/unit-test-tmp"
@@ -390,21 +390,28 @@ for cmd in \
 	"-k=hw rmd c06 serial" \
 	"bc2gc s03 family" \
 	"bc2gc s03 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
-	"ic2gc c06 friends" "status"
+	"ic2gc c06 friends" \
+	"status" "version"
 do
 	[ "${cmd}" = 99 ] && exit 99
 	print "--------------------"
 	print "${INVOKE_OPTS} $EASYTLS_CMD ${EASYTLS_OPTS} ${cmd}"
 	${INVOKE_OPTS} "$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || \
 		fail "No-CA test: ${cmd}"
+
+	print "MASTER HASH:"
+	cat noca/easytls/data/easytls-faster.hash
+	print
 done
 print "============================================================"
 
-[ -n "$NOCA_ONLY" ] && exit 0
+
 noca_end_time="$(date +%s)"
 noca_run_mins="$(( (noca_end_time - start_time) / 60 ))"
 noca_run_secs="$(( (noca_end_time - start_time) - ( noca_run_mins * 60 ) ))"
 print "No-CA Duration: $noca_run_mins minutes $noca_run_secs seconds"
+print "Zero errors"
+[ -n "$NOCA_ONLY" ] && exit 0
 
 export EASYRSA_CERT_RENEW=1000
 
