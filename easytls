@@ -9222,6 +9222,12 @@ external_deps ()
 	# shellcheck disable=SC2154
 	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
 
+	# use Easy RSA
+	set_var EASYRSA_OPENSSL			"openssl"
+
+	# Use Easy TLS
+	set_var EASYTLS_OPENVPN			"openvpn"
+
 	# Set the external binary names
 	EASYTLS_AWK='awk' # Checked by Easy-RSA3
 	EASYTLS_CAT='cat' # Checked by Easy-RSA3
@@ -9391,12 +9397,6 @@ vars_setup()
 	set_var EASYRSA_TEMP_DIR		"$EASYRSA_PKI"
 	set_var EASYRSA_INDEX			"$EASYRSA_PKI/index.txt"
 	set_var EASYRSA_RAND_SN			"yes"
-
-	# use Easy RSA
-	set_var EASYRSA_OPENSSL			"openssl"
-
-	# Use Easy TLS
-	set_var EASYTLS_OPENVPN			"openvpn"
 
 	set_var EASYTLS					"${PWD}"
 	set_var EASYTLS_PKI				"${EASYRSA_PKI}/easytls"
