@@ -35,7 +35,7 @@ easytls_version ()
 {
 	unset EASYTLS_SILENT EASYTLS_VERBOSE
 	config_use || :
-	print "Easy-TLS ${EASYTLS_VERSION}"
+	print "Easy-TLS ${EASYTLS_VERSION} (${EASYTLS_STATUS})"
 } # => easytls_version ()
 
 
@@ -1079,8 +1079,6 @@ config_use ()
 	fixed_tls_auth_serial=7A01
 	fixed_tls_cryptv1_serial=7C01
 
-	EASYTLS_VERSION="${EASYTLS_VERSION}(${EASYTLS_STATUS})"
-
 	# maintenance
 	config_version || {
 		error_msg "config_version fail"
@@ -1918,7 +1916,8 @@ ssl_generate_new_master_files_hash ()
 	[ -n "${request_fixed_hash}" ] && \
 		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}" && return 0
 
-	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" || return 1
+	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" | \
+		"${EASYTLS_SED}" -e 's` .*``' || return 1
 } # => openssl_generate_data_hash ()
 
 # SSL data in via pipe hash output
@@ -4730,7 +4729,7 @@ inline_share_fingerprint ()
 		unset inline_index_save_hash_block
 		inline_index_update del || die "Failed to update inline-index"
 	else
-		die "Why is inline hash missing from index ?"
+		#die "Why is client inline hash missing from index ?"
 		# No-CA mode
 		do_not_index_client_inline_file=1
 	fi
@@ -4791,7 +4790,7 @@ inline_share_fingerprint ()
 		unset inline_index_save_hash_block
 		inline_index_update del || die "Failed to update inline-index"
 	else
-		die "Why is inline hash missing from index ?"
+		#die "Why is server inline hash missing from index ?"
 		# No-CA mode
 		do_not_index_server_inline_file=1
 	fi
@@ -4828,7 +4827,7 @@ inline_share_fingerprint ()
 	} > "${srv_inline}-temp" || die "inline_share_fingerprint - Append new client"
 	"${EASYTLS_MV}" -f "${srv_inline}-temp" "${srv_inline}"
 
-	# Add node to inline-index
+	# Add server to inline-index
 	if [ -n "${do_not_index_server_inline_file}" ]; then
 		: # OK
 	else
@@ -4841,6 +4840,10 @@ inline_share_fingerprint ()
 		unset inline_index_save_hash_block
 		inline_index_update add || die "Failed to update inline-index"
 	fi
+
+	# Reset inline_file to client inline
+	inline_file="${cli_inline}"
+	update_master_hash=1
 } # => inline_share_fingerprint ()
 
 
@@ -5266,6 +5269,7 @@ build_tls_cv2_group_client ()
 
 	notice "TLS-Crypt-V2 GROUP Client Key created: ${tlskey_file}"
 	easytls_verbose
+	update_master_hash=1
 
 	if [ -n "${EASYTLS_BINLINE}" ];	then
 		inline_tls_crypt_v2 "${cli_name}" || warn "Failed to build Inline file!"
@@ -9029,8 +9033,8 @@ generate_master_hash ()
 	# This does not appear to be any faster than cat.
 	# Hashing a hash .. I don't think it matters here.
 	# Choose hash
-	new_faster_hash || die "new_faster_hash"
-	#old_faster_hash || die "old_faster_hash"
+	#new_faster_hash || die "new_faster_hash"
+	old_faster_hash || die "old_faster_hash"
 
 	unset inline_file_list tlskey_file_list util_file_list master_hash_only
 	generated_faster_hash="${generated_faster_hash%% *}"
@@ -9055,6 +9059,14 @@ new_faster_hash ()
 
 	# hash each file in the @ list to a single hash-list
 	# hash the list-hash and return a single hash
+
+	#print "FILE NAMES:"
+	#printf '%s\n' "$@"
+	#print "HASH LIST:"
+	#printf '%s\n' "$(
+	#	ssl_generate_new_master_files_hash "$@"
+	#	)"
+
 	hash_list_hash="$(
 		ssl_generate_new_master_files_hash "$@" | \
 			ssl_generate_old_master_data_hash
@@ -9137,6 +9149,7 @@ verify_master_hash ()
 		master_verify_hash_block=1
 		return 0
 	fi
+	error_msg "Master hash verify failed"
 	print "EASYTLS_PKI: ${EASYTLS_PKI}"
 	print "EASYTLS_FASTER_HASH: ${EASYTLS_FASTER_HASH}"
 	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
@@ -9911,7 +9924,7 @@ main ()
 					noca_status "$@" || die "noca_status"
 				;;
 				*)
-				die "Unknown command '${cmd}'. Run without commands for help."
+				print "Unknown command '${cmd}'. Run without commands for help."
 				;;
 				esac # => No-CA mode
 			else
@@ -9935,7 +9948,7 @@ main ()
 					import_key "$@" || die "import_key"
 				;;
 				*)
-				die "Unknown command '${cmd}'. Run without commands for help."
+				print "Unknown command '${cmd}'. Run without commands for help."
 				;;
 				esac # CA mode
 			fi
