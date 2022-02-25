@@ -9059,7 +9059,7 @@ new_faster_hash ()
 		ssl_generate_new_master_files_hash "$@" | \
 			ssl_generate_old_master_data_hash
 		)" || \
-			die "new_faster_hash - # hash the list"
+			die "new_faster_hash - hash_list_hash"
 
 	# Use hash
 	generated_faster_hash="${hash_list_hash}"
@@ -9091,7 +9091,7 @@ old_faster_hash ()
 	cat_list_hash="$(
 		"${EASYTLS_CAT}" "$@" | ssl_generate_old_master_data_hash
 		)" || \
-			die "generate_master_hash - generated_faster_hash"
+			die "generate_master_hash - cat_list_hash"
 
 	# Use hash
 	generated_faster_hash="${cat_list_hash}"
@@ -9109,9 +9109,9 @@ save_master_hash ()
 		die "Master save hash must only run once"
 	generate_master_hash || die "save_faster_hash/generate_master_hash"
 	validate_hash "${generated_faster_hash}" || \
-		die "save_master_hash/validate_hash"
+		die "save_master_hash - validate_hash"
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
-		die "save_master_hash/save_file_hash"
+		die "save_master_hash - save_file_hash"
 	easytls_verbose "save_master_hash OK"
 	unset -v update_master_hash
 	master_save_hash_block=1
