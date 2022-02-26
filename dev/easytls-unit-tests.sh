@@ -597,9 +597,9 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	# portability [expletive deleted]
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
-		7z x "${WORK_DIR}/dev/et-tdir${loops}.tar"
+		7z x "${WORK_DIR}/dev/et-tdir${loops}.tar" || fail "extract PKI (7z)"
 	else
-		tar vxf "${WORK_DIR}/dev/et-tdir${loops}.tar"
+		tar vxf "${WORK_DIR}/dev/et-tdir${loops}.tar" || fail "extract PKI (tar)"
 	fi
 
 	# Update safessl-easyrsa.cnf - because mktemp
