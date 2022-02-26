@@ -554,15 +554,18 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	export EASYRSA_REQ_CN="easytls-unit-test"
 
 	# Setup EasyRSA
-	print "EASYRSA_PKI: $EASYRSA_PKI"
+	print "*** EASYRSA_PKI: $EASYRSA_PKI"
 	print "ls -l"
 	[ $EASYTLS_SILENT ] || ls -l
+
+	print "*** $EASYRSA_CMD $EASYRSA_OPTS init-pki"
 	"$EASYRSA_CMD" $EASYRSA_OPTS init-pki
 
 	# Build EASYTLS_VARS - Random serial NO
-	[ $loops -eq 1 ] && build_vars
+	[ $loops -eq 1 ] && build_vars && print " *** $build_vars"
 
-	print "ls -l $EASYRSA_PKI"
+
+	print "*** ls -l $EASYRSA_PKI"
 	[ $EASYTLS_SILENT ] || ls -l "$EASYRSA_PKI"
 
 
@@ -573,7 +576,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	#build_test_pki || fail "build_test_pki"
 
 	# new
-	print "COPY PKI: et-tdir${loops}"
+	print "*** COPY PKI: et-tdir${loops}"
 	rm -rf "${WORK_DIR}/et-tdir${loops}"
 	mkdir -p "${WORK_DIR}/et-tdir${loops}"
 	cp -Rv "${WORK_DIR}/dev/et-tdir${loops}"/* "${WORK_DIR}/et-tdir${loops}"
