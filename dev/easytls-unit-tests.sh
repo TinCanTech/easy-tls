@@ -605,6 +605,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	fi
 
 	# Update safessl-easyrsa.cnf - because mktemp
+	rm -f "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 	cp -vf ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" || \
 		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 
