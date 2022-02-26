@@ -579,10 +579,15 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	print "*** COPY PKI: et-tdir${loops}"
 	rm -rf "${WORK_DIR}/et-tdir${loops}"
 	mkdir -p "${WORK_DIR}/et-tdir${loops}"
-	cp -Rv "${WORK_DIR}/dev/et-tdir${loops}"/* "${WORK_DIR}/et-tdir${loops}"
 
-
-
+	# portability [expletive deleted]
+	if [ $EASYTLS_FOR_WINDOWS ]
+	then
+		7z x "${WORK_DIR}/dev/et-tdir${loops}.tar"
+	else
+		tar vxf "${WORK_DIR}/dev/et-tdir${loops}.tar"
+	fi
+	#cp -Rv "${WORK_DIR}/dev/et-tdir${loops}"/* "${WORK_DIR}/et-tdir${loops}"
 
 
 	# Test EasyTLS

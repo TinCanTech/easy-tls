@@ -58,13 +58,9 @@ for f in ${etls_ut_file_list}; do
 	cp -v "./${f}" "${etls_ut_dir_name}/${f}"
 done
 
-mkdir -p 	"${etls_ut_dir_name}/dev/et-tdir1" \
-			"${etls_ut_dir_name}/dev/et-tdir2" \
-			"${etls_ut_dir_name}/dev/et-tdir3"
-
-cp -Rv ./dev/et-tdir1/* "${etls_ut_dir_name}/dev/et-tdir1"
-cp -Rv ./dev/et-tdir2/* "${etls_ut_dir_name}/dev/et-tdir2"
-cp -Rv ./dev/et-tdir3/* "${etls_ut_dir_name}/dev/et-tdir3"
+cp -Rv ./dev/et-tdir1.tar "${etls_ut_dir_name}/dev/et-tdir1.tar"
+cp -Rv ./dev/et-tdir2.tar "${etls_ut_dir_name}/dev/et-tdir2.tar"
+cp -Rv ./dev/et-tdir3.tar "${etls_ut_dir_name}/dev/et-tdir3.tar"
 
 cd "${etls_ut_dir_name}"
 
