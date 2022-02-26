@@ -357,12 +357,15 @@ serial_status_via_ca ()
 	verify_openssl_serial_status
 
 	# Get serial status via CA
+	# Forget that returns an error because of OpenSSL
 	client_cert_serno_status="$(openssl_serial_status)"
 
 	# Format serial status
+	# Deliberately over-write the previous value
 	client_cert_serno_status="$(capture_serial_status)"
 	client_cert_serno_status="${client_cert_serno_status% *}"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
+
 
 	# Considering what has to be done, I don't like this
 	case "${client_cert_serno_status}" in
@@ -381,7 +384,8 @@ serial_status_via_ca ()
 # Use OpenSSL to return certificate serial number status
 openssl_serial_status ()
 {
-	# OpenSSL appears to always exit with error - but here I do not care
+	# OpenSSL ALWAYS exit with error - but here I do not care
+	# And will NOT defend against error
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
 		-status "${MD_x509_SERIAL}" 2>&1
 }
@@ -398,6 +402,7 @@ verify_openssl_serial_status ()
 {
 	return 0 # Disable this `return` if you want to test
 	# OpenSSL appears to always exit with error - have not solved this
+	# OpenSSL 3.0.1 is just as obtuse ..
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
 		-status "${MD_x509_SERIAL}" || \
 		die "OpenSSL returned an error exit code" 101
