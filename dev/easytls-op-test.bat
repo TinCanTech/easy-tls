@@ -40,9 +40,9 @@ copy ..\..\dev\easytls-unit-tests.sh
 copy ..\..\dev\easytls-metadata.lib
 copy ..\..\dev\easytls-tctip.lib
 copy ..\..\dev\easytls-shellcheck.sh
-copy ..\..\dev\et-dir1.tar
-copy ..\..\dev\et-dir2.tar
-copy ..\..\dev\et-dir3.tar
+copy ..\..\dev\et-tdir1.tar
+copy ..\..\dev\et-tdir2.tar
+copy ..\..\dev\et-tdir3.tar
 
 cd
 dir
