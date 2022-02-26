@@ -48,7 +48,10 @@ easytls-conntrac.lib
 dev/easytls-unit-tests.sh
 dev/easytls-metadata.lib
 dev/easytls-tctip.lib
-dev/easytls-shellcheck.sh"
+dev/easytls-shellcheck.sh
+dev/et-tdir1.tar
+dev/et-tdir2.tar
+dev/et-tdir3.tar"
 
 etls_ut_dir_name='./0 0'
 
@@ -57,10 +60,6 @@ mkdir -p "${etls_ut_dir_name}/dev" "${etls_ut_dir_name}/examples"
 for f in ${etls_ut_file_list}; do
 	cp -v "./${f}" "${etls_ut_dir_name}/${f}"
 done
-
-cp -Rv ./dev/et-tdir1.tar "${etls_ut_dir_name}/dev/et-tdir1.tar"
-cp -Rv ./dev/et-tdir2.tar "${etls_ut_dir_name}/dev/et-tdir2.tar"
-cp -Rv ./dev/et-tdir3.tar "${etls_ut_dir_name}/dev/et-tdir3.tar"
 
 cd "${etls_ut_dir_name}"
 
