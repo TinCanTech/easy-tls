@@ -591,7 +591,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	# Update safessl-easyrsa.cnf
 	print "*** Update safessl-easyrsa.cnf - easyrsa init-pki"
 	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki
-	cp -v "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./ || \
+	cp -vf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./ || \
 		fail "(1) cp ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf ./"
 
 	# portability [expletive deleted]
@@ -603,7 +603,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	fi
 
 	# Update safessl-easyrsa.cnf - because mktemp
-	cp -v ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/" || \
+	cp -vf ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/" || \
 		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/"
 
 	# Test EasyTLS
