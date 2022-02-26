@@ -33,7 +33,7 @@ expected_errors ()
 {
 	[ "$1" -eq 99 ] && exit 99
 	subtot_expected_errors="$((subtot_expected_errors + 1))"
-	print "** subtot_expected_errors $subtot_expected_errors"
+	warn "** subtot_expected_errors $subtot_expected_errors"
 	total_expected_errors="$((total_expected_errors + 1))"
 	[ -n "$SHALLOW" ] && return 0
 	printf '%s ' "PRESS ENTER TO CONTINUE"
@@ -97,7 +97,8 @@ clean_up ()
 }
 
 # Wrapper around printf - clobber print since it's not POSIX anyway
-print() { [ -n "$EASYTLS_SILENT" ] || printf "%s\n" "$*"; }
+print() { [ -n "$EASYTLS_QUIET" ] || printf "%s\n" "$*"; }
+warn() { printf "%s\n" "$*"; }
 
 build_test_pki ()
 {
@@ -278,6 +279,7 @@ start_time="$(date +%s)"
 	trap "exit 14" 15
 
 export EASYTLS_UNIT_TEST=1
+#export EASYTLS_QUIET=1
 
 WORK_DIR="$(pwd)"
 UTMP_DIR="${WORK_DIR}/unit-test-tmp"
@@ -287,7 +289,7 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--batch -v"
+EASYTLS_OPTS="--batch"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_VARS="${UTMP_DIR}/easytls-cryptv2-verify.vars"
@@ -434,9 +436,9 @@ do
 	${INVOKE_OPTS} "$EASYTLS_CMD" ${EASYTLS_OPTS} ${cmd} || \
 		fail "No-CA test: ${cmd}"
 
-	print "MASTER HASH:"
-	cat noca/easytls/data/easytls-faster.hash
-	print
+	#print "MASTER HASH:"
+	#cat noca/easytls/data/easytls-faster.hash
+	#print
 done
 print "============================================================"
 
@@ -466,7 +468,6 @@ special_errors=0
 
 QUIT_LOOP=${QUIT_LOOP:-0}
 
-
 for loops in 1 2 3
 do
 	eval loop_${loops}_start_time="$(date +%s)"
@@ -478,7 +479,7 @@ do
 	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
 	EASYTLS_VARS="$PKI_DIR/vars"
-	EASYTLS_OPTS="--batch -v"
+	EASYTLS_OPTS="--batch"
 	EASYTLS_OPTS="${EASYTLS_OPTS} -p=et-tdir${loops}"
 
 
@@ -1177,6 +1178,7 @@ ${INVOKE_OPTS} "${CLIDIS_CMD}" -V || exit_code=$?
 	fail "${INVOKE_OPTS} ${CLIDIS_CMD} -V ($exit_code)"
 
 # Stats
+unset EASYTLS_QUIET
 final_end_time="$(date +%s)"
 final_run_mins="$(( (final_end_time - final_start_time) / 60 ))"
 final_run_secs="$(( (final_end_time - final_start_time) - ( final_run_mins * 60 ) ))"
