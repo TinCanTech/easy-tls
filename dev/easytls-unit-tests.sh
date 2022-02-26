@@ -264,7 +264,14 @@ build_easytls_vars ()
 
 #######################################################
 
-print '===[  Easy-TLS Unit Tests ]==='
+print '||'
+print '||===[  Easy-TLS Unit Tests ]==='
+print '||'
+
+WORK_DIR="$(pwd)"
+print '||'
+print "||===[  WORK_DIR: $WORK_DIR ]==="
+print '||'
 
 start_time="$(date +%s)"
 
@@ -581,6 +588,12 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	rm -rf "${WORK_DIR}/et-tdir${loops}"
 	mkdir -p "${WORK_DIR}/et-tdir${loops}"
 
+	# Update safessl-easyrsa.cnf
+	print "*** Update safessl-easyrsa.cnf - easyrsa init-pki"
+	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki
+	cp -v "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./ || \
+		fail "(1) cp ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf ./"
+
 	# portability [expletive deleted]
 	if [ $EASYTLS_FOR_WINDOWS ]
 	then
@@ -588,8 +601,10 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	else
 		tar vxf "${WORK_DIR}/dev/et-tdir${loops}.tar"
 	fi
-	#cp -Rv "${WORK_DIR}/dev/et-tdir${loops}"/* "${WORK_DIR}/et-tdir${loops}"
 
+	# Update safessl-easyrsa.cnf - because mktemp
+	cp -v ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/" || \
+		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/"
 
 	# Test EasyTLS
 	for i in "init-tls" "config"\
