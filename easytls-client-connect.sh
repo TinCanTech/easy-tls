@@ -217,7 +217,7 @@ format_number ()
 # Verbose message
 verbose_easytls_tctip_lib ()
 {
-	[ -n "${EASYTLS_SILENT}" ] && return 0
+	[ -z "${EASYTLS_SILENT}" ] || return 0
 	[ -n "${EASYTLS_TCTIP_LIB_VERBOSE}" ] || return 0
 	"${EASYTLS_PRINTF}" '%s\n' "${1}"
 } # => verbose_easytls_tctip_lib ()
