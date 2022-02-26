@@ -1,0 +1,14 @@
+diff --git a/src/openvpn/multi.c b/src/openvpn/multi.c
+index 103e882e..71c62b06 100644
+--- a/src/openvpn/multi.c
++++ b/src/openvpn/multi.c
+@@ -1729,6 +1729,9 @@ multi_client_connect_setenv(struct multi_context *m,
+     /* setenv incoming cert common name for script */
+     setenv_str(mi->context.c2.es, "common_name", tls_common_name(mi->context.c2.tls_multi, true));
+ 
++    /* setenv peer_id */
++    setenv_int(mi->context.c2.es, "peer_id", mi->context.c2.tls_multi->peer_id);
++
+     /* setenv client real IP address */
+     setenv_trusted(mi->context.c2.es, get_link_socket_info(&mi->context));
+ 

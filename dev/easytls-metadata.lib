@@ -1,0 +1,109 @@
+#!/bin/sh
+
+# Copyright - negotiable
+#
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+# easytls-metadata.lib -- Process TLS-Crypt-V2 Key metadata.
+#
+# Copyright (C) 2020 Richard Bonhomme (Friday 13th of March 2020)
+# https://github.com/TinCanTech/easy-tls
+# tincantech@protonmail.com
+# All Rights reserved.
+#
+# This code is released under version 2 of the GNU GPL
+# See LICENSE of this project for full licensing details.
+#
+# VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
+#
+
+# Loaded message
+easytls_metadata_lib_ver ()
+{
+	# shellcheck disable=2154
+	"${EASYTLS_PRINTF}" '%s\n' "* easytls-metadata.lib v2.8 loaded"
+} # => easytls_tctip_lib_ver ()
+
+#=# 35579017-b084-4d6b-94d5-76397c2d4a1f
+
+# Break metadata_string into variables
+# shellcheck disable=SC2034 # foo appears unused. Verify it or export it.
+metadata_string_to_vars ()
+{
+	MD_TLSKEY_SERIAL="${1%%-*}" || return 1
+
+	#seed="${*}" || return 1
+	#MD_SEED="${seed#*-}" || return 1
+	#unset -v seed
+
+	#md_padding="${md_seed%%--*}" || return 1
+	md_easytls_ver="${1#*--}" || return 1
+	MD_EASYTLS="${md_easytls_ver%-*}" || return 1
+	unset -v md_easytls_ver
+
+	MD_IDENTITY="${2%%-*}" || return 1
+	MD_SRV_NAME="${2##*-}" || return 1
+	MD_x509_SERIAL="${3}" || return 1
+	MD_DATE="${4}" || return 1
+	MD_CUSTOM_G="${5}" || return 1
+	MD_NAME="${6}" || return 1
+	MD_SUBKEY="${7}" || return 1
+	MD_OPT="${8}" || return 1
+	MD_FILTERS="${9}" || return 1
+} # => metadata_string_to_vars ()
+
+# Break metadata string at delimeter: New Newline, old space
+# shellcheck disable=SC2034 # foo appears unused. Verify it or export it.
+metadata_stov_safe ()
+{
+	[ -n "$1" ] || return 1
+	input="$1"
+
+	err_msg="Unspecified delimiter"
+	delimiter="${delimiter:-${newline}}"
+	[ -n "${delimiter}" ] || return 1
+	delim_save="${delimiter}"
+	case "${input}" in
+		*"${delimiter}"*) : ;;
+		*) delimiter=' '
+	esac
+
+	MD_SEED="${input#*-}"
+
+	# Expansions inside ${..} need to be quoted separately,
+	# otherwise they will match as a pattern.
+	# Which is the required behaviour.
+	# shellcheck disable=SC2295
+	{	# Required group for shellcheck
+		m1="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m2="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m3="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m4="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m5="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m6="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m7="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m8="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+		m9="${input%%${delimiter}*}"
+		input="${input#*${delimiter}}"
+	}
+
+	# An extra space has been used, probably in the name
+	err_msg="metadata-lib: ${m9} vs ${input}"
+	[ "${m9}" = "${input}" ] || return 1
+
+	delimiter="${delim_save}"
+
+	err_msg="metadata-lib: metadata_string_to_vars"
+	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
+		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
+	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
+} # => metadata_stov_safe ()
+
+#=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
