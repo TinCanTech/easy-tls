@@ -593,6 +593,8 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki
 	cp -vf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./safessl-easyrsa.cnf || \
 		fail "(1) cp ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf ./safessl-easyrsa.cnf"
+	# Remove the temp PKI - Only require safessl-easyrsa.cnf
+	rm -rf "${WORK_DIR}/et-tdir${loops}"
 
 	# portability [expletive deleted]
 	if [ $EASYTLS_FOR_WINDOWS ]
@@ -603,7 +605,6 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	fi
 
 	# Update safessl-easyrsa.cnf - because mktemp
-	rm -f "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 	cp -vf ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" || \
 		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 
