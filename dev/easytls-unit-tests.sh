@@ -99,6 +99,39 @@ clean_up ()
 # Wrapper around printf - clobber print since it's not POSIX anyway
 print() { [ -n "$EASYTLS_SILENT" ] || printf "%s\n" "$*"; }
 
+build_test_pki ()
+{
+		for i in "build-ca nopass" \
+		"build-server-full s01 nopass" \
+		"build-server-full s02 nopass" \
+		"build-server-full s-auth nopass" \
+		"build-server-full s-crypt nopass" \
+		"build-client-full c-auth nopass" \
+		"build-client-full c-crypt nopass" \
+		"build-client-full c01 nopass" \
+		"build-client-full c02 nopass" \
+		"build-client-full c03 nopass" "revoke c03" \
+		"build-client-full c05 nopass" \
+		"build-client-full c06 nopass" \
+		"build-client-full c07-nomd nopass" \
+		"build-client-full c08 nopass" \
+		"build-client-full c09 nopass" \
+		"build-client-full c10 nopass" \
+		"build-client-full cw01 nopass" \
+		"show-ca" \
+		"show-cert s01" \
+		"show-cert c01" \
+		"--keysize=512 gen-dh" \
+		## EOL
+	do
+		print "============================================================"
+		print "$EASYRSA_CMD $EASYRSA_OPTS $i"
+		"$EASYRSA_CMD" $EASYRSA_OPTS $i || \
+			fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
+	done
+}
+
+
 build_easyrsa ()
 {
 
@@ -225,6 +258,8 @@ build_easytls_vars ()
 	} > "${CLIDIS_VARS}"
 	print "* vars rebuilt"
 }
+
+
 
 #######################################################
 
@@ -431,6 +466,7 @@ special_errors=0
 
 QUIT_LOOP=${QUIT_LOOP:-0}
 
+
 for loops in 1 2 3
 do
 	eval loop_${loops}_start_time="$(date +%s)"
@@ -444,6 +480,11 @@ do
 	EASYTLS_VARS="$PKI_DIR/vars"
 	EASYTLS_OPTS="--batch -v"
 	EASYTLS_OPTS="${EASYTLS_OPTS} -p=et-tdir${loops}"
+
+
+#[ $loops -eq 1 ] && continue
+#[ $loops -eq 2 ] && continue
+
 
 	# github Windows runner takes too long, so just test once
 	if [ $loops -eq 2 ] && [ $EASYTLS_REMOTE_CI ] && [ $EASYTLS_FOR_WINDOWS ]
@@ -510,7 +551,8 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 "
 	fi
 
-	export EASYRSA_REQ_CN="easytls"
+	export EASYRSA_REQ_CN="easytls-unit-test"
+
 	# Setup EasyRSA
 	print "EASYRSA_PKI: $EASYRSA_PKI"
 	print "ls -l"
@@ -522,34 +564,23 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 	print "ls -l $EASYRSA_PKI"
 	[ $EASYTLS_SILENT ] || ls -l "$EASYRSA_PKI"
-	for i in "build-ca nopass" \
-		"build-server-full s01 nopass" \
-		"build-server-full s02 nopass" \
-		"build-server-full s-auth nopass" \
-		"build-server-full s-crypt nopass" \
-		"build-client-full c-auth nopass" \
-		"build-client-full c-crypt nopass" \
-		"build-client-full c01 nopass" \
-		"build-client-full c02 nopass" \
-		"build-client-full c03 nopass" "revoke c03" \
-		"build-client-full c05 nopass" \
-		"build-client-full c06 nopass" \
-		"build-client-full c07-nomd nopass" \
-		"build-client-full c08 nopass" \
-		"build-client-full c09 nopass" \
-		"build-client-full c10 nopass" \
-		"build-client-full cw01 nopass" \
-		"show-ca" \
-		"show-cert s01" \
-		"show-cert c01" \
-		"--keysize=512 gen-dh" \
-		## EOL
-	do
-		print "============================================================"
-		print "$EASYRSA_CMD $EASYRSA_OPTS $i"
-		"$EASYRSA_CMD" $EASYRSA_OPTS $i || \
-			fail "Unit test error 1: $EASYRSA_CMD $EASYRSA_OPTS $i"
-	done
+
+
+
+
+
+	# old
+	#build_test_pki || fail "build_test_pki"
+
+	# new
+	print "COPY PKI: et-tdir${loops}"
+	rm -rf "${WORK_DIR}/et-tdir${loops}"
+	mkdir -p "${WORK_DIR}/et-tdir${loops}"
+	cp -Rv "${WORK_DIR}/dev/et-tdir${loops}"/* "${WORK_DIR}/et-tdir${loops}"
+
+
+
+
 
 	# Test EasyTLS
 	for i in "init-tls" "config"\
@@ -651,11 +682,14 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
+
+
+
+
 	for i in "$EASYRSA_CMD $EASYRSA_OPTS build-client-full c04 nopass" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS build-tls-crypt-v2-client s01 c04" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS inline-tls-crypt-v2 c04" \
 		"$EASYRSA_CMD $EASYRSA_OPTS revoke c04" \
-		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
 		"$EASYRSA_CMD $EASYRSA_OPTS revoke c06" \
 		"$EASYRSA_CMD $EASYRSA_OPTS gen-crl" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status" \
@@ -703,6 +737,10 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	# Unset errexit for all easytls-cryptv2-verify.sh
 	# because errors are expected and accounted for manually
 	#set +e
+
+
+#[ $loops -eq 3 ] && echo "exit 99" && exit 99
+
 
 	clean_up
 	for c in "c01" "c05" "c06" "c09"
@@ -800,6 +838,11 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 		test_server_scripts
 
 		print
+
+
+#[ $loops -eq 3 ] && echo "exit 99" && exit 99
+
+
 	done
 
 

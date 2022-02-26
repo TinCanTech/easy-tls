@@ -1,0 +1,17 @@
+V	240530234024Z		01	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=s01/emailAddress=me@example.net
+V	240530234025Z		02	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=s02/emailAddress=me@example.net
+V	240530234025Z		03	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=s-auth/emailAddress=me@example.net
+V	240530234026Z		04	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=s-crypt/emailAddress=me@example.net
+V	240530234026Z		05	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c-auth/emailAddress=me@example.net
+V	240530234027Z		06	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c-crypt/emailAddress=me@example.net
+V	240530234028Z		07	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c01/emailAddress=me@example.net
+V	240530234028Z		08	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c02/emailAddress=me@example.net
+R	240530234029Z	220225234029Z	09	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c03/emailAddress=me@example.net
+V	240530234029Z		0A	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c05/emailAddress=me@example.net
+V	240530234030Z		0B	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c06/emailAddress=me@example.net
+V	240530234030Z		0C	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c07-nomd/emailAddress=me@example.net
+V	240530234030Z		0D	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c08/emailAddress=me@example.net
+V	240530234031Z		0E	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c09/emailAddress=me@example.net
+V	240530234031Z		0F	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c10/emailAddress=me@example.net
+V	240530234032Z		10	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=cw01/emailAddress=me@example.net
+V	240530234057Z		11	unknown	/C=00/ST=test/L=TEST ,.\/<>  ?;:@~  []!%^  *()-=  _\+| (23) TEST/O=example.org/OU=TEST esc {  \xC2\xA3 \xC2\xAC (4) TEST}/CN=c04/emailAddress=me@example.net
