@@ -579,9 +579,16 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 
 
+if [ -n "${EASYTLS_BUILD_TEST_DATA}" ]; then
+	
+		# old
+		build_test_pki || fail "build_test_pki"
 
-	# old
-	#build_test_pki || fail "build_test_pki"
+		# # Fake it
+		[ -z "${EASYTLS_BUILD_TEST_DATA}" ] || \
+			tar -cf "input-et-tdir${loops}.tar" "et-tdir${loops}"/*
+
+else
 
 	# new
 	print "*** COPY PKI: et-tdir${loops}"
@@ -608,6 +615,8 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 	rm -f "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 	cp -vf ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" || \
 		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
+
+fi
 
 	# Test EasyTLS
 	for i in "init-tls" "config"\
@@ -709,9 +718,6 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 
 	# Create some certs out of order - These are intended to break EasyTLS
 	# Renew c08, which completely breaks EasyTLS
-
-
-
 
 	for i in "$EASYRSA_CMD $EASYRSA_OPTS build-client-full c04 nopass" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS build-tls-crypt-v2-client s01 c04" \
