@@ -588,7 +588,7 @@ if [ -n "${EASYTLS_BUILD_TEST_DATA}" ]; then
 		[ -z "${EASYTLS_BUILD_TEST_DATA}" ] || \
 			tar -cf "input-et-tdir${loops}.tar" "et-tdir${loops}"/*
 
-else
+elif [ -n "${EASYTLS_REMOTE_CI}" ]; then
 
 	# new
 	print "*** COPY PKI: et-tdir${loops}"
@@ -615,6 +615,11 @@ else
 	rm -f "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
 	cp -vf ./safessl-easyrsa.cnf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" || \
 		fail "(2) cp ./safessl-easyrsa.cnf ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf"
+
+else
+
+	# old
+	build_test_pki || fail "build_test_pki"
 
 fi
 
