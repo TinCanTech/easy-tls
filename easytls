@@ -9088,7 +9088,8 @@ new_faster_hash ()
 old_faster_hash ()
 {
 	# Generate a single hash of all the files via cat
-	old_IFS="$IFS"
+	unset old_IFS
+	[ -z "${IFS}" ] || old_IFS="$IFS"
 	IFS="${new_line}"
 	set --
 
@@ -9112,7 +9113,8 @@ old_faster_hash ()
 	generated_faster_hash="${cat_list_hash}"
 
 	set --
-	IFS="${old_IFS}"
+	unset IFS
+	[ -z "${old_IFS}" ] || IFS="${old_IFS}"
 	unset old_IFS cat_list_hash
 } # => old_faster_hash ()
 
