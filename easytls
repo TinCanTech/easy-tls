@@ -2684,6 +2684,30 @@ cert_expire ()
 	easytls_verbose
 } # => cert_expire ()
 
+# Get inline certificate expiry Date
+inline_expire ()
+{
+	easytls_verbose
+	name="${1}"
+
+	if [ -n "${name}" ]; then
+		inline_file="${EASYTLS_PKI}/${name}.inline"
+		[ -f "${inline_file}" ] || missing_file "${inline_file}"
+		inline_expire_date
+		print " Certificate: ${name}.inline   Expire-date: ${inline_expire}"
+	else
+	# Get a list of Valid names from easytls-inline-index
+	etls_valid_name_list="$(inline_index_cn_subname_list)"
+		for name in ${etls_valid_name_list}; do
+			inline_file="${EASYTLS_PKI}/${name}.inline"
+			[ -f "${inline_file}" ] || missing_file "${inline_file}"
+			inline_expire_date
+		print " Inline-file: ${name}.inline   Expire-date: ${inline_expire}"
+		done
+	fi
+	easytls_verbose
+} # => inline_expire ()
+
 # Extract enddate from .inline certificate
 inline_expire_date ()
 {
@@ -2711,30 +2735,6 @@ inline_index_cn_subname_list ()
 		 {if($4 == "NOSUBKEY") {print $3 " ";} else {print $3 "-" $4 " ";}}
 		 }' "${EASYTLS_INLINE_INDEX}"
 } # => inline_index_cn_subname_list ()
-
-# Get inline certificate expiry Date
-inline_expire ()
-{
-	easytls_verbose
-	name="${1}"
-
-	if [ -n "${name}" ]; then
-		inline_file="${EASYTLS_PKI}/${name}.inline"
-		[ -f "${inline_file}" ] || missing_file "${inline_file}"
-		inline_expire_date
-		print " Certificate: ${name}.inline   Expire-date: ${inline_expire}"
-	else
-	# Get a list of Valid names from easytls-inline-index
-	etls_valid_name_list="$(inline_index_cn_subname_list)"
-		for name in ${etls_valid_name_list}; do
-			inline_file="${EASYTLS_PKI}/${name}.inline"
-			[ -f "${inline_file}" ] || missing_file "${inline_file}"
-			inline_expire_date
-		print " Inline-file: ${name}.inline   Expire-date: ${inline_expire}"
-		done
-	fi
-	easytls_verbose
-} # => inline_expire ()
 
 # Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
