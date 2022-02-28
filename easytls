@@ -2788,17 +2788,33 @@ inline_index_update ()
 
 		# Write new record
 		"${EASYTLS_PRINTF}" "%s\n" "${new_record}" > "${EASYTLS_TEMP_RECORD}" || {
-			error_msg "inline_index_update - add: Failed te create temp record"
+			error_msg "inline_index_update - add: Write new record"
 			return 1
 			}
 
-		# Append temp record to disabled-list
-		"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_TEMP_LIST}"
+		# copy old index to temp-list
+		"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_TEMP_LIST}" || {
+			error_msg "inline_index_update - add: copy old index"
+			return 1
+			}
+
+		# move old index
+		"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}" \
+			"${EASYTLS_INLINE_INDEX}-deleted" || {
+				error_msg "inline_index_update - add: move old index"
+				return 1
+				}
+
+		# Append temp record to temp-list and write new index
 		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-			"${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_INLINE_INDEX}" || {
+				error_msg "inline_index_update - add: write new index"
+				return 1
+				}
 
 		# Remove temp files
-		"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
+		"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
+			"${EASYTLS_INLINE_INDEX}-deleted"
 	;;
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
@@ -2807,7 +2823,7 @@ inline_index_update ()
 
 		# Find old record
 		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
-			error_msg "inline_index_update del: Failed to find: ${old_record}"
+			error_msg "inline_index_update del: find: ${old_record}"
 			return 1
 			}
 
@@ -2816,7 +2832,7 @@ inline_index_update ()
 		# Remove old record
 		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" \
 			"${EASYTLS_INLINE_INDEX}" || {
-				error_msg "inline_index_update del: Failed write"
+				error_msg "inline_index_update del: Remove old record"
 				return 1
 				}
 	;;
@@ -2829,7 +2845,7 @@ inline_index_update ()
 
 		# Find old record
 		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
-			error_msg "inline_index_update del: Failed to find: ${old_record}"
+			error_msg "inline_index_update force-del: Find ${old_record}"
 			return 1
 			}
 
@@ -2838,7 +2854,7 @@ inline_index_update ()
 		# Remove old record
 		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" \
 			"${EASYTLS_INLINE_INDEX}" || {
-				error_msg "inline_index_update del: Failed write"
+				error_msg "inline_index_update force-del: Remove old record"
 				return 1
 				}
 	;;
@@ -2923,7 +2939,7 @@ inline_file_verify_hash ()
 	# generate current file HASH
 	force_hash=1
 	generate_and_validate_file_hash "${inline_file}" || {
-		die "inline_index_update add - generate_and_validate_file_hash"
+		die "inline_file_verify_hash - generate_and_validate_file_hash"
 		}
 
 	# Use the hash
@@ -4009,7 +4025,17 @@ inline_tls_auth ()
 	# Hash inline file and add hash to index
 	# TLS-Crypt-V1 do not have a serial so use preset
 	tlskey_serial="${fixed_tls_auth_serial}"
-	inline_index_update add || die "Failed to update inline-index"
+	if inline_index_update add; then
+		: # OK
+	else
+		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+			# Restore original inline-index
+			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+				"${EASYTLS_INLINE_INDEX}"
+			die "Failed to update inline-index"
+		fi
+	fi
 
 	# share this client FP with server defined by -r=<serv-name> option
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
@@ -4083,7 +4109,17 @@ inline_tls_crypt_v1 ()
 	# Hash inline file and add hash to index
 	# TLS-Crypt-V1 do not have a serial so use preset
 	tlskey_serial="${fixed_tls_cryptv1_serial}"
-	inline_index_update add || die "Failed to update inline-index"
+	if inline_index_update add; then
+		: # OK
+	else
+		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+			# Restore original inline-index
+			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+				"${EASYTLS_INLINE_INDEX}"
+			die "Failed to update inline-index"
+		fi
+	fi
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
@@ -4268,7 +4304,17 @@ inline_tls_crypt_v2 ()
 
 	# Hash inline file and add hash to index
 	tlskey_serial="${MD_TLSKEY_SERIAL}"
-	inline_index_update add || die "Failed to update inline-index"
+	if inline_index_update add; then
+		: # OK
+	else
+		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+			# Restore original inline-index
+			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+				"${EASYTLS_INLINE_INDEX}"
+			die "Failed to update inline-index"
+		fi
+	fi
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
@@ -4426,7 +4472,18 @@ inline_tls_cv2_group_server ()
 	# Hash inline file and add hash to index
 	save_name="${name}"
 	name="${file_name_stub}"
-	inline_index_update add || die "Failed to update inline-index"
+	if inline_index_update add; then
+		: # OK
+	else
+		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+			# Restore original inline-index
+			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+				"${EASYTLS_INLINE_INDEX}"
+			die "Failed to update inline-index"
+		fi
+	fi
+
 	name="${save_name}"
 	unset save_name
 
@@ -4613,7 +4670,18 @@ inline_tls_cv2_group_client ()
 	save_name="${name}"
 	name="${file_name_stub}"
 	tlskey_serial="${MD_TLSKEY_SERIAL}"
-	inline_index_update add || die "Failed to update inline-index"
+	if inline_index_update add; then
+		: # OK
+	else
+		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+			# Restore original inline-index
+			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+				"${EASYTLS_INLINE_INDEX}"
+			die "Failed to update inline-index"
+		fi
+	fi
+
 	name="${save_name}"
 	unset save_name
 
@@ -4768,7 +4836,17 @@ inline_share_fingerprint ()
 
 		# Must unset the usage block
 		unset inline_index_save_hash_block
-		inline_index_update add || die "Failed to update inline-index"
+		if inline_index_update add; then
+			: # OK
+		else
+			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+				# Restore original inline-index
+				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+					"${EASYTLS_INLINE_INDEX}"
+				die "Failed to update inline-index"
+			fi
+		fi
 	fi
 
 	# server inline-file hash
@@ -4840,7 +4918,17 @@ inline_share_fingerprint ()
 
 		# Must unset the usage block
 		unset inline_index_save_hash_block
-		inline_index_update add || die "Failed to update inline-index"
+		if inline_index_update add; then
+			: # OK
+		else
+			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
+				# Restore original inline-index
+				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
+				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
+					"${EASYTLS_INLINE_INDEX}"
+				die "Failed to update inline-index"
+			fi
+		fi
 	fi
 
 	# Reset inline_file to client inline
