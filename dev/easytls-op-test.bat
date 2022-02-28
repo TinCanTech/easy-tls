@@ -81,10 +81,8 @@ dir
 sh.exe dev\easytls-unit-tests.sh
 
 IF ERRORLEVEL 0 SET SH_EXIT=0
-REM X509 certificate revoked
 IF ERRORLEVEL 1 SET SH_EXIT=1
-
-ECHO * Verified expected errors: 42
 
 ECHO SH_EXIT: %SH_EXIT%
 EXIT /B %SH_EXIT%
+
