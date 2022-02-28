@@ -87,7 +87,7 @@ done
 pwd
 ls -l
 
-	export EASYTLS_REMOTE_CI=1
+	#export EASYTLS_REMOTE_CI=1
 	export SHALLOW=1
 
 	export EASYTLS_OPENVPN="./openvpn"
