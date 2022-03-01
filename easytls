@@ -28,12 +28,11 @@
 # Easy-TLS requirements:
 # + Easy-RSA Version 3.0.8
 # + OpenVPN Version 2.5
-#
 
 # Set the Easy-TLS version
 easytls_version ()
 {
-	unset EASYTLS_VERBOSE
+	unset -v EASYTLS_VERBOSE
 	config_use || :
 	print "Easy-TLS ${EASYTLS_VERSION} (${EASYTLS_STATUS})"
 } # => easytls_version ()
@@ -559,7 +558,7 @@ print ()
 # present even with EASYTLS_BATCH as these are fatal problems
 die ()
 {
-	unset EASYTLS_SILENT
+	unset -v EASYTLS_SILENT
 	print
 	error_msg
 	print "Error: ${1}" 1>&2
@@ -666,8 +665,8 @@ ${msg}
 	exit 9
 } # => confirm ()
 
+# Check for defined EASYRSA_PKI
 vars_source_check () {
-	# Check for defined EASYRSA_PKI
 	[ -n "${EASYRSA_PKI}" ] || die "EASYRSA_PKI env-var undefined"
 } # => vars_source_check ()
 
@@ -783,7 +782,6 @@ easytls_verb_io ()
 easytls_config ()
 {
 	# Verify config-file and hash has already been done by config_use()
-
 	case "${1}" in
 		addition)
 			cfg_opt="${2}"
@@ -1079,7 +1077,7 @@ config_use ()
 		}
 	# Use hash
 	forbidden_hash="${empty_hash}"
-	unset empty_hash
+	unset -v empty_hash
 
 	# Fixed TLS key serial
 	fixed_tls_auth_serial=7A01
@@ -1094,7 +1092,7 @@ config_use ()
 	# Verify the Config hash
 	#if config_verify_hash; then
 	#	# config_use MUST reset this counter
-	#	unset config_verify_hash_block
+	#	unset -v config_verify_hash_block
 	#else
 	#	error_msg "config_verify_hash fail"
 	#	return 1
@@ -1113,7 +1111,7 @@ config_verify_hash ()
 			error_msg "config_verify_hash - generate_and_match_valid_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "config_verify_hash OK"
 	config_verify_hash_block=1
 } # => config_save_hash ()
@@ -1129,7 +1127,7 @@ config_save_hash ()
 			error_msg "config_save_hash - generate_and_save_file_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "config-file hash save OK"
 	update_master_hash=1
 	config_save_hash_block=1
@@ -1230,7 +1228,6 @@ config_version ()
 		config_save_hash || return 1
 		update_master_hash=1
 	fi
-
 	unset -v flash_config cfg_opt cfg_val
 } # => config_version ()
 
@@ -1284,9 +1281,6 @@ verify_openssl ()
 # Verify TLS has been initialised
 verify_tls_init ()
 {
-
-	#	[ -f "${EASYTLS_DISABLED_HASH}" ] && \
-
 	if \
 		[ -d "${EASYTLS_PKI}" ] && \
 		[ -f "${EASYTLS_CONFIG_FILE}" ] && \
@@ -1394,7 +1388,7 @@ easytls_create_layout ()
 		}
 	# Use hash
 	forbidden_hash="${empty_hash}"
-	unset empty_hash
+	unset -v empty_hash
 
 	# Get date
 	full_date="$("${EASYTLS_DATE}" '+%s %Y/%m/%d-%H:%M:%S')" || \
@@ -1437,7 +1431,7 @@ easytls_create_layout ()
 	config_save_hash || return 1
 	# Unset hash blocks because following operations make updates
 	# EG: save_id()
-	unset config_save_hash_block
+	unset -v config_save_hash_block
 
 	# Create inline-index
 	if [ ! -f "${EASYTLS_INLINE_INDEX}" ]; then
@@ -1449,7 +1443,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	inline_index_save_hash || return 1
-	#unset inline_index_save_hash_block
+	#unset -v inline_index_save_hash_block
 
 	# Create tlskey-index
 	if [ ! -f "${EASYTLS_TLSKEY_INDEX}" ]; then
@@ -1461,7 +1455,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	tlskey_index_save_hash || return 1
-	#unset tlskey_index_save_hash_block
+	#unset -v tlskey_index_save_hash_block
 
 	# Create disabled-list
 	if [ ! -f "${EASYTLS_DISABLED_LIST}" ]; then
@@ -1472,7 +1466,7 @@ easytls_create_layout ()
 	# Save HASH file
 	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_DISABLED_HASH}"
 	disabled_list_save_hash || return 1
-	#unset disabled_list_save_hash_block
+	#unset -v disabled_list_save_hash_block
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
 	if [ -n "${EASYTLS_NO_CA}" ]; then
@@ -1537,7 +1531,6 @@ easytls_auto_check ()
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	auto_check=1
-
 	# ALL status failures MUST be FATAL in future
 
 	# Check for revoked EasyRSA certs
@@ -1554,7 +1547,6 @@ easytls_auto_check ()
 
 	# Update status
 	status_update
-
 	unset -v auto_check
 } # => easytls_auto_check ()
 
@@ -1638,7 +1630,7 @@ generate_and_validate_data_hash ()
 			}
 		# Use hash
 		generated_hash="${generated_data_hash}"
-		unset generated_data_hash
+		unset -v generated_data_hash
 
 		# Verify generated_hash
 		validate_hash "${generated_hash}" || {
@@ -1845,7 +1837,7 @@ easytls_ssl_file ()
 	# SSL config file
 	case "${1}" in
 	destroy)
-		unset OPENSSL_CONF
+		unset -v OPENSSL_CONF
 		[ -z "${EASYTLS_SSL_CONF}" ] || \
 			"${EASYTLS_RM}" -f "${EASYTLS_SSL_CONF}"
 	;;
@@ -2159,14 +2151,12 @@ status ()
 			status_easyrsa_revoked || return 1
 		;;
 		inl|inline)
-			#verify_tls_init
 			status_easytls_inline || return 1
 		;;
 		inv|invalid)
 			silent_status=1
 			status_easyrsa_valid || return 1
 			status_easyrsa_revoked || return 1
-			#verify_tls_init
 			status_easytls_inline || return 1
 			unset -v silent_status
 			status_easytls_invalid || return 1
@@ -2175,7 +2165,6 @@ status ()
 			silent_status=1
 			status_easyrsa_valid || return 1
 			status_easyrsa_revoked || return 1
-			#verify_tls_init
 			status_easytls_inline || return 1
 			unset -v silent_status
 			status_easyrsa_renewed || return 1
@@ -2355,7 +2344,7 @@ noca_status_x509_valid ()
 			return 1
 			}
 		ersa_valid_cn="${certificate_commonName}"
-		unset certificate_commonName
+		unset -v certificate_commonName
 
 		ersa_valid_cn="${ersa_valid_cn##*=CN = }"
 		ersa_valid_cn_list="${ersa_valid_cn_list} ${ersa_valid_cn}"
@@ -2532,10 +2521,7 @@ status_easyrsa_renewed ()
 		# cert is probably revoked
 		:
 	fi
-
-	# End of for loop
-	done
-
+	done # End of for loop
 } # => status_easyrsa_renewed ()
 
 # List known TLS keys
@@ -2622,7 +2608,7 @@ verify_cert_purpose ()
 		}
 	# Use purpose list
 	p_l="${certificate_purpose_list}"
-	unset certificate_purpose_list
+	unset -v certificate_purpose_list
 
 	# Search for requested purpose
 	while IFS="$new_line" read -r i
@@ -2647,7 +2633,7 @@ cert_expire_date ()
 		return 1
 		}
 	cert_expire="${certificate_expire_date}"
-	unset certificate_expire_date
+	unset -v certificate_expire_date
 } # => crt_expire_date ()
 
 # Get x509 certificate expiry Date
@@ -2916,7 +2902,7 @@ inline_index_verify_hash ()
 			error_msg "generate_and_match_valid_hash - inline_index_verify_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "Inline-index hash check OK"
 	inline_index_verify_hash_block=1
 } # => inline_index_verify_hash ()
@@ -2932,7 +2918,7 @@ inline_index_save_hash ()
 			error_msg "generate_and_save_file_hash - inline_index_save_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "Inline-index hash save OK"
 	update_master_hash=1
 	inline_index_save_hash_block=1
@@ -3108,12 +3094,12 @@ remove_inline ()
 	# Use extracted_cert_serial
 	inline_serial="${extracted_cert_serial}"
 
-	unset force_remove
+	unset -v force_remove
 	# Check .inline HASH prior to removal
 	if inline_file_verify_hash; then
 		: # OK
 	else
-		unset error_log
+		unset -v error_log
 		print "
 * HELP: easytls can *Force* remove this file from the index.
         Once removed from the index, easytls will ignore this file.
@@ -3206,12 +3192,12 @@ remove_group_inline ()
 	# Use extracted_cert_serial
 	inline_serial="${extracted_cert_serial}"
 
-	unset force_remove
+	unset -v force_remove
 	# Check .inline HASH prior to removal
 	if inline_file_verify_hash; then
 		: # OK
 	else
-		unset error_log
+		unset -v error_log
 		print "
 * HELP: easytls can *Force* remove this file from the index.
         Once removed from the index, easytls will ignore this file.
@@ -3518,7 +3504,7 @@ tlskey_index_verify_hash ()
 			error_msg "generate_and_match_valid_hash - tlskey_index_verify_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "tlskey-index hash check OK"
 	tlskey_index_verify_hash_block=1
 } # => tlskey_index_verify_hash ()
@@ -3534,7 +3520,7 @@ tlskey_index_save_hash ()
 			error_msg "generate_and_save_file_hash - tlskey_index_save_hash"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "tlskey-index hash save OK"
 	update_master_hash=1
 	tlskey_index_save_hash_block=1
@@ -3927,7 +3913,7 @@ inline_base ()
 			return 1
 			}
 		cert_fpr="${certificate_fingerPrint}"
-		unset certificate_fingerPrint
+		unset -v certificate_fingerPrint
 
 		# Cert purpose
 		if verify_cert_purpose "${cert_file}" 'SSL server : Yes'; then
@@ -4567,7 +4553,7 @@ inline_tls_cv2_group_server ()
 	fi
 
 	name="${save_name}"
-	unset save_name
+	unset -v save_name
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
@@ -4765,7 +4751,7 @@ inline_tls_cv2_group_client ()
 	fi
 
 	name="${save_name}"
-	unset save_name
+	unset -v save_name
 
 	inline_share_fingerprint "${name}" || die "Failed to share fingerprint"
 
@@ -4828,7 +4814,7 @@ inline_share_fingerprint ()
 		}
 	# Use certificate_fingerPrint
 	cli_fpr="${certificate_fingerPrint}"
-	unset certificate_fingerPrint
+	unset -v certificate_fingerPrint
 
 	# Server files
 	srv_name="${EASYTLS_PEER_FPR}"
@@ -4849,7 +4835,7 @@ inline_share_fingerprint ()
 		}
 	# Use certificate_fingerPrint
 	srv_fpr="${certificate_fingerPrint}"
-	unset certificate_fingerPrint
+	unset -v certificate_fingerPrint
 
 	# fingerprint pattern for regex match
 	fpr_tplt=
@@ -4878,7 +4864,7 @@ inline_share_fingerprint ()
 		inline_serial="$(inline_index_ilhash_to_serial)"
 
 		# Must unset the usage block
-		unset inline_index_save_hash_block
+		unset -v inline_index_save_hash_block
 		if inline_index_update del; then
 			: # OK
 		else
@@ -4939,7 +4925,7 @@ inline_share_fingerprint ()
 		inline_file="${cli_inline}"
 
 		# Must unset the usage block
-		unset inline_index_save_hash_block
+		unset -v inline_index_save_hash_block
 		if inline_index_update add; then
 			: # OK
 		else
@@ -4971,7 +4957,7 @@ inline_share_fingerprint ()
 		inline_serial="$(inline_index_ilhash_to_serial)"
 
 		# Must unset the usage block
-		unset inline_index_save_hash_block
+		unset -v inline_index_save_hash_block
 		if inline_index_update del; then
 			: # OK
 		else
@@ -5043,7 +5029,7 @@ inline_share_fingerprint ()
 		inline_file="${srv_inline}"
 
 		# Must unset the usage block
-		unset inline_index_save_hash_block
+		unset -v inline_index_save_hash_block
 		if inline_index_update add; then
 			: # OK
 		else
@@ -5280,7 +5266,7 @@ build_tls_crypt_v2_client ()
 				help_note="To validate, use: ./easytls x4ip ${md_temp_addr}"
 				die "Invalid subnet/mask"
 			fi
-			unset valid_octets mask_len
+			unset -v valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 
 		elif validate_ip6_data "${md_temp_addr}"; then
@@ -5294,7 +5280,7 @@ build_tls_crypt_v2_client ()
 				help_note="To validate, use: ./easytls x6ip ${md_temp_addr}"
 				die "Invalid subnet/mask"
 			fi
-			unset valid_octets mask_len
+			unset -v valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 		else
 			die "Invalid Address: ${md_temp_addr}"
@@ -5394,10 +5380,8 @@ build_tls_cv2_group_client ()
 		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
-	srv_key_name="${1}"
-	shift
-	cli_grp_name="${1}"
-	shift
+	srv_key_name="${1}"; shift
+	cli_grp_name="${1}"; shift
 
 	#in_file="${EASYTLS_PKI}/${srv_grp_name}-tls-crypt-v2.key"
 	in_file="${EASYTLS_PKI}/${srv_key_name}-tls-crypt-v2.key"
@@ -5434,7 +5418,7 @@ build_tls_cv2_group_client ()
 				help_note="To validate, use: ./easytls x4ip ${md_temp_addr}"
 				die "Invalid subnet/mask"
 			fi
-			unset valid_octets mask_len
+			unset -v valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 		elif validate_ip6_data "${md_temp_addr}"; then
 			md_temp_addr="${valid_hextets}/${mask_len}"
@@ -5447,7 +5431,7 @@ build_tls_cv2_group_client ()
 				help_note="To validate, use: ./easytls x6ip ${md_temp_addr}"
 				die "Invalid subnet/mask"
 			fi
-			unset valid_octets mask_len
+			unset -v valid_octets mask_len
 			EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 		else
 			die "Invalid Address: ${md_temp_addr}"
@@ -5951,9 +5935,8 @@ metadata_stov_safe ()
 	[ -n "$1" ] || return 1
 	input="$1"
 
-	err_msg="Unspecified delimiter"
 	delimiter="${delimiter:-${newline}}"
-	[ -n "${delimiter}" ] || return 1
+	[ -n "${delimiter}" ] || { err_msg="Unspecified delimiter"; return 1; }
 	delim_save="${delimiter}"
 	case "${input}" in
 		*"${delimiter}"*) : ;;
@@ -5996,7 +5979,7 @@ metadata_stov_safe ()
 	err_msg="metadata-lib: metadata_string_to_vars"
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
-	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
+	unset -v m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
 } # => metadata_stov_safe ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
@@ -6150,7 +6133,7 @@ ${metadata}"
 		}
 	# Use generated b64 metadata
 	b64_metadata="${generated_base64}"
-	unset generated_base64
+	unset -v generated_base64
 } # => b64_enc_metadata ()
 
 # Generate CA Identity from CA fingerprint
@@ -6168,7 +6151,7 @@ generate_ca_identity ()
 		error_msg "generate_ca_identity - ca_identity"
 		return 1
 		}
-	unset certificate_fingerPrint ca_fingerprint
+	unset -v certificate_fingerPrint ca_fingerprint
 } # => generate_ca_identity ()
 
 # Collect CA Identity
@@ -6249,7 +6232,7 @@ build_self_sign ()
 		return 1
 		}
 	cert_fpr="${certificate_fingerPrint}"
-	unset certificate_fingerPrint
+	unset -v certificate_fingerPrint
 
 	# Write FP file - Always over-write any current file
 	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" >  "${fpr_file}" || {
@@ -6351,7 +6334,7 @@ save_id ()
 	# Add CA-ID to config
 	easytls_verb_io off
 	save_id_authorized=1
-	# unset config_save_hash_block # Always allow save_id to update
+	# unset -v config_save_hash_block # Always allow save_id to update
 	easytls_config id "${ca_identity}"
 	unset -v save_id_authorized config_save_hash_block
 	easytls_verb_io on
@@ -6572,7 +6555,7 @@ disabled_list_verify_hash ()
 			error_msg "disabled_list_verify_hash - fail"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "Disabled-list hash check OK"
 	disabled_list_verify_hash_block=1
 } # => disabled_list_verify_hash ()
@@ -6589,7 +6572,7 @@ disabled_list_save_hash ()
 			error_msg "disabled_list_save_hash - fail"
 			return 1
 			}
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 	easytls_verbose "Disabled-list hash save OK"
 	update_master_hash=1
 	disabled_list_save_hash_block=1
@@ -7992,7 +7975,6 @@ interactive_selfsign ()
 	case "${ia_answer}" in
 	1)	# Self-signed server
 		cert_type='Server'
-		key_type='tls-auth'
 		interactive_selfsign_CN
 		svr_name="${common_name}"
 		interactive_selfsign_PW
@@ -8449,7 +8431,7 @@ interactive_filter_address_check ()
 		else
 			die "Invalid Address: ${md_temp_addr}"
 		fi
-		unset valid_octets mask_len md_temp_addr
+		unset -v valid_octets mask_len md_temp_addr
 		EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 	else
 		die "Invalid Address: ${md_temp_addr}"
@@ -9076,71 +9058,6 @@ automatic_no_ca ()
 
 ############################################################################
 #
-# IMPORT Section
-#
-
-# Import pre-existing TLS keys
-import_key ()
-{
-	# Temporarily disabled
-	error_msg "'import-key' has been disabled until further notice."
-	return 1
-
-	[ "$#" -ge 2 ] || \
-	die "Required option(s): <file-type> <file-name>"
-	key_type="$1"
-
-	# WARNING: Cannot verify the source is actually a valid key!
-	key_file="$2"
-	[ -f "$key_file" ] || die "Cannot find file: $key_file"
-
-	case "$key_type" in
-	tls-auth)
-		dest_key="$EASYTLS_PKI/tls-auth.key"
-		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		"$EASYTLS_CP" "$key_file" "$dest_key" || \
-			die "Failed to import file: $key_file"
-		;;
-	tls-crypt)
-		dest_key="$EASYTLS_PKI/tls-crypt.key"
-		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		"$EASYTLS_CP" "$key_file" "$dest_key" || \
-			die "Failed to import file: $key_file"
-		;;
-	tls-crypt-v2)
-		# Validate commonName
-		default_cert_CN="${key_file%.key}"
-		requested_cert_CN="${3:-$default_cert_CN}"
-
-		cert_file="$EASYRSA_PKI/$requested_cert_CN.crt"
-		[ -f "$cert_file" ] || die "Cannot find file: $cert_file"
-		actual_cert_CN="$(easytls_ssl_crt_common_name)"
-
-		if [ "$requested_cert_CN" = "$actual_cert_CN" ]
-		then
-			: # CN OK
-		else
-			help_note="Requested CN $requested_cert_CN"
-			die "does not match certificate $actual_cert_CN"
-		fi
-
-		dest_key="$EASYTLS_PKI/$actual_cert_CN-tls-crypt-v2.key"
-		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
-		"$EASYTLS_CP" "$key_file" "$dest_key" || \
-			die "Failed to import file: $key_file"
-		;;
-	*)
-		die "Unknown key type: $key_type"
-		;;
-	esac
-
-	notice "Successfully imported $key_type key from $key_file to $dest_key"
-}
-
-
-
-############################################################################
-#
 # EASYTLS master a.k.a. wiscii hash Section
 #
 
@@ -9178,7 +9095,6 @@ generate_master_list ()
 		# Add inline-file to inline-list, delimit with newline not space
 		inline_file_list="${inline_file_list}
 ${inline_file}"
-
 	done < "${EASYTLS_INLINE_INDEX}"
 
 	unset -v inline_file  \
@@ -9217,7 +9133,6 @@ ${tlskey_file}"
 		# Add tlskey file to the list, delimit with newline
 		tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
-
 	done < "${EASYTLS_TLSKEY_INDEX}"
 
 	unset -v tlskey_file \
@@ -9238,10 +9153,10 @@ generate_master_hash ()
 	fi
 
 	# Make sure to get a hash
-	unset request_fixed_hash
+	unset -v request_fixed_hash
 
 	# Initialise the list variables
-	unset inline_file_list tlskey_file_list util_file_list
+	unset -v inline_file_list tlskey_file_list util_file_list
 
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash - generate_master_list"
@@ -9256,7 +9171,7 @@ generate_master_hash ()
 	old_faster_hash || die "old_faster_hash"
 
 	generated_master_hash="${generated_faster_hash%% *}"
-	unset inline_file_list tlskey_file_list util_file_list \
+	unset -v inline_file_list tlskey_file_list util_file_list \
 		master_hash_only generated_faster_hash
 } # => generate_master_hash ()
 
@@ -9270,16 +9185,13 @@ new_faster_hash ()
 
 	# List inline files
 	for f in ${inline_file_list}; do set -- "$@" "${f}"; done
-
 	# List tlskey files
 	for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
-
 	# List utility files
 	for f in ${util_file_list}; do set -- "$@" "${f}"; done
 
 	# hash each file in the @ list to a single hash-list
 	# hash the list-hash and return a single hash
-
 	#print "FILE NAMES:"
 	#printf '%s\n' "$@"
 	#print "HASH LIST:"
@@ -9292,30 +9204,27 @@ new_faster_hash ()
 			ssl_generate_old_master_data_hash
 		)" || \
 			die "new_faster_hash - hash_list_hash"
-
 	# Use hash
 	generated_faster_hash="${hash_list_hash}"
 
 	set --
 	IFS="${old_IFS}"
-	unset old_IFS hash_list_hash
+	unset -v old_IFS hash_list_hash
 } # => new_faster_hash ()
 
 # old_faster_hash way
 old_faster_hash ()
 {
 	# Generate a single hash of all the files via cat
-	unset old_IFS
+	unset -v old_IFS
 	[ -z "${IFS}" ] || old_IFS="$IFS"
 	IFS="${new_line}"
 	set --
 
 	# List inline files
 	for f in ${inline_file_list}; do set -- "$@" "${f}"; done
-
 	# List tlskey files
 	for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
-
 	# List utility files
 	for f in ${util_file_list}; do set -- "$@" "${f}"; done
 
@@ -9325,22 +9234,18 @@ old_faster_hash ()
 		"${EASYTLS_CAT}" "$@" | ssl_generate_old_master_data_hash
 		)" || \
 			die "generate_master_hash - cat_list_hash"
-
 	# Use hash
 	generated_faster_hash="${cat_list_hash}"
 
 	set --
-	unset IFS
+	unset -v IFS
 	[ -z "${old_IFS}" ] || IFS="${old_IFS}"
-	unset old_IFS cat_list_hash
+	unset -v old_IFS cat_list_hash
 } # => old_faster_hash ()
 
 # Save Master hash
 save_master_hash ()
 {
-	# file hashing is disabled
-	#[ -z "${FILE_HASH_DISABLED}" ] || return 0
-
 	[ -n "${update_master_hash}" ] || return 0
 	[ -z "${master_save_hash_block}" ] || \
 		die "Master save hash must only run once"
@@ -9358,9 +9263,6 @@ save_master_hash ()
 # Verify Master hash
 verify_master_hash ()
 {
-	# file hashing is disabled
-	#[ -z "${FILE_HASH_DISABLED}" ] || return 0
-
 	[ "${master_verify_hash_block}" ] && \
 		die "Master verify hash must only run once"
 	read_hash_file "${EASYTLS_FASTER_HASH}" || {
@@ -9398,6 +9300,7 @@ verify_master_hash ()
 # Todo: Replace set_var() with ="${x:-y}"
 shellcheck_ignore_2154 ()
 {
+	die "Do not use this function"
 	EASYRSA_OPENSSL=
 	EASYRSA_INDEX=
 	EASYRSA_RAND_SN=
@@ -9444,7 +9347,7 @@ shellcheck_ignore_2154 ()
 	EASYTLS_SS_AGE=
 	EASYTLS_EC_CURVE=
 	EASYTLS_ECPARAM_TMP=
-}
+} # => shellcheck_ignore_2154 ()
 
 ############################################################################
 #
@@ -9457,6 +9360,8 @@ external_deps ()
 	# Working directory
 	EASYTLS_work_dir="${PWD}"
 	delimiter='
+'
+	new_line='
 '
 
 	# Identify Windows
@@ -9576,11 +9481,6 @@ external_deps ()
 		easytls_tctip_lib_ver
 	fi
 	unset -v lib_file EASYTLS_WORK_DIR
-
-	# initialise
-	new_line='
-'
-
 } # => external_deps ()
 
 # vars setup
@@ -9846,19 +9746,19 @@ main ()
 	# case 1
 
 	''|help|-h|--help|--usage)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		cmd_help "${1}" || die "cmd_help"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 	;;
 	ver|version)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		easytls_version || die "easytls_version"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 	;;
 	vhw)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		hw_addr_hex_check "$@" || {
 			print "Invalid HW address: ${*}"
 			exit 1
@@ -9868,7 +9768,7 @@ main ()
 		easytls_verb_io off
 	;;
 	vip)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		validate_ip_address "$@" || {
 			print "*** Invalid IP: ${*} ***"
 			exit 1
@@ -9878,7 +9778,7 @@ main ()
 		easytls_verb_io off
 	;;
 	v4ip)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		validate_ip4_data "$@" || {
 			invalid_address "$?"
 			print "*** Invalid IP4: ${*} ***"
@@ -9889,7 +9789,7 @@ main ()
 		easytls_verb_io off
 	;;
 	x4ip)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		expand_ip4_address "$@" || {
 			invalid_address "$?"
 			print "*** Invalid IP4: ${*} ***"
@@ -9900,7 +9800,7 @@ main ()
 		easytls_verb_io off
 	;;
 	v6ip)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		validate_ip6_data "$@" || {
 			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
@@ -9911,7 +9811,7 @@ main ()
 		easytls_verb_io off
 	;;
 	x6ip)
-		#unset -v EASYTLS_SILENT
+		unset -v EASYTLS_SILENT
 		expand_ip6_address "$@" || {
 			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
@@ -9938,8 +9838,7 @@ main ()
 				die "acquire lock-file"
 			fi
 		else
-			# Easy-TLS is not initialised
-			:
+			: # Easy-TLS is not initialised
 		fi
 
 		# Load config options - Does not change command line options
@@ -9952,7 +9851,7 @@ main ()
 		upgrade)
 			# Special case for Old to New Easy-TLS
 			# Otherwise verify_tls_init() will fail
-			unset FILE_HASH_DISABLED
+			unset -v FILE_HASH_DISABLED
 			easytls_upgrade "$@" || die "easytls_upgrade"
 			AUTO_CHECK_DISABLED=1
 			easytls_verb_io off
@@ -9977,7 +9876,7 @@ main ()
 		case "${cmd}" in
 		rehash)
 			# If hashes have unsynced
-			unset FILE_HASH_DISABLED
+			unset -v FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
 			AUTO_CHECK_DISABLED=1
 			easytls_verb_io off
@@ -10147,7 +10046,7 @@ main ()
 		;;
 		*)
 			if [ -n "${EASYTLS_NO_CA}" ]; then
-			# No-CA use these versions of commands
+				# No-CA use these versions of commands
 				case "${cmd}" in
 				sss|self-sign-server)
 					build_self_sign 'server' "$@" || die "self-sign-server"
@@ -10156,7 +10055,6 @@ main ()
 					build_self_sign 'client' "$@" || die "self-sign-client"
 				;;
 				s|status)
-					#unset -v EASYTLS_SILENT
 					noca_status "$@" || die "noca_status"
 				;;
 				*)
@@ -10170,7 +10068,6 @@ main ()
 					save_id || die "save_id"
 				;;
 				s|status)
-					#unset -v EASYTLS_SILENT
 					status "$@" || die "status"
 					unset -v status_disabled_auto_check
 				;;
