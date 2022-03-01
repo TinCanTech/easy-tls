@@ -59,7 +59,14 @@ test_md_file ()
 
 finish ()
 {
-	:
+	[ -d "${EASYTLS_tmp_dir}" ]		&& rm -rf "${EASYTLS_tmp_dir}"
+	[ -d "${WORK_DIR}/noca" ]		&& rm -rf "${WORK_DIR}/noca"
+	[ -d "${WORK_DIR}/et-tdir1" ]	&& rm -rf "${WORK_DIR}/et-tdir1"
+	[ -d "${WORK_DIR}/et-tdir2" ]	&& rm -rf "${WORK_DIR}/et-tdir2"
+	[ -d "${WORK_DIR}/et-tdir3" ]	&& rm -rf "${WORK_DIR}/et-tdir3"
+
+	return 0
+
 	#rm -f "${WORK_DIR}/easytls-cryptv2-verify.vars"
 	#if [ -f "${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" ]; then
 	#	mv	"${WORK_DIR}/unit-test-tmp/easytls-cryptv2-verify.vars" \
@@ -1260,4 +1267,5 @@ print
 	print "Expected ERROR count incorrect!"
 	exit 9
 	}
+
 exit 0

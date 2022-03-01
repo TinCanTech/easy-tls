@@ -101,3 +101,6 @@ ls -l
 	sh ./dev/easytls-shellcheck.sh
 
 	sh ./dev/easytls-unit-tests.sh
+
+cd ..
+rm -rf "${etls_ut_dir_name}"

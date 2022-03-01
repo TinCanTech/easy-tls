@@ -1698,7 +1698,6 @@ save_file_hash ()
 			return 1
 			}
 	elif [ -f "${hash_file}" ]; then # An old target
-		# EASYTLS_DISABLED_HASH
 		: # OK
 	else
 		error_msg "invalid target - save_file_hash"
