@@ -9235,8 +9235,9 @@ generate_master_hash ()
 	#new_faster_hash || die "new_faster_hash"
 	old_faster_hash || die "old_faster_hash"
 
-	unset inline_file_list tlskey_file_list util_file_list master_hash_only
-	generated_faster_hash="${generated_faster_hash%% *}"
+	generated_master_hash="${generated_faster_hash%% *}"
+	unset inline_file_list tlskey_file_list util_file_list \
+		master_hash_only generated_faster_hash
 } # => generate_master_hash ()
 
 # new_faster_hash way
@@ -9317,43 +9318,49 @@ old_faster_hash ()
 # Save Master hash
 save_master_hash ()
 {
+	# file hashing is disabled
+	[ -z "${FILE_HASH_DISABLED}" ] || return 0
+
 	[ -n "${update_master_hash}" ] || return 0
 	[ -z "${master_save_hash_block}" ] || \
 		die "Master save hash must only run once"
-	generate_master_hash || die "save_faster_hash/generate_master_hash"
-	validate_hash "${generated_faster_hash}" || \
+	generate_master_hash || die "save_master_hash - generate_master_hash"
+	validate_hash "${generated_master_hash}" || \
 		die "save_master_hash - validate_hash"
-	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_faster_hash}" || \
+	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_master_hash}" || \
 		die "save_master_hash - save_file_hash"
 	easytls_verbose "save_master_hash OK"
-	unset -v update_master_hash
+	unset -v update_master_hash generated_master_hash
 	master_save_hash_block=1
 } # => save_master_hash ()
 
 # Verify Master hash
 verify_master_hash ()
 {
+	# file hashing is disabled
+	[ -z "${FILE_HASH_DISABLED}" ] || return 0
+
 	[ "${master_verify_hash_block}" ] && \
 		die "Master verify hash must only run once"
 	read_hash_file "${EASYTLS_FASTER_HASH}" || {
 		error_msg "verify_master_hash - read_hash_file"
-		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
 		}
 	# Use hash
-	saved_faster_hash="${saved_file_hash}"
+	saved_master_hash="${saved_file_hash}"
 
 	generate_master_hash || die "verify_master_hash - generate_master_hash"
-	if match_two_hashes "${generated_faster_hash}" "${saved_faster_hash}"
+	if match_two_hashes "${generated_master_hash}" "${saved_master_hash}"
 	then
 		easytls_verbose "verify_master_hash OK"
 		master_verify_hash_block=1
+		unset saved_master_hash generated_master_hash saved_file_hash
 		return 0
 	fi
 	error_msg "Master hash verify failed"
 	print "EASYTLS_PKI: ${EASYTLS_PKI}"
 	print "EASYTLS_FASTER_HASH: ${EASYTLS_FASTER_HASH}"
-	print "gen'd:${generated_faster_hash} <==> saved:${saved_faster_hash}"
+	print "gen'd:${generated_master_hash} <==> saved:${saved_master_hash}"
 	print "TIP: Use './easytls rehash' to correct this hash."
 	return 1
 } # => verify_master_hash ()
