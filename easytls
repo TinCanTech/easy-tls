@@ -681,6 +681,7 @@ verify_pki_init () {
 			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
+			# die "verify_pki_init - vars_source_check"
 			}
 
 	# verify expected dirs present:
@@ -692,6 +693,7 @@ verify_pki_init () {
 			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
+			# die "verify_pki_init - private reqs"
 			}
 	done
 	unset -v help_note
@@ -1279,6 +1281,9 @@ verify_openssl ()
 # Verify TLS has been initialised
 verify_tls_init ()
 {
+
+	#	[ -f "${EASYTLS_DISABLED_HASH}" ] && \
+
 	if \
 		[ -d "${EASYTLS_PKI}" ] && \
 		[ -f "${EASYTLS_CONFIG_FILE}" ] && \
@@ -1288,7 +1293,7 @@ verify_tls_init ()
 		[ -f "${EASYTLS_TLSKEY_INDEX}" ] && \
 		[ -f "${EASYTLS_KEY_X_HASH}" ] && \
 		[ -f "${EASYTLS_DISABLED_LIST}" ] && \
-		[ -f "${EASYTLS_DISABLED_HASH}" ]
+		[ -f "${EASYTLS_FASTER_HASH}" ]
 	then
 		easytls_verbose "verify_tls_init OK"
 		:
@@ -1462,6 +1467,7 @@ easytls_create_layout ()
 			"${EASYTLS_DISABLED_LIST}" || return 1
 	fi
 	# Save HASH file
+	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_DISABLED_HASH}"
 	disabled_list_save_hash || return 1
 	#unset disabled_list_save_hash_block
 
@@ -1709,23 +1715,33 @@ save_file_hash ()
 	hash_file="${1}" # File to save hash to
 	valid_hash="${2}" # hash to save
 
+	# EASYTLS_FASTER_HASH is saved by save_master_hash
+	# so it does not need to be here ..
+	# but it should "need to be here", so there is one write function
+	# Also, put it last because it must remain on this list
 	# Must be a valid target fle
-	if [ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]	|| \
+	if \
 		[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ]	|| \
 		[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ]	|| \
 		[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ]	|| \
-		[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ]; then
+		[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]; then
 
 		# Save hash to target
 		"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
 			error_msg "save hash - save_file_hash"
 			return 1
 			}
+
+	elif [ -f "${hash_file}" ]; then # An old target
+		# EASYTLS_DISABLED_HASH
+		: # OK
 	else
 		error_msg "invalid target - save_file_hash"
 		return 1
 	fi
 
+	# When save_master_hash uses this function then this becomes cyclic
+	# Watch Out!
 	update_master_hash=1
 	unset -v hash_file valid_hash
 } # => save_file_hash ()
@@ -6332,6 +6348,7 @@ save_id ()
 	# Add CA-ID to config
 	easytls_verb_io off
 	save_id_authorized=1
+	# unset config_save_hash_block # Always allow save_id to update
 	easytls_config id "${ca_identity}"
 	unset -v save_id_authorized config_save_hash_block
 	easytls_verb_io on
@@ -6560,6 +6577,7 @@ disabled_list_verify_hash ()
 # Save new disable-list hash
 disabled_list_save_hash ()
 {
+	# return 0 # Permanently DISABLED
 	[ -z "${disabled_list_save_hash_block}" ] || \
 		die "disabled list save hash must only run once"
 	request_fixed_hash=1
@@ -9943,6 +9961,7 @@ main ()
 			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
 			exit 1
+			# die "verify_tls_init (1)"
 			}
 		[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
 
