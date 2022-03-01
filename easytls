@@ -1416,6 +1416,7 @@ easytls_create_layout ()
 			"${EASYTLS_INLINE_INDEX}" || return 1
 	fi
 	# Save HASH file
+	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_INLINE_X_HASH}"
 	inline_index_save_hash || return 1
 	#unset -v inline_index_save_hash_block
 
@@ -1690,7 +1691,6 @@ save_file_hash ()
 	# Also, put it last because it must remain on this list
 	# Must be a valid target fle
 	if \
-		[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ]	|| \
 		[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ]	|| \
 		[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]; then
 
