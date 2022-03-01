@@ -1429,6 +1429,7 @@ easytls_create_layout ()
 			"${EASYTLS_TLSKEY_INDEX}" || return 1
 	fi
 	# Save HASH file
+	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_KEY_X_HASH}"
 	tlskey_index_save_hash || return 1
 	#unset -v tlskey_index_save_hash_block
 
@@ -1690,16 +1691,12 @@ save_file_hash ()
 	# but it should "need to be here", so there is one write function
 	# Also, put it last because it must remain on this list
 	# Must be a valid target fle
-	if \
-		[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ]	|| \
-		[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]; then
-
+	if [ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]; then
 		# Save hash to target
 		"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
 			error_msg "save hash - save_file_hash"
 			return 1
 			}
-
 	elif [ -f "${hash_file}" ]; then # An old target
 		# EASYTLS_DISABLED_HASH
 		: # OK
