@@ -312,33 +312,6 @@ cmd_help()
       gmh|generate-master-hash - Generate your current Master Hash.
       vmh|verify-master-hash   - Verify your current Master Hash.
       smh|save-master-hash     - Save your current Master Hash." ;;
-		import-key) text="* DISABLED *
-  import-key <key-type> <key-name> <commonName>
-      Import a pre-existing TLS key <key-name> to EasyTLS directory.
-
-      <key-type> is one of the supported TLS key types:
-      tls-auth, tls-crypt or tls-crypt-v2.
-
-      Examples (Using default PKI directory):
-
-      Importing TLS-Auth or TLS-Crypt keys renames the key file as shown:
-
-        * 'import-key tls-auth ./ta.key'
-          Imported key name: ./pki/easytls/tls-auth.key
-
-        * 'import-key tls-crypt ./tc.key'
-          Imported key name: ./pki/easytls/tls-crypt.key
-
-      TLS-crypt-v2 keys must be named after the commonName of the entity:
-      (Default <commonName> is <key-name>)
-
-        * 'import-key tls-crypt-v2 ./serv-v2.key server'
-          Imported key name: ./pki/easytls/server-tls-crypt-v2.key
-
-        * 'import-key tls-crypt-v2 ./cli2-v2.key client02'
-          Imported key name: ./pki/easytls/client02-tls-crypt-v2.key
-
-        * DISABLED *" ;;
 		sss|self-sign-server) text="
   self-sign-server
        Build a self signed server certificate and key.

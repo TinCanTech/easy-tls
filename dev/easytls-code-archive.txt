@@ -294,3 +294,99 @@ DISABLED_INLINE_INDEX_REBUILD_RESET
 
 
 
+
+############################################################################
+#
+# IMPORT Section
+#
+
+# Import pre-existing TLS keys
+import_key ()
+{
+	# Temporarily disabled
+	error_msg "'import-key' has been disabled until further notice."
+	return 1
+
+	[ "$#" -ge 2 ] || \
+	die "Required option(s): <file-type> <file-name>"
+	key_type="$1"
+
+	# WARNING: Cannot verify the source is actually a valid key!
+	key_file="$2"
+	[ -f "$key_file" ] || die "Cannot find file: $key_file"
+
+	case "$key_type" in
+	tls-auth)
+		dest_key="$EASYTLS_PKI/tls-auth.key"
+		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
+			die "Failed to import file: $key_file"
+		;;
+	tls-crypt)
+		dest_key="$EASYTLS_PKI/tls-crypt.key"
+		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
+			die "Failed to import file: $key_file"
+		;;
+	tls-crypt-v2)
+		# Validate commonName
+		default_cert_CN="${key_file%.key}"
+		requested_cert_CN="${3:-$default_cert_CN}"
+
+		cert_file="$EASYRSA_PKI/$requested_cert_CN.crt"
+		[ -f "$cert_file" ] || die "Cannot find file: $cert_file"
+		actual_cert_CN="$(easytls_ssl_crt_common_name)"
+
+		if [ "$requested_cert_CN" = "$actual_cert_CN" ]
+		then
+			: # CN OK
+		else
+			help_note="Requested CN $requested_cert_CN"
+			die "does not match certificate $actual_cert_CN"
+		fi
+
+		dest_key="$EASYTLS_PKI/$actual_cert_CN-tls-crypt-v2.key"
+		[ -f "$dest_key" ] && die "Key file exists: $dest_key"
+		"$EASYTLS_CP" "$key_file" "$dest_key" || \
+			die "Failed to import file: $key_file"
+		;;
+	*)
+		die "Unknown key type: $key_type"
+		;;
+	esac
+
+	notice "Successfully imported $key_type key from $key_file to $dest_key"
+}
+
+
+
+
+		import-key) text="* DISABLED *
+  import-key <key-type> <key-name> <commonName>
+      Import a pre-existing TLS key <key-name> to EasyTLS directory.
+
+      <key-type> is one of the supported TLS key types:
+      tls-auth, tls-crypt or tls-crypt-v2.
+
+      Examples (Using default PKI directory):
+
+      Importing TLS-Auth or TLS-Crypt keys renames the key file as shown:
+
+        * 'import-key tls-auth ./ta.key'
+          Imported key name: ./pki/easytls/tls-auth.key
+
+        * 'import-key tls-crypt ./tc.key'
+          Imported key name: ./pki/easytls/tls-crypt.key
+
+      TLS-crypt-v2 keys must be named after the commonName of the entity:
+      (Default <commonName> is <key-name>)
+
+        * 'import-key tls-crypt-v2 ./serv-v2.key server'
+          Imported key name: ./pki/easytls/server-tls-crypt-v2.key
+
+        * 'import-key tls-crypt-v2 ./cli2-v2.key client02'
+          Imported key name: ./pki/easytls/client02-tls-crypt-v2.key
+
+        * DISABLED *" ;;
+
+

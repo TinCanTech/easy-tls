@@ -22,6 +22,17 @@ copyright ()
 VERBATUM_COPYRIGHT_HEADER_INCLUDE_NEGOTIABLE
 }
 
+usage ()
+{
+	print "Usage:
+
+  -b, --build-data   To build test data .tar files.
+                     This will also run the full test
+                     and build new PKIs from scratch.
+                     TBD
+"
+}
+
 fail ()
 {
 	print "$@"
