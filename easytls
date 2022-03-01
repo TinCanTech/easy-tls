@@ -1710,25 +1710,24 @@ save_file_hash ()
 	valid_hash="${2}" # hash to save
 
 	# Must be a valid target fle
-	unset -v valid_target
-	[ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ] && valid_target=1
-	[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ] && valid_target=1
-	[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ] && valid_target=1
-	[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ] && valid_target=1
-	[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ] && valid_target=1
-	[ -n "${valid_target}" ] || {
-		error_msg "invalid target - save_file_hash"
-		unset -v hash_file valid_hash valid_target
-		return 1
-		}
+	if [ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]	|| \
+		[ "${hash_file}" = "${EASYTLS_CONFIG_HASH}" ]	|| \
+		[ "${hash_file}" = "${EASYTLS_INLINE_X_HASH}" ]	|| \
+		[ "${hash_file}" = "${EASYTLS_KEY_X_HASH}" ]	|| \
+		[ "${hash_file}" = "${EASYTLS_DISABLED_HASH}" ]; then
 
-	# Save hash to target
-	"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
-		error_msg "save hash - save_file_hash"
+		# Save hash to target
+		"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
+			error_msg "save hash - save_file_hash"
+			return 1
+			}
+	else
+		error_msg "invalid target - save_file_hash"
 		return 1
-		}
+	fi
+
 	update_master_hash=1
-	unset -v hash_file valid_hash valid_target
+	unset -v hash_file valid_hash
 } # => save_file_hash ()
 
 # Read hash from file (without cat) and clear EOF error
