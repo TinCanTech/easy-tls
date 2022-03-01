@@ -305,11 +305,14 @@ cmd_help()
       for immediate use by the easytls-cryptv2-verify.sh script.
       This also supports --sub-key-name for clients with multiple keys.
       If no <filename_base> is given then show the disabled-list." ;;
-		disabled-list-rehash) text="
-  disabled-list-rehash
-       Rehash the disabled-list if the current hash is corrupted.
-       Does not rebuild the disabled-list. If there is an error in the list
-       then edit the list manually and rehash it with 'disabled-list-rehash'" ;;
+		rehash) text="
+  rehash
+      Rehash the master-hash if the current hash is corrupted.
+
+      These test commands also exist:
+      gmh|generate-master-hash - Generate your current Master Hash.
+      vmh|verify-master-hash   - Verify your current Master Hash.
+      smh|save-master-hash     - Save your current Master Hash." ;;
 		import-key) text="* DISABLED *
   import-key <key-type> <key-name> <commonName>
       Import a pre-existing TLS key <key-name> to EasyTLS directory.
@@ -9347,7 +9350,8 @@ save_master_hash ()
 	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_master_hash}" || \
 		die "save_master_hash - save_file_hash"
 	easytls_verbose "save_master_hash OK"
-	unset -v update_master_hash generated_master_hash
+	[ -n "${return_hashes}" ] || \
+		unset -v update_master_hash generated_master_hash
 	master_save_hash_block=1
 } # => save_master_hash ()
 
@@ -9371,7 +9375,8 @@ verify_master_hash ()
 	then
 		easytls_verbose "verify_master_hash OK"
 		master_verify_hash_block=1
-		unset saved_master_hash generated_master_hash saved_file_hash
+		[ -n "${return_hashes}" ] || \
+			unset -v saved_master_hash generated_master_hash saved_file_hash
 		return 0
 	fi
 	error_msg "Master hash verify failed"
@@ -9983,34 +9988,37 @@ main ()
 		# Master hash tests
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${cmd}" in
-		gfh|generate-fast-hash)
-			#unset -v EASYTLS_SILENT
+		gmh|generate-master-hash)
+			return_hashes=1
 			generate_master_hash "$@" || die "generate_master_hash"
-			print "generated_faster_hash: ${generated_faster_hash}"
+			print "generated_master_hash: ${generated_master_hash}"
+			unset -v return_hashes=1
 			return 0
 		;;
-		sfh|save-fast-hash)
-			#unset -v EASYTLS_SILENT EASYTLS_BATCH
+		smh|save-master-hash)
+			return_hashes=1
 			verify_master_hash "$@" || die "verify_faster_hash"
-			print "generated_faster_hash: ${generated_faster_hash}"
-			print "saved_faster_hash    : ${saved_faster_hash}"
+			print "generated_master_hash: ${generated_master_hash}"
+			print "saved_master_hash    : ${saved_master_hash}"
 			print
 			print "NOTICE: The two values above must be identical,"
 			print "        otherwise, your Master hash is corrupted."
 			confirm "* Over-write your current Master hash file ? " "yes" \
 				"Warning:
 
-  This will write {generated_faster_hash} to your current Master hash file!"
+  This will write {generated_master_hash} to your current Master hash file!"
 			update_master_hash=1
 			save_master_hash "$@" || die "save_master_hash"
-			print "save_master_hash: ${generated_faster_hash}"
+			print "save_master_hash: ${generated_master_hash}"
+			unset -v return_hashes=1
 			return 0
 		;;
-		vfh|verify-fast-hash)
-			#unset -v EASYTLS_SILENT
-			verify_master_hash "$@" || die "verify_faster_hash"
-			print "generated_faster_hash: ${generated_faster_hash}"
-			print "saved_faster_hash    : ${saved_faster_hash}"
+		vmh|verify-master-hash)
+			return_hashes=1
+			verify_master_hash "$@" || die "verify_master_hash"
+			print "generated_master_hash: ${generated_master_hash}"
+			print "saved_master_hash    : ${saved_master_hash}"
+			unset -v return_hashes=1
 			return 0
 		;;
 		esac
