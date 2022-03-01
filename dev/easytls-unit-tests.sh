@@ -57,8 +57,14 @@ test_md_file ()
 	:
 }
 
-finish ()
+finish_trap ()
 {
+	:
+}
+
+finish_ok ()
+{
+	[ -z "${EASYTLS_KEEP}" ] || return 0
 	[ -d "${EASYTLS_tmp_dir}" ]		&& rm -rf "${EASYTLS_tmp_dir}"
 	[ -d "${WORK_DIR}/noca" ]		&& rm -rf "${WORK_DIR}/noca"
 	[ -d "${WORK_DIR}/et-tdir1" ]	&& rm -rf "${WORK_DIR}/et-tdir1"
@@ -294,7 +300,7 @@ print '||'
 start_time="$(date +%s)"
 
 	# Register finish() on EXIT
-	trap "finish" EXIT
+	trap "finish_trap" EXIT
 	# When SIGHUP, SIGINT, SIGQUIT, SIGABRT and SIGTERM,
 	# explicitly exit to signal EXIT (non-bash shells)
 	trap "exit 1" 1
@@ -1268,4 +1274,5 @@ print
 	exit 9
 	}
 
+finish_ok || exit 99
 exit 0
