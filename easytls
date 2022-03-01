@@ -757,7 +757,7 @@ easytls_verbose ()
 	[ -z "${flash_config}" ] || return 0
 	verbose_message="${*}"
 	[ -z "${verbose_message}" ] && print "" && return 0
-	"${EASYTLS_PRINTF}" "* ${verbose_message}"
+	"${EASYTLS_PRINTF}" '%s\n' "* ${verbose_message}"
 } # => easytls_verbose ()
 
 # Verbose messages ON/OFF
@@ -9230,7 +9230,7 @@ generate_master_hash ()
 {
 	# Respect no file hash mode
 	if [ -n "${FILE_HASH_DISABLED}" ]; then
-		generated_faster_hash="${fixed_hash}"
+		generated_master_hash="${fixed_hash}"
 		return 0
 	fi
 
@@ -9336,7 +9336,7 @@ old_faster_hash ()
 save_master_hash ()
 {
 	# file hashing is disabled
-	[ -z "${FILE_HASH_DISABLED}" ] || return 0
+	#[ -z "${FILE_HASH_DISABLED}" ] || return 0
 
 	[ -n "${update_master_hash}" ] || return 0
 	[ -z "${master_save_hash_block}" ] || \
@@ -9355,7 +9355,7 @@ save_master_hash ()
 verify_master_hash ()
 {
 	# file hashing is disabled
-	[ -z "${FILE_HASH_DISABLED}" ] || return 0
+	#[ -z "${FILE_HASH_DISABLED}" ] || return 0
 
 	[ "${master_verify_hash_block}" ] && \
 		die "Master verify hash must only run once"
@@ -9955,15 +9955,17 @@ main ()
 		esac
 
 		# Must have init TLS now - and PKI when not No-CA mode
-		verify_tls_init || {
+		if verify_tls_init; then
+			if [ -z "${EASYTLS_NO_CA}" ]; then
+				verify_pki_init || {
+					error_msg "Easy-RSA has not been initialised."
+					die "main - verify_pki_init"
+					}
+			fi
+		else
 			error_msg "Easy-TLS has not been initialised."
-			error_msg "See help: ./easytls help init-tls"
-			# shellcheck disable=2312
-			error_msg "$(cmd_help init-tls)"
-			exit 1
-			# die "verify_tls_init (1)"
-			}
-		[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
+			die "main - verify_tls_init"
+		fi
 
 		# Rehash all file hashes
 		# shellcheck disable=SC2249 # (info): default *) case
