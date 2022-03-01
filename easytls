@@ -10046,9 +10046,6 @@ main ()
 				inline-index-rebuild)
 					inline_index_rebuild "$@" || die "inline_index_rebuild"
 				;;
-				import-key)
-					import_key "$@" || die "import_key"
-				;;
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
 				;;
