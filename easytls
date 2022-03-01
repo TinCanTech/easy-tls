@@ -829,6 +829,7 @@ easytls_config ()
 			"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
 			"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
 			easytls_verbose
+			skip_master_hash=1
 			return 0
 		;;
 		*)
@@ -1402,10 +1403,10 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_CONFIG_HASH}"
-	config_save_hash || return 1
+	#config_save_hash || return 1
 	# Unset hash blocks because following operations make updates
 	# EG: save_id()
-	unset -v config_save_hash_block
+	#unset -v config_save_hash_block
 
 	# Create inline-index
 	if [ ! -f "${EASYTLS_INLINE_INDEX}" ]; then
@@ -1417,7 +1418,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_INLINE_X_HASH}"
-	inline_index_save_hash || return 1
+	#inline_index_save_hash || return 1
 	#unset -v inline_index_save_hash_block
 
 	# Create tlskey-index
@@ -1430,7 +1431,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_KEY_X_HASH}"
-	tlskey_index_save_hash || return 1
+	#tlskey_index_save_hash || return 1
 	#unset -v tlskey_index_save_hash_block
 
 	# Create disabled-list
@@ -1441,7 +1442,7 @@ easytls_create_layout ()
 	fi
 	# Save HASH file
 	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_DISABLED_HASH}"
-	disabled_list_save_hash || return 1
+	#disabled_list_save_hash || return 1
 	#unset -v disabled_list_save_hash_block
 
 	# Auto-save the current EasyRSA CA-ID if available, warn if not
@@ -1456,7 +1457,8 @@ easytls_create_layout ()
 
 	# Save HASH file
 	update_master_hash=1
-	save_master_hash || return 1
+	"${EASYTLS_PRINTF}" '%s' "${fixed_hash}" > "${EASYTLS_FASTER_HASH}"
+	#save_master_hash || return 1
 } # => easytls_create_layout ()
 
 # Rehash file hashes
@@ -1467,7 +1469,7 @@ easytls_rehash ()
 	tlskey_index_save_hash || return 1
 	disabled_list_save_hash || return 1
 	update_master_hash=1
-	save_master_hash || return 1
+	#save_master_hash || return 1
 	print "
 Rehash completed successfully."
 } # => easytls_rehash ()
@@ -9130,6 +9132,13 @@ generate_master_hash ()
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash - generate_master_list"
 
+	# Check for empty list - Required for FILE_HASH_DISABLED mode
+	# Otherwise, an empty list is piped to SSL and it blocks
+	if [ -z "${inline_file_list}${tlskey_file_list}${util_file_list}" ]; then
+		generated_master_hash="${fixed_hash}"
+		return 0
+	fi
+
 	# Use ssl unlock
 	master_hash_only=1
 
@@ -9215,24 +9224,41 @@ old_faster_hash ()
 # Save Master hash
 save_master_hash ()
 {
-	[ -n "${update_master_hash}" ] || return 0
+	# To update Master hash update_master_hash MUST be set
+	[ -n "${update_master_hash}" ] || \
+		die "save_master_hash - Missing: update_master_hash"
 	[ -z "${master_save_hash_block}" ] || \
 		die "Master save hash must only run once"
 	generate_master_hash || die "save_master_hash - generate_master_hash"
+	[ "${generated_master_hash}" = "${fixed_hash}" ] && {
+		unset -v update_master_hash
+		master_save_hash_block=1
+		return 0
+		}
 	validate_hash "${generated_master_hash}" || \
 		die "save_master_hash - validate_hash"
-	save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_master_hash}" || \
-		die "save_master_hash - save_file_hash"
-	easytls_verbose "save_master_hash OK"
-	[ -n "${return_hashes}" ] || \
-		unset -v update_master_hash generated_master_hash
-	master_save_hash_block=1
+	"${EASYTLS_CP}" -f "${EASYTLS_FASTER_HASH}" "${EASYTLS_FASTER_HASH}-old"
+	if save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_master_hash}"
+	then
+		easytls_verbose "save_master_hash OK"
+		unset -v update_master_hash
+		[ -n "${return_hashes}" ] || unset -v generated_master_hash
+		"${EASYTLS_RM}" -f "${EASYTLS_FASTER_HASH}-old"
+		master_save_hash_block=1
+		return 0
+	fi
+	error_msg "save_master_hash - save_file_hash"
+	print "EASYTLS_PKI: ${EASYTLS_PKI}"
+	print "EASYTLS_FASTER_HASH: ${EASYTLS_FASTER_HASH}"
+	"${EASYTLS_RM}" -f "${EASYTLS_FASTER_HASH}-failed"
+	"${EASYTLS_CP}" -f "${EASYTLS_FASTER_HASH}" "${EASYTLS_FASTER_HASH}-failed"
+	return 1
 } # => save_master_hash ()
 
 # Verify Master hash
 verify_master_hash ()
 {
-	[ "${master_verify_hash_block}" ] && \
+	[ -z "${master_verify_hash_block}" ] || \
 		die "Master verify hash must only run once"
 	read_hash_file "${EASYTLS_FASTER_HASH}" || {
 		error_msg "verify_master_hash - read_hash_file"
@@ -9250,7 +9276,7 @@ verify_master_hash ()
 			unset -v saved_master_hash generated_master_hash saved_file_hash
 		return 0
 	fi
-	error_msg "Master hash verify failed"
+	error_msg "verify_master_hash - match_two_hashes"
 	print "EASYTLS_PKI: ${EASYTLS_PKI}"
 	print "EASYTLS_FASTER_HASH: ${EASYTLS_FASTER_HASH}"
 	print "gen'd:${generated_master_hash} <==> saved:${saved_master_hash}"
@@ -9719,12 +9745,14 @@ main ()
 		cmd_help "${1}" || die "cmd_help"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	ver|version)
 		unset -v EASYTLS_SILENT
 		easytls_version || die "easytls_version"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	vhw)
 		unset -v EASYTLS_SILENT
@@ -9735,6 +9763,7 @@ main ()
 		print "VALID: ${*}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	vip)
 		unset -v EASYTLS_SILENT
@@ -9745,6 +9774,7 @@ main ()
 		print "VALID: ${valid_octets}/${mask_len}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	v4ip)
 		unset -v EASYTLS_SILENT
@@ -9756,6 +9786,7 @@ main ()
 		print "VALID: ${valid_octets}/${mask_len}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	x4ip)
 		unset -v EASYTLS_SILENT
@@ -9767,6 +9798,7 @@ main ()
 		print "VALID: ${valid_octets}/${mask_len}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	v6ip)
 		unset -v EASYTLS_SILENT
@@ -9778,6 +9810,7 @@ main ()
 		print "VALID: ${full_valid_ip6_addr}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	x6ip)
 		unset -v EASYTLS_SILENT
@@ -9790,6 +9823,7 @@ main ()
 		print "* full_subnet_addr6 : ${full_subnet_addr6}"
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
+		skip_master_hash=1
 	;;
 	# Do init before locking and update Master hash on exit
 	init|init-tls)
@@ -9985,6 +10019,7 @@ main ()
 		;;
 		is|inline-show)
 			inline_show "$@" || die "inline_show"
+			skip_master_hash=1
 		;;
 		ri|ril|remove-inline)
 			remove_inline "$@" || die "remove_inline"
@@ -10003,9 +10038,11 @@ main ()
 		;;
 		ix|inline-expire)
 			inline_expire "$@" || die "inline_expire"
+			skip_master_hash=1
 		;;
 		cx|cert-expire)
 			cert_expire "$@" || die "cert_expire"
+			skip_master_hash=1
 		;;
 		d|disable)
 			disabled_list_manager "disable" "$@" || die "disabled_list_manager"
@@ -10025,6 +10062,7 @@ main ()
 				;;
 				s|status)
 					noca_status "$@" || die "noca_status"
+					skip_master_hash=1
 				;;
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
@@ -10039,12 +10077,14 @@ main ()
 				s|status)
 					status "$@" || die "status"
 					unset -v status_disabled_auto_check
+					skip_master_hash=1
 				;;
 				irn|irw|inline-renew)
 					inline_renew "$@" || die "inline_renew"
 				;;
 				inline-index-rebuild)
 					inline_index_rebuild "$@" || die "inline_index_rebuild"
+					skip_master_hash=1
 				;;
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
@@ -10061,8 +10101,12 @@ main ()
 	# EasyTLS auto-check
 	easytls_auto_check || die "easytls_auto_check fail"
 
-	# save me, only if update_master_hash=1
-	save_master_hash || die "main - save_master_hash"
+	# save me, only if update_master_hash=1 AND NOT skip_master_hash
+	if [ -z "${skip_master_hash}" ]; then
+		save_master_hash || die "main - save_master_hash"
+	else
+		[ -z "${update_master_hash}" ] || die "Master hash status undefined"
+	fi
 } # => main ()
 
 main "$@" || die "main $*"
