@@ -60,10 +60,11 @@ metadata_stov_safe ()
 	[ -n "$1" ] || return 1
 	input="$1"
 
+	# Not using IFS
 	err_msg="Unspecified delimiter"
+	delim_save="${delimiter}"
 	delimiter="${delimiter:-${newline}}"
 	[ -n "${delimiter}" ] || return 1
-	delim_save="${delimiter}"
 	case "${input}" in
 		*"${delimiter}"*) : ;;
 		*) delimiter=' '
@@ -105,7 +106,7 @@ metadata_stov_safe ()
 	err_msg="metadata-lib: metadata_string_to_vars"
 	metadata_string_to_vars "$m1" "$m2" "$m3" "$m4" \
 		"$m5" "$m6" "$m7" "$m8" "$m9" || return 1
-	unset m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
+	unset -v m1 m2 m3 m4 m5 m6 m7 m8 m9 input err_msg
 } # => metadata_stov_safe ()
 
 #=# 70b4ec32-f1fc-47fb-a261-f02e7f572b62
