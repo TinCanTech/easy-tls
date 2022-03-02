@@ -9064,8 +9064,8 @@ generate_master_list ()
 			inline_file="${EASYTLS_PKI}/${CN}-${sub_key}.inline"
 		fi
 
-		# inline_file MUST exist
-		[ -f "${inline_file}" ] || missing_file "${inline_file}"
+		# Ignore missing (presumed deleted) files
+		[ -f "${inline_file}" ] || continue
 
 		# Add inline-file to inline-list, delimit with newline not space
 		inline_file_list="${inline_file_list}
@@ -9102,8 +9102,8 @@ ${tlskey_file}"
 			tlskey_file="${EASYTLS_PKI}/${CN}-${sub_key}-tls-crypt-v2.key"
 		fi
 
-		# tlskey_file MUST exist
-		[ -f "${tlskey_file}" ] || missing_file "${tlskey_file}"
+		# Ignore missing (presumed deleted) files
+		[ -f "${tlskey_file}" ] || continue
 
 		# Add tlskey file to the list, delimit with newline
 		tlskey_file_list="${tlskey_file_list}
