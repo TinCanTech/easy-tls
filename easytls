@@ -5910,9 +5910,11 @@ metadata_stov_safe ()
 	[ -n "$1" ] || return 1
 	input="$1"
 
-	delimiter="${delimiter:-${newline}}"
-	[ -n "${delimiter}" ] || { err_msg="Unspecified delimiter"; return 1; }
+	# Not using IFS
+	err_msg="Unspecified delimiter"
 	delim_save="${delimiter}"
+	delimiter="${delimiter:-${newline}}"
+	[ -n "${delimiter}" ] || return 1
 	case "${input}" in
 		*"${delimiter}"*) : ;;
 		*) delimiter=' '
