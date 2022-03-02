@@ -10088,6 +10088,7 @@ main ()
 				;;
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
+					skip_master_hash=1
 				;;
 				esac # => No-CA mode
 			else
@@ -10110,6 +10111,7 @@ main ()
 				;;
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
+					skip_master_hash=1
 				;;
 				esac # CA mode
 			fi

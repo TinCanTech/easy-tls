@@ -502,7 +502,7 @@ retry_pause ()
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
-	unset lock_acquired
+	unset -v lock_acquired
 	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ "${lock_attempt}" -gt 0 ]; do
@@ -535,7 +535,7 @@ write_metadata_file ()
 	update_status "stack-lock-acquired"
 
 	# Stack up duplicate metadata files - check for stale_stack
-	unset stale_stack
+	unset -v stale_stack
 	if [ -f "${client_md_file_stack}" ]; then
 		stack_up || die "stack_up" 160
 	fi
@@ -579,7 +579,7 @@ stack_up ()
 	[ -n "${EASYTLS_STAND_ALONE}" ] && return 0
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
-	unset stale_stack
+	unset -v stale_stack
 	if [ $(( local_time_unix - f_date )) -gt 60 ]; then
 		stale_stack=1
 		return 0
@@ -978,7 +978,7 @@ while [ -n "${1}" ]; do
 		EASYTLS_REQUIRE_VARS=1
 		case "${val}" in
 			-s|--source-vars)
-				unset EASYTLS_VARS_FILE ;;
+				unset -v EASYTLS_VARS_FILE ;;
 			*)
 				EASYTLS_VARS_FILE="${val}" ;;
 		esac

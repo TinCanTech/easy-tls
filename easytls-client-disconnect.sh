@@ -192,7 +192,7 @@ update_conntrac ()
 	# shellcheck source=./easytls-conntrac.lib
 	if [ -f "${lib_file}" ]; then
 		. "${lib_file}" || die "Source failed: ${lib_file}" 77
-		unset lib_file
+		unset -v lib_file
 	else
 		die "Missing file: ${lib_file}" 77
 	fi
@@ -453,7 +453,7 @@ retry_pause ()
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
-	unset lock_acquired
+	unset -v lock_acquired
 	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ "${lock_attempt}" -gt 0 ]; do
@@ -629,7 +629,7 @@ while [ -n "${1}" ]; do
 		EASYTLS_REQUIRE_VARS=1
 		case "${val}" in
 			-s|--source-vars)
-				unset EASYTLS_VARS_FILE ;;
+				unset -v EASYTLS_VARS_FILE ;;
 			*)
 				EASYTLS_VARS_FILE="${val}" ;;
 		esac

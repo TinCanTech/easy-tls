@@ -448,7 +448,7 @@ update_conntrac ()
 	# shellcheck source=./easytls-conntrac.lib
 	if [ -f "${lib_file}" ]; then
 		. "${lib_file}" || die "Source failed: ${lib_file}" 77
-		unset lib_file
+		unset -v lib_file
 	else
 		die "Missing file: ${lib_file}" 77
 	fi
@@ -655,7 +655,7 @@ retry_pause ()
 acquire_lock ()
 {
 	[ -n "${1}" ] || return 1
-	unset lock_acquired
+	unset -v lock_acquired
 	lock_attempt="${LOCK_TIMEOUT}"
 	set -o noclobber
 	while [ "${lock_attempt}" -gt 0 ]; do
@@ -938,7 +938,7 @@ while [ -n "${1}" ]; do
 		EASYTLS_REQUIRE_VARS=1
 		case "${val}" in
 			-s|--source-vars)
-				unset EASYTLS_VARS_FILE ;;
+				unset -v EASYTLS_VARS_FILE ;;
 			*)
 				EASYTLS_VARS_FILE="${val}" ;;
 		esac
@@ -1181,8 +1181,8 @@ else
 			# If no IP in metadata then cannot perform test, so ignore
 
 			# Extract and sort 4/6 IP addresses from metadata
-			unset found_ipv6 key_ip6_list found_ipv4 key_ip4_list source_match \
-					delim4 delim6
+			unset -v found_ipv6 key_ip6_list found_ipv4 key_ip4_list \
+					source_match delim4 delim6
 			key_ip_list="${MD_FILTERS%=}"
 			until [ -z "${key_ip_list}" ]; do
 				# hw_addr = the last hwaddr in the list
@@ -1210,11 +1210,11 @@ else
 					delim4=' '
 				fi
 			done
-			unset delim4 delim6
+			unset -v delim4 delim6
 
 			# shellcheck disable=SC2154
 			if [ -n "${found_ipv6}" ] && [ -n "${trusted_ip6}" ]; then
-				unset peer_ip6_match_ok
+				unset -v peer_ip6_match_ok
 				# Test
 				peer_ip6_addr="${trusted_ip6}/128"
 				until [ -z "${key_ip6_list}" ]; do
@@ -1229,10 +1229,10 @@ else
 
 					case "${exp_peer_ip6_addr}" in
 					"${key_ip6_addr}"* ) peer_ip_match_ok=1 ;;
-					* ) unset peer_ip_match_ok ;;
+					* ) unset -v peer_ip_match_ok ;;
 					esac
 					# Save Pandas
-					unset key_ip_addr key_ip6_addr key_ip6_bits \
+					unset -v key_ip_addr key_ip6_addr key_ip6_bits \
 						exp_peer_ip6_addr
 
 					# Discard lead hextet
@@ -1240,7 +1240,7 @@ else
 					[ "${key_ip6_list}" = "${key_ip6_list#* }" ] && \
 						key_ip6_list="${key_ip6_list##*}"
 				done
-				unset key_ip6_list peer_ip6_addr
+				unset -v key_ip6_list peer_ip6_addr
 
 			else
 				# Ignore
@@ -1254,7 +1254,7 @@ else
 				# Test
 				ip2dec "${peer_ip4_addr}"
 				peer_ip4_addr_dec="${ip4_dec}"
-				unset ip4_dec peer_ip4_match_ok
+				unset -v ip4_dec peer_ip4_match_ok
 				until [ -z "${key_ip4_list}" ]; do
 					key_ip_addr="${key_ip4_list% *}"
 					key_ip4_addr="${key_ip_addr%%/*}"
@@ -1265,7 +1265,7 @@ else
 					cidrmask2dec "${key_ip4_bits}"
 					key_ip4_mask_dec="${mask_dec}"
 					#key_ip4_imsk_dec="${imsk_dec}"
-					unset mask_dec imsk_dec ip4_dec
+					unset -v mask_dec imsk_dec ip4_dec
 
 					# Binary
 					key_and4_mask_dec=$(( key_ip4_addr_dec & key_ip4_mask_dec ))
@@ -1276,7 +1276,7 @@ else
 						peer_ip_match_ok=1
 					fi
 					# Save the rain forest
-					unset key_ip_addr key_ip4_addr key_ip4_addr_dec key_ip4_bits \
+					unset -v key_ip_addr key_ip4_addr key_ip4_addr_dec key_ip4_bits \
 						key_ip4_mask_dec key_and4_mask_dec peer_and4_mask_dec
 
 					# Decapitate
@@ -1300,7 +1300,7 @@ else
 				#no_key_ip_addr=1
 			fi
 			# Save the deep blue sea
-			unset found_ipv6 found_ipv4 source_match key_ip_list key_ip_addr
+			unset -v found_ipv6 found_ipv4 source_match key_ip_list key_ip_addr
 		fi
 
 		# Verify hwaddr
