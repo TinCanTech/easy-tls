@@ -20,6 +20,7 @@
 easytls_metadata_lib_ver ()
 {
 	[ -z "${EASYTLS_SILENT}" ] || return 0
+	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	# shellcheck disable=2154
 	"${EASYTLS_PRINTF}" '%s\n' "* easytls-metadata.lib v2.8 loaded"
 } # => easytls_tctip_lib_ver ()
