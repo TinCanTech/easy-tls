@@ -9098,16 +9098,22 @@ ${tlskey_file}"
 		# Set tlskey_file full name
 		if [ "${sub_key}" = 'NOSUBKEY' ];then
 			tlskey_file="${EASYTLS_PKI}/${CN}-tls-crypt-v2.key"
+			#key_metadata="${EASYTLS_META_DATA_D}/${CN}-tls-crypt-v2.metadata"
 		else
 			tlskey_file="${EASYTLS_PKI}/${CN}-${sub_key}-tls-crypt-v2.key"
+			#key_metadata="${EASYTLS_META_DATA_D}/${CN}-${sub_key}-tls-crypt-v2.metadata"
 		fi
 
 		# Ignore missing (presumed deleted) files
 		[ -f "${tlskey_file}" ] || continue
 
+#		[ ! -f "${key_metadata}" ] || key_metadata_list="${key_metadata}
+#${key_metadata_list}"
+
 		# Add tlskey file to the list, delimit with newline
 		tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
+
 	done < "${EASYTLS_TLSKEY_INDEX}"
 
 	unset -v tlskey_file \
@@ -9131,7 +9137,8 @@ generate_master_hash ()
 	unset -v request_fixed_hash
 
 	# Initialise the list variables
-	unset -v inline_file_list tlskey_file_list util_file_list
+	unset -v inline_file_list tlskey_file_list util_file_list \
+		key_metadata_list
 
 	# Generate the lists above
 	generate_master_list || die "generate_master_hash - generate_master_list"
@@ -9171,6 +9178,10 @@ new_faster_hash ()
 	for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
 	# List utility files
 	for f in ${util_file_list}; do set -- "$@" "${f}"; done
+	#if [ -z "${EASYTLS_FOR_WINDOWS}" ]; then
+	#	# List metadata files
+	#	for f in ${key_metadata_list}; do set -- "$@" "${f}"; done
+	#fi
 
 	# hash each file in the @ list to a single hash-list
 	# hash the list-hash and return a single hash
@@ -9209,6 +9220,10 @@ old_faster_hash ()
 	for f in ${tlskey_file_list}; do set -- "$@" "${f}"; done
 	# List utility files
 	for f in ${util_file_list}; do set -- "$@" "${f}"; done
+	#if [ -z "${EASYTLS_FOR_WINDOWS}" ]; then
+	#	# List metadata files
+	#	for f in ${key_metadata_list}; do set -- "$@" "${f}"; done
+	#fi
 
 	# cat the list
 	# pipe to SSL
