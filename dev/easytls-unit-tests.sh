@@ -320,7 +320,7 @@ EASYRSA_CMD="./easyrsa"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
-EASYTLS_OPTS="--batch"
+EASYTLS_OPTS="-v --batch"
 
 TLSCV2V_CMD="./easytls-cryptv2-verify.sh"
 TLSCV2V_VARS="${UTMP_DIR}/easytls-cryptv2-verify.vars"
