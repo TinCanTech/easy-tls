@@ -1464,14 +1464,18 @@ easytls_create_layout ()
 # Rehash file hashes
 easytls_rehash ()
 {
-	config_save_hash || return 1
-	inline_index_save_hash || return 1
-	tlskey_index_save_hash || return 1
-	disabled_list_save_hash || return 1
+	# These are permanently set to use request_fixed_hash
+	#config_save_hash || return 1
+	#inline_index_save_hash || return 1
+	#tlskey_index_save_hash || return 1
+	#disabled_list_save_hash || return 1
 	update_master_hash=1
-	#save_master_hash || return 1
+	save_master_hash || return 1
+	unset -v update_master_hash
+	skip_master_hash=1
 	print "
-Rehash completed successfully."
+Rehash completed successfully.
+"
 } # => easytls_rehash ()
 
 # Create missing files for old Easy-TLS
@@ -9881,8 +9885,8 @@ main ()
 			# If hashes have unsynced
 			unset -v FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
-			AUTO_CHECK_DISABLED=1
-			easytls_verb_io off
+			#AUTO_CHECK_DISABLED=1
+			#easytls_verb_io off
 			break
 		;;
 		esac
