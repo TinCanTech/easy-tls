@@ -6480,6 +6480,7 @@ disabled_list_manager ()
 		update_master_hash=1
 	else
 		notice "No change: ${name} is already ${action}d"
+		skip_master_hash=1
 	fi
 	easytls_verbose
 } # => disabled_list_manager ()
