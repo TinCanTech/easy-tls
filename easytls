@@ -2920,6 +2920,7 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
+	die "DISABLED inline_index_verify_hash"
 	[ -z "${inline_index_verify_hash_block}" ] || \
 		die "inline index verify hash must only run once"
 	request_fixed_hash=1
