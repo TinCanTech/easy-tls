@@ -2120,38 +2120,77 @@ status ()
 	if [ -n "${subsection}" ]; then
 		case "${subsection}" in
 		val|valid)
-			status_easyrsa_valid || return 1
+			status_easyrsa_valid || {
+				error_msg "status - status_easyrsa_valid"
+				return 1
+				}
 		;;
 		rev|revoked)
-			status_easyrsa_revoked || return 1
+			status_easyrsa_revoked || {
+				error_msg "status - status_easyrsa_revoked"
+				return 1
+				}
 		;;
 		inl|inline)
-			status_easytls_inline || return 1
+			status_easytls_inline || {
+				error_msg "status - status_easytls_inline"
+				return 1
+				}
 		;;
 		inv|invalid)
 			silent_status=1
-			status_easyrsa_valid || return 1
-			status_easyrsa_revoked || return 1
-			status_easytls_inline || return 1
+			status_easyrsa_valid || {
+				error_msg "status - invalid - status_easyrsa_valid"
+				return 1
+				}
+			status_easyrsa_revoked || {
+				error_msg "status - invalid - status_easyrsa_revoked"
+				return 1
+				}
+			status_easytls_inline || {
+				error_msg "status - invalid - status_easytls_inline"
+				return 1
+				}
 			unset -v silent_status
-			status_easytls_invalid || return 1
+			status_easytls_invalid || {
+				error_msg "status - invalid - status_easytls_invalid"
+				return 1
+				}
 		;;
 		ren|renewed)
 			silent_status=1
-			status_easyrsa_valid || return 1
-			status_easyrsa_revoked || return 1
-			status_easytls_inline || return 1
+			status_easyrsa_valid || {
+				error_msg "status - renewed - status_easyrsa_valid"
+				return 1
+				}
+			status_easyrsa_revoked || {
+				error_msg "status - renewed - status_easyrsa_revoked"
+				return 1
+				}
+			status_easytls_inline || {
+				error_msg "status - renewed - status_easytls_inline"
+				return 1
+				}
 			unset -v silent_status
-			status_easyrsa_renewed || return 1
+			status_easyrsa_renewed || {
+				error_msg "status - renewed - status_easyrsa_renewed"
+				return 1
+				}
 		;;
 		dis|disabled)
-			status_disabled_list || return 1
+			status_disabled_list || {
+				error_msg "status - status_disabled_list"
+				return 1
+				}
 		;;
 		tls|tlskeys)
-			status_easytls_tlskeys || return 1
+			status_easytls_tlskeys || {
+				error_msg "status - status_easytls_tlskeys"
+				return 1
+				}
 		;;
 		*)
-			print "Unknown status option"
+			error_msg "Unknown status option"
 			return 1
 		;;
 		esac
