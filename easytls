@@ -6306,13 +6306,13 @@ save_id ()
 	fi
 
 	# Generate CA Identity from CA fingerprint
-	generate_ca_identity
+	generate_ca_identity || die "save_id - generate_ca_identity"
 
 	# Add CA-ID to config
 	easytls_verb_io off
 	save_id_authorized=1
 	# unset -v config_save_hash_block # Always allow save_id to update
-	easytls_config id "${ca_identity}"
+	easytls_config id "${ca_identity}" || die "save_id - easytls_config"
 	unset -v save_id_authorized config_save_hash_block
 	easytls_verb_io on
 
