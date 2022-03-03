@@ -3522,6 +3522,7 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
+	die "DISABLED tlskey_index_verify_hash"
 	[ -z "${tlskey_index_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
 	request_fixed_hash=1
