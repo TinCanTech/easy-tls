@@ -6313,7 +6313,7 @@ save_id ()
 	save_id_authorized=1
 	# unset -v config_save_hash_block # Always allow save_id to update
 	easytls_config id "${ca_identity}" || die "save_id - easytls_config"
-	unset -v save_id_authorized config_save_hash_block
+	unset -v save_id_authorized #config_save_hash_block
 	easytls_verb_io on
 
 	# Create CA-ID file - Legacy
