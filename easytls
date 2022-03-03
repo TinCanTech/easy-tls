@@ -3736,7 +3736,7 @@ remove_tlskey ()
 
 	# Verify this tlskey-serial
 	validate_hash "${tlskey_serial}" || {
-		error_msg "remove_tlskey - tlskey_serial failed: ${tlskey_serial}"
+		error_msg "remove_tlskey - validate_hash: ${tlskey_serial}"
 		unset -v tlskey_serial
 		return 1
 		}
@@ -4387,7 +4387,8 @@ inline_tls_crypt_v2 ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
 		# Share fingerprint template
-		inline_share_fingerprint || die "inline_share_fingerprint"
+		inline_share_fingerprint || \
+			die "inline_tls_crypt_v2 - inline_share_fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -4555,7 +4556,8 @@ inline_tls_cv2_group_server ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
 		# Share fingerprint template
-		inline_share_fingerprint || die "Failed to share fingerprint"
+		inline_share_fingerprint || \
+			die "inline_tls_cv2_group_server - inline_share_fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -4752,7 +4754,8 @@ inline_tls_cv2_group_client ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt-v2>"
 		# Share fingerprint template
-		inline_share_fingerprint || die "inline_share_fingerprint"
+		inline_share_fingerprint || \
+			die "inline_tls_cv2_group_client - inline_share_fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -6421,7 +6424,7 @@ disabled_list_manager ()
 
 	# Verify this tlskey-serial
 	validate_hash "${tlskey_serial}" || {
-		error_msg "disabled_list_manager - tlskey_serial failed: ${tlskey_serial}"
+		error_msg "disabled_list_manager - validate_hash failed: ${tlskey_serial}"
 		unset -v tlskey_serial
 		return 1
 		}
@@ -9310,7 +9313,7 @@ save_master_hash ()
 		return 0
 		}
 	validate_hash "${generated_master_hash}" || \
-		die "save_master_hash - validate_hash"
+		die "save_master_hash - validate_hash ${generated_master_hash}"
 	"${EASYTLS_CP}" -f "${EASYTLS_FASTER_HASH}" "${EASYTLS_FASTER_HASH}-old"
 	if save_file_hash "${EASYTLS_FASTER_HASH}" "${generated_master_hash}"
 	then
