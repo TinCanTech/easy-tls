@@ -510,7 +510,7 @@ do
 	export EASYRSA="$WORK_DIR"
 	export EASYRSA_PKI="$PKI_DIR"
 	EASYTLS_VARS="$PKI_DIR/vars"
-	EASYTLS_OPTS="--batch"
+	EASYTLS_OPTS="-v --batch"
 	EASYTLS_OPTS="${EASYTLS_OPTS} -p=et-tdir${loops}"
 
 
