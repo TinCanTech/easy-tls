@@ -1681,8 +1681,9 @@ validate_hash ()
 match_two_hashes ()
 {
 	[ "${#}" -eq 2 ] || return 1
-	validate_hash "${1}" || return 1
-	validate_hash "${2}" || return 1
+	# DISABLE: Always validate prior to this test
+	#validate_hash "${1}" || return 1
+	#validate_hash "${2}" || return 1
 	[ "${1}" = "${2}" ] && return 0
 	# Check if either hash is fixed hash then ignore
 	# Allows to switch between file-hash and file-hash-disabled mode
