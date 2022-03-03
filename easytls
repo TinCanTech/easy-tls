@@ -1637,28 +1637,40 @@ validate_hash ()
 		return 1
 		}
 
-	test_hash="${1}"
-	test_length="${#test_hash}"
+	#validate_hash_block="$(( validate_hash_block + 1 ))"
+	#if [ -z "${auto_check}" ]; then
+	#	easytls_verbose "General use - validate_hash (${validate_hash_block})"
+	#	[ "${validate_hash_block}" -lt 2 ] || {
+	#		error_msg "validate_hash must only run twice"
+	#		return 1
+	#		}
+	#else
+	#	easytls_verbose "auto_check - validate_hash (${validate_hash_block})"
+	#	#validate_hash_block="$(( validate_hash_block - 1 ))"
+	#fi
+
+	#test_hash="${1}"
+	#test_length="${#test_hash}"
 
 	# Verify length
-	[ "${test_length}" -eq "${fixed_length}" ] || {
-		error_msg "validate_hash - test_length: ${test_length}"
-		unset -v test_hash test_length
+	[ "${#1}" -eq "${fixed_length}" ] || {
+		error_msg "validate_hash - test_length: ${#test_hash}"
+		unset -v test_hash #test_length
 		return 1
 		}
 
 	# Verify hash is hex only
 	# Any error will contain non-hex chars (hopefully)
-	[ "${test_hash}" = "${test_hash%[!0123456789abcdefABCDEF]*}" ] || {
+	[ "${1}" = "${1%[!0123456789abcdefABCDEF]*}" ] || {
 		error_msg "validate_hash - !hex"
-		unset -v test_hash test_length
+		unset -v test_hash #test_length
 		return 1
 		}
 
 	# Test for empty input hash
-	[ "${test_hash}" != "${forbidden_hash}" ] || {
+	[ "${1}" != "${forbidden_hash}" ] || {
 		error_msg "validate_hash - forbidden_hash"
-		unset -v test_hash test_length
+		unset -v test_hash #test_length
 		return 1
 		}
 
