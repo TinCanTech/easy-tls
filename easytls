@@ -1506,14 +1506,15 @@ easytls_auto_check ()
 	[ -n "${AUTO_CHECK_DISABLED}" ] && \
 		easytls_verbose "auto-check disabled" && return 0
 
+	easytls_verbose "auto-check"
+	auto_check=1
+	# ALL status failures MUST be FATAL in future
+
 	# If inline-index does not exist then do not auto-check
 	[ -f "${EASYTLS_INLINE_INDEX}" ] || return 0
 	index_size="$("${EASYTLS_GREP}" -c '^.*$' "${EASYTLS_INLINE_INDEX}")"
 	[ "${index_size}" -gt 50 ] && \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
-
-	auto_check=1
-	# ALL status failures MUST be FATAL in future
 
 	# Check for revoked EasyRSA certs
 	# which still have an inline file
@@ -1637,10 +1638,13 @@ validate_hash ()
 		return 1
 		}
 
+#if [ $EASYTLS_TEST ]; then
+
 	#validate_hash_block="$(( validate_hash_block + 1 ))"
 	#if [ -z "${auto_check}" ]; then
 	#	easytls_verbose "General use - validate_hash (${validate_hash_block})"
-	#	[ "${validate_hash_block}" -lt 2 ] || {
+	#	# less than three is simplest
+	#	[ "${validate_hash_block}" -lt 3 ] || {
 	#		error_msg "validate_hash must only run twice"
 	#		return 1
 	#		}
@@ -1648,6 +1652,8 @@ validate_hash ()
 	#	easytls_verbose "auto_check - validate_hash (${validate_hash_block})"
 	#	#validate_hash_block="$(( validate_hash_block - 1 ))"
 	#fi
+
+#fi
 
 	#test_hash="${1}"
 	#test_length="${#test_hash}"
@@ -4108,7 +4114,8 @@ inline_tls_auth ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-auth>"
 
-		inline_share_fingerprint || die "inline_share_fingerprint"
+		inline_share_fingerprint || \
+			die "inline_tls_auth - inline_share_fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -4192,7 +4199,8 @@ inline_tls_crypt_v1 ()
 		"${EASYTLS_CAT}" "${tlskey_file}"
 		"${EASYTLS_PRINTF}" "%s\n\n" "</tls-crypt>"
 
-		inline_share_fingerprint || die "inline_share_fingerprint"
+		inline_share_fingerprint || \
+			die "inline_tls_crypt_v1 - inline_share_fingerprint"
 	} > "${inline_temp}" || die "Failed to create inline file: ${inline_temp}"
 
 	# Use cat for its intended purpose
@@ -4795,6 +4803,7 @@ inline_tls_cv2_group_client ()
 inline_share_fingerprint ()
 {
 	# Only supported by No-CA mode
+	# Normal CA mode ignores this step when building inline files
 	[ -n "${EASYTLS_NO_CA}" ] || return 0
 
 	# When first creating this inline add FP <tags> and return
@@ -6289,7 +6298,8 @@ build_self_sign ()
 		"${EASYTLS_CAT}" "${key_file}"
 		"${EASYTLS_PRINTF}" '%s\n\n' "<\key>"
 
-		inline_share_fingerprint || die "inline_share_fingerprint"
+		inline_share_fingerprint || \
+			die "build_self_sign - inline_share_fingerprint"
 	} > "${inline_file}" || die "Failed to create Inline file for ${cert_name}"
 	inline_share_fingerprint "${cert_name}" || \
 		die "inline_share_fingerprint - build_self_sign"
