@@ -2222,17 +2222,17 @@ status ()
 
 	print "Easy-RSA: Valid X509 certificates:"
 	status_easyrsa_valid
-	[ -z "${ersa_valid_serial_list}" ] && \
+	[ -n "${ersa_valid_serial_list}" ] || \
 		print "  No Valid X509 certificates found"
 
 	print "Easy-RSA: Revoked X509 certificates:"
 	status_easyrsa_revoked
-	[ -z "${ersa_revoked_serial_list}" ] && \
+	[ -n "${ersa_revoked_serial_list}" ] || \
 		print "  No Revoked X509 certificates found"
 
 	print "Easy-TLS: Known inline files:"
 	status_easytls_inline
-	[ -z "${etls_valid_serial_list}" ] && \
+	[ -n "${etls_valid_serial_list}" ] || \
 		print "  No inline files found"
 
 	print "Easy-TLS: Invalid inline files:"
@@ -2462,7 +2462,7 @@ status_easytls_invalid ()
 	revoked_mismatch_count=0
 	for i in ${etls_valid_il_hash_list}; do
 		known_inline_hash="${i}"
-		[ -z "${known_inline_hash}" ] && die "status invalid: known_inline_hash ?"
+		[ -n "${known_inline_hash}" ] || die "status invalid: known_inline_hash ?"
 
 		# This needs to handle duplicate-ish names.
 		name="$(inline_index_ilhash_2_cn)"
@@ -2973,25 +2973,25 @@ inline_file_verify_hash ()
 	# every value and file must exist at this time
 	# Try to logically illiminate the need for these checks
 
-	[ -z "${name}" ] && \
+	[ -n "${name}" ] || \
 		die "inline_file_verify_hash: Missing value: name"
 
 	# May not require this
-	#[ -z "$crt_serial" ] && \
+	#[ -n "$crt_serial" ] || \
 	#	die "inline_file_verify_hash: Missing value: crt_serial"
 
 	# Must have inline_serial
-	[ -z "${inline_serial}" ] && \
+	[ -n "${inline_serial}" ] || \
 		die "inline_file_verify_hash: Missing value: inline_serial"
 
 	# Should not have this HASH, that is the reason to do this check
 	# If we already have a HASH then something else is wrong
-	[ -n "${inline_hash}" ] && \
+	[ -z "${inline_hash}" ] || \
 		die "inline_file_verify_hash: Found value: inline_hash ${inline_hash}"
 
 	# Already have inline_serial so this file MUST exist so remove test
 	# Not so during an index rebuild
-	[ -z "${inline_file}" ] && \
+	[ -n "${inline_file}" ] || \
 		die "inline_file_verify_hash: Missing value: inline_file"
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
