@@ -9878,6 +9878,7 @@ main ()
 			print "VALID: ${*}"
 		else
 			print "Invalid HW address: ${*}"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
@@ -9889,6 +9890,7 @@ main ()
 			print "VALID: ${valid_octets}/${mask_len}"
 		else
 			print "*** Invalid IP: ${*} ***"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
@@ -9900,6 +9902,7 @@ main ()
 			print "VALID: ${valid_octets}/${mask_len}"
 		else
 			print "*** Invalid IP4: ${*} ***"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
@@ -9911,6 +9914,7 @@ main ()
 			print "VALID: ${valid_octets}/${mask_len}"
 		else
 			print "*** Invalid IP4: ${*} ***"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
@@ -9922,6 +9926,7 @@ main ()
 			print "VALID: ${full_valid_ip6_addr}"
 		else
 			print "*** Invalid IP6: ${*} ***"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
@@ -9935,6 +9940,7 @@ main ()
 		else
 			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
+			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
