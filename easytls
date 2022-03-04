@@ -1633,6 +1633,11 @@ generate_and_validate_data_hash ()
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
+	# If master-hash has been verified then
+	# All further hashes are considered to be valid
+	# This is already wildly abusive, so don't abuse it any further..
+	[ -z "${disable_validate_hash}" ] || return 0
+
 	[ "${#}" -eq 1 ] || {
 		error_msg "validate_hash - invalid input: ${*}"
 		return 1
@@ -9331,6 +9336,7 @@ save_master_hash ()
 		die "save_master_hash - Missing: update_master_hash"
 	[ -z "${master_save_hash_block}" ] || \
 		die "Master save hash must only run once"
+
 	generate_master_hash || die "save_master_hash - generate_master_hash"
 	[ "${generated_master_hash}" = "${fixed_hash}" ] && {
 		unset -v update_master_hash
@@ -9338,6 +9344,8 @@ save_master_hash ()
 		return 0
 		}
 
+	# Get a valid hash, at all costs..
+	unset -v disable_validate_hash
 	validate_hash_block="$(( validate_hash_block - 1 ))"
 	validate_hash "${generated_master_hash}" || \
 		die "save_master_hash - validate_hash ${generated_master_hash}"
@@ -10036,6 +10044,8 @@ main ()
 
 		# Verify me!
 		verify_master_hash || die "verify_master_hash"
+		# From this point forth, ALL hashes should be considered valid
+		disable_validate_hash=1
 
 		# Set "Temp-Dir of last resort", if not already set by config
 		if [ -n "${EASYTLS_FOR_WINDOWS}" ]; then
