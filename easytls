@@ -1638,22 +1638,15 @@ validate_hash ()
 		return 1
 		}
 
-#if [ $EASYTLS_TEST ]; then
-
-	#validate_hash_block="$(( validate_hash_block + 1 ))"
-	#if [ -z "${auto_check}" ]; then
-	#	easytls_verbose "General use - validate_hash (${validate_hash_block})"
-	#	# less than three is simplest
-	#	[ "${validate_hash_block}" -lt 3 ] || {
-	#		error_msg "validate_hash must only run twice"
-	#		return 1
-	#		}
-	#else
-	#	easytls_verbose "auto_check - validate_hash (${validate_hash_block})"
-	#	#validate_hash_block="$(( validate_hash_block - 1 ))"
-	#fi
-
-#fi
+	validate_hash_block="$(( validate_hash_block + 1 ))"
+	if [ -z "${auto_check}" ]; then
+		#easytls_verbose "General use - validate_hash (${validate_hash_block})"
+		# less than three is simplest
+		[ "${validate_hash_block}" -lt 3 ] || {
+			error_msg "validate_hash must only run twice"
+			return 1
+			}
+	fi
 
 	#test_hash="${1}"
 	#test_length="${#test_hash}"
@@ -1680,7 +1673,7 @@ validate_hash ()
 		return 1
 		}
 
-	unset -v test_hash test_length
+	unset -v test_hash #test_length
 } # => validate_hash ()
 
 # Verify two hashes Match
@@ -2478,10 +2471,14 @@ status_easytls_invalid ()
 		# Clear inline_hash from previous loop
 		unset -v inline_hash
 		# Check the .inline HASH
-		inline_file_verify_hash || die "Failed HASH: ${inline_file}"
-		# Variable: verified_inline_hash, now exists
+		if [ -z "${auto_check}" ]; then
+			inline_file_verify_hash || die "Failed HASH: ${inline_file}"
+			# Variable: verified_inline_hash, now exists
+			mismatches="$(status_search_revoked_serial_list)"
+		else
+			mismatches=0
+		fi
 
-		mismatches="$(status_search_revoked_serial_list)"
 		case "${mismatches}" in
 		0)
 			# No mismatches found
@@ -2989,6 +2986,7 @@ inline_file_verify_hash ()
 
 	# generate current file HASH
 	force_hash=1
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	generate_and_validate_file_hash "${inline_file}" || {
 		die "inline_file_verify_hash - generate_and_validate_file_hash"
 		}
@@ -4806,6 +4804,9 @@ inline_share_fingerprint ()
 	# Normal CA mode ignores this step when building inline files
 	[ -n "${EASYTLS_NO_CA}" ] || return 0
 
+	isfp_count="$(( isfp_count + 1 ))"
+	easytls_verbose "Run inline_share_fingerprint (${isfp_count})"
+
 	# When first creating this inline add FP <tags> and return
 	[ "$#" -eq 0 ] && {
 		# Only add inline tags for fingerprint
@@ -4849,6 +4850,7 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${cli_inline}"
 
 	# generate client FP
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	easytls_ssl_generate_fingerprint "${cli_cert}" || {
 		error_msg "inline_share_fingerprint - generate client FP"
 		return 1
@@ -4870,6 +4872,7 @@ inline_share_fingerprint ()
 		missing_file "inline_share_fingerprint - ${srv_inline}"
 
 	# generate server FP
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	easytls_ssl_generate_fingerprint "${srv_cert}" || {
 		error_msg "inline_share_fingerprint - generate server FP"
 		return 1
@@ -4888,6 +4891,7 @@ inline_share_fingerprint ()
 	fpr_tplt="${fpr_tplt}.."
 
 	# client inline-file hash
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	generate_and_validate_file_hash "${cli_inline}" || {
 		error_msg "inline_share_fingerprint - generate_and_validate_file_hash"
 		error_msg "${cli_inline}"
@@ -4906,6 +4910,7 @@ inline_share_fingerprint ()
 
 		# Must unset the usage block
 		unset -v inline_index_save_hash_block
+		validate_hash_block="$(( validate_hash_block - 1 ))"
 		if inline_index_update del; then
 			: # OK
 		else
@@ -4981,6 +4986,7 @@ inline_share_fingerprint ()
 	fi
 
 	# server inline-file hash
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	generate_and_validate_file_hash "${srv_inline}" || {
 		error_msg "generate_and_validate_file_hash - inline_share_fingerprint"
 		error_msg "${srv_inline}"
@@ -4999,6 +5005,7 @@ inline_share_fingerprint ()
 
 		# Must unset the usage block
 		unset -v inline_index_save_hash_block
+		validate_hash_block="$(( validate_hash_block - 1 ))"
 		if inline_index_update del; then
 			: # OK
 		else
@@ -5071,6 +5078,7 @@ inline_share_fingerprint ()
 
 		# Must unset the usage block
 		unset -v inline_index_save_hash_block
+		validate_hash_block="$(( validate_hash_block - 1 ))"
 		if inline_index_update add; then
 			: # OK
 		else
@@ -5085,6 +5093,7 @@ inline_share_fingerprint ()
 	fi
 
 	# Reset inline_file to client inline
+	easytls_verbose "End inline_share_fingerprint (${isfp_count})"
 	inline_file="${cli_inline}"
 	update_master_hash=1
 } # => inline_share_fingerprint ()
@@ -9324,6 +9333,8 @@ save_master_hash ()
 		master_save_hash_block=1
 		return 0
 		}
+
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	validate_hash "${generated_master_hash}" || \
 		die "save_master_hash - validate_hash ${generated_master_hash}"
 	"${EASYTLS_CP}" -f "${EASYTLS_FASTER_HASH}" "${EASYTLS_FASTER_HASH}-old"
@@ -9356,6 +9367,7 @@ verify_master_hash ()
 	# Use hash
 	saved_master_hash="${saved_file_hash}"
 
+	validate_hash_block="$(( validate_hash_block - 1 ))"
 	generate_master_hash || die "verify_master_hash - generate_master_hash"
 	if match_two_hashes "${generated_master_hash}" "${saved_master_hash}"
 	then
@@ -9447,6 +9459,10 @@ external_deps ()
 '
 	new_line='
 '
+
+	# Testing
+	validate_hash_block=0
+	isfp_count=0
 
 	# Identify Windows
 	# shellcheck disable=SC2016
