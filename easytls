@@ -6156,7 +6156,7 @@ b64_enc_metadata ()
 		metadata="${metadata}${delimiter}${TLSKEY_CUSTOM_GRP}"
 
 		# Append common_name
-		[ -z "${cli_name}" ] && {
+		[ -n "${cli_name}" ] || {
 			error_msg "no client name"
 			return 1
 			}
@@ -6252,17 +6252,17 @@ build_self_sign ()
 	fpr_file="${EASYTLS_PKI}/${cert_name}.fpr"
 	inline_file="${EASYTLS_PKI}/${cert_name}.inline"
 
-	[ -f "${cert_file}" ] && {
+	[ ! -f "${cert_file}" ] || {
 		help_note="Not over-writing current certificate"
 		die "Certificate exists: ${cert_file}"
 		}
 
-	[ -f "${key_file}" ] && {
+	[ ! -f "${key_file}" ] || {
 		help_note="Not over-writing current key"
 		die "Key exists: ${key_file}"
 		}
 
-	[ -f "${inline_file}" ] && {
+	[ ! -f "${inline_file}" ] || {
 		help_note="Not over-writing current inline file"
 		die "Inline file exists: ${inline_file}"
 		}
@@ -9194,7 +9194,7 @@ ${tlskey_file}"
 	while read -r tlskey_serial cert_serial_UNUSED CN sub_key
 	do
 		# Skip comment
-		[ -z "${tlskey_serial%%#*}" ] && continue
+		[ -n "${tlskey_serial%%#*}" ] || continue
 
 		# Set tlskey_file full name
 		if [ "${sub_key}" = 'NOSUBKEY' ];then
@@ -9351,6 +9351,7 @@ save_master_hash ()
 		die "Master save hash must only run once"
 
 	generate_master_hash || die "save_master_hash - generate_master_hash"
+	# If fixed hash has been generated then return ok
 	[ "${generated_master_hash}" = "${fixed_hash}" ] && {
 		unset -v update_master_hash
 		master_save_hash_block=1
