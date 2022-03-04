@@ -98,9 +98,9 @@ ls -l
 
 	$EASYTLS_OPENVPN --version
 
-	sh ./dev/easytls-shellcheck.sh
+	sh ./dev/easytls-shellcheck.sh || exit 9
 
-	sh ./dev/easytls-unit-tests.sh
+	sh ./dev/easytls-unit-tests.sh || exit 9
 
 cd ..
 rm -rf "${etls_ut_dir_name}"
