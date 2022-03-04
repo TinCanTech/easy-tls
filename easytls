@@ -2985,11 +2985,15 @@ inline_file_verify_hash ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	# generate current file HASH
-	force_hash=1
-	validate_hash_block="$(( validate_hash_block - 1 ))"
-	generate_and_validate_file_hash "${inline_file}" || {
-		die "inline_file_verify_hash - generate_and_validate_file_hash"
-		}
+	if [ "${auto_check}" ]; then
+		: # Ignore, improve auto-check
+	else
+		force_hash=1
+		validate_hash_block="$(( validate_hash_block - 1 ))"
+		generate_and_validate_file_hash "${inline_file}" || {
+			die "inline_file_verify_hash - generate_and_validate_file_hash"
+			}
+	fi
 
 	# Use the hash
 	inline_file_hash="${generated_valid_hash}"
