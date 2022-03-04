@@ -10000,7 +10000,7 @@ main ()
 		case "${cmd}" in
 		rehash)
 			# If hashes have unsynced
-			unset -v FILE_HASH_DISABLED
+			#unset -v FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
 			#AUTO_CHECK_DISABLED=1
 			#easytls_verb_io off
@@ -10014,13 +10014,18 @@ main ()
 		gmh|generate-master-hash)
 			return_hashes=1
 			generate_master_hash "$@" || die "generate_master_hash"
+			easytls_verbose
 			print "generated_master_hash: ${generated_master_hash}"
+			easytls_verbose
 			unset -v return_hashes=1
-			return 0
+			AUTO_CHECK_DISABLED=1
+			skip_master_hash=1
+			break
 		;;
 		smh|save-master-hash)
 			return_hashes=1
 			verify_master_hash "$@" || die "verify_faster_hash"
+			easytls_verbose
 			print "generated_master_hash: ${generated_master_hash}"
 			print "saved_master_hash    : ${saved_master_hash}"
 			print
@@ -10033,16 +10038,23 @@ main ()
 			update_master_hash=1
 			save_master_hash "$@" || die "save_master_hash"
 			print "save_master_hash: ${generated_master_hash}"
+			easytls_verbose
 			unset -v return_hashes=1
-			return 0
+			AUTO_CHECK_DISABLED=1
+			skip_master_hash=1
+			break
 		;;
 		vmh|verify-master-hash)
 			return_hashes=1
 			verify_master_hash "$@" || die "verify_master_hash"
+			easytls_verbose
 			print "generated_master_hash: ${generated_master_hash}"
 			print "saved_master_hash    : ${saved_master_hash}"
+			easytls_verbose
 			unset -v return_hashes=1
-			return 0
+			AUTO_CHECK_DISABLED=1
+			skip_master_hash=1
+			break
 		;;
 		esac
 
