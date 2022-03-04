@@ -726,7 +726,7 @@ easytls_verbose ()
 	[ -z "${EASYTLS_SILENT}" ] || return 0
 	[ -z "${flash_config}" ] || return 0
 	verbose_message="${*}"
-	[ -z "${verbose_message}" ] && print "" && return 0
+	[ -n "${verbose_message}" ] || { print ""; return 0; }
 	"${EASYTLS_PRINTF}" '%s\n' "* ${verbose_message}"
 } # => easytls_verbose ()
 
@@ -1499,9 +1499,11 @@ Note:
 # Run on exit to avoid "chicken and egg" with init-tls
 easytls_auto_check ()
 {
-	[ -n "${status_disabled_auto_check}" ] && return 0
-	[ -n "${AUTO_CHECK_DISABLED}" ] && \
-		easytls_verbose "auto-check disabled" && return 0
+	[ -z "${status_disabled_auto_check}" ] || return 0
+	[ -z "${AUTO_CHECK_DISABLED}" ] || {
+		easytls_verbose "auto-check disabled"
+		return 0
+		}
 
 	easytls_verbose "auto-check"
 	auto_check=1
@@ -1510,7 +1512,7 @@ easytls_auto_check ()
 	# If inline-index does not exist then do not auto-check
 	[ -f "${EASYTLS_INLINE_INDEX}" ] || return 0
 	index_size="$("${EASYTLS_GREP}" -c '^.*$' "${EASYTLS_INLINE_INDEX}")"
-	[ "${index_size}" -gt 50 ] && \
+	[ "${index_size}" -lt 50 ] || \
 		warn "EasyTLS: 50+ .inline files found, use --disable-auto-check"
 
 	# Check for revoked EasyRSA certs
@@ -1631,11 +1633,6 @@ generate_and_validate_data_hash ()
 # Verify valid hash - Only return success or fail
 validate_hash ()
 {
-	# If master-hash has been verified then
-	# All further hashes are considered to be valid
-	# This is already wildly abusive, so don't abuse it any further..
-	[ -z "${disable_validate_hash}" ] || return 0
-
 	[ "${#}" -eq 1 ] || {
 		error_msg "validate_hash - invalid input: ${*}"
 		return 1
@@ -1650,6 +1647,11 @@ validate_hash ()
 			return 1
 			}
 	fi
+
+	# If master-hash has been verified then
+	# All further hashes are considered to be valid
+	# This is already wildly abusive, so don't abuse it any further..
+	[ -z "${disable_validate_hash}" ] || return 0
 
 	#test_hash="${1}"
 	#test_length="${#test_hash}"
@@ -9851,7 +9853,7 @@ main ()
 	# determine how we were called, then hand off to the function responsible
 	# Notice, 'help' and 'version' are set above, so do not over-write
 	cmd="${cmd:-${1}}"
-	[ -n "${1}" ] && shift # scrape off command
+	[ -z "${1}" ] || shift # scrape off command
 
 	# Wrap in 'while' in order to 'break' from 'case'
 	while :; do
