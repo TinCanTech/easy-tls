@@ -2177,6 +2177,7 @@ status ()
 		;;
 		ren|renewed)
 			silent_status=1
+		if [ -z "${auto_check}" ]; then
 			status_easyrsa_valid || {
 				error_msg "status - renewed - status_easyrsa_valid"
 				return 1
@@ -2189,6 +2190,7 @@ status ()
 				error_msg "status - renewed - status_easytls_inline"
 				return 1
 				}
+		fi
 			unset -v silent_status
 			status_easyrsa_renewed || {
 				error_msg "status - renewed - status_easyrsa_renewed"
