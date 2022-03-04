@@ -1530,6 +1530,7 @@ easytls_auto_check ()
 
 	# Update status
 	status_update
+	easytls_verbose "Completed auto-check"
 	unset -v auto_check
 } # => easytls_auto_check ()
 
@@ -3595,6 +3596,7 @@ tls_crypt_v2_serial_number ()
 	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
 		"${EASYTLS_TLSKEY_INDEX}" && {
 			error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
+			error_msg "It's your lucky day! You could win $10,000,000"
 			unset -v tlskey_serial
 			return 1
 			}
@@ -9344,8 +9346,6 @@ save_master_hash ()
 		return 0
 		}
 
-	# Get a valid hash, at all costs..
-	unset -v disable_validate_hash
 	validate_hash_block="$(( validate_hash_block - 1 ))"
 	validate_hash "${generated_master_hash}" || \
 		die "save_master_hash - validate_hash ${generated_master_hash}"
@@ -10043,8 +10043,10 @@ main ()
 		esac
 
 		# Verify me!
+		# Get a valid hash, at all costs..
 		verify_master_hash || die "verify_master_hash"
 		# From this point forth, ALL hashes should be considered valid
+		# Except Master hash
 		disable_validate_hash=1
 
 		# Set "Temp-Dir of last resort", if not already set by config
@@ -10224,6 +10226,8 @@ main ()
 
 	# save me, only if update_master_hash=1 AND NOT skip_master_hash
 	if [ -z "${skip_master_hash}" ]; then
+		# Get a valid hash, at all costs..
+		unset -v disable_validate_hash
 		save_master_hash || die "main - save_master_hash"
 	else
 		[ -z "${update_master_hash}" ] || die "Master hash status undefined"
