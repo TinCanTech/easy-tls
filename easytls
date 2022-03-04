@@ -3427,7 +3427,13 @@ remove_metadata ()
 		fi
 	fi
 
-	[ -n "${metadata_updated}" ] && notice "inline file updated"
+	if [ -n "${metadata_updated}" ]; then
+		notice "inline file updated"
+		#update_master_hash=1
+	else
+		notice "No changes"
+		#skip_master_hash=1
+	fi
 	easytls_verbose
 } # => remove_metadata ()
 
