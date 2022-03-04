@@ -139,15 +139,13 @@ cmd_help()
 		init|init-tls) text="
   init-tls <hash_algorithm> no-ca
       Removes & re-initializes the TLS-key directory.
-      * Easy-TLS requires that Easy-RSA is also initialised.
+      * Easy-RSA is also required to be initialised.
 
-        <hash_algorithm> - Specify a hash algorithm.
-        Default SHA256 - Alternative SHA1
+      <hash_algorithm> - Specify a hash algorithm.
+      Default SHA256 - Alternative SHA1
 
-        no-ca - Do not use an Easy-RSA Certificate Authority [CA].
-        * Option 'no-ca' allows Easy-TLS to function
-          without initialising Easy-RSA.
-          Use 'no-ca' to build self-signed certificates and fingerprints.
+      no-ca - Use Easy-TLS without an Easy-RSA Certificate Authority [CA].
+      * Use 'no-ca' to build self-signed certificates and fingerprints.
 
       If you have upgraded an old copy of Easy-TLS to the latest version
       then it may be possible to use 'easytls upgrade' or 'easytls rehash'
@@ -645,8 +643,6 @@ vars_source_check () {
 
 # Basic sanity-check of PKI init and complain if missing
 verify_pki_init () {
-	help_note="Run easyrsa without commands for usage and command help."
-
 	# check that the pki dir exists
 	vars_source_check
 	[ -d "${EASYRSA_PKI}" ] || {
@@ -655,7 +651,7 @@ verify_pki_init () {
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
 			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
-			exit 1
+			return 1
 			# die "verify_pki_init - vars_source_check"
 			}
 
@@ -667,11 +663,10 @@ verify_pki_init () {
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
 			# shellcheck disable=2312
 			error_msg "$(cmd_help init-tls)"
-			exit 1
+			return 1
 			# die "verify_pki_init - private reqs"
 			}
 	done
-	unset -v help_note
 } # => verify_pki_init ()
 
 # Verify core CA files present
@@ -1288,7 +1283,9 @@ init_tls ()
 	done
 
 	# Easy-TLS requires that your Easy-RSA PKI is initialised
-	[ -n "${EASYTLS_NO_CA}" ] || verify_pki_init
+	if [ -z "${EASYTLS_NO_CA}" ]; then
+		verify_pki_init || return 1
+	fi
 
 	# If EASYTLS_PKI exists, confirm before we remove
 	# skipped with EASYTLS_BATCH
@@ -1659,7 +1656,7 @@ validate_hash ()
 
 	# Verify length
 	[ "${#1}" -eq "${fixed_length}" ] || {
-		error_msg "validate_hash - test_length: ${#test_hash}"
+		error_msg "validate_hash - Verify length: ${#1}"
 		unset -v test_hash #test_length
 		return 1
 		}
@@ -3598,7 +3595,7 @@ tls_crypt_v2_serial_number ()
 	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
 		"${EASYTLS_TLSKEY_INDEX}" && {
 			error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
-			error_msg "It's your lucky day! You could win $10,000,000"
+			error_msg "It's your lucky day! You could win 10,000,000 Dollars"
 			unset -v tlskey_serial
 			return 1
 			}
@@ -9477,6 +9474,7 @@ external_deps ()
 	# Testing
 	validate_hash_block=0
 	isfp_count=0
+	EASYTLS_STATUS=0
 
 	# Identify Windows
 	# shellcheck disable=SC2016
@@ -9565,6 +9563,7 @@ external_deps ()
 			setup_err=1
 			}
 		[ "${setup_err}" -eq 0 ] || {
+			echo "Windows file setup error!"
 			exit 9
 			}
 		unset -v setup_err
@@ -9875,71 +9874,68 @@ main ()
 	;;
 	vhw)
 		unset -v EASYTLS_SILENT
-		hw_addr_hex_check "$@" || {
+		if hw_addr_hex_check "$@"; then
+			print "VALID: ${*}"
+		else
 			print "Invalid HW address: ${*}"
-			exit 1
-			}
-		print "VALID: ${*}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
 	;;
 	vip)
 		unset -v EASYTLS_SILENT
-		validate_ip_address "$@" || {
+		if validate_ip_address "$@"; then
+			print "VALID: ${valid_octets}/${mask_len}"
+		else
 			print "*** Invalid IP: ${*} ***"
-			exit 1
-			}
-		print "VALID: ${valid_octets}/${mask_len}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
 	;;
 	v4ip)
 		unset -v EASYTLS_SILENT
-		validate_ip4_data "$@" || {
-			invalid_address "$?"
+		if validate_ip4_data "$@"; then
+			print "VALID: ${valid_octets}/${mask_len}"
+		else
 			print "*** Invalid IP4: ${*} ***"
-			exit 1
-			}
-		print "VALID: ${valid_octets}/${mask_len}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
 	;;
 	x4ip)
 		unset -v EASYTLS_SILENT
-		expand_ip4_address "$@" || {
-			invalid_address "$?"
+		if expand_ip4_address "$@"; then
+			print "VALID: ${valid_octets}/${mask_len}"
+		else
 			print "*** Invalid IP4: ${*} ***"
-			exit 1
-			}
-		print "VALID: ${valid_octets}/${mask_len}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
 	;;
 	v6ip)
 		unset -v EASYTLS_SILENT
-		validate_ip6_data "$@" || {
-			invalid_address "$?"
+		if validate_ip6_data "$@"; then
+			print "VALID: ${full_valid_ip6_addr}"
+		else
 			print "*** Invalid IP6: ${*} ***"
-			exit 1
-			}
-		print "VALID: ${full_valid_ip6_addr}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
 	;;
 	x6ip)
 		unset -v EASYTLS_SILENT
-		expand_ip6_address "$@" || {
+		if expand_ip6_address "$@"; then
+			print "* full_valid_hextets: ${full_valid_hextets}"
+			print "* full_subnet_addr6 : ${full_subnet_addr6}"
+		else
 			invalid_address "$?"
 			print "*** Invalid IP6: ${*} ***"
-			exit 1
-			}
-		print "* full_valid_hextets: ${full_valid_hextets}"
-		print "* full_subnet_addr6 : ${full_subnet_addr6}"
+		fi
 		AUTO_CHECK_DISABLED=1
 		easytls_verb_io off
 		skip_master_hash=1
