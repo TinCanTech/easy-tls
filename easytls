@@ -1598,7 +1598,7 @@ generate_and_validate_data_hash ()
 		# If NOT forced hash AND file hashing IS disabled = Fixed Hash
 		generated_hash="${fixed_hash}"
 	else
-		[ -z "${EASYTLS_HASH_ALGO}" ] && {
+		[ -n "${EASYTLS_HASH_ALGO}" ] || {
 			error_msg "generate_and_validate_data_hash - EASYTLS_HASH_ALGO"
 			unset -v target openssl_hash generated_hash
 			return 1
@@ -1695,7 +1695,7 @@ match_two_hashes ()
 	[ "${1}" = "${fixed_hash}" ] && return 0
 	[ "${2}" = "${fixed_hash}" ] && return 0
 	# Error is implicit
-	return 1
+	#return 1
 } # => match_two_hashes ()
 
 # Save file hash
@@ -1752,7 +1752,7 @@ generate_and_match_valid_hash ()
 	hash_file="${2}" # File to read the hash from
 
 	# Input error
-	[ "${target_file}" = "${hash_file}" ] && {
+	[ "${target_file}" != "${hash_file}" ] || {
 		error_msg "invalid files - generate_and_match_valid_hash"
 		unset -v target_file hash_file generated_valid_hash saved_file_hash
 		return 1
@@ -1793,7 +1793,7 @@ generate_and_save_file_hash ()
 	target_file="${1}" # File to hash
 	hash_file="${2}" # File to save the hash to
 
-	[ "${target_file}" = "${hash_file}" ] && {
+	[ "${target_file}" != "${hash_file}" ] || {
 		error_msg "invalid files - generate_and_save_file_hash"
 		unset -v target_file hash_file generated_valid_hash
 		return 1
