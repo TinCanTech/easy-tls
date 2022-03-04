@@ -566,7 +566,7 @@ fatal_opt ()
 {
 	if [ -z "${1}" ]; then
 		# If fatal_msg is not set then ok
-		[ -z "${fatal_msg}" ] && return 0
+		[ -n "${fatal_msg}" ] || return 0
 	else
 		# Add the message to fatal_msg and ok
 		fatal_msg="${fatal_msg}
@@ -753,7 +753,7 @@ easytls_config ()
 	case "${1}" in
 		addition)
 			cfg_opt="${2}"
-			[ -z "${cfg_opt}" ] && {
+			[ -n "${cfg_opt}" ] || {
 				error_msg "Required: option"
 				return 1
 				}
@@ -765,7 +765,7 @@ easytls_config ()
 		;;
 		deletion)
 			cfg_opt="${2}"
-			[ -z "${cfg_opt}" ] && {
+			[ -n "${cfg_opt}" ] || {
 				error_msg "Required: option"
 				return 1
 				}
@@ -865,7 +865,7 @@ easytls_config ()
 		;;
 		custom.group)
 			# Cannot be empty
-			[ -z "${cfg_val}" ] && die "custom.group cannot be empty"
+			[ -n "${cfg_val}" ] || die "custom.group cannot be empty"
 			# spaces ?
 			test_val="${cfg_val%% *}"
 			[ "${cfg_val}" = "${test_val}" ] || {
@@ -887,7 +887,7 @@ easytls_config ()
 			fi
 		;;
 		ca.id)
-			[ -n "${EASYTLS_MASTER_ID}" ] && {
+			[ -z "${EASYTLS_MASTER_ID}" ] || {
 				help_note="To change your CA-ID you must create a new Easy-RSA CA"
 				die "The CA-ID cannot be changed"
 				}
@@ -923,7 +923,7 @@ config_update ()
 			}
 
 	# Replace the pattern
-	[ "${cfg_val}" = "0" ] && unset -v cfg_val
+	[ "${cfg_val}" != "0" ] || unset -v cfg_val
 	"${EASYTLS_SED}" -i -e \
 		"s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
 			"${EASYTLS_CONFIG_FILE}" || {
@@ -986,23 +986,23 @@ config_use ()
 				esac
 				;;
 			custom.group)
-				[ -n "${cfg_val}" ] && set_var TLSKEY_CUSTOM_GRP "${cfg_val}"
+				[ -z "${cfg_val}" ] || set_var TLSKEY_CUSTOM_GRP "${cfg_val}"
 				set_var TLSKEY_CUSTOM_GRP "EASYTLS"
 				;;
 			custom.openvpn)
-				[ -n "${cfg_val}" ] && set_var EASYTLS_OPENVPN "${cfg_val}"
+				[ -z "${cfg_val}" ] || set_var EASYTLS_OPENVPN "${cfg_val}"
 				set_var EASYTLS_OPENVPN "openvpn"
 				;;
 			tmp.dir)
-				[ -n "${cfg_val}" ] && set_var EASYTLS_tmp_dir "${cfg_val}"
+				[ -z "${cfg_val}" ] || set_var EASYTLS_tmp_dir "${cfg_val}"
 				;;
 			no.ca)
 				# This is set explicitly here to protect config
-				[ -n "${cfg_val}" ] && export EASYTLS_NO_CA="${cfg_val}"
+				[ -z "${cfg_val}" ] || export EASYTLS_NO_CA="${cfg_val}"
 				;;
 			hash.algorithm)
 				# This is set explicitly here to protect config
-				[ -n "${cfg_val}" ] && export EASYTLS_HASH_ALGO="${cfg_val}"
+				[ -z "${cfg_val}" ] || export EASYTLS_HASH_ALGO="${cfg_val}"
 				;;
 			ca.id)
 				# This is set explicitly here to protect config
@@ -1216,7 +1216,7 @@ verify_openvpn ()
 	openvpn_version="${openvpn_full_version#OpenVPN }"
 	openvpn_version="${openvpn_version%% *}"
 	openvpn_version="${openvpn_version%_*}"
-	[ "${#openvpn_version}" -gt 3 ] && openvpn_version="${openvpn_version%.*}"
+	[ "${#openvpn_version}" -lt 4 ] || openvpn_version="${openvpn_version%.*}"
 	case "${openvpn_version}" in
 		2.5|2.6) : ;;
 		2.4) : ;;
@@ -1239,7 +1239,7 @@ verify_openssl ()
 	esac
 
 	openssl_version="${openssl_version%% *}"
-	[ "${#openssl_version}" -gt 3 ] && openssl_version="${openssl_version%.*}"
+	[ "${#openssl_version}" -lt 4 ] || openssl_version="${openssl_version%.*}"
 	case "${openssl_version}" in
 		3.0|3.1) openssl_version=3 ;;
 		1.1) openssl_version=1 ;;
