@@ -111,7 +111,7 @@ die ()
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
 	print "ERROR: ${1}"
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
 	if [ -n "${ENABLE_KILL_SERVER}" ]; then
@@ -139,7 +139,7 @@ fail_and_exit ()
 	# TLSKEY connect log
 	tlskey_status "!*! FAIL" || update_status "tlskey_status FAIL"
 
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -212,7 +212,7 @@ update_conntrac ()
 
 	# shellcheck disable=SC2154
 	if [ -z "${ifconfig_pool_remote_ip}" ]; then
-		[ -n "${FATAL_CON_TRAC}" ] && fail_and_exit "IP_POOL_EXHASTED" 101
+		[ -z "${FATAL_CON_TRAC}" ] || fail_and_exit "IP_POOL_EXHASTED" 101
 		ip_pool_exhausted=1
 		conntrac_record="${conntrac_record}==0.0.0.0"
 		conntrac_alt_rec="${conntrac_alt_rec}==0.0.0.0"
@@ -257,7 +257,7 @@ update_conntrac ()
 			log_env=1
 		;;
 		1)	# Fatal because these are usage errors
-			[ -n "${FATAL_CONN_TRAC}" ] && {
+			[ -z "${FATAL_CONN_TRAC}" ] || {
 				ENABLE_KILL_SERVER=1
 				die "CONNTRAC_DISCONNECT_FILE_ERROR" 99
 				}
@@ -287,7 +287,7 @@ update_conntrac ()
 				log_env=1
 			;;
 			1)	# Fatal because these are usage errors
-				[ -n "${FATAL_CONN_TRAC}" ] && {
+				[ -z "${FATAL_CONN_TRAC}" ] || {
 					ENABLE_KILL_SERVER=1
 					die "CONNTRAC_DISCONNECT_ALT_FILE_ERROR" 99
 					}
@@ -310,12 +310,14 @@ update_conntrac ()
 	# Log failure
 	if [ -n "${conntrac_fail}" ] || [ -n "${conntrac_error}" ]; then
 		{
-			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
-				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
+			if [ -f "${EASYTLS_CONN_TRAC}.fail" ]; then
+				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail" || \
+					die "Failed to read ${EASYTLS_CONN_TRAC}.fail"
+			fi
 			"${EASYTLS_PRINTF}" '%s '  "${local_date_ascii}"
-			[ -n "${conntrac_fail}" ] && "${EASYTLS_PRINTF}" '%s ' "NFound"
-			[ -n "${conntrac_error}" ] && "${EASYTLS_PRINTF}" '%s ' "ERROR"
-			[ -n "${ip_pool_exhausted}" ] && "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
+			[ -z "${conntrac_fail}" ] || "${EASYTLS_PRINTF}" '%s ' "NFound"
+			[ -z "${conntrac_error}" ] || "${EASYTLS_PRINTF}" '%s ' "ERROR"
+			[ -z "${ip_pool_exhausted}" ] || "${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_record}"
 		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file" 156
 		"${EASYTLS_MV}" "${EASYTLS_CONN_TRAC}.fail.tmp" \
@@ -324,14 +326,14 @@ update_conntrac ()
 
 	if [ -n "${conntrac_alt_fail}" ] || [ -n "${conntrac_alt_error}" ]; then
 		{
-			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+			[ ! -f "${EASYTLS_CONN_TRAC}.fail" ] || \
 				"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 			"${EASYTLS_PRINTF}" '%s '  "${local_date_ascii}"
-			[ -n "${conntrac_alt_fail}" ] && \
+			[ -z "${conntrac_alt_fail}" ] || \
 				"${EASYTLS_PRINTF}" '%s ' "A-NFound"
-			[ -n "${conntrac_alt_error}" ] && \
+			[ -z "${conntrac_alt_error}" ] || \
 				"${EASYTLS_PRINTF}" '%	s ' "A-ERROR"
-			[ -n "${ip_pool_exhausted}" ] && \
+			[ -z "${ip_pool_exhausted}" ] || \
 				"${EASYTLS_PRINTF}" '%s ' "IP-POOL"
 			"${EASYTLS_PRINTF}" '%s\n' "DIS: ${conntrac_alt_rec}"
 		} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "disconnect: conntrac file" 158
@@ -352,10 +354,10 @@ update_conntrac ()
 
 	# This error is currently absolutely fatal
 	# If IP pool exhausted then ignore conntrac_alt_fail
-	[ -z "${ip_pool_exhausted}" ] && [ -n "${conntrac_alt_fail}" ] && {
+	if [ -z "${ip_pool_exhausted}" ] && [ -n "${conntrac_alt_fail}" ]; then
 		ENABLE_KILL_SERVER=1
 		die "disconnect: conntrac_alt_fail" 169
-		}
+	fi
 
 	# OpenVPN Bug #160
 	if [ -n "${conntrac_fail}" ]; then
@@ -381,7 +383,7 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	[ -n "${stack_completed}" ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
+	[ -z "${stack_completed}" ] || die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	# Lock
@@ -494,7 +496,9 @@ init ()
 	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 	# shellcheck disable=SC2154
-	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
+	if [ "${KSH_VERSION}" = "${EASYRSA_KSH}" ]; then
+		EASYTLS_FOR_WINDOWS=1
+	fi
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
@@ -548,7 +552,7 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ -n "${EASYTLS_REQUIRE_VARS}" ] && \
+		[ -z "${EASYTLS_REQUIRE_VARS}" ] || \
 			die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 	unset -v default_vars EASYTLS_VARS_FILE EASYTLS_REQUIRE_VARS prog_dir lib_file
@@ -591,7 +595,10 @@ deps ()
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill server file
-	[ -f "${temp_stub}-die" ] && echo "Kill Server Signal -> exit CD" && exit 9
+	if [ -f "${temp_stub}-die" ]; then
+		"${EASYTLS_PRINTF}" '%s\n' "Kill Server Signal -> exit CD"
+		exit 9
+	fi
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
@@ -656,7 +663,7 @@ while [ -n "${1}" ]; do
 			#[ -n "${EASYTLS_VERBOSE}" ] && echo "Ignoring temp file: $opt"
 			:
 		else
-			[ -n "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
+			warn_die "Unknown option: ${opt}"
 		fi
 	;;
 	esac
@@ -695,7 +702,7 @@ update_status "CN: ${common_name}"
 client_serial="$(format_number "${tls_serial_hex_0}")"
 
 # Verify Client certificate serial number
-[ -z "${client_serial}" ] && {
+[ -n "${client_serial}" ] || {
 	help_note="Openvpn failed to pass a client serial number"
 	die "NO CLIENT SERIAL" 8
 	}
@@ -729,11 +736,13 @@ else
 fi
 
 # Any failure_msg means fail_and_exit
-[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
+[ -z "${failure_msg}" ] || fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "${FORCE_ABSOLUTE_FAIL}" ] && \
-	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
+if [ -n "${FORCE_ABSOLUTE_FAIL}" ]; then
+	absolute_fail=1
+	failure_msg="FORCE_ABSOLUTE_FAIL"
+fi
 
 # There is only one way out of this...
 if [ "${absolute_fail}" -eq 0 ]; then
@@ -745,7 +754,7 @@ if [ "${absolute_fail}" -eq 0 ]; then
 
 	# All is well
 	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n" \
 		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
