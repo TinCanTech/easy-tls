@@ -338,8 +338,8 @@ cmd_help()
 	esac
 
 	# display the help text
-	[ -n "${text}" ] && print "${text}"
-	[ -n "${opts}" ] && print "
+	[ -z "${text}" ] || print "${text}"
+	[ -z "${opts}" ] || print "
       cmd-opts is an optional set of command options from this list:
 ${opts}"
 	easytls_verbose
@@ -631,7 +631,10 @@ ${msg}
   Type the word '${value}' to continue, or any other input to abort."
 	"${EASYTLS_PRINTF}" '\n%s' "  ${prompt}"
 	read -r input
-	[ "${input}" = "${value}" ] && "${EASYTLS_PRINTF}" "\n" && return 0
+	if [ "${input}" = "${value}" ]; then
+		"${EASYTLS_PRINTF}" "\n"
+		return 0
+	fi
 	notice "Aborting without confirmation."
 	exit 9
 } # => confirm ()
@@ -3473,10 +3476,11 @@ tlskey_index_update ()
 		new_record="${tlskey_serial} ${cert_serial} ${cli_name} ${TLSKEY_SUBNAME}"
 
 		# Verify new record does not exist
-		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}" && {
+		if "${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}"
+		then
 			error_msg "tlskey_index_update - add: Cannot add duplicate record"
 			return 1
-			}
+		fi
 
 		easytls_verbose "  ADD: ${new_record}"
 
@@ -3525,10 +3529,11 @@ tlskey_index_update ()
 				}
 
 		# Verify old record does not exist
-		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}" && {
+		if "${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}"
+		then
 			error_msg "tlskey_index_update - del: Failed to delete old record"
 			return 1
-			}
+		fi
 	;;
 	*)
 		error_msg "Unknown index action: ${update_index_action}"
@@ -3604,13 +3609,14 @@ tls_crypt_v2_serial_number ()
 	unset -v force_hash generated_valid_hash
 
 	# Check for duplicate
-	"${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
-		"${EASYTLS_TLSKEY_INDEX}" && {
-			error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
-			error_msg "It's your lucky day! You could win 10,000,000 Dollars"
-			unset -v tlskey_serial
-			return 1
-			}
+	if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
+		"${EASYTLS_TLSKEY_INDEX}"
+	then
+		error_msg "${EASYTLS_HASH_ALGO} duplicate found! *Please report this*"
+		error_msg "It's your lucky day! You could win 10,000,000 Dollars"
+		unset -v tlskey_serial
+		return 1
+	fi
 
 	# Insert this valid hash as tlskey_serial into metadata
 	metadata="${tlskey_serial}-${metadata}"
@@ -3778,10 +3784,10 @@ remove_tlskey ()
 		die "remove_tlskey - verify_cert_serial"
 
 	# Check this tlskey is not in use by an .inline file
-	verify_tlskey_in_use && {
+	if verify_tlskey_in_use; then
 		help_note="Remove the inline file which uses this key. See 'status inline'"
 		die "This key is still in use: ${tlskey_file}"
-		}
+	fi
 
 	# Confirm remove
 	confirm  "Remove tlskey file ? " "yes" "Remove: ${tlskey_file}"
@@ -3860,10 +3866,10 @@ remove_group_tlskey ()
 		die "remove_tlskey - verify_cert_serial"
 
 	# Check this tlskey is not in use by an .inline file
-	verify_group_tlskey_in_use && {
+	if verify_group_tlskey_in_use; then
 		help_note="Remove the inline files which use this key. See 'status inline'"
 		die "This key is still in use: ${tlskey_file}"
-		}
+	fi
 
 	# Confirm remove
 	confirm  "Remove tlskey file ? " "yes" "Remove: ${tlskey_file}"
