@@ -42,11 +42,11 @@ conn_trac_connect ()
 
 	# Patterns to match - Anything after ++ cannot be used
 	ct_pattern="${1%++*}"
-	[ -n "${VERBOSE_CONN_TRAC}" ] && \
+	[ -z "${VERBOSE_CONN_TRAC}" ] || \
 		update_status "conntrac: pattern ${ct_pattern}"
 
 	ct_tlskey="${1%%=*}"
-	[ "${ct_tlskey}" = "TLSAC" ] && unset -v ct_tlskey
+	if [ "${ct_tlskey}" = "TLSAC" ]; then unset -v ct_tlskey; fi
 
 	if [ -f "${2}" ]; then
 		{
@@ -67,7 +67,7 @@ conn_trac_connect ()
 					# IP exhausted is one way to get a duplicate
 					# otherwise, openvpn hands out unique VPN IPs
 					# other ways; client time-out during connecting
-					[ -n "${ip_pool_exhausted}" ] && \
+					[ -z "${ip_pool_exhausted}" ] || \
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
 					# Duplicate, because ct will add the same again
 					record_found=1
@@ -140,7 +140,7 @@ conn_trac_disconnect ()
 
 	# Pattern to match - Anything after ++ cannot be used
 	ct_pattern="${1%%++*}"
-	[ -n "${VERBOSE_CONN_TRAC}" ] && \
+	[ -z "${VERBOSE_CONN_TRAC}" ] || \
 		update_status "conntrac pattern: ${ct_pattern}"
 
 	if [ -f "${2}" ]; then
@@ -152,10 +152,12 @@ conn_trac_disconnect ()
 				if [ "${conn}" = "${ct_pattern}" ]; then
 					# If record_found then a record has been deleted
 					# Print the remaining duplicates
-					[ -n "${record_found}" ] && \
+					[ -z "${record_found}" ] || \
 						"${EASYTLS_PRINTF}" '%s\n' "${full_conn}"
-					[ -n "${record_found}" ] && [ -n "${ip_pool_exhausted}" ] && \
+					if [ -n "${record_found}" ] && [ -n "${ip_pool_exhausted}" ]
+					then
 						ct_ig_ipp_ex="${ct_ig_ipp_ex}."
+					fi
 					# Matched - Do not Print
 					[ -n "${record_found}" ] || {
 						update_status "conntrac: unregistered"
@@ -200,15 +202,16 @@ conn_trac_disconnect ()
 	return "${err_exit}"
 } # => conn_trac_disconnect ()
 
+# Keep statistics
 conn_trac_stats ()
 {
 	ctc=0
 	# shellcheck disable=2154
-	[ -f "${easytls_ct_log}" ] && ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
+	[ ! -f "${easytls_ct_log}" ] || ctc="$("${EASYTLS_CAT}" "${easytls_ct_log}")"
 	[ $(( ctc )) -lt 4294967296 ] || ctc=0
 	ctc=$(( ctc + 1 ))
 	"${EASYTLS_PRINTF}" '%s\n' "${ctc}" > "${easytls_temp_file}" || return 1
 	"${EASYTLS_MV}" -f "${easytls_temp_file}" "${easytls_ct_log}" || return 1
 	#update_status "conntrac: tallied"
 	tlskey_status "  |;   ct: tallied  -"
-}
+} # => conn_trac_stats ()
