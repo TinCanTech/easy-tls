@@ -1116,18 +1116,20 @@ config_addition ()
 			}
 
 	# Only allow alpha caracters and '.'
-	"${EASYTLS_PRINTF}" "%s" "${cfg_opt}" | \
-		"${EASYTLS_GREP}" -q '[^abcdefghijklmnopqrstuvwxyz\.]' && {
-			error_msg "config_addition - label error: ${cfg_opt}"
-			return 1
-			}
+	if "${EASYTLS_PRINTF}" "%s" "${cfg_opt}" | \
+		"${EASYTLS_GREP}" -q '[^abcdefghijklmnopqrstuvwxyz\.]'
+	then
+		error_msg "config_addition - label error: ${cfg_opt}"
+		return 1
+	fi
 
 	# Find the pattern - Fail if found
-	"${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
-		"${EASYTLS_CONFIG_FILE}" && {
-			error_msg "config_addition - duplication error: ${cfg_opt}"
-			return 1
-			}
+	if "${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+		"${EASYTLS_CONFIG_FILE}"
+	then
+		error_msg "config_addition - duplication error: ${cfg_opt}"
+		return 1
+	fi
 
 	# Add the new pattern
 	"${EASYTLS_CP}" "${EASYTLS_CONFIG_FILE}" "${EASYTLS_TEMP_LIST}"
@@ -3164,7 +3166,7 @@ remove_inline ()
 		confirm  "Remove inline file ? " "yes" "Remove: ${inline_file}"
 
 	# Do not over write existing
-	[ -f "${inline_file}-badhash" ] && \
+	[ ! -f "${inline_file}-badhash" ] || \
 		die "File exists: ${inline_file}-badhash"
 
 	# Move
@@ -3262,7 +3264,7 @@ remove_group_inline ()
 		confirm  "Remove inline file ? " "yes" "Remove: ${inline_file}"
 
 	# Do not over write existing
-	[ -f "${inline_file}-badhash" ] && \
+	[ ! -f "${inline_file}-badhash" ] || \
 		die "File exists: ${inline_file}-badhash"
 
 	# Move
@@ -4028,7 +4030,7 @@ inline_base ()
 		"${EASYTLS_PRINTF}" '%s\n' "# X509 serial: ${cert_serial}"
 
 		# Fingerprint
-		[ -n "${EASYTLS_NO_CA}" ] && "${EASYTLS_PRINTF}" '%s\n\n' \
+		[ -z "${EASYTLS_NO_CA}" ] || "${EASYTLS_PRINTF}" '%s\n\n' \
 			"# Send this to your peer - Fingerprint: ${cert_fpr}"
 
 		# Certificate
@@ -4279,7 +4281,7 @@ inline_tls_crypt_v2 ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -z "${EASYTLS_NO_CA}" ] || cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4414,10 +4416,10 @@ inline_tls_crypt_v2 ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'client' ] && {
+		if [ "${cert_purpose}" = 'client' ]; then
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
-			}
+		fi
 		# Add key
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
@@ -4486,7 +4488,7 @@ inline_tls_cv2_group_server ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -z "${EASYTLS_NO_CA}" ] || cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4583,10 +4585,10 @@ inline_tls_cv2_group_server ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'client' ] && {
+		if [ "${cert_purpose}" = 'client' ]; then
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
-			}
+		fi
 		# Add key
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
@@ -4652,7 +4654,7 @@ inline_tls_cv2_group_client ()
 	done
 
 	cert_file="${EASYRSA_PKI}/issued/${name}.crt"
-	[ -n "${EASYTLS_NO_CA}" ] && cert_file="${EASYTLS_PKI}/${name}.crt"
+	[ -z "${EASYTLS_NO_CA}" ] || cert_file="${EASYTLS_PKI}/${name}.crt"
 	[ -f "${cert_file}" ] || missing_file "${cert_file}"
 
 	# Cert purpose
@@ -4781,10 +4783,10 @@ inline_tls_cv2_group_client ()
 		fi
 
 		# push-peer-info
-		[ "${cert_purpose}" = 'client' ] && {
+		if [ "${cert_purpose}" = 'client' ]; then
 			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
-			}
+		fi
 		# Add key
 		"${EASYTLS_PRINTF}" "%s\n" "<tls-crypt-v2>"
 		"${EASYTLS_CAT}" "${tlskey_file}"
@@ -4836,14 +4838,14 @@ inline_share_fingerprint ()
 	easytls_verbose "Run inline_share_fingerprint (${isfp_count})"
 
 	# When first creating this inline add FP <tags> and return
-	[ "$#" -eq 0 ] && {
+	if [ "$#" -eq 0 ]; then
 		# Only add inline tags for fingerprint
 		"${EASYTLS_PRINTF}" '%s\n' "<peer-fingerprint>"
 		"${EASYTLS_PRINTF}" '%s\n' \
 			" * Replace this line with your peer's fingerprint *"
 		"${EASYTLS_PRINTF}" '%s\n' "</peer-fingerprint>"
 		return 0
-		}
+	fi
 
 	# If called by a user then require option name
 	[ "$#" -ge 1 ] || die "Required option: client commonName"
@@ -5070,7 +5072,7 @@ inline_share_fingerprint ()
 		# Fingerprint is already added
 		:
 	else
-		{	[ -f "${srv_fp_list}" ] && "${EASYTLS_CAT}" "${srv_fp_list}"
+		{	[ ! -f "${srv_fp_list}" ] || "${EASYTLS_CAT}" "${srv_fp_list}"
 			print "# Peer-Client ${cli_name}"
 			print "${cli_fpr}"
 		} > "${srv_fp_list}-temp" || die "inline_share_fingerprint - Add client"
@@ -5146,7 +5148,7 @@ build_tls_auth ()
 
 	tlskey_file="${EASYTLS_PKI}/tls-auth.key"
 
-	[ -f "${tlskey_file}" ] && \
+	[ ! -f "${tlskey_file}" ] || \
 		die "TLS auth key already exists: ${tlskey_file}"
 
 	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
@@ -5170,7 +5172,7 @@ build_tls_crypt_v1 ()
 
 	tlskey_file="${EASYTLS_PKI}/tls-crypt.key"
 
-	[ -f "${tlskey_file}" ] && \
+	[ ! -f "${tlskey_file}" ] || \
 		die "TLS crypt v1 key already exists: ${tlskey_file}"
 
 	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
@@ -5215,7 +5217,7 @@ build_tls_crypt_v2_server ()
 		die "Require server certificate."
 	fi
 
-	[ -f "${tlskey_file}" ] && die "Server file already exists: ${tlskey_file}"
+	[ ! -f "${tlskey_file}" ] || die "Server file already exists: ${tlskey_file}"
 
 	# get the serial number of the certificate from OpenSSL
 	x509_cert_serial "${srv_cert}" || \
@@ -5284,7 +5286,7 @@ build_tls_crypt_v2_client ()
 		}
 
 	# don't do that ..
-	[ "${srv_name}" = "${cli_name}" ] && \
+	[ "${srv_name}" != "${cli_name}" ] || \
 		die "Server name cannot be the same as the client name."
 
 	# Server cert
@@ -5320,7 +5322,7 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Client tlskey MUST NOT exist
-	[ -f "${tlskey_file}" ] && {
+	[ ! -f "${tlskey_file}" ] || {
 		help_note="To remove a TLS-key file use: easytls remove"
 		die "Client key already exists: ${tlskey_file}"
 		}
@@ -5380,12 +5382,12 @@ build_tls_crypt_v2_client ()
 		}
 
 	# Confirm metadata Hardware-Address(es)
-	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
-		[ -n "${EASYTLS_BATCH}" ] && \
+	if [ -n "${EASYTLS_TLSCV2_HWLIST}" ]; then
+		[ -z "${EASYTLS_BATCH}" ] || \
 			print "* All Hardware-Addresses are valid length hexidecimal values."
 		confirm "Is the Hardware-Address field correct ? " "yes" \
 			"Hardware-Address field for metadata: ${EASYTLS_TLSCV2_HWLIST}"
-		}
+	fi
 
 	metadata=""
 	b64_metadata=""
@@ -5429,7 +5431,7 @@ build_tls_cv2_group_server ()
 	grp_name="${1}"
 	tlskey_file="${EASYTLS_PKI}/${grp_name}-tls-crypt-v2.key"
 
-	[ -f "${tlskey_file}" ] && \
+	[ ! -f "${tlskey_file}" ] || \
 		die "Group Server key already exists: ${tlskey_file}"
 
 	"${EASYTLS_OPENVPN}" --genkey "${build_string}" "${tlskey_file}" || \
@@ -5473,7 +5475,7 @@ build_tls_cv2_group_client ()
 		}
 
 	# Client tlskey MUST NOT exist
-	[ -f "${tlskey_file}" ] && {
+	[ ! -f "${tlskey_file}" ] || {
 		help_note="To remove a TLS-key file use: easytls remove"
 		die "Client key already exists: ${tlskey_file}"
 		}
@@ -5525,12 +5527,12 @@ build_tls_cv2_group_client ()
 		}
 
 	# Confirm metadata Hardware-Address(es)
-	[ -n "${EASYTLS_TLSCV2_HWLIST}" ] && {
-		[ -n "${EASYTLS_BATCH}" ] && \
+	if [ -n "${EASYTLS_TLSCV2_HWLIST}" ]; then
+		[ -z "${EASYTLS_BATCH}" ] || \
 			print "All Address filters are valid values."
 		confirm "Are the Address filters correct ? " "yes" \
 			"Address filters for metadata: ${EASYTLS_TLSCV2_HWLIST}"
-		}
+	fi
 
 	group_mode=1
 	metadata=""
@@ -6346,11 +6348,17 @@ build_self_sign ()
 	notice " *         Key: ${key_file}"
 	notice " * Fingerprint: ${fpr_file}"
 	notice " * Inline file: ${inline_file}"
-	"${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt" "${inline_file}" || \
+	if "${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt" "${inline_file}"; then
+		:
+	else
 		print "   This inline-file requires a TLS-key"
-	"${EASYTLS_GREP}" -q \
+	fi
+	if "${EASYTLS_GREP}" -q \
 		"^.* Replace this line with your peer's fingerprint .*$" \
-		"${inline_file}" && print "   AND peer-fingerprint"
+		"${inline_file}"]
+	then
+		print "   AND peer-fingerprint"
+	fi
 	easytls_verbose
 } # => build_self_sign_server ()
 
@@ -6541,20 +6549,24 @@ disabled_list_manager ()
 	;;
 	enable) # Remove serial number from the disabled-list
 		if [ -n "${is_disabled}" ]; then
-			"${EASYTLS_SED}" -i \
+			if "${EASYTLS_SED}" -i \
 				"/^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]/d" \
-				"${EASYTLS_DISABLED_LIST}" || {
-					error_msg "disabled_list_manager - sed failed"
-					return 1
-					}
+				"${EASYTLS_DISABLED_LIST}"
+			then
+				: # OK
+			else
+				error_msg "disabled_list_manager - sed failed"
+				return 1
+			fi
 
 			# Verify serial was removed
-			"${EASYTLS_GREP}" -q \
+			if "${EASYTLS_GREP}" -q \
 				"^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]" \
-				"${EASYTLS_DISABLED_LIST}" && {
+				"${EASYTLS_DISABLED_LIST}"
+			then
 					error_msg "disabled_list_manager - verify remove failed"
 					return 1
-					}
+			fi
 
 			disabled_list_updated=1
 		else
@@ -9191,7 +9203,8 @@ ${inline_file}"
 		"${EASYTLS_PKI}/tls-auth.key" "${EASYTLS_PKI}/tls-crypt.key"
 	do
 		# If the file exists, add it to the tlskey-list, delimit with newline
-		[ -f "${tlskey_file}" ] && tlskey_file_list="${tlskey_file_list}
+		[ -f "${tlskey_file}" ] || continue
+		tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
 	done
 
@@ -9220,7 +9233,6 @@ ${tlskey_file}"
 		# Add tlskey file to the list, delimit with newline
 		tlskey_file_list="${tlskey_file_list}
 ${tlskey_file}"
-
 	done < "${EASYTLS_TLSKEY_INDEX}"
 
 	unset -v tlskey_file \
@@ -9358,11 +9370,11 @@ save_master_hash ()
 
 	generate_master_hash || die "save_master_hash - generate_master_hash"
 	# If fixed hash has been generated then return ok
-	[ "${generated_master_hash}" = "${fixed_hash}" ] && {
+	if [ "${generated_master_hash}" = "${fixed_hash}" ]; then
 		unset -v update_master_hash
 		master_save_hash_block=1
 		return 0
-		}
+	fi
 
 	validate_hash_block="$(( validate_hash_block - 1 ))"
 	validate_hash "${generated_master_hash}" || \
@@ -9499,7 +9511,9 @@ external_deps ()
 	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 	# shellcheck disable=SC2154
-	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
+	if [ "${KSH_VERSION}" = "${EASYRSA_KSH}" ]; then
+		EASYTLS_FOR_WINDOWS=1
+	fi
 
 	# use Easy RSA
 	set_var EASYRSA_OPENSSL			"openssl"
@@ -9747,7 +9761,7 @@ main ()
 	EASYTLS_VERSION="2.8.0"
 
 	# Be secure with a restrictive umask
-	[ -z "$EASYTLS_NO_UMASK" ] && umask 077
+	[ -n "$EASYTLS_NO_UMASK" ] || umask 077
 
 	# Parse options
 	while :; do
