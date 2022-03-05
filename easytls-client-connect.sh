@@ -228,12 +228,14 @@ validate_ip_address ()
 	[ "${1}" = "${1%%.*}" ] || ipv4=1
 	[ "${1}" = "${1%%:*}" ] || ipv6=1
 	[ -n "${ipv4}${ipv6}" ] || return 1
-	[ -n "${ipv4}" ] && [ -n "${ipv6}" ] && \
-		easytls_verbose "Unsupported <:Port>" && return 1
+	if [ -n "${ipv4}" ] && [ -n "${ipv6}" ]; then
+		easytls_verbose "Unsupported <:Port>"
+		return 1
+	fi
 	[ -n "${ipv4}" ] && validate_ip4_data "$@" && valid4=1
 	[ -n "${ipv6}" ] && validate_ip6_data "$@" && valid6=1
 	[ -n "${valid4}" ] && [ -n "${valid6}" ] && return 1
-	[ -n "${valid4}" ] || [ -n "${valid6}" ] || return 1
+	[ -z "${valid4}" ] && [ -z "${valid6}" ] && return 1
 } # => validate_ip_address ()
 
 # Exit with error
@@ -275,9 +277,9 @@ ip2dec ()
 	d="${temp_ip_addr%%.*}"
 
 	for i in "${a}" "${b}" "${c}" "${d}"; do
-		[ "${#i}" -eq 1 ] && continue
-		[ -z "${i%%0*}" ] && return 1
-		{ [ 0 -gt "${i}" ] || [ "${i}" -gt 255 ]; } && return 1
+		[ "${#i}" -gt 1 ] || continue
+		[ -n "${i%%0*}" ] || return 1
+		if [ 0 -gt "${i}" ] || [ "${i}" -gt 255 ]; then return 1; fi
 	done
 	ip4_dec="$(( (a << 24) + (b << 16) + (c << 8) + d ))" || return 1
 	unset -v temp_ip_addr a b c d
@@ -338,8 +340,9 @@ expand_ip6_address ()
 	count_valid_hextets=0
 	while [ -n "${temp_valid_hextets}" ]; do
 		count_valid_hextets="$(( count_valid_hextets + 1 ))"
-		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+		if [ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ]; then
 			temp_valid_hextets="${temp_valid_hextets}:"
+		fi
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 		temp_valid_hextets="${temp_valid_hextets#:}"
 	done
@@ -412,8 +415,9 @@ expand_ip6_address ()
 			hextet="${temp_valid_hextets%%:*}"
 		fi
 
-		[ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ] && \
+		if [ "${temp_valid_hextets}" = "${temp_valid_hextets#*:}" ]; then
 			temp_valid_hextets="${temp_valid_hextets}:"
+		fi
 		temp_valid_hextets="${temp_valid_hextets#*:}"
 
 		# shellcheck disable=SC2249 # (info): default *) case
