@@ -178,8 +178,8 @@ die ()
 
 	#delete_metadata_files
 	easytls_version
-	[ -n "${help_note}" ] && print "${help_note}"
-	[ -n "${err_msg}" ] && print "${err_msg}"
+	[ -z "${help_note}" ] || print "${help_note}"
+	[ -z "${err_msg}" ] || print "${err_msg}"
 	verbose_print "<ERROR> ${status_msg}"
 	print "ERROR: ${1}"
 	if [ -n "${ENABLE_KILL_SERVER}" ]; then
@@ -226,7 +226,7 @@ fail_and_exit ()
 		print "* ==> date         remote: ${MD_DATE}"
 		[ "${2}" -eq 2 ] && print "* ==> Client serial status: revoked"
 		[ "${2}" -eq 3 ] && print "* ==> Client serial status: disabled"
-		[ -n "${help_note}" ] && print "${help_note}"
+		[ -z "${help_note}" ] || print "${help_note}"
 	else
 		print "${status_msg}"
 		print "${failure_msg}"
@@ -236,11 +236,11 @@ fail_and_exit ()
 	# TLSKEY connect log
 	tlskey_status "*V!  FAIL" || update_status "tlskey_status FAIL"
 
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s %s %s %s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1}" \
 			"ENABLE_KILL_CLIENT: ${ENABLE_KILL_CLIENT:-0}" > "${EASYTLS_WLOG}"
 
-	[ -n "${ENABLE_KILL_CLIENT}" ] && {
+	[ -z "${ENABLE_KILL_CLIENT}" ] || {
 		# Create kill client file
 		"${EASYTLS_PRINTF}" "%s\n" "${MD_x509_SERIAL}" > "${EASYTLS_KILL_FILE}"
 		# Create metadata file for client-connect or kill-client
@@ -572,11 +572,11 @@ write_metadata_file ()
 # Stack up
 stack_up ()
 {
-	[ -n "${stack_completed}" ] && die "STACK_UP CAN ONLY RUN ONCE" 161
+	[ -z "${stack_completed}" ] || die "STACK_UP CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	# No Stack UP - No stack in stand alone mode
-	[ -n "${EASYTLS_STAND_ALONE}" ] && return 0
+	[ -z "${EASYTLS_STAND_ALONE}" ] || return 0
 
 	f_date="$("${EASYTLS_DATE}" +%s -r "${client_md_file_stack}")"
 	unset -v stale_stack
@@ -736,7 +736,9 @@ init ()
 	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 	# shellcheck disable=SC2154
-	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
+	if [ "${KSH_VERSION}" = "${EASYRSA_KSH}" ]; then
+		EASYTLS_FOR_WINDOWS=1
+	fi
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
@@ -793,7 +795,7 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ -n "${EASYTLS_REQUIRE_VARS}" ] && \
+		[ -z "${EASYTLS_REQUIRE_VARS}" ] || \
 			die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 
@@ -884,8 +886,9 @@ deps ()
 
 		# Check for either --cache-id or --preload-cache-id
 		# Do NOT allow both
-		[ -n "${use_cache_id}" ] && [ -n "${PRELOAD_CA_ID}" ] && \
+		if [ -n "${use_cache_id}" ] && [ -n "${PRELOAD_CA_ID}" ]; then
 			die "Cannot use --cache-id and --preload-cache-id together." 34
+		fi
 
 		if [ ! "${X509_METHOD}" -eq 0 ]; then
 			# Only check these files if using x509
@@ -1076,8 +1079,9 @@ fi
 # Get metadata
 
 	# Get metadata_string
-	metadata_string="$("${EASYTLS_CAT}" "${OPENVPN_METADATA_FILE}")"
-	[ -z "${metadata_string}" ] && die "failed to read metadata_file" 8
+	metadata_string="$("${EASYTLS_CAT}" "${OPENVPN_METADATA_FILE}")" || \
+		die "failed to read metadata_file (1)" 8
+	[ -n "${metadata_string}" ] || die "failed to read metadata_file (2)" 8
 
 	# Convert metadata string to variables
 	metadata_stov_safe  "$metadata_string" || \
@@ -1228,7 +1232,7 @@ else
 	fi
 
 	# local_identity is required
-	[ -z "${local_identity}" ] && {
+	[ -n "${local_identity}" ] || {
 		failure_msg="Missing: local identity"
 		fail_and_exit "LOCAL IDENTITY" 13
 		}
@@ -1285,14 +1289,16 @@ fi # => End optional X509 checks
 connection_allowed
 
 # Any failure_msg means fail_and_exit
-[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
+[ -z "${failure_msg}" ] || fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "${FORCE_ABSOLUTE_FAIL}" ] && \
-	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
+if [ -n "${FORCE_ABSOLUTE_FAIL}" ]; then
+	absolute_fail=1
+	failure_msg="FORCE_ABSOLUTE_FAIL"
+fi
 
 # Create metadata file for client-connect or kill-client
-write_metadata_file
+write_metadata_file || die "Failed to write metadata-file"
 
 # Unlock
 release_lock "${easytls_lock_stub}-v2.d" || die "release_lock:v2 FAIL" 99
@@ -1305,7 +1311,7 @@ if [ "${absolute_fail}" -eq 0 ]; then
 
 	# All is well
 	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n" \
 		"<EXOK> ${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
