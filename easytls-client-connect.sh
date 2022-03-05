@@ -134,9 +134,9 @@ die ()
 	verbose_print "<ERROR> ${status_msg}"
 	[ -z "${help_note}" ] || print "${help_note}"
 	[ -z "${failure_msg}" ] || print "${failure_msg}"
-	[ -n "${err_msg}" ] && print "${err_msg}"
+	[ -z "${err_msg}" ] || print "${err_msg}"
 	print "ERROR: ${1}"
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<ERROR> ${status_msg}" "ERROR: ${1}" > "${EASYTLS_WLOG}"
 	#exit "${2:-255}"
 	if [ -n "${ENABLE_KILL_SERVER}" ]; then
@@ -172,7 +172,7 @@ fail_and_exit ()
 	# TLSKEY connect log
 	tlskey_status "!*! FAIL" || update_status "tlskey_status FAIL"
 
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n%s\n" \
 		"<FAIL> ${status_msg}" "${failure_msg}" "${1} ${2}" > "${EASYTLS_WLOG}"
 	exit "${2:-254}"
 } # => fail_and_exit ()
@@ -475,7 +475,7 @@ update_conntrac ()
 	# shellcheck disable=SC2154
 	if [ -z "${ifconfig_pool_remote_ip}" ]; then
 		# Kill the server
-		[ -n "${POOL_EXHAUST_FATAL}" ] && {
+		[ -z "${POOL_EXHAUST_FATAL}" ] || {
 			ENABLE_KILL_SERVER=1
 			die "IP_POOL_EXHASTED" 101
 			}
@@ -486,7 +486,7 @@ update_conntrac ()
 		banner "********* WARNING: IP POOL EXHAUSTED *********"
 
 		# This will kill the client
-		[ -n "${POOL_EXHAUST_KILL_CLIENT}" ] && {
+		[ -z "${POOL_EXHAUST_KILL_CLIENT}" ] || {
 			"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}"
 			"${EASYTLS_PRINTF}" '%s\n' "disable"
 			} > "${ovpn_dyn_opts_file}"
@@ -534,18 +534,18 @@ update_conntrac ()
 	then
 		if [ -n "${ENABLE_CONNTRAC_FAIL_LOG}" ]; then
 			{
-			[ -f "${EASYTLS_CONN_TRAC}.fail" ] && \
+			[ ! -f "${EASYTLS_CONN_TRAC}.fail" ] || \
 					"${EASYTLS_CAT}" "${EASYTLS_CONN_TRAC}.fail"
 				"${EASYTLS_PRINTF}" '%s ' "${timestamp}"
-				[ -n "${conntrac_fail}" ] && \
+				[ -z "${conntrac_fail}" ] || \
 					"${EASYTLS_PRINTF}" '%s ' "Pre-Reg"
-				[ -n "${conntrac_error}" ] && \
+				[ -z "${conntrac_error}" ] || \
 					"${EASYTLS_PRINTF}" '%s ' "ERROR"
-				[ -n "${ip_pool_exhausted}" ] && \
+				[ -z "${ip_pool_exhausted}" ] || \
 					"${EASYTLS_PRINTF}" '%s ' "IP-POOL"
-				[ -n "${conntrac_dupl}" ] && \
+				[ -z "${conntrac_dupl}" ] || \
 					"${EASYTLS_PRINTF}" '%s ' "DUPL-TLSK"
-				[ -n "${conntrac_unknown}" ] && \
+				[ -z "${conntrac_unknown}" ] || \
 					"${EASYTLS_PRINTF}" '%s ' "UNKNOWN!"
 				"${EASYTLS_PRINTF}" '%s\n' "CON: ${conntrac_record}"
 			} > "${EASYTLS_CONN_TRAC}.fail.tmp" || die "conn: conntrac file" 156
@@ -554,22 +554,22 @@ update_conntrac ()
 		fi # ENABLE_CONNTRAC_FAIL_LOG
 
 		# Absolutely fatal
-		[ -n "${conntrac_unknown}" ] && {
+		[ -z "${conntrac_unknown}" ] || {
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_UNKNOWN" 98
 			}
 
 		# # Fatal because these are usage errors
-		[ -n "${conntrac_error}" ] && [ -n "${FATAL_CONN_TRAC}" ] && {
+		if [ -n "${conntrac_error}" ] && [ -n "${FATAL_CONN_TRAC}" ]; then
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_ERROR" 99
-			}
+		fi
 
 		# Duplicate record, includes VPN-IP 0.0.0.0 (Pool exhausted)
-		[ -n "${conntrac_fail}" ] && [ -n "${FATAL_CONN_TRAC_2}" ] && {
+		if [ -n "${conntrac_fail}" ] && [ -n "${FATAL_CONN_TRAC_2}" ]; then
 			ENABLE_KILL_SERVER=1
 			die "CONNTRAC_CONNECT_FAIL_2" 91
-			}
+		fi
 
 		# Duplicate TLS keys
 		if [ -n "${conntrac_dupl}" ]; then
@@ -584,7 +584,7 @@ update_conntrac ()
 # Stack down
 stack_down ()
 {
-	[ -n "${stack_completed}" ] && die "STACK_DOWN CAN ONLY RUN ONCE" 161
+	[ -z "${stack_completed}" ] || die "STACK_DOWN CAN ONLY RUN ONCE" 161
 	stack_completed=1
 
 	# file exists or the client pushed an incorrect UV_TLSKEY_SERIAL
@@ -789,7 +789,9 @@ init ()
 	# shellcheck disable=SC2016
 	EASYRSA_KSH='@(#)MIRBSD KSH R39-w32-beta14 $Date: 2013/06/28 21:28:57 $'
 	# shellcheck disable=SC2154
-	[ "${KSH_VERSION}" = "${EASYRSA_KSH}" ] && EASYTLS_FOR_WINDOWS=1
+	if [ "${KSH_VERSION}" = "${EASYRSA_KSH}" ]; then
+		EASYTLS_FOR_WINDOWS=1
+	fi
 
 	# Required binaries
 	EASYTLS_OPENSSL='openssl'
@@ -841,7 +843,7 @@ deps ()
 		. "${EASYTLS_VARS_FILE}" || die "Source failed: ${EASYTLS_VARS_FILE}" 77
 		update_status "vars loaded"
 	else
-		[ -n "${EASYTLS_REQUIRE_VARS}" ] && \
+		[ -z "${EASYTLS_REQUIRE_VARS}" ] || \
 			die "Missing file: ${EASYTLS_VARS_FILE}" 77
 	fi
 
@@ -899,13 +901,17 @@ deps ()
 	EASYTLS_CONN_TRAC="${temp_stub}-conn-trac"
 
 	# Kill server file
-	[ -f "${temp_stub}-die" ] && echo "Kill Server Signal -> exit CC" && exit 9
+	if [ -f "${temp_stub}-die" ]; then
+		print "Kill Server Signal -> exit CC"
+		exit 9
+	fi
 
 	# Kill client file
 	EASYTLS_KILL_FILE="${temp_stub}-kill-client"
 
 	# Dynamic opts file
-	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ] && [ -n "${ovpn_dyn_opts_file}" ]; then
+	if [ -f "${EASYTLS_DYN_OPTS_FILE}" ] && [ -n "${ovpn_dyn_opts_file}" ]
+	then
 		"${EASYTLS_CAT}" "${EASYTLS_DYN_OPTS_FILE}" > "${ovpn_dyn_opts_file}"
 		update_status "dyn opts loaded"
 	fi
@@ -999,10 +1005,10 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		if [ -f "${opt}" ]; then
 			# Do not need this in the log but keep it here for reference
-			#[ -n "${EASYTLS_VERBOSE}" ] && echo "Ignoring temp file: $opt"
+			#[ -z "${EASYTLS_VERBOSE}" ] || echo "Ignoring temp file: $opt"
 			ovpn_dyn_opts_file="${opt}"
 		else
-			[ -n "${EASYTLS_VERBOSE}" ] && warn_die "Unknown option: ${opt}"
+			warn_die "Unknown option: ${opt}"
 		fi
 	;;
 	esac
@@ -1118,7 +1124,7 @@ else
 	update_status "CLIENT FAILED TO PUSH UV_TLSKEY_SERIAL"
 	no_uv_tlskey_serial=1
 	# Require crypt-v2
-	[ -n "${ENFORCE_CRYPT_V2}" ] && {
+	[ -z "${ENFORCE_CRYPT_V2}" ] || {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
@@ -1129,14 +1135,16 @@ fi
 # This is not a dep. different clients may not push-peer-info
 # shellcheck disable=SC2154 # IV_HWADDR
 push_hwaddr="$(format_number "${IV_HWADDR}")"
-[ -z "${push_hwaddr}" ] && push_hwaddr_missing=1 && \
+if [ -z "${push_hwaddr}" ]; then
+	push_hwaddr_missing=1
 	update_status "hwaddr not pushed"
+fi
 
 # This test being here allows to force all clients to use push-peer-info
 # May need the same for IP addresses
 if [ -n "${push_hwaddr_missing}" ]; then
 	# hwaddr is NOT pushed
-	[ -n "${ENFORCE_PUSH_HWADDR}" ] && {
+	[ -z "${ENFORCE_PUSH_HWADDR}" ] || {
 		failure_msg="Client did not push required hwaddr"
 		fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
 		}
@@ -1154,15 +1162,17 @@ else
 	if [ -n "${no_uv_tlskey_serial}" ]; then
 		# TLS Auth/Crypt
 		update_status "TLS Auth/Crypt key only"
-		[ -n "${ENFORCE_PUSH_HWADDR}" ] && [ -n "${push_hwaddr_missing}" ] && {
+		if [ -n "${ENFORCE_PUSH_HWADDR}" ] && [ -n "${push_hwaddr_missing}" ]
+		then
 			failure_msg="TLS Auth/Crypt no pushed hwaddr"
 			fail_and_exit "PUSHED HWADDR REQUIRED BUT NOT PUSHED" 3
-			}
-		[ -n "${ENFORCE_CRYPT_V2}" ] && {
+		fi
+
+		[ -z "${ENFORCE_CRYPT_V2}" ] || {
 			failure_msg="TLS Auth/Crypt key not allowed"
 			fail_and_exit "TLS_CRYPT_V2 ONLY" 6
 			}
-		[ -n "${ENFORCE_KEY_HWADDR}" ] && {
+		[ -z "${ENFORCE_KEY_HWADDR}" ] || {
 			failure_msg="TLS Auth/Crypt key enforce verify hwaddr"
 			fail_and_exit "TLS_CRYPT_V2 ONLY " 6
 			}
@@ -1173,7 +1183,7 @@ else
 
 		# Set only for NO keyed hwaddr
 		# shellcheck disable=SC2154
-		if [ "${MD_FILTERS}" = '=000000000000=' ] || \
+		if	[ "${MD_FILTERS}" = '=000000000000=' ] || \
 			[ "${MD_FILTERS}" = '+000000000000+' ]
 		then
 			key_hwaddr_missing=1
@@ -1241,8 +1251,9 @@ else
 
 					# Discard lead hextet
 					key_ip6_list="${key_ip6_list#* }"
-					[ "${key_ip6_list}" = "${key_ip6_list#* }" ] && \
+					if [ "${key_ip6_list}" = "${key_ip6_list#* }" ]; then
 						key_ip6_list="${key_ip6_list##*}"
+					fi
 				done
 				unset -v key_ip6_list peer_ip6_addr
 
@@ -1285,8 +1296,9 @@ else
 
 					# Decapitate
 					key_ip4_list="${key_ip4_list#* }"
-					[ "${key_ip4_list}" = "${key_ip4_list#* }" ] && \
+					if [ "${key_ip4_list}" = "${key_ip4_list#* }" ]; then
 						key_ip4_list="${key_ip4_list##*}"
+					fi
 				done
 			else
 				# Ignore
@@ -1312,7 +1324,7 @@ else
 		if [ -n "${key_hwaddr_missing}" ]; then
 			# key does not have a hwaddr
 			update_status "Key is not locked to hwaddr"
-			[ -n "${ENFORCE_KEY_HWADDR}" ] && {
+			[ -z "${ENFORCE_KEY_HWADDR}" ] || {
 				failure_msg="Key hwaddr required but missing"
 				fail_and_exit "KEYED HWADDR REQUIRED BUT NOT KEYED" 4
 				}
@@ -1354,14 +1366,16 @@ else
 fi # ENABLE_NO_CHECK
 
 # Any failure_msg means fail_and_exit
-[ -n "${failure_msg}" ] && fail_and_exit "NEIN: ${failure_msg}" 9
+[ -z "${failure_msg}" ] || fail_and_exit "NEIN: ${failure_msg}" 9
 
 # For DUBUG
-[ "${FORCE_ABSOLUTE_FAIL}" ] && \
-	absolute_fail=1 && failure_msg="FORCE_ABSOLUTE_FAIL"
+if [ -n "${FORCE_ABSOLUTE_FAIL}" ]; then
+	absolute_fail=1
+	failure_msg="FORCE_ABSOLUTE_FAIL"
+fi
 
 # Collect kill signal
-[ -n "${kill_this_client}" ] && fail_and_exit "KILL_CLIENT_SIGNAL" 5
+[ -z "${kill_this_client}" ] || fail_and_exit "KILL_CLIENT_SIGNAL" 5
 
 # There is only one way out of this...
 if [ "${absolute_fail}" -eq 0 ]; then
@@ -1373,7 +1387,7 @@ if [ "${absolute_fail}" -eq 0 ]; then
 
 	# All is well
 	verbose_print "${local_date_ascii} <EXOK> ${status_msg}"
-	[ -n "${EASYTLS_FOR_WINDOWS}" ] && "${EASYTLS_PRINTF}" "%s\n" \
+	[ -z "${EASYTLS_FOR_WINDOWS}" ] || "${EASYTLS_PRINTF}" "%s\n" \
 		"${status_msg}" > "${EASYTLS_WLOG}"
 	exit 0
 fi
