@@ -448,6 +448,7 @@ for cmd in \
 	"-r=s03 itcv2 c05" "-r=s03 -k=hw itcv2 c05 no-md" \
 	"-r=s03 itcv2 c06" "-r=s03 -k=hw itcv2 c06 add-hw" \
 	"-k=hw rmd c06 serial" \
+	"bc2gs tct-gs" \
 	"bc2gc s03 family" \
 	"bc2gc s03 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 	"ic2gc c06 friends" \
@@ -681,6 +682,7 @@ fi
 		"-g=tincantech --sub-key-name=eve remove-tlskey c10" \
 		"cert-expire" \
 		"inline-expire" \
+		"bc2gs tct-gs" \
 		"bc2gc s01 family" \
 		"bc2gc s01 friends ${hwaddr1} ${hwaddr2} ${ip4addr} ${ip6addr}" \
 		"ic2gc c01 family" "ic2gc c01 friends" "ic2gc c02 friends" \
