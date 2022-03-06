@@ -580,7 +580,8 @@ ${1}"
 # remove temp files and do terminal cleanups
 cleanup ()
 {
-	"${EASYTLS_RM}" -f "${EASYTLS_SSL_CONF}"
+	"${EASYTLS_RM}" -f "${EASYTLS_SSL_CONF}" \
+		"${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
 
 	if [ -d "${EASYTLS_TEMP_LOCK}" ]; then
 		"${EASYTLS_RM}" -r "${EASYTLS_TEMP_LOCK}"
@@ -925,6 +926,12 @@ config_update ()
 			return 1
 			}
 
+	# backup
+	"${EASYTLS_CP}" "${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_FILE}.tmp" || {
+		error_msg "config_update - backup"
+		return 1
+		}
+
 	# Replace the pattern
 	[ "${cfg_val}" != "0" ] || unset -v cfg_val
 	"${EASYTLS_SED}" -i -e \
@@ -933,6 +940,9 @@ config_update ()
 				error_msg "config_update - replace error: ${cfg_opt}"
 				return 1
 				}
+
+	# cleanup
+	"${EASYTLS_RM}" -f "${EASYTLS_CONFIG_FILE}.tmp"
 
 	easytls_verbose
 	easytls_verbose "config-file updated: ${cfg_opt} = ${cfg_val}"
@@ -1721,10 +1731,15 @@ save_file_hash ()
 	# Must be a valid target fle
 	if [ "${hash_file}" = "${EASYTLS_FASTER_HASH}" ]; then
 		# Save hash to target
+		"${EASYTLS_CP}" "${hash_file}" "${hash_file}.tmp" || {
+			error_msg "back up - save_file_hash"
+			return 1
+			}
 		"${EASYTLS_PRINTF}" '%s' "${valid_hash}" > "${hash_file}" || {
 			error_msg "save hash - save_file_hash"
 			return 1
 			}
+
 	elif [ -f "${hash_file}" ]; then # An old target
 		: # OK
 	else
@@ -1732,9 +1747,12 @@ save_file_hash ()
 		return 1
 	fi
 
+	# cleanup
+	"${EASYTLS_RM}" -f "${hash_file}.tmp"
+
 	# When save_master_hash uses this function then this becomes cyclic
 	# Watch Out!
-	update_master_hash=1
+	#update_master_hash=1
 	unset -v hash_file valid_hash
 } # => save_file_hash ()
 
@@ -2797,6 +2815,12 @@ inline_index_update ()
 	#	return 1
 	#	}
 
+	# backup old index
+	"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_INDEX}.tmp" || {
+		error_msg "inline_index_update - backup old index"
+		return 1
+		}
+
 	if [ "${update_index_action}" = 'del' ] && [ -n "${force_remove}" ]; then
 		update_index_action='force-del'
 	fi
@@ -2861,10 +2885,6 @@ inline_index_update ()
 				error_msg "inline_index_update - add: write new index"
 				return 1
 				}
-
-		# Remove temp files
-		"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
-			"${EASYTLS_INLINE_INDEX}-deleted"
 	;;
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
@@ -2926,6 +2946,10 @@ inline_index_update ()
 		return 1
 	;;
 	esac
+
+	# Remove temp files
+	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
+		"${EASYTLS_INLINE_INDEX}.tmp"
 
 	# Keep a hash of the inline-index
 	#inline_index_save_hash || {
@@ -3471,6 +3495,12 @@ tlskey_index_update ()
 	#	return 1
 	#	}
 
+	# backup old index
+	"${EASYTLS_CP}" "${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_TLSKEY_INDEX}.tmp" || {
+		error_msg "tlskey_index_update - backup old index"
+		return 1
+		}
+
 	# Update
 	case "${update_index_action}" in
 	add)
@@ -3504,9 +3534,6 @@ tlskey_index_update ()
 			error_msg "tlskey_index_update - add: failed to add record"
 			return 1
 			}
-
-		# Remove temp files
-		"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
 	;;
 	del)
 		# Note:
@@ -3542,6 +3569,10 @@ tlskey_index_update ()
 		return 1
 	;;
 	esac
+
+	# Remove temp files
+	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
+		"${EASYTLS_TLSKEY_INDEX}.tmp"
 
 	# Keep a hash of the tlskey-index
 	#tlskey_index_save_hash || {
@@ -6614,6 +6645,9 @@ disabled_list_update ()
 	# Update time-stamp
 	update_date="${local_date_ascii}"
 
+	# back up
+	"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_LIST}.tmp"
+
 	update_text="# Updated: ${update_date} -- ${action}: ${name}"
 	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
 		error_msg "disabled_list_update_and_hash - sed failed"
@@ -6639,7 +6673,8 @@ disabled_list_update ()
 			}
 
 	# Remove temp files
-	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
+	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
+		"${EASYTLS_DISABLED_LIST}.tmp"
 } # => disabled_list_update ()
 
 # Verify current disable-list hash
