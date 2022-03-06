@@ -160,7 +160,7 @@ verbose_print ()
 	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	print "${1}"
 	print ""
-}
+} # => verbose_print ()
 
 # Set the Easy-TLS version
 easytls_version ()
@@ -194,7 +194,7 @@ die ()
 		fi
 	fi
 	exit "${2:-255}"
-}
+} # => die ()
 
 # Tls-crypt-v2-verify failure, not an error.
 fail_and_exit ()
@@ -259,7 +259,7 @@ delete_metadata_files ()
 		"${EASYTLS_RM}" -f "${client_md_file_stack}"
 		update_status "temp-files deleted"
 		}
-}
+} # => delete_metadata_files ()
 
 # Log fatal warnings
 warn_die ()
@@ -270,19 +270,19 @@ ${1}"
 	else
 		[ -z "${fatal_msg}" ] || die "${fatal_msg}" 21
 	fi
-}
+} # => warn_die ()
 
 # Update status message
 update_status ()
 {
 	status_msg="${status_msg} => ${*}"
-}
+} # => update_status ()
 
 # Verify CA
 verify_ca ()
 {
 	"${EASYTLS_OPENSSL}" x509 -in "${ca_cert}" -noout
-}
+} # => verify_ca ()
 
 # Local identity
 fn_local_identity ()
@@ -290,26 +290,26 @@ fn_local_identity ()
 	"${EASYTLS_OPENSSL}" x509 -in "${ca_cert}" \
 		-noout -SHA256 -fingerprint | \
 			"${EASYTLS_SED}" -e 's/^.*=//g' -e 's/://g'
-}
+} # => fn_local_identity ()
 
 # Verify CRL
 verify_crl ()
 {
 	"${EASYTLS_OPENSSL}" crl -in "${crl_pem}" -noout
-}
+} # => verify_crl ()
 
 # Decode CRL
 fn_read_crl ()
 {
 	"${EASYTLS_OPENSSL}" crl -in "${crl_pem}" -noout -text
-}
+} # => fn_read_crl ()
 
 # Search CRL for client cert serial number
 fn_search_crl ()
 {
 	"${EASYTLS_PRINTF}" "%s\n" "${crl_text}" | \
 		"${EASYTLS_GREP}" -c "^[[:blank:]]*Serial Number: ${MD_x509_SERIAL}$"
-}
+} # => fn_search_crl ()
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_index ()
@@ -317,7 +317,7 @@ fn_search_index ()
 	"${EASYTLS_GREP}" -c \
 		"^V.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*/CN=${MD_NAME}.*$" \
 		"${index_txt}"
-}
+} # => fn_search_index ()
 
 # Check metadata client certificate serial number against CRL
 serial_status_via_crl ()
@@ -348,7 +348,7 @@ serial_status_via_crl ()
 		die "Duplicate serial numbers: ${MD_x509_SERIAL}" 128
 	;;
 	esac
-}
+} # => serial_status_via_crl ()
 
 # Check metadata client certificate serial number against CA
 serial_status_via_ca ()
@@ -366,7 +366,6 @@ serial_status_via_ca ()
 	client_cert_serno_status="${client_cert_serno_status% *}"
 	client_cert_serno_status="${client_cert_serno_status##*=}"
 
-
 	# Considering what has to be done, I don't like this
 	case "${client_cert_serno_status}" in
 	Valid)
@@ -379,7 +378,7 @@ serial_status_via_ca ()
 		die "Serial status via CA has broken" 129
 	;;
 	esac
-}
+} # => serial_status_via_ca ()
 
 # Use OpenSSL to return certificate serial number status
 openssl_serial_status ()
@@ -387,15 +386,15 @@ openssl_serial_status ()
 	# OpenSSL ALWAYS exit with error - but here I do not care
 	# And will NOT defend against error
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
-		-status "${MD_x509_SERIAL}" 2>&1
-}
+		-status "${MD_x509_SERIAL}" 2>&1 || : # Ignore error
+} # => openssl_serial_status ()
 
 # Capture serial status
 capture_serial_status ()
 {
 	"${EASYTLS_PRINTF}" "%s\n" "${client_cert_serno_status}" | \
 		"${EASYTLS_GREP}" '^.*=.*$'
-}
+} # => capture_serial_status ()
 
 # Verify OpenSSL serial status returns ok
 verify_openssl_serial_status ()
@@ -405,7 +404,7 @@ verify_openssl_serial_status ()
 	# OpenSSL 3.0.1 is just as obtuse ..
 	"${EASYTLS_OPENSSL}" ca -cert "${ca_cert}" -config "${openssl_cnf}" \
 		-status "${MD_x509_SERIAL}" || \
-		die "OpenSSL returned an error exit code" 101
+			die "OpenSSL returned an error exit code" 101
 
 # This is why I am not using CA, from `man 1 ca`
 : << MAN_OPENSSL_CA
@@ -421,7 +420,7 @@ WARNINGS
        on the same database can have unpredictable results.
 MAN_OPENSSL_CA
 # This script ONLY reads, .:  I am hoping for better than 'unpredictable' ;-)
-}
+} # => verify_openssl_serial_status ()
 
 # Check metadata client certificate serial number against index.txt
 serial_status_via_pki_index ()
@@ -441,7 +440,7 @@ serial_status_via_pki_index ()
 	else
 		client_passed_x509_tests_certificate_revoked
 	fi
-}
+} # => serial_status_via_pki_index ()
 
 # Final check: Search index.txt for Valid client cert serial number
 fn_search_valid_pki_index ()
@@ -449,7 +448,7 @@ fn_search_valid_pki_index ()
 	"${EASYTLS_GREP}" -c \
 	"^V.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*\/CN=${MD_NAME}.*$" \
 		"${index_txt}"
-}
+} # => fn_search_valid_pki_index ()
 
 # Final check: Search index.txt for Revoked client cert serial number
 fn_search_revoked_pki_index ()
@@ -457,14 +456,14 @@ fn_search_revoked_pki_index ()
 	"${EASYTLS_GREP}" -c \
 	"^R.*[[:blank:]]${MD_x509_SERIAL}[[:blank:]].*\/CN=${MD_NAME}.*$" \
 		"${index_txt}"
-}
+} # => fn_search_revoked_pki_index ()
 
 # This is the long way to connect - X509
 client_passed_x509_tests ()
 {
 	insert_msg="Client certificate is recognised and Valid:"
 	update_status "${insert_msg} ${MD_x509_SERIAL}"
-}
+} # => client_passed_x509_tests ()
 
 # This is the only way to fail for Revokation - X509
 client_passed_x509_tests_certificate_revoked ()
@@ -472,21 +471,21 @@ client_passed_x509_tests_certificate_revoked ()
 	insert_msg="Client certificate is revoked:"
 	failure_msg="${insert_msg} ${MD_x509_SERIAL}"
 	fail_and_exit "CERTIFICATE REVOKED" 2
-}
+} # => client_passed_x509_tests_certificate_revoked ()
 
 # This is the best way to connect - TLS only
 client_passed_tls_tests_connection_allowed ()
 {
 	absolute_fail=0
 	update_status "connection allowed"
-}
+} # => client_passed_tls_tests_connection_allowed ()
 
 # Allow connection
 connection_allowed ()
 {
 	absolute_fail=0
 	update_status "connection allowed"
-}
+} # => connection_allowed ()
 
 # Retry pause
 retry_pause ()
