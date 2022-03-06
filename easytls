@@ -5444,10 +5444,10 @@ build_tls_crypt_v2_client ()
 # Build group TLS-Crypt-v2 Server
 build_tls_cv2_group_server ()
 {
-	print "Only Client keys require the Group setting."
-	print "Use your current standard Server key to build"
-	print "new Client Group key(s) with."
-	return 1
+	#print "Only Client keys require the Group setting."
+	#print "Use your current standard Server key to build"
+	#print "new Client Group key(s) with."
+	#return 1
 
 	[ "$#" -ge 1 ] || die "Required option(s): <server_group_name>"
 
@@ -5472,6 +5472,7 @@ build_tls_cv2_group_server ()
 	MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
 	cert_serial="00000000000000000000000000000000"
 	cli_name="${grp_name}" # Improve this
+	tlskey_serial="${MD_TLSKEY_SERIAL}"
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS-Crypt-V2 GROUP Server Key created: ${tlskey_file}"
@@ -6328,7 +6329,7 @@ build_self_sign ()
 	esac
 
 	# Verify Major version of openssl
-	verify_openssl || die "build_self_sign -> verify_openssl"
+	verify_openssl || die "build_self_sign - verify_openssl"
 
 	# Disable password
 	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
@@ -6383,14 +6384,14 @@ build_self_sign ()
 	notice " *         Key: ${key_file}"
 	notice " * Fingerprint: ${fpr_file}"
 	notice " * Inline file: ${inline_file}"
-	if "${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt" "${inline_file}"; then
+	if "${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt.*>" "${inline_file}"; then
 		:
 	else
 		print "   This inline-file requires a TLS-key"
 	fi
 	if "${EASYTLS_GREP}" -q \
 		"^.* Replace this line with your peer's fingerprint .*$" \
-		"${inline_file}"]
+		"${inline_file}"
 	then
 		print "   AND peer-fingerprint"
 	fi
@@ -6410,13 +6411,11 @@ create_self_sign_cert_pair ()
 		> "${EASYTLS_ECPARAM_TMP}"
 	# Separate commands for utterly stupid -nodes/-noenc not set error
 	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
-#set -x
 		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
 			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
 			"${openssl_nopass}" \
 			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
 			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
-#set +x
 	else
 		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
 			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
