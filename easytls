@@ -2809,18 +2809,6 @@ inline_index_update ()
 {
 	update_index_action="${1}"
 
-	# Verify inline-index Hash
-	#inline_index_verify_hash || {
-	#	error_msg "inline-index is corrupt"
-	#	return 1
-	#	}
-
-	# backup old index
-	"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_INLINE_INDEX}.tmp" || {
-		error_msg "inline_index_update - backup old index"
-		return 1
-		}
-
 	if [ "${update_index_action}" = 'del' ] && [ -n "${force_remove}" ]; then
 		update_index_action='force-del'
 	fi
@@ -2860,64 +2848,31 @@ inline_index_update ()
 
 		easytls_verbose "  ADD: ${new_record}"
 
-		# Write new record
-		"${EASYTLS_PRINTF}" "%s\n" "${new_record}" > "${EASYTLS_TEMP_RECORD}" || {
-			error_msg "inline_index_update - add: Write new record"
+		# universal_update
+		if universal_update add "${EASYTLS_INLINE_INDEX}" "${new_record}"; then
+			: # ok
+			update_master_hash=1
+			return 0
+		else
+			error_msg "inline_index_update - universal_update - add"
 			return 1
-			}
-
-		# copy old index to temp-list
-		"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" "${EASYTLS_TEMP_LIST}" || {
-			error_msg "inline_index_update - add: copy old index"
-			return 1
-			}
-
-		# move old index
-		"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}" \
-			"${EASYTLS_INLINE_INDEX}-deleted" || {
-				error_msg "inline_index_update - add: move old index"
-				return 1
-				}
-
-		# Append temp record to temp-list and write new index
-		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-			"${EASYTLS_INLINE_INDEX}" || {
-				error_msg "inline_index_update - add: write new index"
-				return 1
-				}
+		fi
 	;;
 	del)
 		# Note: Inline HASH is unique, regardless of --sub-key-name
 		# Identify old record
 		old_record="${verified_inline_hash}[[:blank:]]${inline_serial}[[:blank:]]"
 
-		# Find old record
-		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
-			error_msg "inline_index_update del: find: ${old_record}"
-			return 1
-			}
-
 		easytls_verbose "  DEL: ${old_record}"
 
-		# backup old index
-		"${EASYTLS_CP}" "${EASYTLS_INLINE_INDEX}" \
-			"${EASYTLS_INLINE_INDEX}-deleted" || {
-				error_msg "inline_index_update - del: backup old index"
-				return 1
-				}
-
-		# Remove old record
-		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" \
-			"${EASYTLS_INLINE_INDEX}" || {
-				error_msg "inline_index_update del: Remove old record"
-				return 1
-				}
-
-		# Remove backup old index
-		"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}-deleted" || {
-			error_msg "inline_index_update - del: Remove backup old index"
+		if universal_update del "${EASYTLS_INLINE_INDEX}" "${old_record}"; then
+			: # ok
+			update_master_hash=1
+			return 0
+		else
+			error_msg "inline_index_update - universal_update - del"
 			return 1
-			}
+		fi
 	;;
 	force-del)
 		# Build old record without inline file HASH, with --sub-key-name
@@ -2926,13 +2881,13 @@ inline_index_update ()
 		old_record="${old_record}[[:blank:]]${name}"
 		old_record="${old_record}[[:blank:]]${TLSKEY_SUBNAME}"
 
+		easytls_verbose "  DEL: ${old_record}"
+
 		# Find old record
 		"${EASYTLS_GREP}" -q "^${old_record}" "${EASYTLS_INLINE_INDEX}" || {
 			error_msg "inline_index_update force-del: Find ${old_record}"
 			return 1
 			}
-
-		easytls_verbose "  DEL: ${old_record}"
 
 		# Remove old record
 		"${EASYTLS_SED}" -i -e "/^${old_record}.*$/d" \
@@ -2946,16 +2901,6 @@ inline_index_update ()
 		return 1
 	;;
 	esac
-
-	# Remove temp files
-	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
-		"${EASYTLS_INLINE_INDEX}.tmp"
-
-	# Keep a hash of the inline-index
-	#inline_index_save_hash || {
-	#	error_msg "Failed to update inline-index hash"
-	#	return 1
-	#	}
 
 	easytls_verbose "Inline Index Update complete!"
 	update_master_hash=1
@@ -3359,7 +3304,7 @@ remove_metadata ()
 	[ -f "${inline_file}" ] || missing_file "${inline_file}"
 
 	tlskey_serial="$(inline_tlskey_serial)"
-	if "${EASYTLS_GREP}" "UV_TLSKEY_SERIAL ${tlskey_serial}" "${inline_file}"
+	if "${EASYTLS_GREP}" -q "UV_TLSKEY_SERIAL ${tlskey_serial}" "${inline_file}"
 	then
 		: # OK
 	else
@@ -3384,23 +3329,6 @@ remove_metadata ()
 	if inline_index_update del; then
 		: # OK
 	else
-		# Restore original inline-index
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}" || \
-					die "remove_inline - Restore original inline-index"
-		fi
-
-		# Undo move
-		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_MV}" "${inline_file}-deleted" "${inline_file}" || \
-				die "Failed to restore: ${inline_file}"
-		else
-			"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
-				die "Failed to restore: ${inline_file}"
-		fi
-		# Always die
 		die "Failed to update inline-index"
 	fi
 
@@ -3487,98 +3415,29 @@ tlskey_index_update ()
 	update_index_action="${1}"
 
 	# Verify tlskey_serial
-	[ -n "${tlskey_serial}" ] || return 1
-
-	# Verify tlskey-index Hash
-	#tlskey_index_verify_hash || {
-	#	error_msg "tlskey-index is corrupt"
-	#	return 1
-	#	}
-
-	# backup old index
-	"${EASYTLS_CP}" "${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_TLSKEY_INDEX}.tmp" || {
-		error_msg "tlskey_index_update - backup old index"
-		return 1
-		}
+	[ -n "${tlskey_serial}" ] || die "tlskey_index_update - tlskey_serial"
 
 	# Update
 	case "${update_index_action}" in
 	add)
-		# Create new record
 		new_record="${tlskey_serial} ${cert_serial} ${cli_name} ${TLSKEY_SUBNAME}"
-
-		# Verify new record does not exist
-		if "${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}"
-		then
-			error_msg "tlskey_index_update - add: Cannot add duplicate record"
+		if universal_update add "${EASYTLS_TLSKEY_INDEX}" "${new_record}"; then
+			: # ok
+		else
 			return 1
 		fi
-
-		easytls_verbose "  ADD: ${new_record}"
-
-		# Write new record
-		"${EASYTLS_PRINTF}" '%s\n' "${new_record}" > "${EASYTLS_TEMP_RECORD}" || {
-			error_msg "tlskey_index_update - add: Failed to create temp record"
-			return 1
-			}
-
-		# Append temp record to TLS key index
-		"${EASYTLS_CP}" "${EASYTLS_TLSKEY_INDEX}" "${EASYTLS_TEMP_LIST}"
-		"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-			"${EASYTLS_TLSKEY_INDEX}"
-
-		# Verify new record does exist
-		"${EASYTLS_GREP}" -q "^${new_record}\$" "${EASYTLS_TLSKEY_INDEX}" || {
-			# Restore original TLS key index
-			"${EASYTLS_CP}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TLSKEY_INDEX}"
-			error_msg "tlskey_index_update - add: failed to add record"
-			return 1
-			}
 	;;
 	del)
-		# Note:
-		# Client tlskey_serial is unique, regardless of --sub-key-name
-		# Server tlskey_serial is always 40 or 64 zeros
-		# Identify old record
 		old_record="${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]].*"
-
-		# Find old record
-		"${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}" || {
-			error_msg "tlskey_index_update - del: Failed to find old record"
-			return 1
-			}
-
-		easytls_verbose "  DEL: ${old_record}"
-
-		# Remove old record
-		"${EASYTLS_SED}" -i \
-			-e "/^${old_record}\$/d" "${EASYTLS_TLSKEY_INDEX}" || {
-				error_msg "tlskey_index_update - del: Failed write"
-				return 1
-				}
-
-		# Verify old record does not exist
-		if "${EASYTLS_GREP}" -q "^${old_record}\$" "${EASYTLS_TLSKEY_INDEX}"
-		then
-			error_msg "tlskey_index_update - del: Failed to delete old record"
+		if universal_update del "${EASYTLS_TLSKEY_INDEX}" "${old_record}"; then
+			: # ok
+		else
 			return 1
 		fi
 	;;
-	*)
-		error_msg "Unknown index action: ${update_index_action}"
+	*)	error_msg "Unknown index action: ${update_index_action}"
 		return 1
-	;;
 	esac
-
-	# Remove temp files
-	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
-		"${EASYTLS_TLSKEY_INDEX}.tmp"
-
-	# Keep a hash of the tlskey-index
-	#tlskey_index_save_hash || {
-	#	error_msg "Failed to update tlskey-index hash"
-	#	return 1
-	#	}
 
 	easytls_verbose "tlskey-index Update complete!"
 	update_master_hash=1
@@ -6494,6 +6353,78 @@ save_id ()
 	notice "Saved CA Identity: ${EASYTLS_CA_IDENTITY}"
 	easytls_verbose
 } # => save_id ()
+
+
+
+############################################################################
+#
+# TEST Section
+#
+
+# universal update config/index/list
+universal_update ()
+{
+	[ "$#" -eq 3 ] || return 1
+
+	action="${1}"
+	target="${2}"
+	record="${3}"
+
+	# Valid target
+	[ -f "${target}" ] || missing_file "universal_update - ${target}"
+	[ ! -f "${EASYTLS_TEMP_LIST}" ] || "${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}"
+	"${EASYTLS_CP}" "${target}" "${EASYTLS_TEMP_LIST}" || {
+		error_msg "universal_update - copy target to temp-list"
+		return 1
+		}
+
+	unset -v universal_update_ok
+
+	# Action
+	case "${action}" in
+	add)
+		if "${EASYTLS_GREP}" -q "${record}" "${EASYTLS_TEMP_LIST}"; then
+			error_msg "universal_update - add - record exists"
+		else
+			# Add record
+			if	{	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}"
+					"${EASYTLS_PRINTF}" '%s\n' "${record}"
+				} > "${EASYTLS_TEMP_UPDATE}"
+			then
+				# Success
+				universal_update_ok=1
+			else
+				error_msg "universal_update - Add record"
+			fi
+		fi
+	;;
+	del)
+		if "${EASYTLS_GREP}" -q "^${record}" "${EASYTLS_TEMP_LIST}"; then
+			# Delete record
+			if "${EASYTLS_SED}" -e "/^${record}/d" \
+				"${EASYTLS_TEMP_LIST}" > "${EASYTLS_TEMP_UPDATE}"
+			then
+				# Success
+				universal_update_ok=1
+			else
+				error_msg "universal_update - Delete record"
+			fi
+		else
+			error_msg "universal_update - del - record does not exist"
+		fi
+	;;
+	*)	die "universal_update - unknown action - ${action}"
+	esac
+
+	if [ -n "${universal_update_ok}" ]; then
+		# Move temp file over target
+		"${EASYTLS_RM}" -f "${target}"
+		"${EASYTLS_MV}" "${EASYTLS_TEMP_UPDATE}" "${target}" || \
+			die "universal_update - Move temp file over target"
+	else
+		return 1
+	fi
+} # => universal_update ()
 
 
 
@@ -9522,6 +9453,7 @@ shellcheck_ignore_2154 ()
 	EASYTLS_DISABLED_LIST=
 	EASYTLS_DISABLED_HASH=
 
+	EASYTLS_TEMP_UPDATE=
 	EASYTLS_TEMP_LIST=
 	EASYTLS_TEMP_RECORD=
 	EASYTLS_TEMP_LOCK=
@@ -9767,6 +9699,7 @@ vars_setup()
 	set_var EASYTLS_DISABLED_HASH \
 		"${EASYTLS_DATA_DIR}/easytls-disabled-list.hash"
 
+	set_var EASYTLS_TEMP_UPDATE		"${EASYTLS_DATA_DIR}/easytls-temp.update"
 	set_var EASYTLS_TEMP_LIST		"${EASYTLS_DATA_DIR}/easytls-temp.list"
 	set_var EASYTLS_TEMP_RECORD		"${EASYTLS_DATA_DIR}/easytls-temp.record"
 	set_var EASYTLS_TEMP_LOCK		"${EASYTLS_DATA_DIR}/easytls-temp.lock.d"
