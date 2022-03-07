@@ -6490,78 +6490,42 @@ disabled_list_manager ()
 	# Verify disabled-list Hash
 	#disabled_list_verify_hash || die "Disabled list is corrupt."
 
+	unset -v is_disabled is_enabled
 	# Check disabled-list for this tlskey-serial
 	if "${EASYTLS_GREP}" -q "^${tlskey_serial}[[:blank:]]" \
 		"${EASYTLS_DISABLED_LIST}"
 	then
 		is_disabled=1
 	else
-		# Not found
-		:
+		is_enabled=1
 	fi
 
 	# Update disabled-list
 	case "${action}" in
 	disable) # Add serial number to the disabled-list
 		if [ -n "${is_disabled}" ]; then
-			# serial is already disabled
-			:
+			: # serial is already disabled
 		else
-			# Create temp record file
-			"${EASYTLS_PRINTF}" '%s\n' \
-				"${tlskey_serial} ${cert_serial} ${name} ${TLSKEY_SUBNAME}" > \
-				"${EASYTLS_TEMP_RECORD}" || {
-					error_msg "disabled_list_manager - temp record failed"
-					return 1
-					}
-
-			# Append temp record to disabled-list
-			"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_TEMP_LIST}"
-			"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-				"${EASYTLS_DISABLED_LIST}" || {
-					error_msg "disabled_list_manager - append record failed"
-					return 1
-					}
-
-			# Verify serial was added
-			"${EASYTLS_GREP}" -q \
-				"^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]" \
-				"${EASYTLS_DISABLED_LIST}" || {
-					error_msg "disabled_list_manager - verify append failed"
-					return 1
-					}
-
-			# Remove temp files
-			rm -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}"
-
-			disabled_list_updated=1
+			new_record="${tlskey_serial} ${cert_serial} ${name} ${TLSKEY_SUBNAME}"
+			if universal_update add "${EASYTLS_DISABLED_LIST}" "${new_record}"
+			then
+				disabled_list_updated=1
+			else
+				die "disabled_list_manager - disable"
+			fi
 		fi
 	;;
 	enable) # Remove serial number from the disabled-list
-		if [ -n "${is_disabled}" ]; then
-			if "${EASYTLS_SED}" -i \
-				"/^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]/d" \
-				"${EASYTLS_DISABLED_LIST}"
-			then
-				: # OK
-			else
-				error_msg "disabled_list_manager - sed failed"
-				return 1
-			fi
-
-			# Verify serial was removed
-			if "${EASYTLS_GREP}" -q \
-				"^${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]" \
-				"${EASYTLS_DISABLED_LIST}"
-			then
-					error_msg "disabled_list_manager - verify remove failed"
-					return 1
-			fi
-
-			disabled_list_updated=1
+		if [ -n "${is_enabled}" ]; then
+			: # serial is not disabled
 		else
-			# serial is not disabled
-			:
+			old_record="${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]]"
+			if universal_update del "${EASYTLS_DISABLED_LIST}" "${old_record}"
+			then
+				disabled_list_updated=1
+			else
+				die "disabled_list_manager - enable"
+			fi
 		fi
 	;;
 	*) die "disabled-list action invalid: ${action}"
@@ -6573,17 +6537,6 @@ disabled_list_manager ()
 
 	# Update and/or Notify
 	if [ -n "${disabled_list_updated}" ]; then
-		disabled_list_update || {
-			error_msg "disabled_list_update_and_hash - failed"
-			return 1
-			}
-
-		# Save new disabled-list Hash
-		#disabled_list_save_hash || {
-		#	error_msg "Failed to save disabled-list Hash"
-		#	return 1
-		#	}
-
 		notice "Updated disabled-list: ${name} ${action}d"
 		update_master_hash=1
 	else
@@ -6592,45 +6545,6 @@ disabled_list_manager ()
 	fi
 	easytls_verbose
 } # => disabled_list_manager ()
-
-# Update disabled-list footer and hash
-# TODO: is footer necessary ?
-disabled_list_update ()
-{
-	# Update time-stamp
-	update_date="${local_date_ascii}"
-
-	# back up
-	"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_LIST}.tmp"
-
-	update_text="# Updated: ${update_date} -- ${action}: ${name}"
-	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
-		error_msg "disabled_list_update_and_hash - sed failed"
-		return 1
-		}
-
-	# Create temp record file
-	"${EASYTLS_PRINTF}" '%s\n' "${update_text}" > "${EASYTLS_TEMP_RECORD}" || {
-		error_msg "disabled_list_update_and_hash - printf failed"
-		return 1
-		}
-
-	# Append temp record to disabled-list
-	"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_TEMP_LIST}" || {
-		error_msg "disabled_list_update_and_hash - cp failed"
-		return 1
-		}
-
-	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
-		"${EASYTLS_DISABLED_LIST}" || {
-			error_msg "disabled_list_update_and_hash - cat failed"
-			return 1
-			}
-
-	# Remove temp files
-	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
-		"${EASYTLS_DISABLED_LIST}.tmp"
-} # => disabled_list_update ()
 
 # Verify current disable-list hash
 disabled_list_verify_hash ()
