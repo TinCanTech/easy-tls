@@ -390,3 +390,48 @@ import_key ()
         * DISABLED *" ;;
 
 
+
+
+
+# Update disabled-list footer and hash
+# TODO: is footer necessary ?
+disabled_list_update ()
+{
+	die "DISABLE - disabled_list_update"
+
+	# Update time-stamp
+	update_date="${local_date_ascii}"
+
+	# back up
+	"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_DISABLED_LIST}.tmp"
+
+	update_text="# Updated: ${update_date} -- ${action}: ${name}"
+	"${EASYTLS_SED}" -i -e '/^# Updated: .*$/d' "${EASYTLS_DISABLED_LIST}" || {
+		error_msg "disabled_list_update_and_hash - sed failed"
+		return 1
+		}
+
+	# Create temp record file
+	"${EASYTLS_PRINTF}" '%s\n' "${update_text}" > "${EASYTLS_TEMP_RECORD}" || {
+		error_msg "disabled_list_update_and_hash - printf failed"
+		return 1
+		}
+
+	# Append temp record to disabled-list
+	"${EASYTLS_CP}" "${EASYTLS_DISABLED_LIST}" "${EASYTLS_TEMP_LIST}" || {
+		error_msg "disabled_list_update_and_hash - cp failed"
+		return 1
+		}
+
+	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" > \
+		"${EASYTLS_DISABLED_LIST}" || {
+			error_msg "disabled_list_update_and_hash - cat failed"
+			return 1
+			}
+
+	# Remove temp files
+	"${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}" "${EASYTLS_TEMP_RECORD}" \
+		"${EASYTLS_DISABLED_LIST}.tmp"
+} # => disabled_list_update ()
+
+
