@@ -584,7 +584,7 @@ cleanup () {
 # non-fatal warning output
 warn () {
 	[ -z "${EASYTLS_SILENT}" ] || return 0
-		print "
+	print "
 WARNING:
   ${1}
 " 1>&2
@@ -594,7 +594,7 @@ WARNING:
 notice () {
 	[ -z "${EASYTLS_QUIET}" ] || return 0
 	[ -z "${EASYTLS_SILENT}" ] || return 0
-		print "
+	print "
 ${1}"
 } # => notice ()
 
@@ -634,8 +634,7 @@ verify_pki_init () {
 			error_msg "Easy-RSA has not been initialised."
 			error_msg "Easy-TLS requires an Easy-RSA CA"
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
-			# shellcheck disable=2312
-			error_msg "$(cmd_help init-tls)"
+			error_msg "$(cmd_help init-tls||:)"
 			return 1
 			# die "verify_pki_init - vars_source_check"
 			}
@@ -646,8 +645,7 @@ verify_pki_init () {
 			error_msg "Easy-RSA has not been initialised."
 			error_msg "Easy-TLS requires an Easy-RSA CA"
 			error_msg "Otherwise, use Easy-TLS in No-CA mode"
-			# shellcheck disable=2312
-			error_msg "$(cmd_help init-tls)"
+			error_msg "$(cmd_help init-tls||:)"
 			return 1
 			# die "verify_pki_init - private reqs"
 			}
@@ -1764,6 +1762,7 @@ authorityKeyIdentifier	= keyid:always,issuer
 } # => easytls_ssl_file ()
 
 # SSL hash of empty data for forbidden hash
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_generate_empty_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1772,6 +1771,7 @@ ssl_generate_empty_hash ()
 } # => ssl_generate_empty_hash ()
 
 # Extract the forbidden empty_hash from SSL hash
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_empty_hash ()
 {
 	error_msg "easytls_ssl_generate_empty_hash - ssl_out"
@@ -1799,6 +1799,7 @@ ssl_generate_old_master_data_hash ()
 } # => openssl_generate_data_hash ()
 
 # SSL file via command hash output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_generate_file_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1806,6 +1807,7 @@ ssl_generate_file_hash ()
 } # => ssl_generate_file_hash ()
 
 # easytls wrapper for ssl file hash
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_file_hash ()
 {
 	# input MUST be an existing file-name
@@ -1825,6 +1827,7 @@ easytls_ssl_generate_file_hash ()
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL data in via pipe hash output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_generate_data_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1832,6 +1835,7 @@ ssl_generate_data_hash ()
 } # => ssl_generate_data_hash ()
 
 # easytls wrapper for ssl data hash
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_data_hash ()
 {
 	# input MUST not be a file-name
@@ -1852,6 +1856,7 @@ easytls_ssl_generate_data_hash ()
 } # => easytls_ssl_generate_data_hash ()
 
 # SSL Base64 encode output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_encode_base64_data ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1859,6 +1864,7 @@ ssl_encode_base64_data ()
 } # => ssl_encode_base64_data ()
 
 # easytls wrapper for ssl Base64 encode data
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_encode_base64_data ()
 {
 	error_msg "easytls_ssl_encode_base64_data - ssl_out"
@@ -1871,6 +1877,7 @@ easytls_ssl_encode_base64_data ()
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL -enddate output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_cert_expire_date ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1878,6 +1885,7 @@ ssl_cert_expire_date ()
 } # => openssl_cert_expire_date ()
 
 # Extract expire date from SSL -enddate
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_expire_date ()
 {
 	error_msg "easytls_ssl_cert_expire_date - ssl_out"
@@ -1890,6 +1898,7 @@ easytls_ssl_cert_expire_date ()
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -purpose output (List of purposes Yes/No)
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_cert_purpose ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1897,6 +1906,7 @@ ssl_cert_purpose ()
 } # => openssl_cert_purpose ()
 
 # Return the purpose-list from SSL -purpose
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_purpose ()
 {
 	error_msg "easytls_ssl_cert_purpose - ssl_out"
@@ -1909,6 +1919,7 @@ easytls_ssl_cert_purpose ()
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -fingerprint output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_generate_fingerprint ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1916,6 +1927,7 @@ ssl_generate_fingerprint ()
 } # => ssl_generate_fingerprint ()
 
 # Extract the fingerprint from SSL -fingerprint
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_fingerprint ()
 {
 	error_msg "easytls_ssl_generate_fingerprint - ssl_out"
@@ -1928,6 +1940,7 @@ easytls_ssl_generate_fingerprint ()
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -serial output
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_cert_serial ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1935,6 +1948,7 @@ ssl_cert_serial ()
 } # => ssl_cert_serial ()
 
 # Extract the serialNumber from OpenSSL -serial
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_serial ()
 {
 	error_msg "easytls_ssl_cert_serial - ssl_out"
@@ -1947,6 +1961,7 @@ easytls_ssl_cert_serial ()
 } # => easytls_ssl_cert_serial ()
 
 # SSL -subject output and grep for commonName
+# shellcheck disable=SC2031 # modified in a subshell
 ssl_crt_common_name ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
@@ -1956,6 +1971,7 @@ ssl_crt_common_name ()
 } # => ssl_crt_common_name ()
 
 # Extract the CommonName from OpenSSL -subject
+# shellcheck disable=SC2030 # subshell modification
 easytls_ssl_crt_common_name ()
 {
 	error_msg "easytls_ssl_crt_common_name - ssl_out"
@@ -9142,6 +9158,7 @@ shellcheck_ignore_2154 ()
 	EASYTLS_TEMP_LIST=
 	EASYTLS_TEMP_RECORD=
 	EASYTLS_TEMP_LOCK=
+	EASYTLS_TEMP_DELETED=
 
 	EASYTLS_CA_IDENTITY=
 	TLSKEY_SUBNAME=
@@ -9181,6 +9198,8 @@ external_deps ()
 '
 	new_line='
 '
+	# MUST be unset
+	unset unlock_ssl
 
 	# Testing
 	validate_hash_block=0
