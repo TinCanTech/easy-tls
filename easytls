@@ -832,7 +832,7 @@ easytls_config () {
 
 	# Write config
 	config_update || die "Error updating config."
-	config_save_hash || die "Error hashing config."
+	#config_save_hash || die "Error hashing config."
 	config_use || die "config_use (updated) - Error: ${?}"
 } # => easytls_config ()
 
@@ -996,7 +996,7 @@ config_verify_hash () {
 
 # Hash config-file
 config_save_hash () {
-	#die "DISABLE: config_save_hash"
+	die "DISABLE: config_save_hash"
 	[ -z "${config_save_hash_block}" ] || \
 		die "config save hash must only run once"
 	request_fixed_hash=1
