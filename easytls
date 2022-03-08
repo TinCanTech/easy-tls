@@ -3158,12 +3158,6 @@ remove_inline ()
 		die "Failed to update inline-index"
 	fi
 
-	# Inline file and record deleted - Forget the HASH
-	# Otherwise 'inline_renew add' still has the HASH
-	# Logically, this *cannot* be removed -- tct
-	# Improve this! please..
-	unset -v inline_hash
-
 	if [ -z "${force_remove}" ]; then
 		notice "Inline file removed: ${inline_file}"
 	else
@@ -3221,7 +3215,7 @@ remove_group_inline ()
 
 	# Move
 	if [ -z "${force_remove}" ]; then
-		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-deleted" || \
+		"${EASYTLS_MV}" "${inline_file}" "${EASYTLS_TEMP_DELETED}" || \
 			die "Failed to move: ${inline_file}"
 	else
 		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
@@ -3232,21 +3226,13 @@ remove_group_inline ()
 	if inline_index_update del; then
 		# Remove
 		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_RM}" "${inline_file}-deleted" || \
+			"${EASYTLS_RM}" "${EASYTLS_TEMP_DELETED}" || \
 				die "Failed to remove: ${inline_file}"
 		fi
 	else
-		# Restore original inline-index
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}" || \
-					die "remove_inline - Restore original inline-index"
-		fi
-
 		# Undo move
 		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_MV}" "${inline_file}-deleted" "${inline_file}" || \
+			"${EASYTLS_MV}" "${EASYTLS_TEMP_DELETED}" "${inline_file}" || \
 				die "Failed to restore: ${inline_file}"
 		else
 			"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
@@ -3255,12 +3241,6 @@ remove_group_inline ()
 		# Always die
 		die "Failed to update inline-index"
 	fi
-
-	# Inline file and record deleted - Forget the HASH
-	# Otherwise 'inline_renew add' still has the HASH
-	# Logically, this *cannot* be removed -- tct
-	# Improve this! please..
-	unset -v inline_hash
 
 	if [ -z "${force_remove}" ]; then
 		notice "Inline file removed: ${inline_file}"
