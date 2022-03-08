@@ -3131,7 +3131,7 @@ remove_inline ()
 
 	# Move
 	if [ -z "${force_remove}" ]; then
-		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-deleteme" || \
+		"${EASYTLS_MV}" "${inline_file}" "${EASYTLS_TEMP_DELETED}" || \
 			die "Failed to move: ${inline_file}"
 	else
 		"${EASYTLS_MV}" "${inline_file}" "${inline_file}-badhash" || \
@@ -3142,21 +3142,13 @@ remove_inline ()
 	if inline_index_update del; then
 		# Remove
 		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_RM}" "${inline_file}-deleteme" || \
+			"${EASYTLS_RM}" "${EASYTLS_TEMP_DELETED}" || \
 				die "Failed to remove: ${inline_file}"
 		fi
 	else
-		# Restore original inline-index
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}" || \
-					die "remove_inline - Restore original inline-index"
-		fi
-
 		# Undo move
 		if [ -z "${force_remove}" ]; then
-			"${EASYTLS_MV}" "${inline_file}-deleteme" "${inline_file}" || \
+			"${EASYTLS_MV}" "${EASYTLS_TEMP_DELETED}" "${inline_file}" || \
 				die "Failed to restore: ${inline_file}"
 		else
 			"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
@@ -9532,6 +9524,7 @@ vars_setup()
 	set_var EASYTLS_TEMP_LIST		"${EASYTLS_DATA_DIR}/easytls-temp.list"
 	set_var EASYTLS_TEMP_RECORD		"${EASYTLS_DATA_DIR}/easytls-temp.record"
 	set_var EASYTLS_TEMP_LOCK		"${EASYTLS_DATA_DIR}/easytls-temp.lock.d"
+	set_var EASYTLS_TEMP_DELETED		"${EASYTLS_DATA_DIR}/easytls-temp.deleted"
 
 	set_var EASYTLS_CA_IDENTITY		"${EASYTLS_DATA_DIR}/easytls-ca-identity.txt"
 	set_var TLSKEY_SUBNAME			"NOSUBKEY"
