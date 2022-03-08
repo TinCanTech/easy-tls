@@ -1813,50 +1813,57 @@ ssl_generate_old_master_data_hash ()
 ssl_generate_file_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
-	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}"
-		return 0
-		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "${1}" || return 1
 } # => ssl_generate_file_hash ()
 
 # easytls wrapper for ssl file hash
 easytls_ssl_generate_file_hash ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_generate_file_hash "${1}")" || {
-		error_msg "easytls_ssl_generate_file_hash - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
-	generated_file_hash="${ssl_out% *}"
-	unset -v unlock_ssl ssl_out
+	# input MUST be an existing file-name
+	[ -f "${1}" ] || missing_file "easytls_ssl_generate_file_hash - $1"
+	if [ -n "${request_fixed_hash}" ]; then
+		generated_file_hash="${fixed_hash}"
+		return 0
+	else
+		unlock_ssl=1
+		ssl_out="$(ssl_generate_file_hash "${1}")" || {
+			error_msg "easytls_ssl_generate_file_hash - ssl_out"
+			unset -v unlock_ssl
+			return 1
+			}
+		generated_file_hash="${ssl_out% *}"
+		unset -v unlock_ssl ssl_out
+	fi
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL data in via pipe hash output
 ssl_generate_data_hash ()
 {
 	[ -n "${unlock_ssl}" ] || return 1
-	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}"
-		return 0
-		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => ssl_generate_data_hash ()
 
 # easytls wrapper for ssl data hash
 easytls_ssl_generate_data_hash ()
 {
-	unlock_ssl=1
-	ssl_out="$(
-		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
-		)" || {
-			error_msg "easytls_ssl_generate_data_hash - ssl_out"
-			unset -v unlock_ssl
-			return 1
-			}
-	generated_data_hash="${ssl_out% *}"
-	unset -v unlock_ssl ssl_out
+	# input MUST not be a file-name
+	[ ! -f "${1}" ] || \
+		die "easytls_ssl_generate_data_hash - MUST not be a file $1"
+	if [ -n "${request_fixed_hash}" ]; then
+		generated_data_hash="${fixed_hash}"
+		return 0
+	else
+		unlock_ssl=1
+		ssl_out="$(
+			"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
+			)" || {
+				error_msg "easytls_ssl_generate_data_hash - ssl_out"
+				unset -v unlock_ssl
+				return 1
+				}
+		generated_data_hash="${ssl_out% *}"
+		unset -v unlock_ssl ssl_out
+	fi
 } # => easytls_ssl_generate_data_hash ()
 
 # SSL Base64 encode output
