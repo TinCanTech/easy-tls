@@ -45,7 +45,6 @@ easytls_version () {
 
 # Help/usage output to stdout
 usage() {
-	# command help:
 	print "
 Easy-TLS usage and overview
 
@@ -141,7 +140,7 @@ cmd_help() {
       <hash_algorithm> - Specify a hash algorithm.
       Default SHA256 - Alternative SHA1
 
-      no-ca - Use Easy-TLS without an Easy-RSA Certificate Authority [CA].
+      nc|noca|no-ca - Use Easy-TLS without an Easy-RSA CA Certificate Authority.
       * Use 'no-ca' to build self-signed certificates and fingerprints.
 
       If you have upgraded an old copy of Easy-TLS to the latest version
@@ -319,7 +318,6 @@ cmd_help() {
   upgrade
        To upgrade from an older version of Easy-TLS which did not create
        the required folders and files. Very limited usage." ;;
-
 		options)
 			opt_usage ;;
 		abb)
@@ -328,9 +326,8 @@ cmd_help() {
 			opt_config ;;
 		ver|version) text="
   Show version information." ;;
-		"")
-			usage ;;
-		*) text="
+		"")	usage ;;
+		*)	text="
   Unknown command: '${1}' (try without commands for a list of commands)" ;;
 	esac
 
@@ -340,7 +337,6 @@ cmd_help() {
       cmd-opts is an optional set of command options from this list:
 ${opts}"
 	easytls_verbose
-	return 0
 } # => cmd_help()
 
 # Options usage
@@ -563,7 +559,7 @@ ${1}"
 		return 0
 	fi
 	# fatal_msg is set
-	 die "${fatal_msg}"
+	die "${fatal_msg}"
 } # => fatal_opt ()
 
 # remove temp files and do terminal cleanups
@@ -696,9 +692,6 @@ Missing expected CA dir: ${i} (perhaps you need to run build-ca?)
 ${help_note}"
 	done
 	unset -v help_note
-
-	# explicitly return success for callers
-	return 0
 } # => verify_ca_init ()
 
 
@@ -784,7 +777,10 @@ easytls_config () {
 			help_note="See help for init-tls"
 			die "To change No-CA mode you must create a new Easy-TLS PKI"
 		;;
-		tmp.dir)	: ;; # ok
+		tmp.dir)
+				# Test for dir
+				[ -d "${cfg_val}" ] || missing_file "${cfg_val}"
+		;;
 		auto.check|inline.metadata|inline.hardware)
 			case "${cfg_val}" in
 				on|off)	 ;; # ok
@@ -938,8 +934,7 @@ config_use () {
 				EASYTLS_STATUS="${cfg_val}"
 				unset -v flash_config
 			;;
-			*)
-				error_msg "Config error: Ignored option: ${cfg_opt}"
+			*)	error_msg "Config error: Ignored option: ${cfg_opt}"
 		esac
 	done < "${EASYTLS_CONFIG_FILE}"
 	[ -z "${config_error}" ] || return "${config_error}"
@@ -985,6 +980,7 @@ config_use () {
 
 # verify config file hash
 config_verify_hash () {
+	die "DISABLE: config_verify_hash"
 	[ -z "${config_verify_hash_block}" ] || \
 		die "config verify hash must only run once"
 	request_fixed_hash=1
@@ -1000,6 +996,7 @@ config_verify_hash () {
 
 # Hash config-file
 config_save_hash () {
+	#die "DISABLE: config_save_hash"
 	[ -z "${config_save_hash_block}" ] || \
 		die "config save hash must only run once"
 	request_fixed_hash=1
@@ -1016,13 +1013,6 @@ config_save_hash () {
 
 # Add a new option to config
 config_addition () {
-	# Verify the Config hash
-	generate_and_match_valid_hash \
-		"${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_HASH}" || {
-			error_msg "config_addition hash fail"
-			return 1
-			}
-
 	# Only allow alpha caracters and '.'
 	if "${EASYTLS_PRINTF}" "%s" "${cfg_opt}" | \
 		"${EASYTLS_GREP}" -q '[^abcdefghijklmnopqrstuvwxyz\.]'
@@ -1154,19 +1144,14 @@ verify_openssl () {
 
 # Verify TLS has been initialised
 verify_tls_init () {
-	if \
-		[ -d "${EASYTLS_PKI}" ] && \
+	if	[ -d "${EASYTLS_PKI}" ] && \
 		[ -f "${EASYTLS_CONFIG_FILE}" ] && \
-		[ -f "${EASYTLS_CONFIG_HASH}" ] && \
 		[ -f "${EASYTLS_INLINE_INDEX}" ] && \
-		[ -f "${EASYTLS_INLINE_X_HASH}" ] && \
 		[ -f "${EASYTLS_TLSKEY_INDEX}" ] && \
-		[ -f "${EASYTLS_KEY_X_HASH}" ] && \
 		[ -f "${EASYTLS_DISABLED_LIST}" ] && \
 		[ -f "${EASYTLS_FASTER_HASH}" ]
 	then
 		easytls_verbose "verify_tls_init OK"
-		:
 	else
 		error_msg "verify_tls_init fail"
 		easytls_verbose
@@ -1179,7 +1164,7 @@ init_tls () {
 	while [ -n "${1}" ]; do
 		case "${1}" in
 			sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
-			nc|no-ca) EASYTLS_NO_CA=1 ;;
+			nc|noca|no-ca) EASYTLS_NO_CA=1 ;;
 			*) die "Unknown command option: '$1'"
 		esac
 		shift
