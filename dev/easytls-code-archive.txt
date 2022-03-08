@@ -435,3 +435,36 @@ disabled_list_update ()
 } # => disabled_list_update ()
 
 
+
+
+
+#	# Find the pattern
+#	"${EASYTLS_GREP}" -q "^${cfg_opt}[[:blank:]]=[[:blank:]].*$" \
+#		"${EASYTLS_CONFIG_FILE}" || {
+#			error_msg "config_update - input error: ${cfg_opt}"
+#			return 1
+#			}
+#
+#	# backup
+#	"${EASYTLS_CP}" "${EASYTLS_CONFIG_FILE}" "${EASYTLS_CONFIG_FILE}.tmp" || {
+#		error_msg "config_update - backup"
+#		return 1
+#		}
+#
+#	# Replace the pattern
+#	[ "${cfg_val}" != "0" ] || unset -v cfg_val
+#	"${EASYTLS_SED}" -i -e \
+#		"s\`^${cfg_opt}[[:blank:]]=[[:blank:]].*$\`${cfg_opt} = ${cfg_val}\`g" \
+#			"${EASYTLS_CONFIG_FILE}" || {
+#				error_msg "config_update - replace error: ${cfg_opt}"
+#				return 1
+#				}
+#
+#	# cleanup
+#	"${EASYTLS_RM}" -f "${EASYTLS_CONFIG_FILE}.tmp"
+
+
+
+
+
+
