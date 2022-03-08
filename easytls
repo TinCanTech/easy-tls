@@ -4041,13 +4041,7 @@ inline_tls_auth ()
 	if inline_index_update add; then
 		: # OK
 	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
+		die "inline_tls_auth - inline_index_update add"
 	fi
 
 	# share this client FP with server defined by -r=<serv-name> option
@@ -4129,13 +4123,7 @@ inline_tls_crypt_v1 ()
 	if inline_index_update add; then
 		: # OK
 	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
+		die "inline_tls_crypt_v1 - inline_index_update add"
 	fi
 
 	# share this client FP with server defined by -r=<serv-name> option
@@ -4329,13 +4317,7 @@ inline_tls_crypt_v2 ()
 	if inline_index_update add; then
 		: # OK
 	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
+		die "inline_tls_crypt_v2 - inline_index_update add"
 	fi
 
 	# share this client FP with server defined by -r=<serv-name> option
@@ -4503,13 +4485,7 @@ inline_tls_cv2_group_server ()
 	if inline_index_update add; then
 		: # OK
 	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
+		die "inline_tls_crypt_v2_group_server - inline_index_update add"
 	fi
 
 	name="${save_name}"
@@ -4706,13 +4682,7 @@ inline_tls_cv2_group_client ()
 	if inline_index_update add; then
 		: # OK
 	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
+		die "inline_tls_crypt_v2_group_client - inline_index_update add"
 	fi
 
 	name="${save_name}"
@@ -4845,24 +4815,7 @@ inline_share_fingerprint ()
 		if inline_index_update del; then
 			: # OK
 		else
-			# Restore original inline-index
-			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-					"${EASYTLS_INLINE_INDEX}" || \
-						die "remove_inline - Restore original inline-index"
-			fi
-
-			# Undo move
-			if [ -z "${force_remove}" ]; then
-				"${EASYTLS_MV}" "${inline_file}-deleted" "${inline_file}" || \
-					die "Failed to restore: ${inline_file}"
-			else
-				"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
-					die "Failed to restore: ${inline_file}"
-			fi
-			# Always die
-			die "Failed to update inline-index"
+			die "inline_share_fingerprint - inline_index_update del"
 		fi
 
 	else
@@ -4906,13 +4859,7 @@ inline_share_fingerprint ()
 		if inline_index_update add; then
 			: # OK
 		else
-			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-				# Restore original inline-index
-				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-					"${EASYTLS_INLINE_INDEX}"
-				die "Failed to update inline-index"
-			fi
+			die "inline_share_fingerprint - inline_index_update add"
 		fi
 	fi
 
@@ -4940,24 +4887,7 @@ inline_share_fingerprint ()
 		if inline_index_update del; then
 			: # OK
 		else
-			# Restore original inline-index
-			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-					"${EASYTLS_INLINE_INDEX}" || \
-						die "remove_inline - Restore original inline-index"
-			fi
-
-			# Undo move
-			if [ -z "${force_remove}" ]; then
-				"${EASYTLS_MV}" "${inline_file}-deleted" "${inline_file}" || \
-					die "Failed to restore: ${inline_file}"
-			else
-				"${EASYTLS_MV}" "${inline_file}-badhash" "${inline_file}" || \
-					die "Failed to restore: ${inline_file}"
-			fi
-			# Always die
-			die "Failed to update inline-index"
+			die "inline_share_fingerprint - inline_index_update del"
 		fi
 
 	else
@@ -5013,13 +4943,7 @@ inline_share_fingerprint ()
 		if inline_index_update add; then
 			: # OK
 		else
-			if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-				# Restore original inline-index
-				"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-				"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-					"${EASYTLS_INLINE_INDEX}"
-				die "Failed to update inline-index"
-			fi
+			die "inline_share_fingerprint - inline_index_update add"
 		fi
 	fi
 
