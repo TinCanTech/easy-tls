@@ -2582,40 +2582,43 @@ status_easyrsa_renewed ()
 # List known TLS keys
 status_easytls_tlskeys ()
 {
+	# This while is the entire function - indent is wrong for longlines
 	while read -r tlskey_serial cert_serial common_name sub_key; do
-		# Skip heading
-		[ "${tlskey_serial}" = "#" ] && continue
 
-		# Validate - Can not open this key so these checks are minor
-		key_file="${EASYTLS_PKI}/${common_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_META_DATA_D}/${common_name}-tls-crypt-v2.metadata"
+	# Skip heading
+	[ "${tlskey_serial}" = "#" ] && continue
 
-		[ "${sub_key}" = 'NOSUBKEY' ] || {
-			full_name="${common_name}-${sub_key}"
-			key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-			metadata_debug="${EASYTLS_META_DATA_D}/${full_name}-tls-crypt-v2.metadata"
-			}
+	# Validate - Can not open this key so these checks are minor
+	key_file="${EASYTLS_PKI}/${common_name}-tls-crypt-v2.key"
+	metadata_debug="${EASYTLS_META_DATA_D}/${common_name}-tls-crypt-v2.metadata"
 
-		[ -f "${key_file}" ] || "${EASYTLS_PRINTF}" '%s\t'   "  Missing key"
+	[ "${sub_key}" = 'NOSUBKEY' ] || {
+		full_name="${common_name}-${sub_key}"
+		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+		metadata_debug="${EASYTLS_META_DATA_D}/${full_name}-tls-crypt-v2.metadata"
+		}
 
-		if  [ "${tlskey_serial}" = "${cv2_Srv_Serial}" ]; then
-			# Must be a server key with no metadata
-			# All server key tls-serial are only 40 chars, no need for SHA256
-			"${EASYTLS_PRINTF}" '%s\t' "  Server"
-		else
-			[ -f "${metadata_debug}" ] || \
-				"${EASYTLS_PRINTF}" '%s\t' "  * Missing metadata"
-			"${EASYTLS_PRINTF}" '%s\t' "    Client"
-		fi
+	[ -f "${key_file}" ] || "${EASYTLS_PRINTF}" '%s\t'   "  Missing key"
 
-		"${EASYTLS_PRINTF}" '%s  ' "${tlskey_serial}"
-		"${EASYTLS_PRINTF}" '%s  ' "Common-Name ${common_name}"
-		[ "${sub_key}" = 'NOSUBKEY' ] || \
-			"${EASYTLS_PRINTF}" '%s  ' "sub-key ${sub_key}"
-		"${EASYTLS_PRINTF}" '\n'
+	if  [ "${tlskey_serial}" = "${cv2_Srv_Serial}" ]; then
+		# Must be a server key with no metadata
+		# All server key tls-serial are only 40 chars, no need for SHA256
+		"${EASYTLS_PRINTF}" '%s\t' "  Server"
+	else
+		[ -f "${metadata_debug}" ] || \
+			"${EASYTLS_PRINTF}" '%s\t' "  * Missing metadata"
+		"${EASYTLS_PRINTF}" '%s\t' "    Client"
+	fi
 
-		# List
-		etls_valid_tlskey_list="${etls_valid_tlskey_list} ${tlskey_serial}"
+	"${EASYTLS_PRINTF}" '%s  ' "${tlskey_serial}"
+	"${EASYTLS_PRINTF}" '%s  ' "Common-Name ${common_name}"
+	[ "${sub_key}" = 'NOSUBKEY' ] || \
+		"${EASYTLS_PRINTF}" '%s  ' "sub-key ${sub_key}"
+	"${EASYTLS_PRINTF}" '\n'
+
+	# List
+	etls_valid_tlskey_list="${etls_valid_tlskey_list} ${tlskey_serial}"
+
 	done < "${EASYTLS_TLSKEY_INDEX}"
 } # => status_easytls_tlskeys ()
 
@@ -4240,15 +4243,24 @@ inline_tls_crypt_v2 ()
 			else
 				"${EASYTLS_PRINTF}" '%s\n' "# metadata CA-serial: ${ca_serial}"
 			fi
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Creation-Date: ${MD_longdate}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Custom-Group: ${MD_CUSTOM_G}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Server-Common-Name: ${MD_SRV_NAME}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Client-Common-Name: ${MD_NAME}"
-			[ "${MD_SUBKEY}" = 'NOSUBKEY' ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Sub-key-name: ${MD_SUBKEY}"
-			[ "${MD_OPT}" = "OPT" ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Opt: ${MD_OPT}"
+
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Creation-Date: ${MD_longdate}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Custom-Group: ${MD_CUSTOM_G}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Server-Common-Name: ${MD_SRV_NAME}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Client-Common-Name: ${MD_NAME}"
+
+			[ "${MD_SUBKEY}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Sub-key-name: ${MD_SUBKEY}"
+
+			[ "${MD_OPT}" = "OPT" ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Opt: ${MD_OPT}"
+
 			"${EASYTLS_PRINTF}" '%s' "# metadata Key-status: "
 			if [ "${MD_FILTERS}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
@@ -4263,7 +4275,8 @@ inline_tls_crypt_v2 ()
 
 		# push-peer-info
 		if [ "${cert_purpose}" = 'client' ]; then
-			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '\n%s\n' \
+				"setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 		fi
 
@@ -4303,12 +4316,6 @@ inline_tls_crypt_v2 ()
 # shellcheck disable=SC2154
 inline_tls_cv2_group_server ()
 {
-	# THIS IS CURRENTLY DISABLED
-	#print "Only Client keys require the Group setting."
-	#print "Use your current standard Server key to build"
-	#print "a new server inline file."
-	#return 1
-
 	[ "$#" -ge 2 ] || \
 		die "Required option(s): <server_common_name> <server_group_key>"
 
@@ -4406,15 +4413,24 @@ inline_tls_cv2_group_server ()
 			else
 				"${EASYTLS_PRINTF}" '%s\n' "# metadata CA-serial: ${ca_serial}"
 			fi
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Creation-Date: ${MD_date}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Custom-Group: ${MD_cgroup}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Server-Common-Name: ${MD_SRV_NAME}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Client-Common-Name: ${MD_cn}"
-			[ "${MD_subkey}" = 'NOSUBKEY' ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Sub-key-name: ${MD_subkey}"
-			[ "${MD_opt}" = "OPT" ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Opt: ${MD_opt}"
+
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Creation-Date: ${MD_date}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Custom-Group: ${MD_cgroup}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Server-Common-Name: ${MD_SRV_NAME}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Client-Common-Name: ${MD_cn}"
+
+			[ "${MD_subkey}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Sub-key-name: ${MD_subkey}"
+
+			[ "${MD_opt}" = "OPT" ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Opt: ${MD_opt}"
+
 			"${EASYTLS_PRINTF}" '%s' "# metadata Key-status: "
 			if [ "${MD_hw}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
@@ -4429,7 +4445,8 @@ inline_tls_cv2_group_server ()
 
 		# push-peer-info
 		if [ "${cert_purpose}" = 'client' ]; then
-			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '\n%s\n' \
+				"setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 		fi
 
@@ -4568,7 +4585,7 @@ inline_tls_cv2_group_client ()
 			# Get the server serial number
 			cert_file="${EASYTLS_PKI}/${MD_SRV_NAME}.crt"
 			x509_cert_serial "${cert_file}" || \
-				die "inline_tls_cv2_group_client - x509_cert_serial - ${cert_file}"
+				die "inline_tls_cv2_group_client - x509_cert_serial: ${cert_file}"
 
 			# Use extracted_cert_serial
 			srv_serial="${extracted_cert_serial}"
@@ -4577,7 +4594,7 @@ inline_tls_cv2_group_client ()
 			ca_cert="${EASYRSA_PKI}/ca.crt"
 			ca_serial=
 			x509_cert_serial "${ca_cert}" || \
-				die "inline_tls_cv2_group_client - x509_cert_serial - ${ca_cert}"
+				die "inline_tls_cv2_group_client - x509_cert_serial: ${ca_cert}"
 
 			# Use extracted_cert_serial
 			ca_serial="${extracted_cert_serial}"
@@ -4603,15 +4620,24 @@ inline_tls_cv2_group_client ()
 			else
 				"${EASYTLS_PRINTF}" '%s\n' "# metadata CA-serial: ${ca_serial}"
 			fi
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Creation-Date: ${MD_longdate}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Custom-Group: ${MD_CUSTOM_G}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Server-Common-Name: ${MD_SRV_NAME}"
-			"${EASYTLS_PRINTF}" '%s\n' "# metadata Client-Common-Name: ${MD_NAME}"
-			[ "${MD_SUBKEY}" = 'NOSUBKEY' ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Sub-key-name: ${MD_SUBKEY}"
-			[ "${MD_OPT}" = "OPT" ] || \
-				"${EASYTLS_PRINTF}" '%s\n' "# metadata Opt: ${MD_OPT}"
+
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata tlskey-serial: ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Creation-Date: ${MD_longdate}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Custom-Group: ${MD_CUSTOM_G}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Server-Common-Name: ${MD_SRV_NAME}"
+			"${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Client-Common-Name: ${MD_NAME}"
+
+			[ "${MD_SUBKEY}" = 'NOSUBKEY' ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Sub-key-name: ${MD_SUBKEY}"
+
+			[ "${MD_OPT}" = "OPT" ] || "${EASYTLS_PRINTF}" '%s\n' \
+				"# metadata Opt: ${MD_OPT}"
+
 			"${EASYTLS_PRINTF}" '%s' "# metadata Key-status: "
 			if [ "${MD_FILTERS}" = "=000000000000=" ]; then
 				"${EASYTLS_PRINTF}" '%s\n' "Open"
@@ -4626,7 +4652,8 @@ inline_tls_cv2_group_client ()
 
 		# push-peer-info
 		if [ "${cert_purpose}" = 'client' ]; then
-			"${EASYTLS_PRINTF}" '\n%s\n' "setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
+			"${EASYTLS_PRINTF}" '\n%s\n' \
+				"setenv UV_TLSKEY_SERIAL ${MD_TLSKEY_SERIAL}"
 			"${EASYTLS_PRINTF}" "%s\n\n" "push-peer-info"
 		fi
 
