@@ -1787,11 +1787,6 @@ easytls_ssl_generate_empty_hash ()
 ssl_generate_new_master_files_hash ()
 {
 	[ -n "${master_hash_only}" ] || return 1
-
-	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s' "${fixed_hash}"
-		return 0
-		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" | \
 		"${EASYTLS_SED}" -e 's` .*``' || return 1
 } # => openssl_generate_data_hash ()
@@ -1800,11 +1795,6 @@ ssl_generate_new_master_files_hash ()
 ssl_generate_old_master_data_hash ()
 {
 	[ -n "${master_hash_only}" ] || return 1
-
-	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s' "${fixed_hash}"
-		return 0
-		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
 } # => openssl_generate_data_hash ()
 
@@ -1968,14 +1958,13 @@ ssl_crt_common_name ()
 # Extract the CommonName from OpenSSL -subject
 easytls_ssl_crt_common_name ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_crt_common_name "${1}")" || {
-		error_msg "easytls_ssl_crt_common_name - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_crt_common_name - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_crt_common_name "${1}"
+		)" || return 1
 	certificate_commonName="${ssl_out#*commonName = }"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_crt_common_name ()
 
 
@@ -8946,7 +8935,7 @@ generate_master_hash ()
 	fi
 
 	# Use ssl unlock
-	master_hash_only=1
+	#master_hash_only=1
 
 	# This does not appear to be any faster than cat.
 	# Hashing a hash .. I don't think it matters here.
@@ -8956,12 +8945,18 @@ generate_master_hash ()
 
 	generated_master_hash="${generated_faster_hash%% *}"
 	unset -v inline_file_list tlskey_file_list util_file_list \
-		master_hash_only generated_faster_hash
+		generated_faster_hash
 } # => generate_master_hash ()
 
 # new_faster_hash way
 new_faster_hash ()
 {
+	# Removed from from subshell but not required due to FILE_HASH_DISABLED
+	#if [ -n "${request_fixed_hash}" ]; then
+	#	generated_faster_hash="${fixed_hash}"
+	#	return 0
+	#fi
+
 	# Generate a single hash of all the files via ssl
 	old_IFS="$IFS"
 	IFS="${new_line}"
@@ -8988,8 +8983,9 @@ new_faster_hash ()
 	#	)"
 
 	hash_list_hash="$(
-		ssl_generate_new_master_files_hash "$@" | \
-			ssl_generate_old_master_data_hash
+		master_hash_only=1
+			ssl_generate_new_master_files_hash "$@" | \
+				ssl_generate_old_master_data_hash
 		)" || \
 			die "new_faster_hash - hash_list_hash"
 	# Use hash
@@ -9003,6 +8999,12 @@ new_faster_hash ()
 # old_faster_hash way
 old_faster_hash ()
 {
+	# Removed from from subshell but not required due to FILE_HASH_DISABLED
+	#if [ -n "${request_fixed_hash}" ]; then
+	#	generated_faster_hash="${fixed_hash}"
+	#	return 0
+	#fi
+
 	# Generate a single hash of all the files via cat
 	unset -v old_IFS
 	[ -z "${IFS}" ] || old_IFS="$IFS"
@@ -9023,7 +9025,8 @@ old_faster_hash ()
 	# cat the list
 	# pipe to SSL
 	cat_list_hash="$(
-		"${EASYTLS_CAT}" "$@" | ssl_generate_old_master_data_hash
+		master_hash_only=1
+			"${EASYTLS_CAT}" "$@" | ssl_generate_old_master_data_hash
 		)" || \
 			die "generate_master_hash - cat_list_hash"
 	# Use hash
