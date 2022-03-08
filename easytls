@@ -1774,14 +1774,13 @@ ssl_generate_empty_hash ()
 # Extract the forbidden empty_hash from SSL hash
 easytls_ssl_generate_empty_hash ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_generate_empty_hash)" || {
-		error_msg "easytls_ssl_generate_empty_hash - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_generate_empty_hash - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_generate_empty_hash
+		)" || return 1
 	empty_hash="${ssl_out% *}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_generate_empty_hash ()
 
 # Hash all files from master file-list
@@ -1790,7 +1789,7 @@ ssl_generate_new_master_files_hash ()
 	[ -n "${master_hash_only}" ] || return 1
 
 	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}"
+		"${EASYTLS_PRINTF}" '%s' "${fixed_hash}"
 		return 0
 		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" | \
@@ -1803,7 +1802,7 @@ ssl_generate_old_master_data_hash ()
 	[ -n "${master_hash_only}" ] || return 1
 
 	[ -z "${request_fixed_hash}" ] || {
-		"${EASYTLS_PRINTF}" '%s\n' "${fixed_hash}"
+		"${EASYTLS_PRINTF}" '%s' "${fixed_hash}"
 		return 0
 		}
 	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r || return 1
@@ -1825,14 +1824,13 @@ easytls_ssl_generate_file_hash ()
 		generated_file_hash="${fixed_hash}"
 		return 0
 	else
-		unlock_ssl=1
-		ssl_out="$(ssl_generate_file_hash "${1}")" || {
-			error_msg "easytls_ssl_generate_file_hash - ssl_out"
-			unset -v unlock_ssl
-			return 1
-			}
+		error_msg "easytls_ssl_generate_file_hash - ssl_out"
+		ssl_out="$(
+			unlock_ssl=1
+			ssl_generate_file_hash "${1}"
+			)" || return 1
 		generated_file_hash="${ssl_out% *}"
-		unset -v unlock_ssl ssl_out
+		unset -v error_msg ssl_out
 	fi
 } # => easytls_ssl_encode_base64_data ()
 
@@ -1853,16 +1851,13 @@ easytls_ssl_generate_data_hash ()
 		generated_data_hash="${fixed_hash}"
 		return 0
 	else
-		unlock_ssl=1
+		error_msg "easytls_ssl_generate_data_hash - ssl_out"
 		ssl_out="$(
+			unlock_ssl=1
 			"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
-			)" || {
-				error_msg "easytls_ssl_generate_data_hash - ssl_out"
-				unset -v unlock_ssl
-				return 1
-				}
+			)" || return 1
 		generated_data_hash="${ssl_out% *}"
-		unset -v unlock_ssl ssl_out
+		unset -v error_msg ssl_out
 	fi
 } # => easytls_ssl_generate_data_hash ()
 
@@ -1876,16 +1871,13 @@ ssl_encode_base64_data ()
 # easytls wrapper for ssl Base64 encode data
 easytls_ssl_encode_base64_data ()
 {
-	unlock_ssl=1
+	error_msg "easytls_ssl_encode_base64_data - ssl_out"
 	ssl_out="$(
+		unlock_ssl=1
 		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_encode_base64_data
-		)" || {
-			error_msg "easytls_ssl_encode_base64_data - ssl_out"
-			unset -v unlock_ssl
-			return 1
-			}
+		)" || return 1
 	generated_base64="${ssl_out}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL -enddate output
@@ -1898,14 +1890,13 @@ ssl_cert_expire_date ()
 # Extract expire date from SSL -enddate
 easytls_ssl_cert_expire_date ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_cert_expire_date "${1}")" || {
-		error_msg "easytls_ssl_cert_expire_date - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_cert_expire_date - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_cert_expire_date "${1}"
+		)" || return 1
 	certificate_expire_date="${ssl_out#*=}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -purpose output (List of purposes Yes/No)
@@ -1918,14 +1909,13 @@ ssl_cert_purpose ()
 # Return the purpose-list from SSL -purpose
 easytls_ssl_cert_purpose ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_cert_purpose "${1}")" || {
-		error_msg "easytls_ssl_cert_purpose - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_cert_purpose - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_cert_purpose "${1}"
+		)" || return 1
 	certificate_purpose_list="${ssl_out}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -fingerprint output
@@ -1938,14 +1928,13 @@ ssl_generate_fingerprint ()
 # Extract the fingerprint from SSL -fingerprint
 easytls_ssl_generate_fingerprint ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_generate_fingerprint "${1}")" || {
-		error_msg "easytls_ssl_generate_fingerprint - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_generate_fingerprint - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_generate_fingerprint "${1}"
+		)" || return 1
 	certificate_fingerPrint="${ssl_out#*=}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -serial output
@@ -1958,14 +1947,13 @@ ssl_cert_serial ()
 # Extract the serialNumber from OpenSSL -serial
 easytls_ssl_cert_serial ()
 {
-	unlock_ssl=1
-	ssl_out="$(ssl_cert_serial "${1}")" || {
-		error_msg "easytls_ssl_cert_serial - ssl_out"
-		unset -v unlock_ssl
-		return 1
-		}
+	error_msg "easytls_ssl_cert_serial - ssl_out"
+	ssl_out="$(
+		unlock_ssl=1
+		ssl_cert_serial "${1}"
+		)" || return 1
 	certificate_serialNumber="${ssl_out#*=}"
-	unset -v unlock_ssl ssl_out
+	unset -v error_msg ssl_out
 } # => easytls_ssl_cert_serial ()
 
 # SSL -subject output and grep for commonName
