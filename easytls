@@ -1478,7 +1478,9 @@ generate_and_validate_data_hash () {
 		die "generate_and_validate_data_hash - invalid input"
 		}
 
-	target="${1}"
+	# MUST not be a file-name
+	[ ! -f "${1}" ] || \
+		die "generate_and_validate_data_hash - MUST not be a file-name"
 
 	# hash the data
 	if [ -z "${force_hash}" ] && [ -n "${FILE_HASH_DISABLED}" ]; then
@@ -1487,18 +1489,17 @@ generate_and_validate_data_hash () {
 	else
 		[ -n "${EASYTLS_HASH_ALGO}" ] || {
 			error_msg "generate_and_validate_data_hash - EASYTLS_HASH_ALGO"
-			unset -v target openssl_hash generated_hash
 			return 1
 			}
 
 		# Generate hash
-		if easytls_ssl_generate_data_hash "${target}"; then
+		if easytls_ssl_generate_data_hash "${1}"; then
 			generated_hash="${generated_data_hash}"
 			unset -v generated_data_hash
 		else
 			error_msg "generate_and_validate_data_hash -"
 			error_msg "- easytls_ssl_generate_data_hash"
-			unset -v target generated_data_hash
+			unset -v generated_data_hash
 			return 1
 		fi
 
@@ -1508,13 +1509,13 @@ generate_and_validate_data_hash () {
 			generated_valid_hash="${generated_hash}"
 		else
 			error_msg "generate_and_validate_data_hash - validate_hash"
-			unset -v target openssl_hash generated_hash
+			unset -v generated_hash
 			return 1
 		fi
 	fi
 
 	# Clean up
-	unset -v target openssl_hash generated_hash
+	unset -v generated_hash
 } # => generate_and_validate_data_hash ()
 
 # Verify valid hash - Only return success or fail
