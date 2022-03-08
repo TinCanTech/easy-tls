@@ -726,108 +726,108 @@ easytls_verb_io () {
 easytls_config () {
 	# Verify config-file and hash has already been done by config_use()
 	case "${1}" in
-		addition)
-			cfg_opt="${2}"
-			[ -n "${cfg_opt}" ] || { error_msg "Required: option"; return 1; }
-			config_addition && return 0
-			error_msg "Failed to add: ${cfg_opt}"
-			return 1
-		;;
-		deletion)
-			cfg_opt="${2}"
-			[ -n "${cfg_opt}" ] || { error_msg "Required: option"; return 1; }
-			config_deletion && return 0
-			error_msg "Failed to delete: ${cfg_opt}"
-			return 1
-		;;
-		nc|no.ca)			cfg_opt="no.ca"; cfg_val="${2}" ;;
-		ha|hash.algorithm)	cfg_opt="hash.algorithm"; cfg_val="${2}" ;;
-		td|tmp.dir)			cfg_opt="tmp.dir"; cfg_val="${2}" ;;
-		ac|auto.check)		cfg_opt="auto.check"; cfg_val="${2}" ;;
-		cg|custom.group)	cfg_opt="custom.group"; cfg_val="${2}" ;;
-		id|ca.id)			cfg_opt="ca.id"; cfg_val="${2}" ;;
-		co|custom.openvpn)	cfg_opt="custom.openvpn"; cfg_val="${2}" ;;
-		im|inline.metadata)	cfg_opt="inline.metadata"; cfg_val="${2}" ;;
-		ih|inline.hardware)	cfg_opt="inline.hardware"; cfg_val="${2}" ;;
-		status)				cfg_opt="status"; cfg_val="${2}" ;;
-		test.bool)			cfg_opt="test.bool"; cfg_val="${2}" ;;
-		'')
-			easytls_verbose
-			"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
-			"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
-			easytls_verbose
-			skip_master_hash=1
-			return 0
-		;;
-		*)
-			error_msg "Unknown option: ${1}"
-			return 1
+	addition)
+		cfg_opt="${2}"
+		[ -n "${cfg_opt}" ] || { error_msg "Required: option"; return 1; }
+		config_addition && return 0
+		error_msg "Failed to add: ${cfg_opt}"
+		return 1
+	;;
+	deletion)
+		cfg_opt="${2}"
+		[ -n "${cfg_opt}" ] || { error_msg "Required: option"; return 1; }
+		config_deletion && return 0
+		error_msg "Failed to delete: ${cfg_opt}"
+		return 1
+	;;
+	nc|no.ca)			cfg_opt="no.ca"; cfg_val="${2}" ;;
+	ha|hash.algorithm)	cfg_opt="hash.algorithm"; cfg_val="${2}" ;;
+	td|tmp.dir)			cfg_opt="tmp.dir"; cfg_val="${2}" ;;
+	ac|auto.check)		cfg_opt="auto.check"; cfg_val="${2}" ;;
+	cg|custom.group)	cfg_opt="custom.group"; cfg_val="${2}" ;;
+	id|ca.id)			cfg_opt="ca.id"; cfg_val="${2}" ;;
+	co|custom.openvpn)	cfg_opt="custom.openvpn"; cfg_val="${2}" ;;
+	im|inline.metadata)	cfg_opt="inline.metadata"; cfg_val="${2}" ;;
+	ih|inline.hardware)	cfg_opt="inline.hardware"; cfg_val="${2}" ;;
+	status)				cfg_opt="status"; cfg_val="${2}" ;;
+	test.bool)			cfg_opt="test.bool"; cfg_val="${2}" ;;
+	'')
+		easytls_verbose
+		"${EASYTLS_PRINTF}" "%s\n" "easytls = ${EASYTLS_VERSION}"
+		"${EASYTLS_GREP}" -v 'status' "${EASYTLS_CONFIG_FILE}"
+		easytls_verbose
+		skip_master_hash=1
+		return 0
+	;;
+	*)
+		error_msg "Unknown option: ${1}"
+		return 1
 	esac
 
 	case "${cfg_opt}" in
-		test.bool)
-			case "${cfg_val}" in
-				0|1)	: ;; # ok
-				*)
-					help_note="Supported options:  0 | 1"
-					die "Unsupported value for ${cfg_opt}: ${cfg_val}"
-			esac
-		;;
-		no.ca)
-			help_note="See help for init-tls"
-			die "To change No-CA mode you must create a new Easy-TLS PKI"
-		;;
-		tmp.dir)
-				# Test for dir
-				[ -d "${cfg_val}" ] || missing_file "${cfg_val}"
-		;;
-		auto.check|inline.metadata|inline.hardware)
-			case "${cfg_val}" in
-				on|off)	 ;; # ok
-				*)
-					help_note="Supported options:  on | off"
-					die "Unsupported value for ${cfg_opt}: ${cfg_val}"
-			esac
-		;;
-		custom.group)
-			# Cannot be empty
-			[ -n "${cfg_val}" ] || die "custom.group cannot be empty"
-			# spaces ?
-			test_val="${cfg_val%% *}"
-			[ "${cfg_val}" = "${test_val}" ] || {
-				help_note="custom.group does not support spaces."
-				die "Unsupported value for ${cfg_opt}: ${cfg_val}"
-				}
+	test.bool)
+		case "${cfg_val}" in
+		0|1)	: ;; # ok
+		*)
+			help_note="Supported options:  0 | 1"
+			die "Unsupported value for ${cfg_opt}: ${cfg_val}"
+		esac
+	;;
+	no.ca)
+		help_note="See help for init-tls"
+		die "To change No-CA mode you must create a new Easy-TLS PKI"
+	;;
+	tmp.dir)
+		# Test for dir
+		[ -d "${cfg_val}" ] || missing_file "${cfg_val}"
+	;;
+	auto.check|inline.metadata|inline.hardware)
+		case "${cfg_val}" in
+		on|off)	 ;; # ok
+		*)
+			help_note="Supported options:  on | off"
+			die "Unsupported value for ${cfg_opt}: ${cfg_val}"
+		esac
+	;;
+	custom.group)
+		# Cannot be empty
+		[ -n "${cfg_val}" ] || die "custom.group cannot be empty"
+		# spaces ?
+		test_val="${cfg_val%% *}"
+		[ "${cfg_val}" = "${test_val}" ] || {
+			help_note="custom.group does not support spaces."
+			die "Unsupported value for ${cfg_opt}: ${cfg_val}"
+			}
 
-			confirm "Change your Custom-Group: " "yes" \
+		confirm "Change your Custom-Group: " "yes" \
 "NOTICE:
 
 * If you change your custom group here then you will need to use
   ENABLE_MULTI_CUSTOM_G=1 in your easytls-cryptv2-verify.vars file.
   And also insert all the custom groups into LOCAL_CUSTOM_G variable."
-		;;
-		custom.openvpn)
-			if [ -n "${cfg_val}" ]; then
-				# Test for file
-				[ -f "${cfg_val}" ] || missing_file "${cfg_val}"
-			fi
-		;;
-		ca.id)
-			if [ -n "${EASYTLS_MASTER_ID}" ]; then
-				help_note="To change your CA-ID you must create a new Easy-RSA CA"
-				die "The CA-ID cannot be changed"
-			fi
+	;;
+	custom.openvpn)
+		if [ -n "${cfg_val}" ]; then
+			# Test for file
+			[ -f "${cfg_val}" ] || missing_file "${cfg_val}"
+		fi
+	;;
+	ca.id)
+		if [ -n "${EASYTLS_MASTER_ID}" ]; then
+			help_note="To change your CA-ID you must create a new Easy-RSA CA"
+			die "The CA-ID cannot be changed"
+		fi
 
-			if [ -z "${save_id_authorized}" ]; then
-				die "Please use 'easytls save-id' to configure your CA-ID"
-			fi
-		;;
-		hash.algorithm)
-			help_note="See help for init-tls"
-			die "To change your HASH you must create a new Easy-TLS PKI"
-		;;
-		status) [ -n "${flash_config}" ] || return 0 ;;
-		*)	die "Unknown option: ${cfg_opt}"
+		if [ -z "${save_id_authorized}" ]; then
+			die "Please use 'easytls save-id' to configure your CA-ID"
+		fi
+	;;
+	hash.algorithm)
+		help_note="See help for init-tls"
+		die "To change your HASH you must create a new Easy-TLS PKI"
+	;;
+	status) [ -n "${flash_config}" ] || return 0 ;;
+	*)	die "Unknown option: ${cfg_opt}"
 	esac
 
 	# Write config
@@ -879,62 +879,62 @@ config_use () {
 
 		# These settings do not change command line
 		case "${cfg_opt}" in
-			test.bool) : ;;
-			auto.check)
-				case "${cfg_val}" in
-					off)	set_var AUTO_CHECK_DISABLED 1 ;;
-					on)		: ;;
-					*)
-							error_msg "Config error: Invalid value: ${cfg_val}"
-							config_error=3
-				esac
+		test.bool) : ;;
+		auto.check)
+			case "${cfg_val}" in
+			off)	set_var AUTO_CHECK_DISABLED 1 ;;
+			on)		: ;;
+			*)
+				error_msg "Config error: Invalid value: ${cfg_val}"
+				config_error=3
+			esac
+		;;
+		inline.metadata)
+			case "${cfg_val}" in
+			off)	set_var no_metadata 1 ;;
+			on)		: ;;
+			*)
+				error_msg "Config error: Invalid value: ${cfg_val}"
+				config_error=4
+			esac
+		;;
+		inline.hardware)
+			case "${cfg_val}" in
+			off)	: ;;
+			on)		set_var add_hardware 1 ;;
+			*)
+				error_msg "Config error: Invalid value: ${cfg_val}"
+				config_error=5
+			esac
+		;;
+		custom.group)
+			[ -z "${cfg_val}" ] || set_var TLSKEY_CUSTOM_GRP "${cfg_val}"
+			set_var TLSKEY_CUSTOM_GRP "EASYTLS"
+		;;
+		custom.openvpn)
+			[ -z "${cfg_val}" ] || set_var EASYTLS_OPENVPN "${cfg_val}"
+			set_var EASYTLS_OPENVPN "openvpn"
+		;;
+		tmp.dir)
+			[ -z "${cfg_val}" ] || set_var EASYTLS_tmp_dir "${cfg_val}"
 			;;
-			inline.metadata)
-				case "${cfg_val}" in
-					off)	set_var no_metadata 1 ;;
-					on)		: ;;
-					*)
-							error_msg "Config error: Invalid value: ${cfg_val}"
-							config_error=4
-				esac
-			;;
-			inline.hardware)
-				case "${cfg_val}" in
-					off)	: ;;
-					on)		set_var add_hardware 1 ;;
-					*)
-							error_msg "Config error: Invalid value: ${cfg_val}"
-							config_error=5
-				esac
-			;;
-			custom.group)
-				[ -z "${cfg_val}" ] || set_var TLSKEY_CUSTOM_GRP "${cfg_val}"
-				set_var TLSKEY_CUSTOM_GRP "EASYTLS"
-			;;
-			custom.openvpn)
-				[ -z "${cfg_val}" ] || set_var EASYTLS_OPENVPN "${cfg_val}"
-				set_var EASYTLS_OPENVPN "openvpn"
-			;;
-			tmp.dir)
-				[ -z "${cfg_val}" ] || set_var EASYTLS_tmp_dir "${cfg_val}"
-				;;
-			no.ca)
-				# This is set explicitly here to protect config
-				[ -z "${cfg_val}" ] || export EASYTLS_NO_CA="${cfg_val}"
-			;;
-			hash.algorithm)
-				# This is set explicitly here to protect config
-				[ -z "${cfg_val}" ] || export EASYTLS_HASH_ALGO="${cfg_val}"
-			;;
-			ca.id)
-				# This is set explicitly here to protect config
-				export EASYTLS_MASTER_ID="${cfg_val}"
-			;;
-			status)
-				EASYTLS_STATUS="${cfg_val}"
-				unset -v flash_config
-			;;
-			*)	error_msg "Config error: Ignored option: ${cfg_opt}"
+		no.ca)
+			# This is set explicitly here to protect config
+			[ -z "${cfg_val}" ] || export EASYTLS_NO_CA="${cfg_val}"
+		;;
+		hash.algorithm)
+			# This is set explicitly here to protect config
+			[ -z "${cfg_val}" ] || export EASYTLS_HASH_ALGO="${cfg_val}"
+		;;
+		ca.id)
+			# This is set explicitly here to protect config
+			export EASYTLS_MASTER_ID="${cfg_val}"
+		;;
+		status)
+			EASYTLS_STATUS="${cfg_val}"
+			unset -v flash_config
+		;;
+		*)	error_msg "Config error: Ignored option: ${cfg_opt}"
 		esac
 	done < "${EASYTLS_CONFIG_FILE}"
 	[ -z "${config_error}" ] || return "${config_error}"
@@ -1107,8 +1107,8 @@ verify_openvpn () {
 	openvpn_full_version="$("${EASYTLS_OPENVPN}" --version)"
 	openvpn_version="${openvpn_full_version%% *}"
 	case "${openvpn_version}" in
-		OpenVPN) : ;; # ok
-		*) die "Missing or invalid OpenVPN: ${openvpn_version}"
+	OpenVPN) : ;; # ok
+	*) die "Missing or invalid OpenVPN: ${openvpn_version}"
 	esac
 
 	openvpn_version="${openvpn_full_version#OpenVPN }"
@@ -1116,9 +1116,9 @@ verify_openvpn () {
 	openvpn_version="${openvpn_version%_*}"
 	[ "${#openvpn_version}" -lt 4 ] || openvpn_version="${openvpn_version%.*}"
 	case "${openvpn_version}" in
-		2.5|2.6) : ;; # ok
-		2.4) : ;; # ok
-		*) die "Unsupported OpenVPN version: ${openvpn_version}"
+	2.5|2.6) : ;; # ok
+	2.4) : ;; # ok
+	*) die "Unsupported OpenVPN version: ${openvpn_version}"
 	esac
 } # => verify_openvpn ()
 
@@ -1129,16 +1129,16 @@ verify_openssl () {
 	openssl_version="${openssl_full_version#* }"
 	openssl_name="${openssl_full_version%% *}"
 	case "${openssl_name}" in
-		OpenSSL) : ;; # ok
-		*) die "Missing or invalid OpenSSL: ${openssl_version}"
+	OpenSSL) : ;; # ok
+	*) die "Missing or invalid OpenSSL: ${openssl_version}"
 	esac
 
 	openssl_version="${openssl_version%% *}"
 	[ "${#openssl_version}" -lt 4 ] || openssl_version="${openssl_version%.*}"
 	case "${openssl_version}" in
-		3.0|3.1) openssl_version=3 ;;
-		1.1) openssl_version=1 ;;
-		*) die "Unsupported OpenSSL version: ${openssl_version}"
+	3.0|3.1) openssl_version=3 ;;
+	1.1) openssl_version=1 ;;
+	*) die "Unsupported OpenSSL version: ${openssl_version}"
 	esac
 } # => verify_openssl ()
 
@@ -1163,9 +1163,9 @@ verify_tls_init () {
 init_tls () {
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
-			nc|noca|no-ca) EASYTLS_NO_CA=1 ;;
-			*) die "Unknown command option: '$1'"
+		sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
+		nc|noca|no-ca) EASYTLS_NO_CA=1 ;;
+		*) die "Unknown command option: '$1'"
 		esac
 		shift
 	done
@@ -3835,14 +3835,14 @@ inline_tls_auth ()
 
 	# Determine key_direction
 	case "${key_direction}" in
-		0|1)
-			: ;; # User specified --key-direction
-		*)
-			# Use defaults - cert_purpose from inline_base()
-			case "${cert_purpose}" in
-				[sS]erver)	key_direction=0 ;;
-				[cC]lient)	key_direction=1 ;;
-				*)			die "key-direction is required! Server=0, client=1."
+	0|1)
+		: ;; # User specified --key-direction
+	*)
+		# Use defaults - cert_purpose from inline_base()
+		case "${cert_purpose}" in
+		[sS]erver)	key_direction=0 ;;
+		[cC]lient)	key_direction=1 ;;
+		*)			die "key-direction is required! Server=0, client=1."
 		esac
 	esac
 
@@ -3892,9 +3892,9 @@ inline_tls_crypt_v1 ()
 	unset -v no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key)	no_x509_key=1 ;;
-			add-dh)	inline_dh_file=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		no-key)	no_x509_key=1 ;;
+		add-dh)	inline_dh_file=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3974,11 +3974,11 @@ inline_tls_crypt_v2 ()
 	unset -v no_x509_key inline_dh_file add_hardware no_metadata
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key)	no_x509_key=1 ;;
-			add-dh)	inline_dh_file=1 ;;
-			add-hw)	add_hardware=1 ;;
-			no-md)	no_metadata=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		no-key)	no_x509_key=1 ;;
+		add-dh)	inline_dh_file=1 ;;
+		add-hw)	add_hardware=1 ;;
+		no-md)	no_metadata=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -4184,9 +4184,9 @@ inline_tls_cv2_group_server ()
 	unset -v no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key)	no_x509_key=1 ;;
-			add-dh)	inline_dh_file=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		no-key)	no_x509_key=1 ;;
+		add-dh)	inline_dh_file=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -4358,10 +4358,10 @@ inline_tls_cv2_group_client ()
 	unset -v no_x509_key add_hardware no_metadata
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key)	no_x509_key=1 ;;
-			add-hw)	add_hardware=1 ;;
-			no-md)	no_metadata=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		no-key)	no_x509_key=1 ;;
+		add-hw)	add_hardware=1 ;;
+		no-md)	no_metadata=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -4819,9 +4819,9 @@ build_tls_auth ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-auth" ;;
-		2.4) build_string="--secret" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-auth" ;;
+	2.4) build_string="--secret" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	tlskey_file="${EASYTLS_PKI}/tls-auth.key"
@@ -4843,9 +4843,9 @@ build_tls_crypt_v1 ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-crypt" ;;
-		2.4) build_string="--secret" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-crypt" ;;
+	2.4) build_string="--secret" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	tlskey_file="${EASYTLS_PKI}/tls-crypt.key"
@@ -4869,8 +4869,8 @@ build_tls_crypt_v2_server ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-crypt-v2-server" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-crypt-v2-server" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	srv_name="${1}"
@@ -4929,8 +4929,8 @@ build_tls_crypt_v2_client ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-crypt-v2-client" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-crypt-v2-client" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	if [ -n "${EASYTLS_NO_CA}" ]; then
@@ -5101,8 +5101,8 @@ build_tls_cv2_group_server ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-crypt-v2-server" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-crypt-v2-server" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	#grp_name="${1}-grp-srv"
@@ -5135,8 +5135,8 @@ build_tls_cv2_group_client ()
 	# Verify OpenVPN version and use correct syntax to --genkey
 	verify_openvpn
 	case "${openvpn_version}" in
-		2.5|2.6) build_string="tls-crypt-v2-client" ;;
-		*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	2.5|2.6) build_string="tls-crypt-v2-client" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
 	esac
 
 	srv_key_name="${1}"; shift
