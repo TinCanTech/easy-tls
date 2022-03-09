@@ -5319,9 +5319,9 @@ invalid_address ()
 ip2dec ()
 {
 	case "${1}" in
-		*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
-		*.*.*.* ) : ;; #OK
-		* ) return 1 ;;
+	*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
+	*.*.*.* ) : ;; #OK
+	* ) return 1 ;;
 	esac
 
 	temp_ip_addr="${1}"
@@ -5476,7 +5476,7 @@ expand_ip6_address ()
 
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${hextet}" in
-			*[!0:]* ) return 20 ;;
+		*[!0:]* ) return 20 ;;
 		esac
 	done
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
@@ -5507,9 +5507,9 @@ validate_ip4_data ()
 
 	# Syntax
 	case "${temp_ip_addr}" in
-		*[!0123456789./]* | .* | *. | *..* | */*.* ) return 11 ;;
-		*.*.*.* ) : ;; #OK
-		* ) return 1 ;;
+	*[!0123456789./]* | .* | *. | *..* | */*.* ) return 11 ;;
+	*.*.*.* ) : ;; #OK
+	* ) return 1 ;;
 	esac
 
 	# Netmask
@@ -5574,14 +5574,13 @@ validate_ip6_data ()
 
 	# Syntax
 	case "${temp_ip_addr}" in
-		#:[!:]* ) return 11 ;;
-		*[!:]: ) return 11 ;;
-		*[!:]:/* ) return 11 ;;
-		*::*::* ) return 11 ;;
-		*/*:* ) return 11 ;;
-		*[!0123456789abcdef:/]* ) return 11 ;;
-		*)
-			: # OK
+	#:[!:]* ) return 11 ;;
+	*[!:]: ) return 11 ;;
+	*[!:]:/* ) return 11 ;;
+	*::*::* ) return 11 ;;
+	*/*:* ) return 11 ;;
+	*[!0123456789abcdef:/]* ) return 11 ;;
+	*) : # OK
 	esac
 
 	# Netmask
@@ -5596,7 +5595,7 @@ validate_ip6_data ()
 	[ -n "${mask_len}" ] || return 12
 	# shellcheck disable=SC2249 # (info): default *) case
 	case "${mask_len}" in
-		*[!0123456789]* | 0* ) return 11 ;;
+	*[!0123456789]* | 0* ) return 11 ;;
 	esac
 	if [ "${mask_len}" -lt 0 ] || [ "${mask_len}" -gt 128 ]; then
 		return 13
@@ -5717,8 +5716,8 @@ metadata_stov_safe ()
 	delimiter="${delimiter:-${newline}}"
 	[ -n "${delimiter}" ] || return 1
 	case "${input}" in
-		*"${delimiter}"*) : ;;
-		*) delimiter=' '
+	*"${delimiter}"*) : ;;
+	*) delimiter=' '
 	esac
 
 	MD_SEED="${input#*-}"

@@ -265,9 +265,9 @@ invalid_address ()
 ip2dec ()
 {
 	case "${1}" in
-		*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
-		*.*.*.* ) : ;; #OK
-		* ) return 1 ;;
+	*[!1234567890.]* | .* | *. | *..* ) return 1 ;;
+	*.*.*.* ) : ;; #OK
+	* ) return 1 ;;
 	esac
 
 	temp_ip_addr="${1}"
@@ -422,7 +422,7 @@ expand_ip6_address ()
 
 		# shellcheck disable=SC2249 # (info): default *) case
 		case "${hextet}" in
-			*[!0:]* ) return 20 ;;
+		*[!0:]* ) return 20 ;;
 		esac
 	done
 	verbose_easytls_tctip_lib "full_valid_hextets: ${full_valid_hextets}"
@@ -722,8 +722,8 @@ metadata_stov_safe ()
 	delimiter="${delimiter:-${newline}}"
 	[ -n "${delimiter}" ] || return 1
 	case "${input}" in
-		*"${delimiter}"*) : ;;
-		*) delimiter=' '
+	*"${delimiter}"*) : ;;
+	*) delimiter=' '
 	esac
 
 	MD_SEED="${input#*-}"

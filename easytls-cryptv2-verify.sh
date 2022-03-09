@@ -651,8 +651,8 @@ metadata_stov_safe ()
 	delimiter="${delimiter:-${newline}}"
 	[ -n "${delimiter}" ] || return 1
 	case "${input}" in
-		*"${delimiter}"*) : ;;
-		*) delimiter=' '
+	*"${delimiter}"*) : ;;
+	*) delimiter=' '
 	esac
 
 	MD_SEED="${input#*-}"
