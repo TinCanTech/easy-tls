@@ -2660,13 +2660,13 @@ inline_index_cn_subname_list ()
 # Keep an inline-index file for inline certs to manage revoke/renew
 inline_index_update ()
 {
-	update_index_action="${1}"
+	il_action="${1}"
 
-	if [ "${update_index_action}" = 'del' ] && [ -n "${force_remove}" ]; then
-		update_index_action='force-del'
+	if [ "${il_action}" = 'del' ] && [ -n "${force_remove}" ]; then
+		il_action='force-del'
 	fi
 
-	case "${update_index_action}" in
+	case "${il_action}" in
 	add)
 		# Inline serial
 		x509_cert_serial "${inline_file}" || {
@@ -2750,7 +2750,7 @@ inline_index_update ()
 				}
 	;;
 	*)
-		error_msg "Unknown index action: ${update_index_action}"
+		error_msg "Unknown index action: ${il_action}"
 		return 1
 	esac
 
@@ -3239,13 +3239,13 @@ inline_index_rebuild ()
 # Update tlskey-index
 tlskey_index_update ()
 {
-	update_index_action="${1}"
+	tk_action="${1}"
 
 	# Verify tlskey_serial
 	[ -n "${tlskey_serial}" ] || die "tlskey_index_update - tlskey_serial"
 
 	# Update
-	case "${update_index_action}" in
+	case "${tk_action}" in
 	add)
 		new_record="${tlskey_serial} ${cert_serial} ${cli_name} ${TLSKEY_SUBNAME}"
 		if universal_update add "${EASYTLS_TLSKEY_INDEX}" "${new_record}"; then
@@ -3262,7 +3262,7 @@ tlskey_index_update ()
 			return 1
 		fi
 	;;
-	*)	error_msg "Unknown index action: ${update_index_action}"
+	*)	error_msg "Unknown index action: ${tk_action}"
 		return 1
 	esac
 
@@ -6212,7 +6212,7 @@ disabled_list_manager ()
 {
 	[ "$#" -ge 1 ] || die "Required option(s): disable|enable <NAME>"
 
-	action="${1}"; shift
+	dl_action="${1}"; shift
 	if [ -z "${1}" ]; then
 		easytls_verbose
 		"${EASYTLS_CAT}" "${EASYTLS_DISABLED_LIST}"
@@ -6275,7 +6275,7 @@ disabled_list_manager ()
 	fi
 
 	# Update disabled-list
-	case "${action}" in
+	case "${dl_action}" in
 	disable) # Add serial number to the disabled-list
 		if [ -n "${is_disabled}" ]; then
 			: # serial is already disabled
@@ -6310,10 +6310,10 @@ disabled_list_manager ()
 
 	# Update and/or Notify
 	if [ -n "${disabled_list_updated}" ]; then
-		notice "Updated disabled-list: ${name} ${action}d"
+		notice "Updated disabled-list: ${name} ${dl_action}d"
 		update_master_hash=1
 	else
-		notice "No change: ${name} is already ${action}d"
+		notice "No change: ${name} is already ${dl_action}d"
 		skip_master_hash=1
 	fi
 	easytls_verbose
