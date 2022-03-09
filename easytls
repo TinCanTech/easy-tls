@@ -984,7 +984,7 @@ config_use () {
 
 # verify config file hash
 config_verify_hash () {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLE: config_verify_hash"
 	[ -z "${config_verify_hash_block}" ] || \
 		die "config verify hash must only run once"
@@ -1001,7 +1001,7 @@ config_verify_hash () {
 
 # Hash config-file
 config_save_hash () {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLE: config_save_hash"
 	[ -z "${config_save_hash_block}" ] || \
 		die "config save hash must only run once"
@@ -2834,7 +2834,7 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED inline_index_verify_hash"
 	[ -z "${inline_index_verify_hash_block}" ] || \
 		die "inline index verify hash must only run once"
@@ -2852,7 +2852,7 @@ inline_index_verify_hash ()
 # Save new inline-index hash
 inline_index_save_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED inline_index_save_hash"
 	[ -z "${inline_index_save_hash_block}" ] || \
 		die "inline index save hash must only run once"
@@ -2956,7 +2956,7 @@ inline_index_ilhash_to_serial ()
 # Get common_name from inline file
 inline_crt_common_name ()
 {
-	# This function is unused
+	# DISABLED_DELETE
 	die "inline_crt_common_name DISABLED"
 	#icn="$("${EASYTLS_GREP}" '^# Common name: .*$' "${inline_file}")"
 	#inline_common_name="${icn##*name: }"
@@ -3346,7 +3346,7 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED tlskey_index_verify_hash"
 	[ -z "${tlskey_index_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
@@ -3364,7 +3364,7 @@ tlskey_index_verify_hash ()
 # Save tlskey-index hash
 tlskey_index_save_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED tlskey_index_save_hash"
 	[ -z "${tlskey_index_save_hash_block}" ] || \
 		die "tlskey index save hash must only run once"
@@ -3455,6 +3455,7 @@ tlskey_index_fname_2_x509ser ()
 # tlskey verify serial number is valid
 verify_cert_serial ()
 {
+	# DISABLED_DELETE - SOON
 	# Test it
 	[ -n "${1}" ] || {
 		error_msg "verify_cert_serial - empty"
@@ -3494,6 +3495,7 @@ verify_cert_serial ()
 # tlskey verify serial number is valid
 verify_tlskey_serial ()
 {
+	# DISABLED_DELETE
 	die "verify_tlskey_serial DISABLED"
 	# Test it
 	[ "${tlskey_serial}" = "${tlskey_serial%[!0123456789abcdefABCDEF]*}" ] || {
@@ -3731,6 +3733,7 @@ remove_group_tlskey ()
 # Renew .inline file
 inline_renew ()
 {
+	# DISABLED_DELETE
 	# Easy-RSA certificate renewal is broken, do not use it.
 	error_msg "Easy-TLS does not support inline-renew."
 	error_msg "Use: 'easytls inline-remove' to delete the old inline file"
@@ -3741,6 +3744,7 @@ inline_renew ()
 # Get current inline key direction
 inline_renew_key_direction ()
 {
+	# DISABLED_DELETE
 	die "inline_renew_key_direction - DISABLED"
 	"${EASYTLS_GREP}" '^key-direction [01]$' "${inline_file}" | \
 		"${EASYTLS_AWK}" '{print $2}'
@@ -6356,7 +6360,7 @@ disabled_list_manager ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED disabled_list_verify_hash"
 	[ -z "${disabled_list_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
@@ -6374,7 +6378,7 @@ disabled_list_verify_hash ()
 # Save new disable-list hash
 disabled_list_save_hash ()
 {
-	# DISABLED
+	# DISABLED_DELETE
 	die "DISABLED disabled_list_save_hash"
 	[ -z "${disabled_list_save_hash_block}" ] || \
 		die "disabled list save hash must only run once"
@@ -8961,6 +8965,7 @@ generate_master_hash ()
 # new_faster_hash way
 new_faster_hash ()
 {
+	# DISABLED_DELETE
 	# Removed from from subshell but not required due to FILE_HASH_DISABLED
 	#if [ -n "${request_fixed_hash}" ]; then
 	#	generated_faster_hash="${fixed_hash}"
@@ -9009,6 +9014,7 @@ new_faster_hash ()
 # old_faster_hash way
 old_faster_hash ()
 {
+	# DISABLED_DELETE
 	# Removed from from subshell but not required due to FILE_HASH_DISABLED
 	#if [ -n "${request_fixed_hash}" ]; then
 	#	generated_faster_hash="${fixed_hash}"
