@@ -1546,7 +1546,7 @@ validate_hash () {
 	# If master-hash has been verified then
 	# All further hashes are considered to be valid
 	# This is already wildly abusive, so don't abuse it any further..
-	if [ -z "${force_hash}" ] && [ -z "${disable_validate_hash}" ]; then
+	if [ -z "${force_hash}" ] && [ -n "${disable_validate_hash}" ]; then
 		return 0
 	fi
 
