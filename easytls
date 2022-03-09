@@ -978,6 +978,7 @@ config_use () {
 
 # verify config file hash
 config_verify_hash () {
+	# DISABLED
 	die "DISABLE: config_verify_hash"
 	[ -z "${config_verify_hash_block}" ] || \
 		die "config verify hash must only run once"
@@ -994,6 +995,7 @@ config_verify_hash () {
 
 # Hash config-file
 config_save_hash () {
+	# DISABLED
 	die "DISABLE: config_save_hash"
 	[ -z "${config_save_hash_block}" ] || \
 		die "config save hash must only run once"
@@ -6328,6 +6330,8 @@ disabled_list_manager ()
 # Verify current disable-list hash
 disabled_list_verify_hash ()
 {
+	# DISABLED
+	die "DISABLED disabled_list_verify_hash"
 	[ -z "${disabled_list_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
 	request_fixed_hash=1
@@ -6344,7 +6348,8 @@ disabled_list_verify_hash ()
 # Save new disable-list hash
 disabled_list_save_hash ()
 {
-	# return 0 # Permanently DISABLED
+	# DISABLED
+	die "DISABLED disabled_list_save_hash"
 	[ -z "${disabled_list_save_hash_block}" ] || \
 		die "disabled list save hash must only run once"
 	request_fixed_hash=1
