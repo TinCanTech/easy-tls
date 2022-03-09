@@ -941,21 +941,27 @@ config_use () {
 	EASYTLS_HASH_ALGO="${EASYTLS_HASH_ALGO:-SHA256}"
 
 	# Set fixed hash
+	Zero_x8=00000000
+	Zero_x16="${Zero_x8}${Zero_x8}"
+
 	case "${EASYTLS_HASH_ALGO}" in
 	SHA1)
 	fixed_hash=1111111111111111111111111111111111111111
 	fixed_length=40
-	cv2_Srv_Serial=0000000000000000000000000000000000000000
 	;;
 	SHA256)
 	fixed_hash=2222222222222222222222222222222222222222222222222222222222222222
 	fixed_length=64
-	cv2_Srv_Serial=0000000000000000000000000000000000000000000000000000000000000000
 	;;
 	*)
 		error_msg "config_use - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
 	esac
+
+	# Group mode is not tied to a CA or Certificates
+	# Group server TLS-CV2 Key is free to roam anywhere
+	# Group client TLS-CV2 Key must follow the the server key which built it
+	group_mode_fixed_ca_id="${Zero_x16}${Zero_x16}${Zero_x16}${Zero_x16}"
 
 	# generate forbidden_hash (empty input)
 	if easytls_ssl_generate_empty_hash; then
@@ -1534,10 +1540,15 @@ validate_hash () {
 			}
 	fi
 
+	# fixed_hash is valid
+	[ "${1}" != "${fixed_hash}" ] || return 0
+
 	# If master-hash has been verified then
 	# All further hashes are considered to be valid
 	# This is already wildly abusive, so don't abuse it any further..
-	[ -z "${disable_validate_hash}" ] || return 0
+	if [ -z "${force_hash}" ] && [ -z "${disable_validate_hash}" ]; then
+		return 0
+	fi
 
 	# Verify length
 	[ "${#1}" -eq "${fixed_length}" ] || {
@@ -2447,21 +2458,18 @@ status_easytls_tlskeys ()
 	# Skip heading
 	[ "${tlskey_serial}" = "#" ] && continue
 
-	# Validate - Can not open this key so these checks are minor
-	key_file="${EASYTLS_PKI}/${common_name}-tls-crypt-v2.key"
-	metadata_debug="${EASYTLS_META_DATA_D}/${common_name}-tls-crypt-v2.metadata"
+	# Set name and sub-key-name
+	full_name="${common_name}"
+	[ "${sub_key}" = 'NOSUBKEY' ] || full_name="${common_name}-${sub_key}"
 
-	[ "${sub_key}" = 'NOSUBKEY' ] || {
-		full_name="${common_name}-${sub_key}"
-		key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
-		metadata_debug="${EASYTLS_META_DATA_D}/${full_name}-tls-crypt-v2.metadata"
-		}
+	# Validate - Can not open this key so these checks are minor
+	key_file="${EASYTLS_PKI}/${full_name}-tls-crypt-v2.key"
+	metadata_debug="${EASYTLS_META_DATA_D}/${full_name}-tls-crypt-v2.metadata"
 
 	[ -f "${key_file}" ] || "${EASYTLS_PRINTF}" '%s\t'   "  Missing key"
 
-	if  [ "${tlskey_serial}" = "${cv2_Srv_Serial}" ]; then
+	if [ "${tlskey_serial%%:*}" != "${tlskey_serial}" ]; then
 		# Must be a server key with no metadata
-		# All server key tls-serial are only 40 chars, no need for SHA256
 		"${EASYTLS_PRINTF}" '%s\t' "  Server"
 	else
 		[ -f "${metadata_debug}" ] || \
@@ -3307,6 +3315,25 @@ tlskey_index_save_hash ()
 	tlskey_index_save_hash_block=1
 } # => tlskey_index_save_hash ()
 
+# Create Server TLSKEY serial number
+tlskey_cv2_server_serial_number ()
+{
+	force_hash=1
+	if generate_and_validate_file_hash "${1}"; then
+		# hack off last 4 digits to differentiate server from client
+		# Insert Group and Server marker
+		if [ -z "${group_mode}" ]; then
+			generated_valid_hash="SRV:${generated_valid_hash%%????}"
+		else
+			generated_valid_hash="G_S:${generated_valid_hash%%????}"
+		fi
+		server_TLSKEY_serial_number="${generated_valid_hash}"
+	else
+		die "tlskey_cv2_server_serial_number - generate_and_validate_file_hash"
+	fi
+	unset generated_valid_hash force_hash
+} # => tlskey_cv2_server_serial_number ()
+
 # Insert a serial number
 tlskey_cv2_client_serial_number ()
 {
@@ -4083,7 +4110,9 @@ inline_tls_crypt_v2 ()
 	else
 		# Must be a server
 		no_metadata=1
-		MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
+		tlskey_cv2_server_serial_number "${tlskey_file}"
+		tlskey_serial="${server_TLSKEY_serial_number}"
+		MD_TLSKEY_SERIAL="${tlskey_serial}"
 	fi
 
 	# Inline base file
@@ -4251,7 +4280,9 @@ inline_tls_cv2_group_server ()
 
 	# Settings for Server
 	no_metadata=1
-	MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
+	tlskey_cv2_server_serial_number "${tlskey_file}"
+	tlskey_serial="${server_TLSKEY_serial_number}"
+	MD_TLSKEY_SERIAL="${tlskey_serial}"
 
 	# Inline base file
 	inline_base "${name}" || die "Failed to create inline base file"
@@ -4794,7 +4825,6 @@ inline_share_fingerprint ()
 		: # OK
 	else
 		TLSKEY_SUBNAME='NOSUBKEY'
-		MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
 		name="${srv_name}"
 		inline_file="${srv_inline}"
 
@@ -4916,7 +4946,8 @@ build_tls_crypt_v2_server ()
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
 
 	# Save incomplete server record to key-index
-	tlskey_serial="${cv2_Srv_Serial}"
+	tlskey_cv2_server_serial_number "${tlskey_file}"
+	tlskey_serial="${server_TLSKEY_serial_number}"
 	cli_name="${srv_name}" # Improve this
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
@@ -5124,10 +5155,11 @@ build_tls_cv2_group_server ()
 		die "Failed to create tls-crypt-v2-server key: ${tlskey_file}"
 
 	# Save incomplete server record to key-index
-	MD_TLSKEY_SERIAL="${cv2_Srv_Serial}"
+	group_mode=1
+	tlskey_cv2_server_serial_number "${tlskey_file}"
+	tlskey_serial="${server_TLSKEY_serial_number}"
 	cert_serial="00000000000000000000000000000000"
 	cli_name="${grp_name}" # Improve this
-	tlskey_serial="${MD_TLSKEY_SERIAL}"
 	tlskey_index_update add || die "Failed to update tlskey-index"
 
 	notice "TLS-Crypt-V2 GROUP Server Key created: ${tlskey_file}"
@@ -5805,11 +5837,18 @@ b64_enc_metadata ()
 	key_date="${local_time_unix}"
 
 	if [ -n "${group_mode}" ]; then
-		# Append Server name to CA-ID
-		ca_identity="${cv2_Srv_Serial}"
-		#srv_name="${srv_grp_name}"
+
+		# Group mode client key MUST know the server from which it was built
 		srv_name="${srv_key_name}"
+
+		# In Group mode easytls abandons x509 CA
+		# A TLS-CV2 Group Server and Client Key cannot be aligned to any x509
+		ca_identity="${group_mode_fixed_ca_id}"
+
+		# Append TLS-CV2 Group Server name to CA-ID
 		ca_identity="${ca_identity}-${srv_name}"
+
+		# Group mode - No client x509
 		cert_serial="00000000000000000000000000000000"
 
 		# Build metadata
