@@ -1776,13 +1776,13 @@ ssl_generate_empty_hash ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_empty_hash ()
 {
-	error_msg "easytls_ssl_generate_empty_hash - ssl_out"
+	error_out="easytls_ssl_generate_empty_hash - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_generate_empty_hash
-		)" || return 1
+		)" || { error_msg "${error_out}";return 1; }
 	empty_hash="${ssl_out% *}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_generate_empty_hash ()
 
 # Hash all files from master file-list
@@ -1818,13 +1818,13 @@ easytls_ssl_generate_file_hash ()
 		generated_file_hash="${fixed_hash}"
 		return 0
 	else
-		error_msg "easytls_ssl_generate_file_hash - ssl_out"
+		error_out="easytls_ssl_generate_file_hash - ssl_out"
 		ssl_out="$(
 			unlock_ssl=1
 			ssl_generate_file_hash "${1}"
-			)" || return 1
+			)" ||  { error_msg "${error_out}";return 1; }
 		generated_file_hash="${ssl_out% *}"
-		unset -v error_msg ssl_out
+		unset -v error_out ssl_out
 	fi
 } # => easytls_ssl_encode_base64_data ()
 
@@ -1847,13 +1847,13 @@ easytls_ssl_generate_data_hash ()
 		generated_data_hash="${fixed_hash}"
 		return 0
 	else
-		error_msg "easytls_ssl_generate_data_hash - ssl_out"
+		error_out="easytls_ssl_generate_data_hash - ssl_out"
 		ssl_out="$(
 			unlock_ssl=1
 			"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
-			)" || return 1
+			)" ||  { error_msg "${error_out}";return 1; }
 		generated_data_hash="${ssl_out% *}"
-		unset -v error_msg ssl_out
+		unset -v error_out ssl_out
 	fi
 } # => easytls_ssl_generate_data_hash ()
 
@@ -1869,13 +1869,13 @@ ssl_encode_base64_data ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_encode_base64_data ()
 {
-	error_msg "easytls_ssl_encode_base64_data - ssl_out"
+	error_out="easytls_ssl_encode_base64_data - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_encode_base64_data
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	generated_base64="${ssl_out}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_encode_base64_data ()
 
 # SSL -enddate output
@@ -1890,13 +1890,13 @@ ssl_cert_expire_date ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_expire_date ()
 {
-	error_msg "easytls_ssl_cert_expire_date - ssl_out"
+	error_out="easytls_ssl_cert_expire_date - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_cert_expire_date "${1}"
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	certificate_expire_date="${ssl_out#*=}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -purpose output (List of purposes Yes/No)
@@ -1911,13 +1911,13 @@ ssl_cert_purpose ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_purpose ()
 {
-	error_msg "easytls_ssl_cert_purpose - ssl_out"
+	error_out="easytls_ssl_cert_purpose - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_cert_purpose "${1}"
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	certificate_purpose_list="${ssl_out}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -fingerprint output
@@ -1932,13 +1932,13 @@ ssl_generate_fingerprint ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_generate_fingerprint ()
 {
-	error_msg "easytls_ssl_generate_fingerprint - ssl_out"
+	error_out="easytls_ssl_generate_fingerprint - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_generate_fingerprint "${1}"
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	certificate_fingerPrint="${ssl_out#*=}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_generate_fingerprint ()
 
 # SSL -serial output
@@ -1953,13 +1953,13 @@ ssl_cert_serial ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_cert_serial ()
 {
-	error_msg "easytls_ssl_cert_serial - ssl_out"
+	error_out="easytls_ssl_cert_serial - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_cert_serial "${1}"
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	certificate_serialNumber="${ssl_out#*=}"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_cert_serial ()
 
 # SSL -subject output and grep for commonName
@@ -1976,13 +1976,13 @@ ssl_crt_common_name ()
 # shellcheck disable=SC2030 # subshell modification
 easytls_ssl_crt_common_name ()
 {
-	error_msg "easytls_ssl_crt_common_name - ssl_out"
+	error_out="easytls_ssl_crt_common_name - ssl_out"
 	ssl_out="$(
 		unlock_ssl=1
 		ssl_crt_common_name "${1}"
-		)" || return 1
+		)" ||  { error_msg "${error_out}";return 1; }
 	certificate_commonName="${ssl_out#*commonName = }"
-	unset -v error_msg ssl_out
+	unset -v error_out ssl_out
 } # => easytls_ssl_crt_common_name ()
 
 
