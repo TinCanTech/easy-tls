@@ -3308,11 +3308,11 @@ tlskey_index_save_hash ()
 } # => tlskey_index_save_hash ()
 
 # Insert a serial number
-tls_crypt_v2_serial_number ()
+tlskey_cv2_client_serial_number ()
 {
 	# Prepend random padding to metadata
 	metadata_padding="$("${EASYRSA_OPENSSL}" rand -hex 4)" || {
-		error_msg "tls_crypt_v2_serial_number - metadata_padding"
+		error_msg "tlskey_cv2_client_serial_number - metadata_padding"
 		unset -v metadata_padding
 		return 1
 		}
@@ -3321,7 +3321,7 @@ tls_crypt_v2_serial_number ()
 	# Generate and validate tlskey_serial from metadata string
 	force_hash=1
 	generate_and_validate_data_hash "${metadata}" || {
-		error_msg "tls_crypt_v2_serial_number - tlskey_serial"
+		error_msg "tlskey_cv2_client_serial_number - tlskey_serial"
 		unset -v tlskey_serial
 		return 1
 		}
@@ -3342,7 +3342,7 @@ tls_crypt_v2_serial_number ()
 
 	# Insert this valid hash as tlskey_serial into metadata
 	metadata="${tlskey_serial}-${metadata}"
-} # => tls_crypt_v2_serial_number ()
+} # => tlskey_cv2_client_serial_number ()
 
 # tlskey name subkeyname to tls serial
 tlskey_index_fname_2_tlskser ()
@@ -5883,8 +5883,8 @@ b64_enc_metadata ()
 	fi
 
 	# TLS Crypt v2 client key serial number
-	tls_crypt_v2_serial_number || {
-		error_msg "b64_enc_metadata - tls_crypt_v2_serial_number"
+	tlskey_cv2_client_serial_number || {
+		error_msg "b64_enc_metadata - tlskey_cv2_client_serial_number"
 		return 1
 		}
 
