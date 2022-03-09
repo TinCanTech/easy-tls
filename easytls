@@ -1429,6 +1429,71 @@ easytls_auto_check () {
 	unset -v auto_check
 } # => easytls_auto_check ()
 
+# universal update config/index/list
+universal_update ()
+{
+	[ "$#" -eq 3 ] || return 1
+
+	action="${1}"
+	target="${2}"
+	record="${3}"
+
+	# Valid target
+	[ -f "${target}" ] || missing_file "universal_update - ${target}"
+	[ ! -f "${EASYTLS_TEMP_LIST}" ] || "${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}"
+	"${EASYTLS_CP}" "${target}" "${EASYTLS_TEMP_LIST}" || {
+		error_msg "universal_update - copy target to temp-list"
+		return 1
+		}
+
+	unset -v universal_update_ok
+
+	# Action
+	case "${action}" in
+	add)
+		if "${EASYTLS_GREP}" -q "${record}" "${EASYTLS_TEMP_LIST}"; then
+			error_msg "universal_update - add - record exists"
+		else
+			# Add record
+			if	{	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}"
+					"${EASYTLS_PRINTF}" '%s\n' "${record}"
+				} > "${EASYTLS_TEMP_UPDATE}"
+			then
+				# Success
+				universal_update_ok=1
+			else
+				error_msg "universal_update - Add record"
+			fi
+		fi
+	;;
+	del)
+		if "${EASYTLS_GREP}" -q "${record}" "${EASYTLS_TEMP_LIST}"; then
+			# Delete record
+			if "${EASYTLS_SED}" -e "/${record}/d" \
+				"${EASYTLS_TEMP_LIST}" > "${EASYTLS_TEMP_UPDATE}"
+			then
+				# Success
+				universal_update_ok=1
+			else
+				error_msg "universal_update - Delete record"
+			fi
+		else
+			error_msg "universal_update - del - record does not exist"
+		fi
+	;;
+	*)	die "universal_update - unknown action - ${action}"
+	esac
+
+	if [ -n "${universal_update_ok}" ]; then
+		# Move temp file over target
+		"${EASYTLS_RM}" -f "${target}"
+		"${EASYTLS_MV}" "${EASYTLS_TEMP_UPDATE}" "${target}" || \
+			die "universal_update - Move temp file over target"
+	else
+		return 1
+	fi
+} # => universal_update ()
+
 # Generate file hash - Return $generated_valid_hash
 generate_and_validate_file_hash () {
 	[ -f "${1}" ] || {
@@ -5293,6 +5358,319 @@ hw_addr_hex_check ()
 		}
 } # => hw_addr_hex_check ()
 
+# Base64 encode metadata fields
+b64_enc_metadata ()
+{
+	# metadata strings:
+	#
+	# All fields are single contiguous words
+	#
+	# 1.  "TLS_Key_Serial_Number"-"Random padding"--'easytls'-"$EASYTLS_VERSION"
+	#     "Random padding" and "$EASYTLS_VERSION" are non-functional
+	#
+	# 2   CA Identity - CA fingerprint
+	#     `OpenSSL output`; Drop decription and remove colons ':' (Hex only field)
+	#
+	# 2.1 Server Fingerprint - Formatted as a CA Identity
+	#     In No-CA mode the server fingerprint is used instead of the CA
+	#
+	# 2.2 Server name
+	#
+	#
+	# 3.  Client certificate serial
+	#     `OpenSSL output`; Drop the 'serial=' (Hex only field)
+	#
+	# 4.  Creation Date of this key:
+	#     %s     seconds since 1970-01-01 00:00:00 UTC
+	#
+	# 5.  Custom Group string
+	#     Default: EASYTLS
+	#
+	# 6.  Client CommonName
+	#
+	# 7.  Sub-key Name
+	#     Default: NOSUBKEY
+	#
+	# 8.  Option - TBD
+	#     Default: OPT
+	#
+	# 9.  Hardware Address string:
+	#     Default: =000000000000=
+	#
+
+	# metadata_version
+	metadata_version="easytls-${EASYTLS_VERSION}"
+
+	# Set creation Date
+	key_date="${local_time_unix}"
+
+	if [ -n "${group_mode}" ]; then
+
+		# Group mode client key MUST know the server from which it was built
+		srv_name="${srv_key_name}"
+
+		# In Group mode easytls abandons x509 CA
+		# A TLS-CV2 Group Server and Client Key cannot be aligned to any x509
+		ca_identity="${group_mode_fixed_ca_id}"
+
+		# Append TLS-CV2 Group Server name to CA-ID
+		ca_identity="${ca_identity}-${srv_name}"
+
+		# Group mode - No client x509
+		cert_serial="00000000000000000000000000000000"
+
+		# Build metadata
+		metadata="${metadata_version}${delimiter}${ca_identity}"
+		metadata="${metadata}${delimiter}${cert_serial}${delimiter}${key_date}"
+
+		# Append --custom-group
+		metadata="${metadata}${delimiter}${TLSKEY_CUSTOM_GRP}"
+
+		# Append common_name
+		cli_name="${cli_grp_name}"
+		metadata="${metadata}${delimiter}${cli_name}"
+
+		# Append --sub-key-name
+		metadata="${metadata}${delimiter}${TLSKEY_SUBNAME}"
+
+	else
+
+		# CA Identity
+		generate_ca_identity || {
+			error_msg "b64_enc_metadata - generate_ca_identity"
+			return 1
+			}
+
+		# Append Server name to CA-ID
+		ca_identity="${ca_identity}-${srv_name}"
+
+		# get the serial number of the certificate from OpenSSL
+		x509_cert_serial "${cli_cert}" || {
+			error_msg "b64_enc_metadata - x509_cert_serial - ${cli_cert}"
+			return 1
+			}
+
+		# Use extracted_cert_serial
+		cert_serial="${extracted_cert_serial}"
+
+		# Build metadata
+		metadata="${metadata_version}${delimiter}${ca_identity}"
+		metadata="${metadata}${delimiter}${cert_serial}${delimiter}${key_date}"
+
+		# Append --custom-group
+		metadata="${metadata}${delimiter}${TLSKEY_CUSTOM_GRP}"
+
+		# Append common_name
+		[ -n "${cli_name}" ] || {
+			error_msg "no client name"
+			return 1
+			}
+		metadata="${metadata}${delimiter}${cli_name}"
+
+		# Append --sub-key-name
+		metadata="${metadata}${delimiter}${TLSKEY_SUBNAME}"
+	fi
+
+	# Append opt field (Usage is to be decided)
+	if [ -n "${EASYTLS_TLSCV2_OPT}" ]; then
+		metadata="${metadata}${delimiter}${EASYTLS_TLSCV2_OPT}"
+	else
+		metadata="${metadata}${delimiter}OPT"
+	fi
+
+	# Append --hw-addr
+	if [ -n "${EASYTLS_TLSCV2_HWLIST}" ]; then
+		MD_HW_LIST=''
+		for i in ${EASYTLS_TLSCV2_HWLIST}; do
+			MD_HW_LIST="${MD_HW_LIST}=${i}"
+		done
+		metadata="${metadata}${delimiter}${MD_HW_LIST}="
+	else
+		metadata="${metadata}${delimiter}=000000000000="
+	fi
+
+	# TLS Crypt v2 client key serial number
+	tlskey_cv2_client_serial_number || {
+		error_msg "b64_enc_metadata - tlskey_cv2_client_serial_number"
+		return 1
+		}
+
+	# Save metadata in plain text
+	"${EASYTLS_PRINTF}" "%s\n" "${metadata}" > "${metadata_debug}" || {
+		error_msg "b64_enc_metadata - Save metadata_debug"
+		return 1
+		}
+
+	# List metadata
+	easytls_verbose "metadata:
+${metadata}"
+
+	# Base64 encode metadata
+	easytls_ssl_encode_base64_data "${metadata}" || {
+		error_msg "b64_enc_metadata - easytls_ssl_encode_base64_data"
+		return 1
+		}
+	# Use generated b64 metadata
+	b64_metadata="${generated_base64}"
+	unset -v generated_base64
+} # => b64_enc_metadata ()
+
+# Build self-signed server cert and key
+build_self_sign ()
+{
+	[ "$#" -ge 2 ] || die "Required option(s): <Name>"
+
+	cert_type="${1}"
+	shift # Scrape off type
+
+	cert_name="${1}"
+	shift # Scrape off name
+
+	cert_file="${EASYTLS_PKI}/${cert_name}.crt"
+	key_file="${EASYTLS_PKI}/${cert_name}.key"
+	fpr_file="${EASYTLS_PKI}/${cert_name}.fpr"
+	inline_file="${EASYTLS_PKI}/${cert_name}.inline"
+
+	[ ! -f "${cert_file}" ] || {
+		help_note="Not over-writing current certificate"
+		die "Certificate exists: ${cert_file}"
+		}
+
+	[ ! -f "${key_file}" ] || {
+		help_note="Not over-writing current key"
+		die "Key exists: ${key_file}"
+		}
+
+	[ ! -f "${inline_file}" ] || {
+		help_note="Not over-writing current inline file"
+		die "Inline file exists: ${inline_file}"
+		}
+
+	# Certificate type
+	case "${cert_type}" in
+	[sS]erver)
+		# Certificate extension: TLS Web Server
+		EASYTLS_EKU="serverAuth"
+		cert_purpose='Server'
+	;;
+	[cC]lient)
+		# Certificate extension: TLS Web Server
+		EASYTLS_EKU="clientAuth"
+		cert_purpose='Client'
+	;;
+	*)
+		die "Unknown certificate type: ${cert_type}"
+	esac
+
+	# Verify Major version of openssl
+	verify_openssl || die "build_self_sign - verify_openssl"
+
+	# Disable password
+	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
+		case "${openssl_version}" in
+		3)	openssl_nopass="-noenc" ;;
+		1)	openssl_nopass="-nodes" ;;
+		*)	die "Unsupport openssl version: ${openssl_version}"
+		esac
+	fi
+
+	# build
+	create_self_sign_cert_pair || \
+		die "Failed to create self-signed ${cert_type} cert/key for ${cert_name}"
+
+	# Generate FP
+	easytls_ssl_generate_fingerprint "${cert_file}" || {
+		error_msg "build_self_sign - easytls_ssl_generate_fingerprint"
+		return 1
+		}
+	cert_fpr="${certificate_fingerPrint}"
+	unset -v certificate_fingerPrint
+
+	# Write FP file - Always over-write any current file
+	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" >  "${fpr_file}" || {
+		error_msg "build_self_sign - Write FP file"
+		return 1
+		}
+
+	# Create base-inline-file - Clients cannot generate TLS-keys
+	# Do not add this inline-file to inline-index
+	{
+		"${EASYTLS_PRINTF}" '%s\n' \
+			"# Easy-TLS self-signed certificate base-inline file"
+		"${EASYTLS_PRINTF}" '%s\n' "# ${cert_type}: ${cert_name}"
+		"${EASYTLS_PRINTF}" '%s\n\n' \
+			"# Send this to your peer - Fingerprint: ${cert_fpr}"
+		"${EASYTLS_PRINTF}" '%s\n' "<cert>"
+		"${EASYTLS_CAT}" "${cert_file}"
+		"${EASYTLS_PRINTF}" '%s\n\n' "<\cert>"
+
+		# Add key
+		"${EASYTLS_PRINTF}" '%s\n' "<key>"
+		"${EASYTLS_CAT}" "${key_file}"
+		"${EASYTLS_PRINTF}" '%s\n\n' "<\key>"
+
+		# Share fingerprint template
+		inline_share_fingerprint || \
+			die "build_self_sign - inline_share_fingerprint"
+	} > "${inline_file}" || die "Failed to create Inline file for ${cert_name}"
+
+	# share this client FP with server defined by -r=<serv-name> option
+	inline_share_fingerprint "${cert_name}" || \
+		die "inline_share_fingerprint - build_self_sign"
+
+	notice "Self signed ${cert_type} certificate/key created for ${cert_name}"
+	notice " * Certificate: ${cert_file}"
+	notice " *         Key: ${key_file}"
+	notice " * Fingerprint: ${fpr_file}"
+	notice " * Inline file: ${inline_file}"
+	if "${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt.*>" "${inline_file}"; then
+		:
+	else
+		print "   This inline-file requires a TLS-key"
+	fi
+	if "${EASYTLS_GREP}" -q \
+		"^.* Replace this line with your peer's fingerprint .*$" \
+		"${inline_file}"
+	then
+		print "   AND peer-fingerprint"
+	fi
+	easytls_verbose
+} # => build_self_sign_server ()
+
+# Create an EC key/cert pair
+create_self_sign_cert_pair ()
+{
+	# Setup easytls-openssl.cnf and env-var OPENSSL_CNF
+	easytls_ssl_file create || \
+		die "Failed to create easytls-openssl.cnf (Permission)"
+
+	# If ecparams fail then so does req
+	easytls_verbose
+	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_EC_CURVE}" \
+		> "${EASYTLS_ECPARAM_TMP}"
+	# Separate commands for utterly stupid -nodes/-noenc not set error
+	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
+		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
+			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
+			"${openssl_nopass}" \
+			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
+			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
+	else
+		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
+			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
+			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
+			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
+	fi
+
+	# Remove easytls-openssl.cnf and env-var OPENSSL_CNF
+	easytls_ssl_file destroy || \
+		die "Failed to destroy easytls-openssl.cnf (Permission)"
+	update_master_hash=1
+	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
+} # => create_self_sign_cert_pair ()
+
+
+
 #=# 9273398a-5284-4c1f-aec5-d597ceb1d085
 
 # Verbose message
@@ -5790,163 +6168,6 @@ metadata_stov_safe ()
 
 
 
-# Base64 encode metadata fields
-b64_enc_metadata ()
-{
-	# metadata strings:
-	#
-	# All fields are single contiguous words
-	#
-	# 1.  "TLS_Key_Serial_Number"-"Random padding"--'easytls'-"$EASYTLS_VERSION"
-	#     "Random padding" and "$EASYTLS_VERSION" are non-functional
-	#
-	# 2   CA Identity - CA fingerprint
-	#     `OpenSSL output`; Drop decription and remove colons ':' (Hex only field)
-	#
-	# 2.1 Server Fingerprint - Formatted as a CA Identity
-	#     In No-CA mode the server fingerprint is used instead of the CA
-	#
-	# 2.2 Server name
-	#
-	#
-	# 3.  Client certificate serial
-	#     `OpenSSL output`; Drop the 'serial=' (Hex only field)
-	#
-	# 4.  Creation Date of this key:
-	#     %s     seconds since 1970-01-01 00:00:00 UTC
-	#
-	# 5.  Custom Group string
-	#     Default: EASYTLS
-	#
-	# 6.  Client CommonName
-	#
-	# 7.  Sub-key Name
-	#     Default: NOSUBKEY
-	#
-	# 8.  Option - TBD
-	#     Default: OPT
-	#
-	# 9.  Hardware Address string:
-	#     Default: =000000000000=
-	#
-
-	# metadata_version
-	metadata_version="easytls-${EASYTLS_VERSION}"
-
-	# Set creation Date
-	key_date="${local_time_unix}"
-
-	if [ -n "${group_mode}" ]; then
-
-		# Group mode client key MUST know the server from which it was built
-		srv_name="${srv_key_name}"
-
-		# In Group mode easytls abandons x509 CA
-		# A TLS-CV2 Group Server and Client Key cannot be aligned to any x509
-		ca_identity="${group_mode_fixed_ca_id}"
-
-		# Append TLS-CV2 Group Server name to CA-ID
-		ca_identity="${ca_identity}-${srv_name}"
-
-		# Group mode - No client x509
-		cert_serial="00000000000000000000000000000000"
-
-		# Build metadata
-		metadata="${metadata_version}${delimiter}${ca_identity}"
-		metadata="${metadata}${delimiter}${cert_serial}${delimiter}${key_date}"
-
-		# Append --custom-group
-		metadata="${metadata}${delimiter}${TLSKEY_CUSTOM_GRP}"
-
-		# Append common_name
-		cli_name="${cli_grp_name}"
-		metadata="${metadata}${delimiter}${cli_name}"
-
-		# Append --sub-key-name
-		metadata="${metadata}${delimiter}${TLSKEY_SUBNAME}"
-
-	else
-
-		# CA Identity
-		generate_ca_identity || {
-			error_msg "b64_enc_metadata - generate_ca_identity"
-			return 1
-			}
-
-		# Append Server name to CA-ID
-		ca_identity="${ca_identity}-${srv_name}"
-
-		# get the serial number of the certificate from OpenSSL
-		x509_cert_serial "${cli_cert}" || {
-			error_msg "b64_enc_metadata - x509_cert_serial - ${cli_cert}"
-			return 1
-			}
-
-		# Use extracted_cert_serial
-		cert_serial="${extracted_cert_serial}"
-
-		# Build metadata
-		metadata="${metadata_version}${delimiter}${ca_identity}"
-		metadata="${metadata}${delimiter}${cert_serial}${delimiter}${key_date}"
-
-		# Append --custom-group
-		metadata="${metadata}${delimiter}${TLSKEY_CUSTOM_GRP}"
-
-		# Append common_name
-		[ -n "${cli_name}" ] || {
-			error_msg "no client name"
-			return 1
-			}
-		metadata="${metadata}${delimiter}${cli_name}"
-
-		# Append --sub-key-name
-		metadata="${metadata}${delimiter}${TLSKEY_SUBNAME}"
-	fi
-
-	# Append opt field (Usage is to be decided)
-	if [ -n "${EASYTLS_TLSCV2_OPT}" ]; then
-		metadata="${metadata}${delimiter}${EASYTLS_TLSCV2_OPT}"
-	else
-		metadata="${metadata}${delimiter}OPT"
-	fi
-
-	# Append --hw-addr
-	if [ -n "${EASYTLS_TLSCV2_HWLIST}" ]; then
-		MD_HW_LIST=''
-		for i in ${EASYTLS_TLSCV2_HWLIST}; do
-			MD_HW_LIST="${MD_HW_LIST}=${i}"
-		done
-		metadata="${metadata}${delimiter}${MD_HW_LIST}="
-	else
-		metadata="${metadata}${delimiter}=000000000000="
-	fi
-
-	# TLS Crypt v2 client key serial number
-	tlskey_cv2_client_serial_number || {
-		error_msg "b64_enc_metadata - tlskey_cv2_client_serial_number"
-		return 1
-		}
-
-	# Save metadata in plain text
-	"${EASYTLS_PRINTF}" "%s\n" "${metadata}" > "${metadata_debug}" || {
-		error_msg "b64_enc_metadata - Save metadata_debug"
-		return 1
-		}
-
-	# List metadata
-	easytls_verbose "metadata:
-${metadata}"
-
-	# Base64 encode metadata
-	easytls_ssl_encode_base64_data "${metadata}" || {
-		error_msg "b64_enc_metadata - easytls_ssl_encode_base64_data"
-		return 1
-		}
-	# Use generated b64 metadata
-	b64_metadata="${generated_base64}"
-	unset -v generated_base64
-} # => b64_enc_metadata ()
-
 # Generate CA Identity from CA fingerprint
 generate_ca_identity ()
 {
@@ -5972,160 +6193,6 @@ easytls_generate_ca_identity ()
 	"${EASYTLS_PRINTF}" '%s' "${1}" | \
 		"${EASYTLS_SED}" -e 's/^.*=//g' -e 's/://g' || return 1
 } # => easytls_ca_identity ()
-
-# Build self-signed server cert and key
-build_self_sign ()
-{
-	[ "$#" -ge 2 ] || die "Required option(s): <Name>"
-
-	cert_type="${1}"
-	shift # Scrape off type
-
-	cert_name="${1}"
-	shift # Scrape off name
-
-	cert_file="${EASYTLS_PKI}/${cert_name}.crt"
-	key_file="${EASYTLS_PKI}/${cert_name}.key"
-	fpr_file="${EASYTLS_PKI}/${cert_name}.fpr"
-	inline_file="${EASYTLS_PKI}/${cert_name}.inline"
-
-	[ ! -f "${cert_file}" ] || {
-		help_note="Not over-writing current certificate"
-		die "Certificate exists: ${cert_file}"
-		}
-
-	[ ! -f "${key_file}" ] || {
-		help_note="Not over-writing current key"
-		die "Key exists: ${key_file}"
-		}
-
-	[ ! -f "${inline_file}" ] || {
-		help_note="Not over-writing current inline file"
-		die "Inline file exists: ${inline_file}"
-		}
-
-	# Certificate type
-	case "${cert_type}" in
-	[sS]erver)
-		# Certificate extension: TLS Web Server
-		EASYTLS_EKU="serverAuth"
-		cert_purpose='Server'
-	;;
-	[cC]lient)
-		# Certificate extension: TLS Web Server
-		EASYTLS_EKU="clientAuth"
-		cert_purpose='Client'
-	;;
-	*)
-		die "Unknown certificate type: ${cert_type}"
-	esac
-
-	# Verify Major version of openssl
-	verify_openssl || die "build_self_sign - verify_openssl"
-
-	# Disable password
-	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
-		case "${openssl_version}" in
-		3)	openssl_nopass="-noenc" ;;
-		1)	openssl_nopass="-nodes" ;;
-		*)	die "Unsupport openssl version: ${openssl_version}"
-		esac
-	fi
-
-	# build
-	create_self_sign_cert_pair || \
-		die "Failed to create self-signed ${cert_type} cert/key for ${cert_name}"
-
-	# Generate FP
-	easytls_ssl_generate_fingerprint "${cert_file}" || {
-		error_msg "build_self_sign - easytls_ssl_generate_fingerprint"
-		return 1
-		}
-	cert_fpr="${certificate_fingerPrint}"
-	unset -v certificate_fingerPrint
-
-	# Write FP file - Always over-write any current file
-	"${EASYTLS_PRINTF}" "%s\n" "${cert_fpr}" >  "${fpr_file}" || {
-		error_msg "build_self_sign - Write FP file"
-		return 1
-		}
-
-	# Create base-inline-file - Clients cannot generate TLS-keys
-	# Do not add this inline-file to inline-index
-	{
-		"${EASYTLS_PRINTF}" '%s\n' \
-			"# Easy-TLS self-signed certificate base-inline file"
-		"${EASYTLS_PRINTF}" '%s\n' "# ${cert_type}: ${cert_name}"
-		"${EASYTLS_PRINTF}" '%s\n\n' \
-			"# Send this to your peer - Fingerprint: ${cert_fpr}"
-		"${EASYTLS_PRINTF}" '%s\n' "<cert>"
-		"${EASYTLS_CAT}" "${cert_file}"
-		"${EASYTLS_PRINTF}" '%s\n\n' "<\cert>"
-
-		# Add key
-		"${EASYTLS_PRINTF}" '%s\n' "<key>"
-		"${EASYTLS_CAT}" "${key_file}"
-		"${EASYTLS_PRINTF}" '%s\n\n' "<\key>"
-
-		# Share fingerprint template
-		inline_share_fingerprint || \
-			die "build_self_sign - inline_share_fingerprint"
-	} > "${inline_file}" || die "Failed to create Inline file for ${cert_name}"
-
-	# share this client FP with server defined by -r=<serv-name> option
-	inline_share_fingerprint "${cert_name}" || \
-		die "inline_share_fingerprint - build_self_sign"
-
-	notice "Self signed ${cert_type} certificate/key created for ${cert_name}"
-	notice " * Certificate: ${cert_file}"
-	notice " *         Key: ${key_file}"
-	notice " * Fingerprint: ${fpr_file}"
-	notice " * Inline file: ${inline_file}"
-	if "${EASYTLS_GREP}" -q "<tls-auth>|<tls-crypt.*>" "${inline_file}"; then
-		:
-	else
-		print "   This inline-file requires a TLS-key"
-	fi
-	if "${EASYTLS_GREP}" -q \
-		"^.* Replace this line with your peer's fingerprint .*$" \
-		"${inline_file}"
-	then
-		print "   AND peer-fingerprint"
-	fi
-	easytls_verbose
-} # => build_self_sign_server ()
-
-# Create an EC key/cert pair
-create_self_sign_cert_pair ()
-{
-	# Setup easytls-openssl.cnf and env-var OPENSSL_CNF
-	easytls_ssl_file create || \
-		die "Failed to create easytls-openssl.cnf (Permission)"
-
-	# If ecparams fail then so does req
-	easytls_verbose
-	"${EASYRSA_OPENSSL}" ecparam -name "${EASYTLS_EC_CURVE}" \
-		> "${EASYTLS_ECPARAM_TMP}"
-	# Separate commands for utterly stupid -nodes/-noenc not set error
-	if [ -z "${EASYTLS_SS_PASSWORD}" ]; then
-		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
-			"${openssl_nopass}" \
-			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
-			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
-	else
-		"${EASYRSA_OPENSSL}" req -x509 -newkey ec:"${EASYTLS_ECPARAM_TMP}" \
-			-sha256 -days="${EASYTLS_SS_AGE}" -text -utf8 \
-			-keyout "${key_file}" -out "${cert_file}" -subj "/CN=${cert_name}" \
-			-addext extendedKeyUsage="${EASYTLS_EKU}" || return 1
-	fi
-
-	# Remove easytls-openssl.cnf and env-var OPENSSL_CNF
-	easytls_ssl_file destroy || \
-		die "Failed to destroy easytls-openssl.cnf (Permission)"
-	update_master_hash=1
-	"${EASYTLS_RM}" -f "${EASYTLS_ECPARAM_TMP}"
-} # => create_self_sign_cert_pair ()
 
 # Save the ID
 save_id ()
@@ -6166,78 +6233,6 @@ save_id ()
 	notice "Saved CA Identity: ${EASYTLS_CA_IDENTITY}"
 	easytls_verbose
 } # => save_id ()
-
-
-
-############################################################################
-#
-# TEST Section
-#
-
-# universal update config/index/list
-universal_update ()
-{
-	[ "$#" -eq 3 ] || return 1
-
-	action="${1}"
-	target="${2}"
-	record="${3}"
-
-	# Valid target
-	[ -f "${target}" ] || missing_file "universal_update - ${target}"
-	[ ! -f "${EASYTLS_TEMP_LIST}" ] || "${EASYTLS_RM}" -f "${EASYTLS_TEMP_LIST}"
-	"${EASYTLS_CP}" "${target}" "${EASYTLS_TEMP_LIST}" || {
-		error_msg "universal_update - copy target to temp-list"
-		return 1
-		}
-
-	unset -v universal_update_ok
-
-	# Action
-	case "${action}" in
-	add)
-		if "${EASYTLS_GREP}" -q "${record}" "${EASYTLS_TEMP_LIST}"; then
-			error_msg "universal_update - add - record exists"
-		else
-			# Add record
-			if	{	"${EASYTLS_CAT}" "${EASYTLS_TEMP_LIST}"
-					"${EASYTLS_PRINTF}" '%s\n' "${record}"
-				} > "${EASYTLS_TEMP_UPDATE}"
-			then
-				# Success
-				universal_update_ok=1
-			else
-				error_msg "universal_update - Add record"
-			fi
-		fi
-	;;
-	del)
-		if "${EASYTLS_GREP}" -q "${record}" "${EASYTLS_TEMP_LIST}"; then
-			# Delete record
-			if "${EASYTLS_SED}" -e "/${record}/d" \
-				"${EASYTLS_TEMP_LIST}" > "${EASYTLS_TEMP_UPDATE}"
-			then
-				# Success
-				universal_update_ok=1
-			else
-				error_msg "universal_update - Delete record"
-			fi
-		else
-			error_msg "universal_update - del - record does not exist"
-		fi
-	;;
-	*)	die "universal_update - unknown action - ${action}"
-	esac
-
-	if [ -n "${universal_update_ok}" ]; then
-		# Move temp file over target
-		"${EASYTLS_RM}" -f "${target}"
-		"${EASYTLS_MV}" "${EASYTLS_TEMP_UPDATE}" "${target}" || \
-			die "universal_update - Move temp file over target"
-	else
-		return 1
-	fi
-} # => universal_update ()
 
 
 
