@@ -947,10 +947,10 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		EASYTLS_REQUIRE_VARS=1
 		case "${val}" in
-			-s|--source-vars)
-				unset -v EASYTLS_VARS_FILE ;;
-			*)
-				EASYTLS_VARS_FILE="${val}" ;;
+		-s|--source-vars)
+			unset -v EASYTLS_VARS_FILE ;;
+		*)
+			EASYTLS_VARS_FILE="${val}" ;;
 		esac
 	;;
 	-a|--allow-no-check)
