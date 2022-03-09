@@ -2762,6 +2762,7 @@ inline_index_update ()
 # Verify current inline-index hash
 inline_index_verify_hash ()
 {
+	# DISABLED
 	die "DISABLED inline_index_verify_hash"
 	[ -z "${inline_index_verify_hash_block}" ] || \
 		die "inline index verify hash must only run once"
@@ -2779,6 +2780,8 @@ inline_index_verify_hash ()
 # Save new inline-index hash
 inline_index_save_hash ()
 {
+	# DISABLED
+	die "DISABLED inline_index_save_hash"
 	[ -z "${inline_index_save_hash_block}" ] || \
 		die "inline index save hash must only run once"
 	request_fixed_hash=1
@@ -3271,6 +3274,7 @@ tlskey_index_update ()
 # Verify current tlskey-index hash
 tlskey_index_verify_hash ()
 {
+	# DISABLED
 	die "DISABLED tlskey_index_verify_hash"
 	[ -z "${tlskey_index_verify_hash_block}" ] || \
 		die "tlskey index verify hash must only run once"
@@ -3288,6 +3292,8 @@ tlskey_index_verify_hash ()
 # Save tlskey-index hash
 tlskey_index_save_hash ()
 {
+	# DISABLED
+	die "DISABLED tlskey_index_save_hash"
 	[ -z "${tlskey_index_save_hash_block}" ] || \
 		die "tlskey index save hash must only run once"
 	request_fixed_hash=1
