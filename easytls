@@ -6498,18 +6498,17 @@ interactive_build ()
 			interactive_question
 			ia_answer="${ia_answer:-$default}"
 			case "$ia_answer" in
-				Y|y|Yes|yes|YES)
-					build_and_inline=1
-					break
-				;;
-				N|n|No|no|NO)
-					"$EASYTLS_PRINTF" '\n%s\n' \
-						'  * TLS-Crypt-V2 Key built. Inline-file not created.'
-					break
-				;;
-				*)
-					: # Ignore
-				;;
+			Y|y|Yes|yes|YES)
+				build_and_inline=1
+				break
+			;;
+			N|n|No|no|NO)
+				"$EASYTLS_PRINTF" '\n%s\n' \
+					'  * TLS-Crypt-V2 Key built. Inline-file not created.'
+				break
+			;;
+			*)
+				: # Ignore
 			esac
 		done
 
@@ -6547,7 +6546,7 @@ interactive_build ()
 	4|5)	# Build TLS Crypt v2 Client
 
 		# shellcheck disable=SC2249 # (info): default *) case
-		case ${ia_answer} in
+		case "${ia_answer}" in
 		4)
 			"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 key for Client'
 			unset -v group_key
@@ -6634,18 +6633,17 @@ interactive_build ()
 			interactive_question
 			ia_answer="${ia_answer:-$default}"
 			case "$ia_answer" in
-				Y|y|Yes|yes|YES)
-					build_and_inline=1
-					break
-				;;
-				N|n|No|no|NO)
-					"$EASYTLS_PRINTF" '\n%s\n' \
-						'  * TLS-Crypt-V2 Key built. Inline-file not created.'
-					break
-				;;
-				*)
-					: # Ignore
-				;;
+			Y|y|Yes|yes|YES)
+				build_and_inline=1
+				break
+			;;
+			N|n|No|no|NO)
+				"$EASYTLS_PRINTF" '\n%s\n' \
+					'  * TLS-Crypt-V2 Key built. Inline-file not created.'
+				break
+			;;
+			*)
+				: # Ignore
 			esac
 		done
 
@@ -6711,7 +6709,7 @@ interactive_inline ()
   Select the type of Inline-file to build:'
 	interactive_question
 
-	case ${ia_answer} in
+	case "${ia_answer}" in
 	1|2)
 		# Inline TLS Auth Server|Client
 		cert_type='Client'
@@ -6832,7 +6830,7 @@ interactive_inline ()
 	6|7)	# Inline TLS Crypt v2 Client
 
 		# shellcheck disable=SC2249 # (info): default *) case
-		case ${ia_answer} in
+		case "${ia_answer}" in
 		6)
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				'* Create TLS-Crypt-v2 Client inline-file'
@@ -6975,16 +6973,15 @@ interactive_remove ()
 			interactive_question
 			ia_answer="${ia_answer:-$default}"
 			case "$ia_answer" in
-				Y|y|Yes|yes|YES)
-					remove_inline_and_tlskey=1
-					break
-				;;
-				N|n|No|no|NO)
-					break
-				;;
-				*)
-					: # Ignore
-				;;
+			Y|y|Yes|yes|YES)
+				remove_inline_and_tlskey=1
+				break
+			;;
+			N|n|No|no|NO)
+				break
+			;;
+			*)
+				: # Ignore
 			esac
 		done
 
@@ -7122,16 +7119,15 @@ interactive_remove ()
 			interactive_question
 			ia_answer="${ia_answer:-$default}"
 			case "$ia_answer" in
-				Y|y|Yes|yes|YES)
-					remove_inline_and_tlskey=1
-					break
-				;;
-				N|n|No|no|NO)
-					break
-				;;
-				*)
-					: # Ignore
-				;;
+			Y|y|Yes|yes|YES)
+				remove_inline_and_tlskey=1
+				break
+			;;
+			N|n|No|no|NO)
+				break
+			;;
+			*)
+				: # Ignore
 			esac
 		done
 
@@ -7262,16 +7258,15 @@ interactive_remove ()
 			interactive_question
 			ia_answer="${ia_answer:-$default}"
 			case "$ia_answer" in
-				Y|y|Yes|yes|YES)
-					remove_inline_and_tlskey=1
-					break
-				;;
-				N|n|No|no|NO)
-					break
-				;;
-				*)
-					: # Ignore
-				;;
+			Y|y|Yes|yes|YES)
+				remove_inline_and_tlskey=1
+				break
+			;;
+			N|n|No|no|NO)
+				break
+			;;
+			*)
+				: # Ignore
 			esac
 		done
 
@@ -7855,16 +7850,15 @@ interactive_selfsign_PW ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				EASYTLS_SS_PASSWORD=1
-				break
-			;;
-			N|n|No|no|NO)
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			EASYTLS_SS_PASSWORD=1
+			break
+		;;
+		N|n|No|no|NO)
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 
@@ -7986,13 +7980,12 @@ interactive_key_direction ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			0|1)
-				key_direction="$ia_answer"
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		0|1)
+			key_direction="$ia_answer"
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 	cmd_line="${cmd_line} $key_direction"
@@ -8014,17 +8007,16 @@ interactive_opt_no_key ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				break
-			;;
-			N|n|No|no|NO)
-				opt_no_key='no-key'
-				cmd_line="${cmd_line} no-key"
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			break
+		;;
+		N|n|No|no|NO)
+			opt_no_key='no-key'
+			cmd_line="${cmd_line} no-key"
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 } # => interactive_opt_no_key ()
@@ -8047,17 +8039,16 @@ interactive_opt_add_dh ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				opt_add_dh='add-dh'
-				cmd_line="${cmd_line} add-dh"
-				break
-			;;
-			N|n|No|no|NO)
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			opt_add_dh='add-dh'
+			cmd_line="${cmd_line} add-dh"
+			break
+		;;
+		N|n|No|no|NO)
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 } # => interactive_opt_add_dh ()
@@ -8112,17 +8103,16 @@ interactive_opt_no_md ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes)
-				break
-			;;
-			N|n|No|no)
-				opt_no_md='no-md'
-				cmd_line="${cmd_line} no-md"
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes)
+			break
+		;;
+		N|n|No|no)
+			opt_no_md='no-md'
+			cmd_line="${cmd_line} no-md"
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 } # => interactive_opt_no_md ()
@@ -8145,17 +8135,16 @@ interactive_opt_add_hw ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes)
-				opt_add_hw='add-hw'
-				cmd_line="${cmd_line} add-hw"
-				break
-			;;
-			N|n|No|no)
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes)
+			opt_add_hw='add-hw'
+			cmd_line="${cmd_line} add-hw"
+			break
+		;;
+		N|n|No|no)
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 } # => interactive_opt_add_hw ()
@@ -8408,16 +8397,15 @@ interactive_disabled_list ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				break
-			;;
-			N|n|No|no|NO)
-				opt_disable_list="-d"
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			break
+		;;
+		N|n|No|no|NO)
+			opt_disable_list="-d"
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 
@@ -8636,16 +8624,15 @@ interactive_client_connect ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				opt_client_connect=1
-				break
-			;;
-			N|n|No|no|NO)
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			opt_client_connect=1
+			break
+		;;
+		N|n|No|no|NO)
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 
@@ -8672,17 +8659,16 @@ interactive_script_security ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				opt_script_security=3
-				break
-			;;
-			N|n|No|no|NO)
-				opt_script_security=2
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			opt_script_security=3
+			break
+		;;
+		N|n|No|no|NO)
+			opt_script_security=2
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 
@@ -8709,16 +8695,15 @@ interactive_kill_client ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			Y|y|Yes|yes|YES)
-				opt_kill_client='-k'
-				break
-			;;
-			N|n|No|no|NO)
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		Y|y|Yes|yes|YES)
+			opt_kill_client='-k'
+			break
+		;;
+		N|n|No|no|NO)
+			break
+		;;
+		*)
+			: # Ignore
 		esac
 	done
 
@@ -8769,36 +8754,34 @@ interactive_hw_required ()
 		interactive_question
 		ia_answer="${ia_answer:-$default}"
 		case "$ia_answer" in
-			0)
-				opt_hw_required='-a'
-				break
-			;;
-			1)
-				opt_hw_required='-M'
-				break
-			;;
-			2)
-				break
-			;;
-			3)
-				opt_hw_required='-p'
-				break
-			;;
-			4)
-				opt_hw_required='-c'
-				break
-			;;
-			5)
-				opt_hw_required='-p -c'
-				break
-			;;
-			6)
-				opt_hw_required='-k'
-				break
-			;;
-			*)
-				: # Ignore
-			;;
+		0)
+			opt_hw_required='-a'
+			break
+		;;
+		1)
+			opt_hw_required='-M'
+			break
+		;;
+		2)
+			break
+		;;
+		3)
+			opt_hw_required='-p'
+			break
+		;;
+		4)
+			opt_hw_required='-c'
+			break
+		;;
+		5)
+			opt_hw_required='-p -c'
+			break
+		;;
+		6)
+			opt_hw_required='-k'
+			break
+		;;
+		*)	: # Ignore
 		esac
 	done
 
