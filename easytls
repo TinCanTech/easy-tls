@@ -2090,7 +2090,6 @@ status ()
 		*)
 			error_msg "Unknown status option"
 			return 1
-		;;
 		esac
 		return 0
 	fi
@@ -2378,7 +2377,6 @@ status_easytls_invalid ()
 			warn "EasyRSA duplicate records detected!"
 			[ $((mismatches)) -gt 1 ] || \
 				die "Error in mismatches: ${mismatches}"
-		;;
 		esac
 	done
 } # => status_easytls_invalid ()
@@ -2754,7 +2752,6 @@ inline_index_update ()
 	*)
 		error_msg "Unknown index action: ${update_index_action}"
 		return 1
-	;;
 	esac
 
 	easytls_verbose "Inline Index Update complete!"
@@ -3399,7 +3396,6 @@ verify_cert_serial ()
 	*)
 		error_msg "verify_cert_serial - Certificate style: ${EASYRSA_RAND_SN}"
 		return 1
-	;;
 	esac
 } # => verify_cert_serial ()
 
@@ -3431,7 +3427,6 @@ verify_tlskey_serial ()
 	*)
 		error_msg "verify_tlskey_serial - Unknown algorithm: ${EASYTLS_HASH_ALGO}"
 		return 1
-	;;
 	esac
 } # => verify_tlskey_serial ()
 
@@ -3675,9 +3670,9 @@ inline_base ()
 	# Do not unset these here because they are set be caller
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			no-key)	no_x509_key=1 ;;
-			add-dh)	inline_dh_file=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		no-key)	no_x509_key=1 ;;
+		add-dh)	inline_dh_file=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -3809,10 +3804,10 @@ inline_tls_auth ()
 	unset -v key_direction no_x509_key inline_dh_file
 	while [ -n "${1}" ]; do
 		case "${1}" in
-			0|1)	key_direction="${1}" ;;
-			no-key)	no_x509_key=1 ;;
-			add-dh)	inline_dh_file=1 ;;
-			*)		die "Unknown command option: '${1}'"
+		0|1)	key_direction="${1}" ;;
+		no-key)	no_x509_key=1 ;;
+		add-dh)	inline_dh_file=1 ;;
+		*)		die "Unknown command option: '${1}'"
 		esac
 		shift
 	done
@@ -4834,7 +4829,7 @@ build_tls_auth ()
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-auth" ;;
 	2.4) build_string="--secret" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	tlskey_file="${EASYTLS_PKI}/tls-auth.key"
@@ -4858,7 +4853,7 @@ build_tls_crypt_v1 ()
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-crypt" ;;
 	2.4) build_string="--secret" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	tlskey_file="${EASYTLS_PKI}/tls-crypt.key"
@@ -4883,7 +4878,7 @@ build_tls_crypt_v2_server ()
 	verify_openvpn
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-crypt-v2-server" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	srv_name="${1}"
@@ -4943,7 +4938,7 @@ build_tls_crypt_v2_client ()
 	verify_openvpn
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-crypt-v2-client" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	if [ -n "${EASYTLS_NO_CA}" ]; then
@@ -5115,7 +5110,7 @@ build_tls_cv2_group_server ()
 	verify_openvpn
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-crypt-v2-server" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	#grp_name="${1}-grp-srv"
@@ -5149,7 +5144,7 @@ build_tls_cv2_group_client ()
 	verify_openvpn
 	case "${openvpn_version}" in
 	2.5|2.6) build_string="tls-crypt-v2-client" ;;
-	*) die "Unsupported OpenVPN version ${openvpn_version}" ;;
+	*) die "Unsupported OpenVPN version ${openvpn_version}"
 	esac
 
 	srv_key_name="${1}"; shift
@@ -5984,7 +5979,6 @@ build_self_sign ()
 	;;
 	*)
 		die "Unknown certificate type: ${cert_type}"
-	;;
 	esac
 
 	# Verify Major version of openssl
@@ -6309,7 +6303,6 @@ disabled_list_manager ()
 		fi
 	;;
 	*) die "disabled-list action invalid: ${action}"
-	;;
 	esac
 
 	# Append sub-key-name
@@ -6440,7 +6433,7 @@ interactive_build ()
   Select the type of TLS-key to build:'
 	interactive_question
 
-	case ${ia_answer} in
+	case "${ia_answer}" in
 	1)	# Build TLS Auth
 		"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Auth key'
 		cmd_line="${cmd_line}-tls-auth"
@@ -6507,8 +6500,7 @@ interactive_build ()
 					'  * TLS-Crypt-V2 Key built. Inline-file not created.'
 				break
 			;;
-			*)
-				: # Ignore
+			*)	: # Ignore
 			esac
 		done
 
@@ -6554,7 +6546,6 @@ interactive_build ()
 		5)
 			"$EASYTLS_PRINTF" '\n%s\n' '* Build TLS-Crypt-V2 GROUP key for Client'
 			group_key=1
-		;;
 		esac
 
 		cmd_line="${cmd_line}-tls-crypt-v2-client"
@@ -6642,8 +6633,7 @@ interactive_build ()
 					'  * TLS-Crypt-V2 Key built. Inline-file not created.'
 				break
 			;;
-			*)
-				: # Ignore
+			*)	: # Ignore
 			esac
 		done
 
@@ -6682,7 +6672,6 @@ interactive_build ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
-	;;
 	esac
 } # => interactive_build ()
 
@@ -6840,8 +6829,8 @@ interactive_inline ()
 			"$EASYTLS_PRINTF" '\n%s\n' \
 				'* Create TLS-Crypt-v2 Client GROUP key inline-file'
 			group_key=1
-		;;
 		esac
+
 		"${EASYTLS_PRINTF}" '\n%s\n' ''
 		cmd_line="${cmd_line}-tls-crypt-v2"
 		cert_type="Client"
@@ -6980,8 +6969,7 @@ interactive_remove ()
 			N|n|No|no|NO)
 				break
 			;;
-			*)
-				: # Ignore
+			*)	: # Ignore
 			esac
 		done
 
@@ -7126,8 +7114,7 @@ interactive_remove ()
 			N|n|No|no|NO)
 				break
 			;;
-			*)
-				: # Ignore
+			*)	: # Ignore
 			esac
 		done
 
@@ -7265,8 +7252,7 @@ interactive_remove ()
 			N|n|No|no|NO)
 				break
 			;;
-			*)
-				: # Ignore
+			*)	: # Ignore
 			esac
 		done
 
@@ -7426,7 +7412,6 @@ interactive_remove ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
-	;;
 	esac
 } # => interactive_remove ()
 
@@ -7544,9 +7529,7 @@ interactive_remove_warning ()
   Inline file:
   * $inline_file"
 	;;
-	*)
-		die "Cannot issue a warning for unknown option: $1"
-	;;
+	*)	die "Cannot issue a warning for unknown option: $1"
 	esac
 } # => interactive_remove_warning ()
 
@@ -7729,7 +7712,6 @@ interactive_scripts ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
-	;;
 	esac
 
 } # => interactive_scripts ()
@@ -7771,7 +7753,6 @@ interactive_selfsign ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
-	;;
 	esac
 } # => interactive_selfsign ()
 
@@ -7857,8 +7838,7 @@ interactive_selfsign_PW ()
 		N|n|No|no|NO)
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 
@@ -7984,8 +7964,7 @@ interactive_key_direction ()
 			key_direction="$ia_answer"
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 	cmd_line="${cmd_line} $key_direction"
@@ -8015,8 +7994,7 @@ interactive_opt_no_key ()
 			cmd_line="${cmd_line} no-key"
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 } # => interactive_opt_no_key ()
@@ -8047,8 +8025,7 @@ interactive_opt_add_dh ()
 		N|n|No|no|NO)
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 } # => interactive_opt_add_dh ()
@@ -8111,8 +8088,7 @@ interactive_opt_no_md ()
 			cmd_line="${cmd_line} no-md"
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 } # => interactive_opt_no_md ()
@@ -8143,8 +8119,7 @@ interactive_opt_add_hw ()
 		N|n|No|no)
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 } # => interactive_opt_add_hw ()
@@ -8404,8 +8379,7 @@ interactive_disabled_list ()
 			opt_disable_list="-d"
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 
@@ -8527,9 +8501,7 @@ interactive_x509_method ()
 		'')	# default: off
 			break
 		;;
-		*)	# ERROR: Try again
-			:
-		;;
+		*)	: # ERROR: Try again
 		esac
 	done
 	easytls_verbose "Config: $opt_x509_method"
@@ -8564,9 +8536,7 @@ interactive_x509_method ()
 		'')	# default: off
 			break
 		;;
-		*)	# ERROR: Try again
-			:
-		;;
+		*)	: # ERROR: Try again
 		esac
 	done
 
@@ -8631,8 +8601,7 @@ interactive_client_connect ()
 		N|n|No|no|NO)
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 
@@ -8667,8 +8636,7 @@ interactive_script_security ()
 			opt_script_security=2
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 
@@ -8702,8 +8670,7 @@ interactive_kill_client ()
 		N|n|No|no|NO)
 			break
 		;;
-		*)
-			: # Ignore
+		*)	: # Ignore
 		esac
 	done
 
@@ -9543,9 +9510,7 @@ main ()
 			shift
 			continue
 		;;
-		*)
-			break
-		;;
+		*)	break
 		esac
 
 		# fatal error when no value was provided
@@ -9732,7 +9697,6 @@ main ()
 			#AUTO_CHECK_DISABLED=1
 			#easytls_verb_io off
 			break
-		;;
 		esac
 
 		# Master hash tests
@@ -9782,7 +9746,6 @@ main ()
 			AUTO_CHECK_DISABLED=1
 			skip_master_hash=1
 			break
-		;;
 		esac
 
 		# Verify me!
@@ -9931,7 +9894,6 @@ main ()
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
 					skip_master_hash=1
-				;;
 				esac # => No-CA mode
 			else
 				# CA mode
@@ -9954,12 +9916,9 @@ main ()
 				*)
 				print "Unknown command '${cmd}'. Run without commands for help."
 					skip_master_hash=1
-				;;
 				esac # CA mode
 			fi
-		;;
 		esac # case 2
-	;;
 	esac # case 1
 	break
 	done # 'while' wrapper
