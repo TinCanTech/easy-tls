@@ -910,13 +910,13 @@ deps ()
 
 	# Ensure that TLS expiry age is numeric
 	case "${TLSKEY_MAX_AGE}" in
-		''|*[!0-9]*) # Invalid value
-			die "Invalid value for --tls-age: ${TLSKEY_MAX_AGE}" 29
-		;;
-		*) # Valid value
-			# maximum age in seconds
-			tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
-		;;
+	''|*[!0-9]*) # Invalid value
+		die "Invalid value for --tls-age: ${TLSKEY_MAX_AGE}" 29
+	;;
+	*) # Valid value
+		# maximum age in seconds
+		tlskey_expire_age_sec=$((TLSKEY_MAX_AGE*60*60*24))
+	;;
 	esac
 
 	# Default CUSTOM_GROUP
@@ -979,10 +979,10 @@ while [ -n "${1}" ]; do
 		empty_ok=1
 		EASYTLS_REQUIRE_VARS=1
 		case "${val}" in
-			-s|--source-vars)
-				unset -v EASYTLS_VARS_FILE ;;
-			*)
-				EASYTLS_VARS_FILE="${val}" ;;
+		-s|--source-vars)
+			unset -v EASYTLS_VARS_FILE ;;
+		*)
+			EASYTLS_VARS_FILE="${val}" ;;
 		esac
 	;;
 	-g|--custom-group)
