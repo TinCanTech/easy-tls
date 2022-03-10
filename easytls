@@ -2240,8 +2240,8 @@ status ()
 				}
 		;;
 		ren|renewed)
-			silent_status=1
 		if [ -z "${auto_check}" ]; then
+			silent_status=1
 			status_easyrsa_valid || {
 				error_msg "status - renewed - status_easyrsa_valid"
 				return 1
@@ -2551,10 +2551,7 @@ status_easytls_invalid ()
 		fi
 
 		case "${mismatches}" in
-		0)
-			# No mismatches found
-			:
-		;;
+		0)	: ;; # No mismatches found
 		1)
 			revoked_mismatch_count=$((revoked_mismatch_count+1))
 			[ -n "${auto_check}" ] || status_invalid_inline_list
@@ -2600,8 +2597,7 @@ status_easyrsa_renewed ()
 		cert_serial="${extracted_cert_serial}"
 
 		if [ "${inline_serial}" = "${cert_serial}" ]; then
-			# serial match, inline is upto Date
-			:
+			: # serial match, inline is upto Date
 		else
 			# serial mismatch, cert has been renewed in EasyRSA
 			renewed_mismatch_count=$((renewed_mismatch_count+1))
@@ -2617,9 +2613,7 @@ status_easyrsa_renewed ()
 			fi
 		fi
 	else
-		# EasyRSA renew is broken
-		# cert is probably revoked
-		:
+		: # EasyRSA renew is broken, cert is probably revoked
 	fi
 	done # End of for loop
 } # => status_easyrsa_renewed ()
@@ -2668,6 +2662,7 @@ status_easytls_tlskeys ()
 status_disabled_list ()
 {
 	"${EASYTLS_CAT}" "${EASYTLS_DISABLED_LIST}"
+	easytls_verbose
 } # => status_disabled_list ()
 
 # Record status changes
@@ -2992,8 +2987,6 @@ x509_cert_serial ()
 		return 1
 		}
 	extracted_cert_serial="${certificate_serialNumber}"
-
-	#extracted_cert_serial="${extracted_cert_serial##serial=}"
 } # => x509_cert_serial ()
 
 # Check inline hash and Copy inline to stdout
@@ -3305,6 +3298,7 @@ remove_metadata ()
 # Rebuild inline index
 inline_index_rebuild ()
 {
+	# DISABLED_DELETE
 	# Temporarily disable
 	warn "inline_index_rebuild is currently disabled."
 	return 0
@@ -3425,7 +3419,6 @@ tlskey_cv2_client_serial_number ()
 		unset -v tlskey_serial
 		return 1
 		}
-
 	# Use the hash
 	tlskey_serial="${generated_valid_hash}"
 	unset -v force_hash generated_valid_hash
@@ -3815,8 +3808,7 @@ inline_base ()
 	fi
 
 	if [ -n "${no_x509_key}" ]; then
-		# Key file is not required
-		:
+		: # Key file is not required
 	else
 		# Key file is required
 		[ -f "${key_file}" ] || {
@@ -3947,8 +3939,7 @@ inline_tls_auth ()
 
 	# Determine key_direction
 	case "${key_direction}" in
-	0|1)
-		: ;; # User specified --key-direction
+	0|1) : ;; # User specified --key-direction
 	*)
 		# Use defaults - cert_purpose from inline_base()
 		case "${cert_purpose}" in
@@ -4869,8 +4860,7 @@ inline_share_fingerprint ()
 	if [ -f "${srv_fp_list}" ] && \
 		"${EASYTLS_GREP}" -q "${cli_fpr}" "${srv_fp_list}"
 	then
-		# Fingerprint is already added
-		:
+		: # Fingerprint is already added
 	else
 		{	[ ! -f "${srv_fp_list}" ] || "${EASYTLS_CAT}" "${srv_fp_list}"
 			print "# Peer-Client ${cli_name}"
@@ -6254,8 +6244,7 @@ save_id ()
 #
 
 # Manage easytls/disabled-list.txt - Used by easytls-cryptv2-verify.sh
-disabled_list_manager ()
-{
+disabled_list_manager () {
 	[ "$#" -ge 1 ] || die "Required option(s): disable|enable <NAME>"
 
 	dl_action="${1}"; shift
@@ -6366,8 +6355,7 @@ disabled_list_manager ()
 } # => disabled_list_manager ()
 
 # Verify current disable-list hash
-disabled_list_verify_hash ()
-{
+disabled_list_verify_hash () {
 	# DISABLED_DELETE
 	die "DISABLED disabled_list_verify_hash"
 	[ -z "${disabled_list_verify_hash_block}" ] || \
@@ -6384,8 +6372,7 @@ disabled_list_verify_hash ()
 } # => disabled_list_verify_hash ()
 
 # Save new disable-list hash
-disabled_list_save_hash ()
-{
+disabled_list_save_hash () {
 	# DISABLED_DELETE
 	die "DISABLED disabled_list_save_hash"
 	[ -z "${disabled_list_save_hash_block}" ] || \
@@ -8844,8 +8831,7 @@ automatic_no_ca ()
 
 # Generate list of files to hash
 # Use newline to delimit names to ignore spaces when read
-generate_master_list ()
-{
+generate_master_list () {
 	# If TLS has not been initialised then bail-out
 	[ -f "${EASYTLS_CONFIG_FILE}" ] || return 0
 
@@ -8931,8 +8917,7 @@ ${EASYTLS_DISABLED_LIST}"
 } # => generate_master_list ()
 
 # Master hash
-generate_master_hash ()
-{
+generate_master_hash () {
 	# Respect no file hash mode
 	if [ -n "${FILE_HASH_DISABLED}" ]; then
 		generated_master_hash="${fixed_hash}"
@@ -8971,8 +8956,7 @@ generate_master_hash ()
 } # => generate_master_hash ()
 
 # new_faster_hash way
-new_faster_hash ()
-{
+new_faster_hash () {
 	# DISABLED_DELETE
 	# Removed from from subshell but not required due to FILE_HASH_DISABLED
 	#if [ -n "${request_fixed_hash}" ]; then
@@ -9020,8 +9004,7 @@ new_faster_hash ()
 } # => new_faster_hash ()
 
 # old_faster_hash way
-old_faster_hash ()
-{
+old_faster_hash () {
 	# DISABLED_DELETE
 	# Removed from from subshell but not required due to FILE_HASH_DISABLED
 	#if [ -n "${request_fixed_hash}" ]; then
@@ -9063,8 +9046,7 @@ old_faster_hash ()
 } # => old_faster_hash ()
 
 # Save Master hash
-save_master_hash ()
-{
+save_master_hash () {
 	# To update Master hash update_master_hash MUST be set
 	[ -n "${update_master_hash}" ] || \
 		die "save_master_hash - Missing: update_master_hash"
@@ -9101,8 +9083,7 @@ save_master_hash ()
 } # => save_master_hash ()
 
 # Verify Master hash
-verify_master_hash ()
-{
+verify_master_hash () {
 	[ -z "${master_verify_hash_block}" ] || \
 		die "Master verify hash must only run once"
 	read_hash_file "${EASYTLS_FASTER_HASH}" || {
@@ -9139,8 +9120,7 @@ verify_master_hash ()
 
 # Fake function to assign variable values for SC2154
 # Todo: Replace set_var() with ="${x:-y}"
-shellcheck_ignore_2154 ()
-{
+shellcheck_ignore_2154 () {
 	die "Do not use this function"
 	EASYRSA_OPENSSL=
 	EASYRSA_INDEX=
@@ -9198,8 +9178,7 @@ shellcheck_ignore_2154 ()
 #
 
 # Ensure required external binaries can be found
-external_deps ()
-{
+external_deps () {
 	# Working directory
 	EASYTLS_work_dir="${PWD}"
 	delimiter='
@@ -9339,8 +9318,7 @@ external_deps ()
 # vars setup
 # Here sourcing of 'vars' if present occurs. If not present, defaults are used
 # to support running without a sourced config format
-vars_setup()
-{
+vars_setup() {
 	# Try to locate a 'vars' file in order of location preference.
 	# If one is found, source it
 	vars=
@@ -9422,23 +9400,15 @@ vars_setup()
 
 	set_var EASYTLS_VERIFY_V2_SH	"${EASYTLS}/easytls-cryptv2-verify.sh"
 	set_var EASYTLS_VERIFY_V2_VARS	"${EASYTLS}/easytls-cryptv2-verify.vars"
-	#set_var EASYTLS_VERIFY_V2_VEXM \
-	#	"${EASYTLS}/examples/easytls-cryptv2-verify.vars-example"
 
 	set_var EASYTLS_CLICON_SH		"${EASYTLS}/easytls-client-connect.sh"
 	set_var EASYTLS_CLICON_VARS		"${EASYTLS}/easytls-client-connect.vars"
-	#set_var EASYTLS_CLICON_VEXM \
-	#	"${EASYTLS}/examples/easytls-client-connect.vars-example"
 
 	set_var EASYTLS_CLIDIS_SH		"${EASYTLS}/easytls-client-disconnect.sh"
 	set_var EASYTLS_CLIDIS_VARS		"${EASYTLS}/easytls-client-disconnect.vars"
-	#set_var EASYTLS_CLIDIS_VEXM \
-	#	"${EASYTLS}/examples/easytls-client-disconnect.vars-example"
 
 	set_var EASYTLS_SRVSCRIPT_CFG   "${EASYTLS}/easytls-script.conf"
 	set_var EASYTLS_INSTRUCT_TEMP   "${EASYTLS}/easytls-script.help"
-	#set_var EASYTLS_SRVSCRIPT_VEXM \
-	#	"${EASYTLS}/examples/easytls-script.conf-example"
 
 	set_var EASYTLS_SS_AGE			"3650"
 	set_var EASYTLS_EC_CURVE		"secp384r1"
@@ -9448,8 +9418,7 @@ vars_setup()
 # variable assignment by indirection when undefined; merely exports
 # the variable when it is already defined (even if currently null)
 # Sets $1 as the value contained in $2 and exports (may be blank)
-set_var()
-{
+set_var() {
 	[ "$#" -eq 0 ] && return
 	var=$1
 	shift
@@ -9465,8 +9434,7 @@ set_var()
 #
 
 # Top level function
-main ()
-{
+main () {
 	EASYTLS_VERSION="2.8.0"
 
 	# Be secure with a restrictive umask
