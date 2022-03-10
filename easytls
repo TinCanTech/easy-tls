@@ -704,21 +704,11 @@ easytls_verbose () {
 	[ -n "${EASYTLS_VERBOSE}" ] || return 0
 	[ -z "${EASYTLS_SILENT}" ] || return 0
 	[ -z "${flash_config}" ] || return 0
+	[ -z "${EASYTLS_verboff}" ] || return 0
 	verbose_message="${*}"
 	[ -n "${verbose_message}" ] || { print ""; return 0; }
 	"${EASYTLS_PRINTF}" '%s\n' "* ${verbose_message}"
 } # => easytls_verbose ()
-
-# Verbose messages ON/OFF
-easytls_verb_io () {
-	case "${1}" in
-	on|On|ON)		EASYTLS_VERBOSE="${current_verb}"
-					unset -v current_verb ;;
-	off|Off|OFF)	current_verb="${EASYTLS_VERBOSE}"
-					unset -v EASYTLS_VERBOSE ;;
-	*) error_msg "easytls_verb_io: ${1}"; return 1
-	esac
-} # => easytls_verb_io ()
 
 # Configurable options
 easytls_config () {
@@ -1389,7 +1379,7 @@ Note:
 * To build your indexes and metadata files, you MUST create new TLS-Keys
   and inline files."
 	fi
-	easytls_verb_io off
+	EASYTLS_verboff=1
 } # => easytls_upgrade ()
 
 # Auto-check for invalid inline files
@@ -1864,9 +1854,11 @@ easytls_ssl_generate_empty_hash ()
 # Hash all files from master file-list
 ssl_generate_new_master_files_hash ()
 {
-	[ -n "${master_hash_only}" ] || return 1
-	"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" | \
-		"${EASYTLS_SED}" -e 's` .*``' || return 1
+	# DISABLE_DELETE
+	die "ssl_generate_new_master_files_hash"
+	#[ -n "${master_hash_only}" ] || return 1
+	#"${EASYRSA_OPENSSL}" dgst -"${EASYTLS_HASH_ALGO}" -r "$@" | \
+	#	"${EASYTLS_SED}" -e 's` .*``' || return 1
 } # => openssl_generate_data_hash ()
 
 # SSL data in via pipe hash output
@@ -6191,7 +6183,6 @@ generate_ca_identity ()
 # Collect CA Identity
 easytls_generate_ca_identity ()
 {
-	# needs pipefail ?
 	"${EASYTLS_PRINTF}" '%s' "${1}" | \
 		"${EASYTLS_SED}" -e 's/^.*=//g' -e 's/://g' || return 1
 } # => easytls_ca_identity ()
@@ -6221,12 +6212,12 @@ save_id ()
 	generate_ca_identity || die "save_id - generate_ca_identity"
 
 	# Add CA-ID to config
-	easytls_verb_io off
+	EASYTLS_verboff=1
 	save_id_authorized=1
 	# unset -v config_save_hash_block # Always allow save_id to update
 	easytls_config id "${ca_identity}" || die "save_id - easytls_config"
 	unset -v save_id_authorized #config_save_hash_block
-	easytls_verb_io on
+	unset EASYTLS_verboff
 
 	# Create CA-ID file - Legacy
 	"${EASYTLS_PRINTF}" "%s" "${ca_identity}" > "${EASYTLS_CA_IDENTITY}" || \
@@ -9570,14 +9561,14 @@ main () {
 		unset -v EASYTLS_SILENT
 		cmd_help "${1}" || die "cmd_help"
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	ver|version)
 		unset -v EASYTLS_SILENT
 		easytls_version || die "easytls_version"
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	vhw)
@@ -9589,7 +9580,7 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	vip)
@@ -9601,7 +9592,7 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	v4ip)
@@ -9613,7 +9604,7 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	x4ip)
@@ -9625,7 +9616,7 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	v6ip)
@@ -9637,7 +9628,7 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	x6ip)
@@ -9651,14 +9642,14 @@ main () {
 			exit 1
 		fi
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 		skip_master_hash=1
 	;;
 	# Do init before locking and update Master hash on exit
 	init|init-tls)
 		init_tls "$@" || die "init_tls"
 		AUTO_CHECK_DISABLED=1
-		easytls_verb_io off
+		EASYTLS_verboff=1
 	;;
 	*)
 		# Create lock-file - Does not require a time-out
@@ -9686,7 +9677,7 @@ main () {
 			unset -v FILE_HASH_DISABLED
 			easytls_upgrade "$@" || die "easytls_upgrade"
 			AUTO_CHECK_DISABLED=1
-			easytls_verb_io off
+			EASYTLS_verboff=1
 			break
 		esac
 
@@ -9708,10 +9699,7 @@ main () {
 		case "${cmd}" in
 		rehash)
 			# If hashes have unsynced
-			#unset -v FILE_HASH_DISABLED
 			easytls_rehash "$@" || die "easytls_rehash"
-			#AUTO_CHECK_DISABLED=1
-			#easytls_verb_io off
 			break
 		esac
 
