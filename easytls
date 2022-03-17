@@ -98,7 +98,6 @@ Use the 'help' command above to get full usage details.
   rgk    | remove-group-tlskey <client_filename_base> <Group-Name>
   ri     | remove-inline <filename_base>
   rgi    | remove-group-inline <Client-Name> <Group-Name>
-  rm     | remove-metadata <filename_base> pattern
   is     | inline-show <filename_base>
          | inline-index-rebuild
   ix     | inline-expire <filename_base>
@@ -261,12 +260,6 @@ cmd_help() {
 		rgi|rgil|remove-group-inline) text="
   remove-group-inline <Client-Name> <Group-Name>
       Delete <Client-Name>-<Group-Name>.inline and update the inline-index" ;;
-		rm|rmd|remove-metadata) text="
-  remove-metadata <filename_base> pattern
-      Remove inline-file metadata matching 'pattern' from <filename_base>.inline
-      and update the inline-index.
-      All metadata records start with '# metadata ' and only lines in this section
-      can be removed from the inline file." ;;
 		is|inline-show) text="
   inline-show <filename_base>
       Copy <filename_base>.inline to stdout" ;;
@@ -440,7 +433,6 @@ Easy-TLS abbreviations:
 
   remove-inline                    - ri | ril
   remove-group-inline              - rgi | rgil
-  remove-metadata                  - rm | rmd
   inline-show                      - is
   inline-expire                    - ix
   cert-expire                      - cx
@@ -3180,113 +3172,6 @@ remove_group_inline ()
 	easytls_verbose
 } # => remove_group_inline ()
 
-# Remove metadata from inline file
-remove_metadata ()
-{
-	[ "$#" -ge 1 ] || die "Required option(s): <filename_base>"
-
-	easytls_verbose
-	name="${1}"
-	shift # Scrape off name
-	inline_file="${EASYTLS_PKI}/${name}.inline"
-
-	[ "${TLSKEY_SUBNAME}" = 'NOSUBKEY' ] || {
-		inline_file="${EASYTLS_PKI}/${name}-${TLSKEY_SUBNAME}.inline"
-		}
-
-	[ -f "${inline_file}" ] || missing_file "${inline_file}"
-
-	tlskey_serial="$(inline_tlskey_serial)"
-	if "${EASYTLS_GREP}" -q "UV_TLSKEY_SERIAL ${tlskey_serial}" "${inline_file}"
-	then
-		: # OK
-	else
-		die "Missing: UV_TLSKEY_SERIAL ${tlskey_serial}"
-	fi
-
-	# Actual inline-file hash
-	force_hash=1
-	generate_and_validate_file_hash "${inline_file}" || {
-		error_msg "generate_and_validate_file_hash - remove_metadata"
-		error_msg "${inline_file}"
-		return 1
-		}
-
-	# Use the hash
-	verified_inline_hash="${generated_valid_hash}"
-	unset -v force_hash generated_valid_hash
-
-	# Remove client from inline index
-	known_inline_hash="${verified_inline_hash}"
-	inline_serial="$(inline_index_ilhash_to_serial)"
-	if inline_index_update del; then
-		: # OK
-	else
-		die "Failed to update inline-index"
-	fi
-
-	# Reset inline_index_save_hash_block, to add this inline back to the index
-	unset -v inline_index_save_hash_block inline_index_verify_hash_block
-
-	# Edit metadata
-	if [ -n "${1}" ]; then
-		while [ -n "${1}" ]; do
-			# Find metadata
-			if "${EASYTLS_GREP}" -q "^#[[:blank:]]metadata[[:blank:]].*${1}.*$" \
-				"${inline_file}"
-			then
-				# Delete metadata
-				easytls_verbose "Remove metadata for ${1}"
-				"${EASYTLS_SED}" -i \
-					-e "\\\^#[[:blank:]]metadata[[:blank:]].*${1}.*\$\\d" \
-						"${inline_file}"
-				metadata_updated=1
-			else
-				# Not found
-				print "Missing metadata for ${1}"
-			fi
-			shift
-		done
-	else
-		# Find metadata
-		if "${EASYTLS_GREP}" -q "^#[[:blank:]]metadata[[:blank:]].*$" \
-			"${inline_file}"
-		then
-			# Remove all metadata
-			easytls_verbose "Remove all metadata"
-			"${EASYTLS_SED}" -i \
-				-e "\\\^#[[:blank:]]metadata[[:blank:]].*\$\\d" \
-					"${inline_file}"
-			metadata_updated=1
-		else
-			# Not found
-			print "Missing metadata"
-		fi
-	fi
-
-	# Add client to inline-index
-	if inline_index_update add; then
-		: # OK
-	else
-		if [ -f "${EASYTLS_INLINE_INDEX}-deleted" ]; then
-			# Restore original inline-index
-			"${EASYTLS_RM}" -f "${EASYTLS_INLINE_INDEX}"
-			"${EASYTLS_MV}" "${EASYTLS_INLINE_INDEX}-deleted" \
-				"${EASYTLS_INLINE_INDEX}"
-			die "Failed to update inline-index"
-		fi
-	fi
-
-	if [ -n "${metadata_updated}" ]; then
-		notice "inline file updated"
-		#update_master_hash=1
-	else
-		notice "No changes"
-		#skip_master_hash=1
-	fi
-	easytls_verbose
-} # => remove_metadata ()
-
 # Rebuild inline index
 inline_index_rebuild ()
 {
@@ -3314,6 +3199,7 @@ tlskey_index_update ()
 	# Update
 	case "${tk_action}" in
 	add)
+		# Create the complete new_record
 		new_record="${tlskey_serial} ${cert_serial} ${cli_name} ${TLSKEY_SUBNAME}"
 		if universal_update add "${EASYTLS_TLSKEY_INDEX}" "${new_record}"; then
 			: # ok
@@ -3322,6 +3208,7 @@ tlskey_index_update ()
 		fi
 	;;
 	del)
+		# tlskey_serial is absolutely unique in tlskey-index
 		old_record="${tlskey_serial}[[:blank:]]${cert_serial}[[:blank:]].*"
 		if universal_update del "${EASYTLS_TLSKEY_INDEX}" "${old_record}"; then
 			: # ok
@@ -9863,9 +9750,6 @@ main () {
 		;;
 		rgt|rgk|rgtk|remove-group-tlskey)
 			remove_group_tlskey "$@" || die "remove_group_tlskey"
-		;;
-		rm|rmd|remove-metadata)
-			remove_metadata "$@" || die "remove_metadata"
 		;;
 		ix|inline-expire)
 			inline_expire "$@" || die "inline_expire"
