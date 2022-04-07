@@ -6813,7 +6813,6 @@ interactive_remove ()
   [6] TLS-Crypt-V2 Server key
   [7] TLS-Crypt-V1 key
   [8] TLS-Auth key
-  [9] Client Inline TLS-Crypt-V2 metadata
 
   Select the type of file to remove:'
 	interactive_question
@@ -6859,6 +6858,8 @@ interactive_remove ()
 		# save me! - Changes have been made
 		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
+		# Unset master_save_hash_block, master hash must run again on exit
+		unset -v master_save_hash_block
 
 		# Request remove_tlskey
 		default='Y'
@@ -7004,6 +7005,8 @@ interactive_remove ()
 		# save me! - Changes have been made
 		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
+		# Unset master_save_hash_block, master hash must run again on exit
+		unset -v master_save_hash_block
 
 		# Request remove_tlskey
 		default='Y'
@@ -7141,6 +7144,8 @@ interactive_remove ()
 		# save me! - Changes have been made
 		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
+		# Unset master_save_hash_block, master hash must run again on exit
+		unset -v master_save_hash_block
 
 		# Request remove_tlskey
 		cmd_line="remove-tlskey $opt_name"
@@ -7288,38 +7293,6 @@ interactive_remove ()
 		unset -v require_batch
 
 		"$EASYTLS_PRINTF" '\n%s\n' "  * TLS-Auth key removed: $key_file"
-	;;
-	9)	# inline metadata
-		"$EASYTLS_PRINTF" '\n%s\n' '* Remove TLS-Crypt-v2 Client inline-metadata'
-		cmd_line="${cmd_line}-metadata"
-
-		# Set commonName
-		opt_name=""
-		cert_type='Client'
-		interactive_common_name
-		opt_name="$common_name"
-		inline_file="${EASYTLS_PKI}/${opt_name}.inline"
-
-		# Set option --sub-key-name
-		interactive_sub_key_name
-
-		# pattern
-		interactive_metadata_pattern
-
-		# Print command
-		interactive_show_cmd
-
-		# Enable internal require_batch
-		require_batch=1
-
-		# Remove .inline
-		remove_metadata "$opt_name" "${opt_pattern}" || {
-			error_msg '**Remove metadata failed'
-			return 1
-			}
-
-		# Disable internal require_batch
-		unset -v require_batch
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
