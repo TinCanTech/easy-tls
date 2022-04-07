@@ -525,12 +525,8 @@ error_msg () {
 		error_log="${error_log:-ERROR:}
 ${1}"
 	else
-		if [ -n "${error_log}" ];then
-			print "${error_log}"
-			print
-		else
-			print "missing error_log"
-		fi
+		print "Error log: ${error_log}"
+		print
 	fi
 } # => error_msg ()
 
@@ -6387,6 +6383,8 @@ interactive_build ()
 		# save me! - Changes have been made
 		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
+		# Unset master_save_hash_block, master hash must run again on exit
+		unset -v master_save_hash_block
 
 		# Request inline
 		cmd_line="inline-tls-crypt-v2 $opt_server_name"
@@ -6520,6 +6518,8 @@ interactive_build ()
 		# save me! - Changes have been made
 		update_master_hash=1
 		save_master_hash || die "Master hash save failed"
+		# Unset master_save_hash_block, master hash must run again on exit
+		unset -v master_save_hash_block
 
 		# Request inline
 		cmd_line="inline-tls-crypt-v2 $opt_client_name"
@@ -9244,7 +9244,7 @@ vars_setup() {
 
 	# Set defaults, preferring existing env-vars if present
 	set_var
-	set_var EASYRSA					"$prog_dir"
+	set_var EASYRSA					"$PWD"
 	set_var EASYRSA_PKI				"${EASYRSA}/pki"
 	set_var EASYRSA_TEMP_DIR		"$EASYRSA_PKI"
 	set_var EASYRSA_INDEX			"$EASYRSA_PKI/index.txt"
