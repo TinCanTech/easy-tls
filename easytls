@@ -1832,7 +1832,7 @@ easytls_ssl_generate_empty_hash ()
 {
 	error_out="easytls_ssl_generate_empty_hash - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+		[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_generate_empty_hash
 		)" || { error_msg "${error_out}"; return 1; }
 	empty_hash="${ssl_out% *}"
@@ -1876,7 +1876,7 @@ easytls_ssl_generate_file_hash ()
 	else
 		error_out="easytls_ssl_generate_file_hash - ssl_out"
 		ssl_out="$(
-			unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 			ssl_generate_file_hash "${1}"
 			)" || { error_msg "${error_out}"; return 1; }
 		generated_file_hash="${ssl_out% *}"
@@ -1905,7 +1905,7 @@ easytls_ssl_generate_data_hash ()
 	else
 		error_out="easytls_ssl_generate_data_hash - ssl_out"
 		ssl_out="$(
-			unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 			"${EASYTLS_PRINTF}" '%s' "$1" | ssl_generate_data_hash
 			)" || { error_msg "${error_out}"; return 1; }
 		generated_data_hash="${ssl_out% *}"
@@ -1927,7 +1927,7 @@ easytls_ssl_encode_base64_data ()
 {
 	error_out="easytls_ssl_encode_base64_data - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+		[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		"${EASYTLS_PRINTF}" '%s' "$1" | ssl_encode_base64_data
 		)" || { error_msg "${error_out}"; return 1; }
 	generated_base64="${ssl_out}"
@@ -1948,7 +1948,7 @@ easytls_ssl_cert_expire_date ()
 {
 	error_out="easytls_ssl_cert_expire_date - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_cert_expire_date "${1}"
 		)" || { error_msg "${error_out}"; return 1; }
 	certificate_expire_date="${ssl_out#*=}"
@@ -1969,7 +1969,7 @@ easytls_ssl_cert_purpose ()
 {
 	error_out="easytls_ssl_cert_purpose - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_cert_purpose "${1}"
 		)" || { error_msg "${error_out}"; return 1; }
 	certificate_purpose_list="${ssl_out}"
@@ -1990,7 +1990,7 @@ easytls_ssl_generate_fingerprint ()
 {
 	error_out="easytls_ssl_generate_fingerprint - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_generate_fingerprint "${1}"
 		)" || { error_msg "${error_out}"; return 1; }
 	certificate_fingerPrint="${ssl_out#*=}"
@@ -2011,7 +2011,7 @@ easytls_ssl_cert_serial ()
 {
 	error_out="easytls_ssl_cert_serial - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_cert_serial "${1}"
 		)" || { error_msg "${error_out}"; return 1; }
 	certificate_serialNumber="${ssl_out#*=}"
@@ -2034,7 +2034,7 @@ easytls_ssl_crt_common_name ()
 {
 	error_out="easytls_ssl_crt_common_name - ssl_out"
 	ssl_out="$(
-		unlock_ssl=1
+			[ -z "$unlock_ssl" ] && unlock_ssl=1 || return 1
 		ssl_crt_common_name "${1}"
 		)" || { error_msg "${error_out}"; return 1; }
 	certificate_commonName="${ssl_out#*commonName = }"
@@ -6583,6 +6583,7 @@ interactive_build ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+		skip_master_hash=1
 	esac
 } # => interactive_build ()
 
@@ -6790,6 +6791,7 @@ interactive_inline ()
 	;;
 	*)	# Other value -> Quit
 		"${EASYTLS_PRINTF}" '\n%s\n' '  Quit!'
+		skip_master_hash=1
 	esac
 } # => interactive_inline ()
 
@@ -7296,6 +7298,7 @@ interactive_remove ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+		skip_master_hash=1
 	esac
 } # => interactive_remove ()
 
@@ -7596,8 +7599,8 @@ interactive_scripts ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+		skip_master_hash=1
 	esac
-
 } # => interactive_scripts ()
 
 # Inter-active self-sign menu
@@ -7637,6 +7640,7 @@ interactive_selfsign ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
+		skip_master_hash=1
 	esac
 } # => interactive_selfsign ()
 
