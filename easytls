@@ -7545,7 +7545,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" ' %s'  "'"
 			[ -n "${EASYTLS_FOR_WINDOWS}" ] && "$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 			"$EASYTLS_PRINTF" '%s'   "$EASYTLS_VERIFY_V2_SH"
-			"$EASYTLS_PRINTF" ' %s'  "-l=${EASYTLS_VERIFY_V2_VARS}"
+			"$EASYTLS_PRINTF" ' %s'  "-s=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
 			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
@@ -7566,7 +7566,7 @@ interactive_scripts ()
 				[ -n "${EASYTLS_FOR_WINDOWS}" ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLICON_SH} -v"
-				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLICON_VARS}"
+				"$EASYTLS_PRINTF" ' %s' "-s=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
@@ -7578,7 +7578,7 @@ interactive_scripts ()
 				[ -n "${EASYTLS_FOR_WINDOWS}" ] && \
 					"$EASYTLS_PRINTF" "%s " "$EASYTLS_SH_EXE"
 				"$EASYTLS_PRINTF" '%s' "${EASYTLS_CLIDIS_SH} -v"
-				"$EASYTLS_PRINTF" ' %s' "-l=${EASYTLS_CLIDIS_VARS}"
+				"$EASYTLS_PRINTF" ' %s' "-s=${EASYTLS_CLIDIS_VARS}"
 				"$EASYTLS_PRINTF" '%s\n' "'"
 				}
 
