@@ -7548,7 +7548,7 @@ interactive_scripts ()
 			"$EASYTLS_PRINTF" ' %s'  "-s=${EASYTLS_VERIFY_V2_VARS}"
 			[ "$opt_no_ca" ]       && "$EASYTLS_PRINTF" ' %s' "${opt_no_ca}"
 			"$EASYTLS_PRINTF" ' %s'  "-c=${opt_ca_path}"
-			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_customg}"
+			[ "$opt_customg" ]      && "$EASYTLS_PRINTF" ' %s' "-g=${opt_customg}"
 			[ "$opt_hashalgo" ]     && "$EASYTLS_PRINTF" ' %s' "${opt_hashalgo}"
 			#[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
 			#[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
@@ -8215,7 +8215,6 @@ interactive_custom_group ()
 			# Otherwise, the Custom-Group is what-ever is configured
 			cmd_line="--custom-group=${opt_customg} ${cmd_line}"
 			export TLSKEY_CUSTOM_GRP="${opt_customg}"
-			opt_customg="-g=${opt_customg}"
 		fi
 	easytls_verbose "Config: $opt_customg"
 } # => interactive_custom_group ()
