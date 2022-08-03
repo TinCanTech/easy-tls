@@ -6506,8 +6506,9 @@ interactive_build ()
 		require_batch=1
 
 		# Build key
+		# shellcheck disable=SC2086 # Require word split: opt_hardware_list
 		"${easytls_cmd}" "$opt_server_name" "$opt_client_name" \
-			"${opt_hardware}" || {
+			${opt_hardware_list} || {
 				error_msg '**Build TLS-CryptV2 Client key failed'
 				return 1
 				}
@@ -8051,9 +8052,12 @@ interactive_hwaddr ()
 		# Verify valid HWADDR
 		interactive_filter_address_check "$ia_answer" || return 1
 
-		# Add this HWADDR to the list
-		opt_hardware="$opt_hardware $ia_answer"
-		ia_question_text="Current list: $opt_hardware
+		# Single address
+		opt_hardware="$ia_answer"
+
+		# Add this address to the list
+		opt_hardware_list="$opt_hardware $opt_hardware_list"
+		ia_question_text="Current list: $opt_hardware_list
 
   Enter a single filter-address or leave blank to continue:"
 	done
@@ -8078,7 +8082,7 @@ interactive_filter_address_check ()
 		unset -v valid_octets mask_len md_temp_addr
 		EASYTLS_TLSCV2_HWLIST="${EASYTLS_TLSCV2_HWLIST} ${md_temp_addr}"
 	else
-		die "Invalid Address: ${md_temp_addr}"
+		die "Invalid Address: '${md_temp_addr}'"
 	fi
 } # => interactive_filter_address_check ()
 
