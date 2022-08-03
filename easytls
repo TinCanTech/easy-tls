@@ -7601,7 +7601,7 @@ interactive_scripts ()
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
 	esac
 
-	# Do not update master hash - No changes have been madde
+	# Do not update master hash - No changes have been made
 	skip_master_hash=1
 } # => interactive_scripts ()
 
@@ -8615,7 +8615,7 @@ interactive_hw_required ()
 			break
 		;;
 		1)
-			opt_hw_required='-M'
+			opt_hw_required='-m'
 			break
 		;;
 		2)
