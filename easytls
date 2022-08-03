@@ -7599,8 +7599,10 @@ interactive_scripts ()
 	;;
 	*)	# Other value -> Quit
 		"$EASYTLS_PRINTF" '\n%s\n' '  Quit!'
-		skip_master_hash=1
 	esac
+
+	# Do not update master hash - No changes have been madde
+	skip_master_hash=1
 } # => interactive_scripts ()
 
 # Inter-active self-sign menu
