@@ -7507,7 +7507,7 @@ interactive_scripts ()
 			[ -z "${opt_no_ca}" ] || xdprint "EASYTLS_NO_CA=1"
 			xdprint "LOCAL_CUSTOM_G=\"${opt_customg}\""
 			[ -z "${X509_METHOD}" ] || xaprint "X509_METHOD=${X509_METHOD}"
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
+			xdprint "EASYTLS_tmp_dir=\"${opt_tmp_dir}\""
 		} > "${EASYTLS_VERIFY_V2_VARS}" || die "Failed to create vars file"
 
 		{	# easytls-client-connect.vars
@@ -7521,7 +7521,7 @@ interactive_scripts ()
 			xaprint "#key_hwaddr_required=1"
 			xaprint "ENABLE_CONN_TRAC=1"
 			xaprint "VERBOSE_CONN_TRAC=1"
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
+			xdprint "EASYTLS_tmp_dir=\"${opt_tmp_dir}\""
 		} > "${EASYTLS_CLICON_VARS}" || die "Failed to create vars file"
 
 		{	# easytls-client-disconnect.vars
@@ -7529,15 +7529,15 @@ interactive_scripts ()
 			xaprint "EASYTLS_VERBOSE=1"
 			xaprint "ENABLE_CONN_TRAC=1"
 			xaprint "VERBOSE_CONN_TRAC=1"
-			xdprint "EASYTLS_tmp_dir=\"${EASYTLS_tmp_dir}\""
+			xdprint "EASYTLS_tmp_dir=\"${opt_tmp_dir}\""
 		} > "${EASYTLS_CLIDIS_VARS}" || die "Failed to create vars file"
 
 		# Create config
 		{
 			# easytls-cryptv2-verify.sh
 			"$EASYTLS_PRINTF" '%s\n\n' '# Easy-TLS script configuration'
-			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${EASYTLS_tmp_dir}'"
-			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${EASYTLS_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tmp-dir '${opt_tmp_dir}'"
+			"$EASYTLS_PRINTF" '%s\n\n' "tls-export-cert '${opt_tmp_dir}'"
 			"$EASYTLS_PRINTF" '%s\n' \
 				'# If your clients have username/password then set this to level 3'
 			"$EASYTLS_PRINTF" '%s\n\n' "script-security ${opt_script_security}"
@@ -7553,7 +7553,7 @@ interactive_scripts ()
 			#[ "$opt_key_age" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_key_age}"
 			#[ "$opt_disable_list" ] && "$EASYTLS_PRINTF" ' %s' "${opt_disable_list}"
 			#[ "$opt_kill_client" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_kill_client}"
-			#[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+			#[ "$opt_tmp_dir" ]      && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 			[ "$opt_x509_method" ]  && "$EASYTLS_PRINTF" ' %s' "${opt_x509_method}"
 			[ "$opt_load_ca_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_load_ca_id}"
 			[ "$opt_preload_id" ]   && "$EASYTLS_PRINTF" ' %s' "${opt_preload_id}"
@@ -7569,7 +7569,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" ' %s' "-s=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
-				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "${opt_tmp_dir}"
+				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 
 			# easytls-client-disconnect.sh
 				"$EASYTLS_PRINTF" '%s\n' "'"
@@ -8333,12 +8333,12 @@ interactive_tmp_dir ()
 	if [ -n "${EASYTLS_FOR_WINDOWS}" ]
 	then
 		[ "${ans_tmp_dir}" = "${host_drv}/Windows/Temp" ] || {
-			opt_tmp_dir="-t=${ans_tmp_dir}"
+			opt_tmp_dir="${ans_tmp_dir}"
 			easytls_verbose "Config: $opt_tmp_dir"
 			}
 	else
 		[ "${ans_tmp_dir}" = "/tmp" ] || {
-			opt_tmp_dir="-t=${ans_tmp_dir}"
+			opt_tmp_dir="${ans_tmp_dir}"
 			easytls_verbose "Config: $opt_tmp_dir"
 			}
 	fi
