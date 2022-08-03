@@ -7491,6 +7491,9 @@ interactive_scripts ()
 			# -a|-p|-c|-k hardware requirements
 			interactive_hw_required
 
+			# -a|-p|-c|-k hardware requirements
+			interactive_ip_filter
+
 			# Kill-client mode
 			interactive_kill_client
 		fi
@@ -7519,6 +7522,7 @@ interactive_scripts ()
 			xaprint "#push_hwaddr_required=1"
 			xaprint "#crypt_v2_required=1"
 			xaprint "#key_hwaddr_required=1"
+			xaprint "#PEER_IP_MATCH=1"
 			xaprint "ENABLE_CONN_TRAC=1"
 			xaprint "VERBOSE_CONN_TRAC=1"
 			xdprint "EASYTLS_tmp_dir=\"${opt_tmp_dir}\""
@@ -7569,6 +7573,7 @@ interactive_scripts ()
 				"$EASYTLS_PRINTF" ' %s' "-s=${EASYTLS_CLICON_VARS}"
 				[ "$opt_hw_required" ] && \
 					"$EASYTLS_PRINTF" ' %s' "$opt_hw_required"
+				[ "$opt_ip_filter" ] && "$EASYTLS_PRINTF" ' %s' "-i"
 				[ "$opt_tmp_dir" ] && "$EASYTLS_PRINTF" ' %s' "-t=${opt_tmp_dir}"
 
 			# easytls-client-disconnect.sh
@@ -8566,6 +8571,39 @@ interactive_kill_client ()
 	easytls_verbose
 	easytls_verbose "Config: $opt_kill_client"
 } # => interactive_kill_client ()
+
+# Check for IP filter
+interactive_ip_filter ()
+{
+	unset -v opt_ip_filter
+	default='N'
+	ia_question_help="
+* Do you want to use client source-IP metadata filter ?
+
+  Leave this blank to use the default
+
+  * Default: $default"
+	ia_question_text='
+  Enter (y)es or (n)o:'
+	while :
+	do
+		interactive_question
+		ia_answer="${ia_answer:-$default}"
+		case "$ia_answer" in
+		Y|y|Yes|yes|YES)
+			opt_ip_filter=1
+			break
+		;;
+		N|n|No|no|NO)
+			break
+		;;
+		*)	: # Ignore
+		esac
+	done
+
+	easytls_verbose
+	#easytls_verbose "Config: $opt_script_security"
+} # => interactive_ip_filter ()
 
 # Set use of hardware-address required
 interactive_hw_required ()
