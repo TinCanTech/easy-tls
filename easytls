@@ -3644,24 +3644,7 @@ inline_base ()
 	name="${1}"
 	shift
 
-	# Not used when called from a function
-	# because functions do not pass any parameters, except name
-	# Do not unset these here because they are set be caller
-	while :; do
-		case "${1}" in
-			no-key)
-				no_x509_key=1 ;;
-			add-dh)
-				inline_dh_file=1 ;;
-			'')
-				# Ignore empty values
-				: ;;
-			*)
-				die "Unknown command option: '${1}'"
-		esac
-		[ $# = 0 ] && break
-		shift
-	done
+	# No options processing because 'no-key' and 'add-dh' are set by caller
 
 	if [ -n "${EASYTLS_NO_CA}" ]; then
 		cert_file="${EASYTLS_PKI}/${name}.crt"
