@@ -1145,12 +1145,19 @@ verify_tls_init () {
 
 # init-tls backend:
 init_tls () {
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		sha1|SHA1) EASYTLS_HASH_ALGO="SHA1" ;;
-		nc|noca|no-ca) EASYTLS_NO_CA=1 ;;
-		*) die "Unknown command option: '$1'"
+			sha1|SHA1)
+				EASYTLS_HASH_ALGO="SHA1" ;;
+			nc|noca|no-ca)
+				EASYTLS_NO_CA=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
@@ -3640,12 +3647,19 @@ inline_base ()
 	# Not used when called from a function
 	# because functions do not pass any parameters, except name
 	# Do not unset these here because they are set be caller
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		no-key)	no_x509_key=1 ;;
-		add-dh)	inline_dh_file=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			no-key)
+				no_x509_key=1 ;;
+			add-dh)
+				inline_dh_file=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
@@ -3773,13 +3787,21 @@ inline_tls_auth ()
 	shift
 
 	unset -v key_direction no_x509_key inline_dh_file
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		0|1)	key_direction="${1}" ;;
-		no-key)	no_x509_key=1 ;;
-		add-dh)	inline_dh_file=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			0|1)
+				key_direction="${1}" ;;
+			no-key)
+				no_x509_key=1 ;;
+			add-dh)
+				inline_dh_file=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
@@ -3868,12 +3890,19 @@ inline_tls_crypt_v1 ()
 	shift
 
 	unset -v no_x509_key inline_dh_file
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		no-key)	no_x509_key=1 ;;
-		add-dh)	inline_dh_file=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			no-key)
+				no_x509_key=1 ;;
+			add-dh)
+				inline_dh_file=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
@@ -4171,12 +4200,19 @@ inline_tls_cv2_group_server ()
 	file_name_stub="${name}-${group_key}"
 
 	unset -v no_x509_key inline_dh_file
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		no-key)	no_x509_key=1 ;;
-		add-dh)	inline_dh_file=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			no-key)
+				no_x509_key=1 ;;
+			add-dh)
+				inline_dh_file=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
@@ -4347,13 +4383,21 @@ inline_tls_cv2_group_client ()
 	file_name_stub="${name}-${group_key}"
 
 	unset -v no_x509_key add_hardware no_metadata
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		no-key)	no_x509_key=1 ;;
-		add-hw)	add_hardware=1 ;;
-		no-md)	no_metadata=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			no-key)
+				no_x509_key=1 ;;
+			add-hw)
+				add_hardware=1 ;;
+			no-md)
+				no_metadata=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
