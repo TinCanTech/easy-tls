@@ -3950,14 +3950,23 @@ inline_tls_crypt_v2 ()
 	shift
 
 	unset -v no_x509_key inline_dh_file add_hardware no_metadata
-	while [ -n "${1}" ]; do
+	while :; do
 		case "${1}" in
-		no-key)	no_x509_key=1 ;;
-		add-dh)	inline_dh_file=1 ;;
-		add-hw)	add_hardware=1 ;;
-		no-md)	no_metadata=1 ;;
-		*)		die "Unknown command option: '${1}'"
+			no-key)
+				no_x509_key=1 ;;
+			add-dh)
+				inline_dh_file=1 ;;
+			add-ip|add-hw|add-hardware)
+				add_hardware=1 ;;
+			no-md|no-metadata)
+				no_metadata=1 ;;
+			'')
+				# Ignore empty values
+				: ;;
+			*)
+				die "Unknown command option: '${1}'"
 		esac
+		[ $# = 0 ] && break
 		shift
 	done
 
