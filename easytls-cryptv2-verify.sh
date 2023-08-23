@@ -555,7 +555,7 @@ write_metadata_file ()
 			die "STALE_FILE_ERROR" 101
 		else
 			# Otherwise stack-up
-			"${EASYTLS_MV}" "${OPENVPN_METADATA_FILE}" \
+			"${EASYTLS_CP}" "${OPENVPN_METADATA_FILE}" \
 				"${client_md_file_stack}" || \
 					die "Failed to update client_md_file_stack" 89
 			update_status "Created client_md_file_stack"
