@@ -7480,12 +7480,12 @@ interactive_scripts ()
 
 		[ -f "$EASYTLS_VERIFY_V2_SH" ] || {
 			help_note='Download from: https://github.com/TinCanTech/easy-tls'
-			die "Required script missing: $EASYTLS_VERIFY_V2_SH"
+			warn "Required script missing: $EASYTLS_VERIFY_V2_SH"
 			}
 
 		[ -f "$EASYTLS_CLICON_SH" ] || {
 			help_note='Download from: https://github.com/TinCanTech/easy-tls'
-			die "Required script missing: $EASYTLS_CLICON_SH"
+			warn "Required script missing: $EASYTLS_CLICON_SH"
 			}
 
 		# no-ca mode - opt_no_ca='-z'
