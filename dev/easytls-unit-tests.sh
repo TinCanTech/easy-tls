@@ -118,7 +118,7 @@ warn() { printf "%s\n" "$*"; }
 
 build_test_pki ()
 {
-		for i in "build-ca nopass" \
+		for i in "--req-cn='easytls-unit-test' build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
 		"build-server-full s-auth nopass" \
@@ -576,7 +576,7 @@ EASYTLS_OPTS: ${EASYTLS_OPTS}
 "
 	fi
 
-	export EASYRSA_REQ_CN="easytls-unit-test"
+	#export EASYRSA_REQ_CN="easytls-unit-test"
 
 	# Setup EasyRSA
 	print "*** EASYRSA_PKI: $EASYRSA_PKI"
