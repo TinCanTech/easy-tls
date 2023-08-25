@@ -118,7 +118,8 @@ warn() { printf "%s\n" "$*"; }
 
 build_test_pki ()
 {
-		for i in "--req-cn='easytls-unit-test' build-ca nopass" \
+		for i in "make-safe-ssl" \
+		"--req-cn='easytls-unit-test' build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
 		"build-server-full s-auth nopass" \
