@@ -476,7 +476,7 @@ print "Zero errors"
 
 export EASYRSA_CERT_RENEW=1000
 
-build_easyrsa
+#build_easyrsa
 
 total_expected_errors=0
 subtot_1=0
