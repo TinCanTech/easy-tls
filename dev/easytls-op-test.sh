@@ -63,14 +63,17 @@ done
 
 cd "${etls_ut_dir_name}"
 
-dl_ossl3
+#dl_ossl3
 
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/easyrsa"
 curl -O "$CURL_TARGET" || exit 77
+
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/easy-rsa/master/easyrsa3/openssl-easyrsa.cnf"
 curl -O "$CURL_TARGET" || exit 77
+
 CURL_TARGET="https://raw.githubusercontent.com/TinCanTech/Prebuilt-OpenVPN/master/src/openvpn/openvpn"
 curl -O "$CURL_TARGET" || exit 77
+
 echo
 
 for f in ./easyrsa ./openssl-easyrsa.cnf ./openvpn
@@ -93,7 +96,8 @@ ls -l
 	export EASYTLS_OPENVPN="./openvpn"
 	printf "%s\n" "EASYTLS_OPENVPN=$EASYTLS_OPENVPN"
 
-	export EASYRSA_OPENSSL="./openssl"
+	#export EASYRSA_OPENSSL="./openssl"
+	export EASYRSA_OPENSSL="openssl"
 	printf "%s\n" "EASYRSA_OPENSSL=$EASYRSA_OPENSSL"
 
 	$EASYTLS_OPENVPN --version
