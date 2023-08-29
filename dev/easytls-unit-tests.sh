@@ -25,6 +25,43 @@ usage ()
 "
 }
 
+
+# Tools Version
+tools_version() {
+	print "
+OpenSSL command: ${OPENSSL_CMD}"
+	${INVOKE_OPTS} "${OPENSSL_CMD}" version || \
+		fail "${INVOKE_OPTS} ${OPENSSL_CMD} version ($exit_code)"
+
+	print "
+EasyRSA command: ${EASYRSA_CMD}"
+	${INVOKE_OPTS} "${EASYRSA_CMD}" version || \
+		fail "${INVOKE_OPTS} ${EASYRSA_CMD} version ($exit_code)"
+
+	print "
+EasyTLS command: ${EASYTLS_CMD}"
+	${INVOKE_OPTS} "${EASYTLS_CMD}" -V || \
+		fail "${INVOKE_OPTS} ${EASYTLS_CMD} -V ($exit_code)"
+
+	print "
+EasyTLS-cryptv2-verify command: ${TLSCV2V_CMD}"
+	${INVOKE_OPTS} "${TLSCV2V_CMD}" -V || exit_code=$?
+	[ $exit_code -eq 9 ] || \
+		fail "${INVOKE_OPTS} ${TLSCV2V_CMD} -V ($exit_code)"
+
+	print "
+EasyTLS-client-connect command: ${CLICON_CMD}"
+	${INVOKE_OPTS} "${CLICON_CMD}" -V || exit_code=$?
+	[ $exit_code -eq 9 ] || \
+		fail "${INVOKE_OPTS} ${CLICON_CMD} -V ($exit_code)"
+
+	print "
+EasyTLS-client-disconnect command: ${CLIDIS_CMD}"
+	${INVOKE_OPTS} "${CLIDIS_CMD}" -V || exit_code=$?
+	[ $exit_code -eq 9 ] || \
+		fail "${INVOKE_OPTS} ${CLIDIS_CMD} -V ($exit_code)"
+}
+
 fail ()
 {
 	print "$@"
@@ -118,7 +155,9 @@ warn() { printf "%s\n" "$*"; }
 
 build_test_pki ()
 {
-		for i in "--req-cn='easytls-unit-test' build-ca nopass" \
+		for i in \
+		"make-safe-ssl" \
+		"--req-cn='easytls-unit-test' build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
 		"build-server-full s-auth nopass" \
@@ -308,7 +347,7 @@ WORK_DIR="$(pwd)"
 UTMP_DIR="${WORK_DIR}/unit-test-tmp"
 rm -rf "${UTMP_DIR}"
 
-EASYRSA_CMD="./easyrsa"
+EASYRSA_CMD="${EASYRSA_CMD:-./easyrsa}"
 EASYRSA_OPTS="--batch"
 
 EASYTLS_CMD="./easytls"
@@ -384,10 +423,17 @@ else
 		export EASYTLS_OPENVPN=openvpn
 		export OPENVPN_CMD=openvpn
 	fi
+
+	export EASYRSA_OPENSSL="openssl"
+	export OPENSSL_CMD="openssl"
+
 fi
 
 # Invoke with user opts: eg. EASYTLS_SILENT=1
 INVOKE_OPTS=""
+
+# Version info
+tools_version
 
 # Test help
 print "TEST: All --help"
@@ -476,7 +522,7 @@ print "Zero errors"
 
 export EASYRSA_CERT_RENEW=1000
 
-build_easyrsa
+#build_easyrsa
 
 total_expected_errors=0
 subtot_1=0
@@ -614,11 +660,13 @@ elif [ -n "${EASYTLS_REMOTE_CI}" ]; then
 
 	# Update safessl-easyrsa.cnf
 	print "*** Update safessl-easyrsa.cnf - easyrsa init-pki"
-	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki
+	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki || fail "init-pki"
+
 	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch make-safe-ssl
 
 	cp -vf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./safessl-easyrsa.cnf || \
 		fail "(1) cp ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf ./safessl-easyrsa.cnf"
+
 	# Remove the temp PKI - Only require safessl-easyrsa.cnf
 	rm -rf "${WORK_DIR}/et-tdir${loops}"
 
@@ -1213,21 +1261,8 @@ DBUG_DIR="$WORK_DIR/et-tdir1/easytls/metadata"
 	#"$EASYTLS_CMD" $EASYTLS_OPTS version || \
 	#	fail "Unit test error 71: version"
 
-# Version
-${INVOKE_OPTS} "${EASYTLS_CMD}" -V || \
-	fail "${INVOKE_OPTS} ${EASYTLS_CMD} -V ($exit_code)"
-
-${INVOKE_OPTS} "${TLSCV2V_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || \
-	fail "${INVOKE_OPTS} ${TLSCV2V_CMD} -V ($exit_code)"
-
-${INVOKE_OPTS} "${CLICON_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || \
-	fail "${INVOKE_OPTS} ${CLICON_CMD} -V ($exit_code)"
-
-${INVOKE_OPTS} "${CLIDIS_CMD}" -V || exit_code=$?
-[ $exit_code -eq 9 ] || \
-	fail "${INVOKE_OPTS} ${CLIDIS_CMD} -V ($exit_code)"
+# Version info
+tools_version
 
 # Stats
 unset EASYTLS_QUIET
