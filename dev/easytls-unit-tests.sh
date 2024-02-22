@@ -673,7 +673,7 @@ elif [ -n "${EASYTLS_REMOTE_CI}" ]; then
 	then
 		: # ok
 	else
-		"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch write safe-cnf || fail "write safe-cnf"
+		"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch write safe-cnf "./et-tdir${loops}" || fail "write safe-cnf"
 	fi
 
 	cp -vf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./safessl-easyrsa.cnf || \
