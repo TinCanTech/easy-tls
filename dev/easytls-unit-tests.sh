@@ -662,7 +662,12 @@ elif [ -n "${EASYTLS_REMOTE_CI}" ]; then
 	print "*** Update safessl-easyrsa.cnf - easyrsa init-pki"
 	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch init-pki || fail "init-pki"
 
-	"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch make-safe-ssl
+	if "${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch make-safe-ssl
+	then
+		: # ok
+	else
+		"${EASYRSA_CMD}" --pki-dir="${WORK_DIR}/et-tdir${loops}" --batch write safe-cnf || fail "write safe-cnf"
+	fi
 
 	cp -vf "${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf" ./safessl-easyrsa.cnf || \
 		fail "(1) cp ${WORK_DIR}/et-tdir${loops}/safessl-easyrsa.cnf ./safessl-easyrsa.cnf"
