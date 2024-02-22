@@ -155,8 +155,15 @@ warn() { printf "%s\n" "$*"; }
 
 build_test_pki ()
 {
+		# safessl-easyrsa.cnfmust be in PKI for easytls-cryptv2-verify.sh
+		if [ "$EASYTLS_FOR_WINDOWS" ]; then
+			"$EASYRSA_CMD" $EASYRSA_OPTS make-safe-ssl
+		else
+			"$EASYRSA_CMD" $EASYRSA_OPTS write safe-cnf "$PKI_DIR" # ./et-tdir${loops}
+		fi
+		print "==>> safessl-easyrsa.cnf created in $PKI_DIR"
+
 		for i in \
-		"make-safe-ssl" \
 		"--req-cn='easytls-unit-test' build-ca nopass" \
 		"build-server-full s01 nopass" \
 		"build-server-full s02 nopass" \
