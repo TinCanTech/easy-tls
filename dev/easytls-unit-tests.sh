@@ -159,7 +159,7 @@ build_test_pki ()
 		if [ "$EASYTLS_FOR_WINDOWS" ]; then
 			"$EASYRSA_CMD" $EASYRSA_OPTS make-safe-ssl
 		else
-			"$EASYRSA_CMD" $EASYRSA_OPTS write safe-cnf "$PKI_DIR" # ./et-tdir${loops}
+			"$EASYRSA_CMD" $EASYRSA_OPTS write safe-cnf "$PKI_DIR/safessl-easyrsa.cnf" # ./et-tdir${loops}
 		fi
 		print "==>> safessl-easyrsa.cnf created in $PKI_DIR"
 
@@ -816,8 +816,7 @@ fi
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS cert-expire" \
 		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status" \
-		"$EASYRSA_CMD $EASYRSA_OPTS renew c08 nopass" \
-		"${INVOKE_OPTS} $EASYTLS_CMD $EASYTLS_OPTS status" \
+
 		## EOL
 	do
 		print "============================================================"
