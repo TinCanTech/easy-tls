@@ -1108,6 +1108,12 @@ verify_openvpn () {
 
 # Verify Openssl is available
 verify_openssl () {
+	# Check for file exists
+	if [ ! -f "${EASYRSA_OPENSSL}" ]; then
+		print "Missing OpenSSL binary: ${EASYRSA_OPENSSL}"
+		return 1
+	fi
+
 	# extract openssl version
 	openssl_full_version="$("${EASYRSA_OPENSSL}" version)"
 	openssl_version="${openssl_full_version#* }"
@@ -1118,9 +1124,10 @@ verify_openssl () {
 	esac
 
 	openssl_version="${openssl_version%% *}"
+	easytls_verbose "openssl_version: ${openssl_version}"
 	[ "${#openssl_version}" -lt 4 ] || openssl_version="${openssl_version%.*}"
 	case "${openssl_version}" in
-	3.0|3.1|3.2|3.3) openssl_version=3 ;;
+	3.?) openssl_version=3 ;;
 	1.1) openssl_version=1 ;;
 	*) die "Unsupported OpenSSL version: ${openssl_version}"
 	esac
@@ -9516,6 +9523,7 @@ main () {
 	;;
 	ver|version)
 		unset -v EASYTLS_SILENT
+		[ "$EASYTLS_VERBOSE" ] && verify_openssl
 		easytls_version || die "easytls_version"
 		AUTO_CHECK_DISABLED=1
 		EASYTLS_verboff=1
