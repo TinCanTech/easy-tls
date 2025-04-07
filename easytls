@@ -1108,12 +1108,6 @@ verify_openvpn () {
 
 # Verify Openssl is available
 verify_openssl () {
-	# Check for file exists
-	if [ ! -f "${EASYRSA_OPENSSL}" ]; then
-		print "Missing OpenSSL binary: ${EASYRSA_OPENSSL}"
-		return 1
-	fi
-
 	# extract openssl version
 	openssl_full_version="$("${EASYRSA_OPENSSL}" version)"
 	openssl_version="${openssl_full_version#* }"
